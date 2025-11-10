@@ -1,4 +1,6 @@
-import { Box } from '@mui/material'
+import { Box, IconButton, Tooltip } from '@mui/material'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import React, { useState } from 'react'
 import PlaybookZone from '../zones/PlaybookZone'
 import VarsZone from '../zones/VarsZone'
@@ -22,6 +24,8 @@ const MainLayout = () => {
   const [isResizingSystem, setIsResizingSystem] = useState(false)
   const [isResizingModules, setIsResizingModules] = useState(false)
   const [isResizingConfig, setIsResizingConfig] = useState(false)
+  const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
+  const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -116,48 +120,50 @@ const MainLayout = () => {
         }}
       >
         {/* Zone Modules - Gauche redimensionnable */}
-        <Box
-          sx={{
-            width: `${modulesZoneWidth}px`,
-            borderRight: '1px solid #ddd',
-            flexShrink: 0,
-            overflow: 'auto',
-            position: 'relative',
-          }}
-        >
-          <ModulesZone />
-          {/* Poignée de redimensionnement */}
+        {!isModulesCollapsed && (
           <Box
-            onMouseDown={handleModulesMouseDown}
             sx={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: '6px',
-              cursor: 'ew-resize',
-              bgcolor: isResizingModules ? 'primary.main' : 'transparent',
-              '&:hover': {
-                bgcolor: 'primary.light',
-              },
-              transition: 'background-color 0.2s',
-              zIndex: 10,
+              width: `${modulesZoneWidth}px`,
+              borderRight: '1px solid #ddd',
+              flexShrink: 0,
+              overflow: 'auto',
+              position: 'relative',
             }}
           >
+            <ModulesZone onCollapse={() => setIsModulesCollapsed(true)} />
+            {/* Poignée de redimensionnement */}
             <Box
+              onMouseDown={handleModulesMouseDown}
               sx={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '3px',
-                height: '40px',
-                borderRadius: '2px',
-                bgcolor: isResizingModules ? 'white' : '#999',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: '6px',
+                cursor: 'ew-resize',
+                bgcolor: isResizingModules ? 'primary.main' : 'transparent',
+                '&:hover': {
+                  bgcolor: 'primary.light',
+                },
+                transition: 'background-color 0.2s',
+                zIndex: 10,
               }}
-            />
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '3px',
+                  height: '40px',
+                  borderRadius: '2px',
+                  bgcolor: isResizingModules ? 'white' : '#999',
+                }}
+              />
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* Zone de Travail - Centre */}
         <Box
@@ -165,54 +171,99 @@ const MainLayout = () => {
             flex: 1,
             overflow: 'auto',
             minWidth: 0,
+            position: 'relative',
           }}
         >
+          {/* Bouton pour rouvrir la zone Modules */}
+          {isModulesCollapsed && (
+            <Tooltip title="Show Modules" placement="right">
+              <IconButton
+                onClick={() => setIsModulesCollapsed(false)}
+                sx={{
+                  position: 'absolute',
+                  top: 70,
+                  left: 8,
+                  zIndex: 1000,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2,
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
+                }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+          {/* Bouton pour rouvrir la zone Config */}
+          {isConfigCollapsed && (
+            <Tooltip title="Show Configuration" placement="left">
+              <IconButton
+                onClick={() => setIsConfigCollapsed(false)}
+                sx={{
+                  position: 'absolute',
+                  top: 70,
+                  right: 8,
+                  zIndex: 1000,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2,
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
+                }}
+              >
+                <ChevronLeftIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           <WorkZone onSelectModule={setSelectedModule} selectedModuleId={selectedModule?.id || null} />
         </Box>
 
         {/* Zone Config - Droite redimensionnable */}
-        <Box
-          sx={{
-            width: `${configZoneWidth}px`,
-            borderLeft: '1px solid #ddd',
-            flexShrink: 0,
-            overflow: 'auto',
-            position: 'relative',
-          }}
-        >
-          {/* Poignée de redimensionnement */}
+        {!isConfigCollapsed && (
           <Box
-            onMouseDown={handleConfigMouseDown}
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: '6px',
-              cursor: 'ew-resize',
-              bgcolor: isResizingConfig ? 'primary.main' : 'transparent',
-              '&:hover': {
-                bgcolor: 'primary.light',
-              },
-              transition: 'background-color 0.2s',
-              zIndex: 10,
+              width: `${configZoneWidth}px`,
+              borderLeft: '1px solid #ddd',
+              flexShrink: 0,
+              overflow: 'auto',
+              position: 'relative',
             }}
           >
+            {/* Poignée de redimensionnement */}
             <Box
+              onMouseDown={handleConfigMouseDown}
               sx={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '3px',
-                height: '40px',
-                borderRadius: '2px',
-                bgcolor: isResizingConfig ? 'white' : '#999',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '6px',
+                cursor: 'ew-resize',
+                bgcolor: isResizingConfig ? 'primary.main' : 'transparent',
+                '&:hover': {
+                  bgcolor: 'primary.light',
+                },
+                transition: 'background-color 0.2s',
+                zIndex: 10,
               }}
-            />
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '3px',
+                  height: '40px',
+                  borderRadius: '2px',
+                  bgcolor: isResizingConfig ? 'white' : '#999',
+                }}
+              />
+            </Box>
+            <ConfigZone selectedModule={selectedModule} onCollapse={() => setIsConfigCollapsed(true)} />
           </Box>
-          <ConfigZone selectedModule={selectedModule} />
-        </Box>
+        )}
       </Box>
 
       {/* Zone System - Barre basse redimensionnable */}

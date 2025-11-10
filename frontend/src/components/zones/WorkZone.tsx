@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material'
+import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Tabs, Tab, Button, Chip } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import GridOffIcon from '@mui/icons-material/GridOff'
@@ -6,6 +6,8 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import AddIcon from '@mui/icons-material/Add'
+import CloseIcon from '@mui/icons-material/Close'
 import React, { useState, useRef } from 'react'
 
 interface ModuleBlock {
@@ -18,6 +20,7 @@ interface ModuleBlock {
   y: number
   isBlock?: boolean // Indique si c'est un block conteneur
   isPlay?: boolean // Indique si c'est un PLAY (racine de généalogie)
+  inventory?: string // Inventaire spécifique au PLAY
   children?: string[] // IDs des tâches dans la section normale (deprecated - use blockSections)
   blockSections?: {
     normal: string[]    // IDs des tâches dans la section normale
@@ -37,6 +40,19 @@ interface Link {
   type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' // Type de lien
 }
 
+interface PlayVariable {
+  key: string
+  value: string
+}
+
+interface Play {
+  id: string
+  name: string
+  modules: ModuleBlock[]
+  links: Link[]
+  variables: PlayVariable[]
+}
+
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string } | null) => void
   selectedModuleId: string | null
@@ -45,33 +61,66 @@ interface WorkZoneProps {
 const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
 
-  const [modules, setModules] = useState<ModuleBlock[]>([
+  // Gestion des PLAYs avec onglets
+  const [plays, setPlays] = useState<Play[]>([
     {
-      id: '1',
-      collection: 'ansible.builtin',
-      name: 'copy',
-      description: 'Copy files to remote locations',
-      taskName: 'Copy configuration file',
-      x: 100,
-      y: 100,
-    },
-    {
-      id: '2',
-      collection: 'ansible.builtin',
-      name: 'service',
-      description: 'Manage services',
-      taskName: 'Start nginx service',
-      x: 100,
-      y: 250,
+      id: 'play-1',
+      name: 'Play 1',
+      modules: [
+        {
+          id: 'play-1-main',
+          collection: 'ansible.generic',
+          name: 'play',
+          description: 'Define a play in the playbook',
+          taskName: 'Play 1',
+          x: 50,
+          y: 50,
+          isPlay: true,
+          inventory: 'hosts',
+        },
+      ],
+      links: [],
+      variables: [
+        { key: 'ansible_user', value: 'root' },
+        { key: 'ansible_port', value: '22' },
+      ],
     },
   ])
-  const [links, setLinks] = useState<Link[]>([
-    { id: 'link-1', from: '1', to: '2', type: 'normal' }
-  ])
+  const [activePlayIndex, setActivePlayIndex] = useState(0)
+
+  // Récupérer le PLAY actif
+  const currentPlay = plays[activePlayIndex]
+  const modules = currentPlay.modules
+  const links = currentPlay.links
+
+  // Fonctions pour mettre à jour le PLAY actif
+  const setModules = (newModules: ModuleBlock[] | ((prev: ModuleBlock[]) => ModuleBlock[])) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        modules: typeof newModules === 'function' ? newModules(updatedPlays[activePlayIndex].modules) : newModules
+      }
+      return updatedPlays
+    })
+  }
+
+  const setLinks = (newLinks: Link[] | ((prev: Link[]) => Link[])) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        links: typeof newLinks === 'function' ? newLinks(updatedPlays[activePlayIndex].links) : newLinks
+      }
+      return updatedPlays
+    })
+  }
+
   const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null)
   const [gridEnabled, setGridEnabled] = useState(false)
   const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null)
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set())
+  const [editingTabIndex, setEditingTabIndex] = useState<number | null>(null)
   // Toutes les sections sont collapsed par défaut
   const [collapsedBlockSections, setCollapsedBlockSections] = useState<Set<string>>(new Set(['*:rescue', '*:always'])) // Format: "blockId:section" - Tasks ouverte par défaut
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
@@ -534,7 +583,30 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
   }
 
   const updateTaskName = (id: string, newName: string) => {
-    setModules(modules.map(m => m.id === id ? { ...m, taskName: newName } : m))
+    // Trouver le module à mettre à jour
+    const module = modules.find(m => m.id === id)
+
+    // Si c'est un PLAY, synchroniser avec le nom de l'onglet
+    if (module?.isPlay) {
+      setPlays(prevPlays => {
+        const updatedPlays = [...prevPlays]
+        updatedPlays[activePlayIndex] = {
+          ...updatedPlays[activePlayIndex],
+          name: newName,
+          modules: updatedPlays[activePlayIndex].modules.map(m =>
+            m.id === id ? { ...m, taskName: newName } : m
+          )
+        }
+        return updatedPlays
+      })
+    } else {
+      // Pour les autres tâches, mise à jour normale
+      setModules(modules.map(m => m.id === id ? { ...m, taskName: newName } : m))
+    }
+  }
+
+  const updateInventory = (id: string, newInventory: string) => {
+    setModules(modules.map(m => m.id === id ? { ...m, inventory: newInventory } : m))
   }
 
   const deleteLink = (linkId: string) => {
@@ -771,6 +843,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
   const handleDelete = (id: string) => {
     const module = modules.find(m => m.id === id)
 
+    // Ne pas supprimer la tâche PLAY obligatoire
+    if (module?.isPlay) {
+      return
+    }
+
     // Supprimer les liens associés
     setLinks(links.filter(l => l.from !== id && l.to !== id))
 
@@ -952,6 +1029,80 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
     }
   }
 
+  // Gestion des PLAYs (onglets)
+  const addPlay = () => {
+    const newPlayId = `play-${Date.now()}`
+    const newPlay: Play = {
+      id: newPlayId,
+      name: `Play ${plays.length + 1}`,
+      modules: [
+        {
+          id: `${newPlayId}-main`,
+          collection: 'ansible.generic',
+          name: 'play',
+          description: 'Define a play in the playbook',
+          taskName: `Play ${plays.length + 1}`,
+          x: 50,
+          y: 50,
+          isPlay: true,
+          inventory: 'hosts',
+        },
+      ],
+      links: [],
+      variables: [],
+    }
+    setPlays([...plays, newPlay])
+    setActivePlayIndex(plays.length)
+  }
+
+  const deletePlay = (index: number) => {
+    if (plays.length === 1) return // Ne pas supprimer le dernier PLAY
+    const newPlays = plays.filter((_, i) => i !== index)
+    setPlays(newPlays)
+    if (activePlayIndex >= newPlays.length) {
+      setActivePlayIndex(newPlays.length - 1)
+    }
+  }
+
+  // Gestion des variables
+  const addVariable = () => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        variables: [...updatedPlays[activePlayIndex].variables, { key: 'new_var', value: '' }]
+      }
+      return updatedPlays
+    })
+  }
+
+  const deleteVariable = (index: number) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        variables: updatedPlays[activePlayIndex].variables.filter((_, i) => i !== index)
+      }
+      return updatedPlays
+    })
+  }
+
+  // Mettre à jour le nom du PLAY et synchroniser avec la tâche PLAY
+  const updatePlayName = (index: number, newName: string) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[index] = {
+        ...updatedPlays[index],
+        name: newName,
+        // Synchroniser le nom de la tâche PLAY
+        modules: updatedPlays[index].modules.map(m =>
+          m.isPlay ? { ...m, taskName: newName } : m
+        )
+      }
+      return updatedPlays
+    })
+  }
+
   return (
     <Box
       sx={{
@@ -961,29 +1112,122 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
         bgcolor: 'background.default',
       }}
     >
-      {/* Header */}
-      <Box sx={{ p: 1, bgcolor: 'background.paper', borderBottom: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-          Playbook Tasks
-        </Typography>
-        <ToggleButtonGroup
-          value={gridEnabled ? 'grid' : 'free'}
-          exclusive
-          onChange={(_, value) => setGridEnabled(value === 'grid')}
-          size="small"
-        >
-          <ToggleButton value="free">
-            <Tooltip title="Free positioning">
-              <GridOffIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="grid">
-            <Tooltip title="Grid positioning">
-              <GridOnIcon fontSize="small" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
+      {/* Onglets PLAYs */}
+      <Box sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #ddd' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
+          <Tabs
+            value={activePlayIndex}
+            onChange={(_, newValue) => setActivePlayIndex(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            {plays.map((play, index) => (
+              <Tab
+                key={play.id}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <PlayArrowIcon sx={{ fontSize: 16 }} />
+                    {editingTabIndex === index ? (
+                      <TextField
+                        autoFocus
+                        variant="standard"
+                        value={play.name}
+                        onChange={(e) => updatePlayName(index, e.target.value)}
+                        onBlur={() => setEditingTabIndex(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setEditingTabIndex(null)
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                          '& .MuiInput-input': {
+                            fontSize: '0.875rem',
+                            padding: '2px 4px',
+                            minWidth: '80px',
+                          },
+                        }}
+                      />
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          setEditingTabIndex(index)
+                        }}
+                        sx={{ cursor: 'text', userSelect: 'none' }}
+                      >
+                        {play.name}
+                      </Typography>
+                    )}
+                    {plays.length > 1 && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deletePlay(index)
+                        }}
+                        sx={{ ml: 0.5, p: 0.25 }}
+                      >
+                        <CloseIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    )}
+                  </Box>
+                }
+              />
+            ))}
+          </Tabs>
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={addPlay}
+            variant="outlined"
+            sx={{ ml: 2 }}
+          >
+            Add Play
+          </Button>
+        </Box>
       </Box>
+
+      {/* Zone Variables */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          px: 3,
+          py: 1,
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid #ddd',
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', minWidth: 80 }}>
+          Variables:
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 1, flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          {currentPlay.variables.map((variable, index) => (
+            <Chip
+              key={index}
+              label={`${variable.key}: ${variable.value}`}
+              size="small"
+              onDelete={() => deleteVariable(index)}
+              color="primary"
+              variant="outlined"
+            />
+          ))}
+
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            variant="outlined"
+            onClick={addVariable}
+          >
+            Add Variable
+          </Button>
+        </Box>
+      </Box>
+
 
       {/* Drop Zone - Canvas libre */}
       <Box
@@ -1211,60 +1455,90 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                         e.stopPropagation()
                         handleModuleDropOnModule(module.id, e)
                       }}
-                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 0.5, borderBottom: `1px solid ${blockTheme.borderColor}` }}
+                      sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1, pb: 0.5, borderBottom: `1px solid ${blockTheme.borderColor}` }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {module.isPlay ? (
-                          <PlayArrowIcon sx={{ fontSize: 20, color: blockTheme.iconColor }} />
-                        ) : (
-                          <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
-                        )}
-                        <TextField
-                          fullWidth
-                          variant="standard"
-                          value={module.taskName}
-                          onChange={(e) => updateTaskName(module.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            '& .MuiInput-input': {
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              padding: '2px 0',
-                              color: blockTheme.iconColor,
-                            },
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {/* Bouton collapse/expand SEULEMENT pour les blocks, pas les PLAY */}
-                        {!module.isPlay && (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleBlockCollapse(module.id)
+                      {/* Première ligne : Icône + Nom + Boutons */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {module.isPlay ? (
+                            <PlayArrowIcon sx={{ fontSize: 20, color: blockTheme.iconColor }} />
+                          ) : (
+                            <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
+                          )}
+                          <TextField
+                            fullWidth
+                            variant="standard"
+                            value={module.taskName}
+                            onChange={(e) => updateTaskName(module.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                              '& .MuiInput-input': {
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                padding: '2px 0',
+                                color: blockTheme.iconColor,
+                              },
                             }}
-                            sx={{ p: 0.25 }}
-                          >
-                            {collapsedBlocks.has(module.id) ? (
-                              <ExpandMoreIcon sx={{ fontSize: 16 }} />
-                            ) : (
-                              <ExpandLessIcon sx={{ fontSize: 16 }} />
-                            )}
-                          </IconButton>
-                        )}
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(module.id)
-                          }}
-                          sx={{ p: 0.25 }}
-                        >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {/* Bouton collapse/expand SEULEMENT pour les blocks, pas les PLAY */}
+                          {!module.isPlay && (
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleBlockCollapse(module.id)
+                              }}
+                              sx={{ p: 0.25 }}
+                            >
+                              {collapsedBlocks.has(module.id) ? (
+                                <ExpandMoreIcon sx={{ fontSize: 16 }} />
+                              ) : (
+                                <ExpandLessIcon sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                          )}
+                          {/* Bouton delete SEULEMENT pour les blocks et tâches, pas les PLAY */}
+                          {!module.isPlay && (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(module.id)
+                              }}
+                              sx={{ p: 0.25 }}
+                            >
+                              <DeleteIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          )}
+                        </Box>
                       </Box>
+
+                      {/* Deuxième ligne : Inventory (SEULEMENT pour les PLAY) */}
+                      {module.isPlay && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3 }}>
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', minWidth: 60 }}>
+                            Inventory:
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            variant="standard"
+                            value={module.inventory || ''}
+                            onChange={(e) => updateInventory(module.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="hosts"
+                            sx={{
+                              '& .MuiInput-input': {
+                                fontSize: '0.65rem',
+                                padding: '1px 0',
+                                color: 'text.secondary',
+                              },
+                            }}
+                          />
+                        </Box>
+                      )}
                     </Box>
 
                     {/* Contenu du block avec 3 sections - SEULEMENT pour les blocks, pas les PLAY */}

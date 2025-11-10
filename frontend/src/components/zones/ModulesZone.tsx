@@ -12,23 +12,28 @@ import {
   InputAdornment,
   Tabs,
   Tab,
+  IconButton,
+  Tooltip,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import SearchIcon from '@mui/icons-material/Search'
 import FolderIcon from '@mui/icons-material/Folder'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import { useState } from 'react'
 
-const ModulesZone = () => {
+interface ModulesZoneProps {
+  onCollapse?: () => void
+}
+
+const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   const [activeTab, setActiveTab] = useState(0)
 
   // Éléments génériques (blocks, handlers, etc.)
   const genericElements = [
     { name: 'play', description: 'Define a play in the playbook' },
     { name: 'block', description: 'Group tasks with error handling' },
-    { name: 'rescue', description: 'Error recovery block' },
-    { name: 'always', description: 'Always execute block' },
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
   ]
@@ -67,9 +72,18 @@ const ModulesZone = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
-        <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 'bold' }}>
-          Elements
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Elements
+          </Typography>
+          {onCollapse && (
+            <Tooltip title="Hide Modules">
+              <IconButton size="small" onClick={onCollapse}>
+                <ChevronLeftIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
 
         {/* Tabs pour switcher entre Générique et Modules */}
         <Tabs

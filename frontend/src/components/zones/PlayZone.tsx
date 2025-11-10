@@ -37,22 +37,6 @@ const PlayZone = () => {
         />
 
         <TextField
-          label="Inventory"
-          variant="outlined"
-          size="small"
-          defaultValue="hosts"
-          sx={{
-            bgcolor: 'white',
-            borderRadius: 1,
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': {
-                borderColor: 'rgba(0, 0, 0, 0.23)',
-              },
-            },
-          }}
-        />
-
-        <TextField
           label="Ansible Version"
           variant="outlined"
           size="small"
