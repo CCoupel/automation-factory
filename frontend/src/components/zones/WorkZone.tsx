@@ -1539,18 +1539,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      draggable={!task.isPlay}
+                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
                         position: 'absolute',
                         left: task.x,
                         top: task.y,
-                        width: task.isPlay ? 140 : 140,
+                        width: task.isPlay ? 100 : 140,
                         minHeight: 60,
                         p: 1.5,
-                        cursor: 'move',
+                        cursor: task.isPlay ? 'pointer' : 'move',
                         border: task.isPlay ? '2px solid #9c27b0' : '2px solid #ddd',
                         borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
                         bgcolor: task.isPlay ? '#f3e5f5' : 'background.paper',
@@ -1639,18 +1639,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      draggable={!task.isPlay}
+                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
                         position: 'absolute',
                         left: task.x,
                         top: task.y,
-                        width: task.isPlay ? 140 : 140,
+                        width: task.isPlay ? 100 : 140,
                         minHeight: 60,
                         p: 1.5,
-                        cursor: 'move',
+                        cursor: task.isPlay ? 'pointer' : 'move',
                         border: task.isPlay ? '2px solid #1976d2' : '2px solid #ddd',
                         borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
                         bgcolor: task.isPlay ? '#e3f2fd' : 'background.paper',
@@ -1739,18 +1739,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      draggable={!task.isPlay}
+                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
                         position: 'absolute',
                         left: task.x,
                         top: task.y,
-                        width: task.isPlay ? 140 : 140,
+                        width: task.isPlay ? 100 : 140,
                         minHeight: 60,
                         p: 1.5,
-                        cursor: 'move',
+                        cursor: task.isPlay ? 'pointer' : 'move',
                         border: task.isPlay ? '2px solid #00796b' : '2px solid #ddd',
                         borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
                         bgcolor: task.isPlay ? '#e0f2f1' : 'background.paper',
@@ -1839,18 +1839,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      draggable={!task.isPlay}
+                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
                         position: 'absolute',
                         left: task.x,
                         top: task.y,
-                        width: task.isPlay ? 140 : 140,
+                        width: task.isPlay ? 100 : 140,
                         minHeight: 60,
                         p: 1.5,
-                        cursor: 'move',
+                        cursor: task.isPlay ? 'pointer' : 'move',
                         border: task.isPlay ? '2px solid #ff9800' : '2px solid #ddd',
                         borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
                         bgcolor: task.isPlay ? '#fff3e0' : 'background.paper',
@@ -2066,7 +2066,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
         ) : (
           <>
-            {modules.filter(m => !m.parentId).map((module, index) => {
+            {modules.filter(m => !m.parentId && !m.parentSection).map((module, index) => {
               const isBlock = module.isBlock || module.isPlay
               const dimensions = isBlock ? getBlockDimensions(module) : { width: 140, height: 60 }
 
@@ -3438,7 +3438,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           flexShrink: 0,
                         }}
                       >
-                        {modules.filter(m => !m.parentId).indexOf(module) + 1}
+                        {modules.filter(m => !m.parentId && !m.parentSection).indexOf(module) + 1}
                       </Box>
                       <TextField
                         fullWidth

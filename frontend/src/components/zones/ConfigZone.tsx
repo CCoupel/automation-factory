@@ -81,8 +81,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
           {selectedModule ? 'Configure the selected task' : 'Select a module to configure'}
         </Typography>
 
-        {/* Bouton de suppression */}
-        {selectedModule && onDelete && (
+        {/* Bouton de suppression - pas pour les tâches START */}
+        {selectedModule && onDelete && !selectedModule.isPlay && (
           <Box sx={{ mt: 2 }}>
             <Button
               variant="outlined"
