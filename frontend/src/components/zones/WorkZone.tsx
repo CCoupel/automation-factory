@@ -12,6 +12,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import SecurityIcon from '@mui/icons-material/Security'
 import LoopIcon from '@mui/icons-material/Loop'
+import SendIcon from '@mui/icons-material/Send'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 interface ModuleBlock {
@@ -40,6 +41,15 @@ interface ModuleBlock {
   ignoreErrors?: boolean // Ignorer les erreurs
   become?: boolean // Exécuter avec sudo
   loop?: string // Définition de la loop
+  delegateTo?: string // Délégation à un autre hôte
+  // Sections du PLAY
+  playSections?: {
+    pre_tasks: string[]   // IDs des tâches dans pre_tasks
+    roles: string[]       // Liste des noms de rôles
+    tasks: string[]       // IDs des tâches dans tasks
+    post_tasks: string[]  // IDs des tâches dans post_tasks
+    handlers: string[]    // IDs des handlers
+  }
 }
 
 interface Link {
@@ -1704,6 +1714,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           <Tooltip title={module.become ? 'Become: yes (sudo)' : 'Become: no'}>
                             <SecurityIcon sx={{ fontSize: 12, color: module.become ? '#d32f2f' : '#ccc' }} />
                           </Tooltip>
+                          <Tooltip title={module.delegateTo ? `Delegate to: ${module.delegateTo}` : 'No delegation'}>
+                            <SendIcon sx={{ fontSize: 12, color: module.delegateTo ? '#00bcd4' : '#ccc' }} />
+                          </Tooltip>
                         </Box>
                       )}
                     </Box>
@@ -2026,6 +2039,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                         <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
                                           <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
                                         </Tooltip>
+                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                                        </Tooltip>
                                       </Box>
                                     </Paper>
                                   )
@@ -2345,6 +2361,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                         </Tooltip>
                                         <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
                                           <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
                                         </Tooltip>
                                       </Box>
                                     </Paper>
@@ -2666,6 +2685,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                         <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
                                           <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
                                         </Tooltip>
+                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                                        </Tooltip>
                                       </Box>
                                     </Paper>
                                   )
@@ -2952,6 +2974,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       </Tooltip>
                       <Tooltip title={module.loop ? `Loop: ${module.loop}` : 'No loop'}>
                         <LoopIcon sx={{ fontSize: 12, color: module.loop ? '#388e3c' : '#ccc' }} />
+                      </Tooltip>
+                      <Tooltip title={module.delegateTo ? `Delegate to: ${module.delegateTo}` : 'No delegation'}>
+                        <SendIcon sx={{ fontSize: 12, color: module.delegateTo ? '#00bcd4' : '#ccc' }} />
                       </Tooltip>
                     </Box>
                   </Paper>
