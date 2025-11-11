@@ -98,6 +98,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           y: 50,
           isPlay: true,
           inventory: 'hosts',
+          playSections: {
+            pre_tasks: [],
+            roles: [],
+            tasks: [],
+            post_tasks: [],
+            handlers: [],
+          },
         },
       ],
       links: [],
