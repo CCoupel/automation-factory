@@ -45,11 +45,12 @@ interface ModuleBlock {
   // Sections du PLAY
   playSections?: {
     pre_tasks: string[]   // IDs des tâches dans pre_tasks
-    roles: string[]       // Liste des noms de rôles
     tasks: string[]       // IDs des tâches dans tasks
     post_tasks: string[]  // IDs des tâches dans post_tasks
     handlers: string[]    // IDs des handlers
   }
+  // Les variables sont gérées dans Play.variables
+  // Les rôles seront gérés séparément (à implémenter)
 }
 
 interface Link {
@@ -100,7 +101,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           inventory: 'hosts',
           playSections: {
             pre_tasks: [],
-            roles: [],
             tasks: [],
             post_tasks: [],
             handlers: [],
