@@ -18,6 +18,7 @@ interface SelectedModule {
   ignoreErrors?: boolean
   become?: boolean
   loop?: string
+  delegateTo?: string
   isBlock?: boolean
   isPlay?: boolean
 }
@@ -33,7 +34,7 @@ const MainLayout = () => {
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
-  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => void) | null>(null)
+  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) | null>(null)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)

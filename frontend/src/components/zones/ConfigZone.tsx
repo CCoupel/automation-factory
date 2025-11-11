@@ -16,6 +16,7 @@ interface ConfigZoneProps {
     ignoreErrors?: boolean
     become?: boolean
     loop?: string
+    delegateTo?: string
     isBlock?: boolean
     isPlay?: boolean
   } | null
@@ -26,6 +27,7 @@ interface ConfigZoneProps {
     ignoreErrors?: boolean
     become?: boolean
     loop?: string
+    delegateTo?: string
   }>) => void
 }
 
@@ -184,6 +186,16 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
                     <option value="no">no</option>
                     <option value="yes">yes</option>
                   </TextField>
+
+                  <TextField
+                    label="delegate_to"
+                    fullWidth
+                    size="small"
+                    placeholder="hostname or {{ inventory_hostname }}"
+                    helperText="Delegate task to another host"
+                    value={selectedModule.delegateTo || ''}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { delegateTo: e.target.value || undefined })}
+                  />
                 </Box>
               </AccordionDetails>
             </Accordion>

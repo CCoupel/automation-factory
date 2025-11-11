@@ -73,10 +73,10 @@ interface Play {
 }
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
-  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => void) => void
+  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) => void
 }
 
 const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule }: WorkZoneProps) => {
@@ -906,7 +906,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }, [handleDelete, onDeleteModule])
 
   // Fonction pour mettre à jour un module
-  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => {
+  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
     if (!module) return
@@ -930,6 +930,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
         become: updates.become !== undefined ? updates.become : module.become,
         loop: updates.loop !== undefined ? updates.loop : module.loop,
+        delegateTo: updates.delegateTo !== undefined ? updates.delegateTo : module.delegateTo,
         isBlock: module.isBlock,
         isPlay: module.isPlay,
       })
@@ -1596,6 +1597,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       ignoreErrors: module.ignoreErrors,
                       become: module.become,
                       loop: module.loop,
+                      delegateTo: module.delegateTo,
                       isBlock: module.isBlock,
                       isPlay: module.isPlay
                     })}
@@ -1918,6 +1920,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
                                           loop: task.loop,
+                                          delegateTo: task.delegateTo,
                                           isBlock: task.isBlock,
                                           isPlay: task.isPlay
                                         })
@@ -2241,6 +2244,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
                                           loop: task.loop,
+                                          delegateTo: task.delegateTo,
                                           isBlock: task.isBlock,
                                           isPlay: task.isPlay
                                         })
@@ -2564,6 +2568,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
                                           loop: task.loop,
+                                          delegateTo: task.delegateTo,
                                           isBlock: task.isBlock,
                                           isPlay: task.isPlay
                                         })
@@ -2898,6 +2903,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       ignoreErrors: module.ignoreErrors,
                       become: module.become,
                       loop: module.loop,
+                      delegateTo: module.delegateTo,
                       isBlock: module.isBlock,
                       isPlay: module.isPlay
                     })}
