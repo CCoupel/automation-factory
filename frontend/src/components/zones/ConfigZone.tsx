@@ -1,9 +1,10 @@
-import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip } from '@mui/material'
+import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 interface ConfigZoneProps {
   selectedModule?: {
@@ -13,6 +14,7 @@ interface ConfigZoneProps {
     taskName: string
   } | null
   onCollapse?: () => void
+  onDelete?: (id: string) => void
 }
 
 // Configuration des modules (à déplacer vers un fichier de config plus tard)
@@ -39,7 +41,7 @@ const moduleConfigs: Record<string, Array<{ name: string; type: string; required
   ],
 }
 
-const ConfigZone = ({ selectedModule, onCollapse }: ConfigZoneProps) => {
+const ConfigZone = ({ selectedModule, onCollapse, onDelete }: ConfigZoneProps) => {
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
 
   return (
@@ -64,6 +66,22 @@ const ConfigZone = ({ selectedModule, onCollapse }: ConfigZoneProps) => {
         <Typography variant="caption" color="text.secondary">
           {selectedModule ? 'Configure the selected task' : 'Select a module to configure'}
         </Typography>
+
+        {/* Bouton de suppression */}
+        {selectedModule && onDelete && (
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              fullWidth
+              startIcon={<DeleteIcon />}
+              onClick={() => onDelete(selectedModule.id)}
+            >
+              Delete Task
+            </Button>
+          </Box>
+        )}
       </Box>
 
       {/* Config Form */}

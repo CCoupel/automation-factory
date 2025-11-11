@@ -8,7 +8,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 interface ModuleBlock {
   id: string
@@ -56,9 +56,10 @@ interface Play {
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string } | null) => void
   selectedModuleId: string | null
+  onDeleteModule?: (deleteHandler: (id: string) => void) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   // Gestion des PLAYs avec onglets
@@ -280,8 +281,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
         let relativeY = e.clientY - blockContainerRect.top - offsetY
 
         // Contraintes pour garder la tâche dans le block
-        const taskWidth = 150
-        const taskHeight = 120
+        const taskWidth = 140
+        const taskHeight = 60
         const blockDims = getBlockDimensions(block)
         const containerPadding = 8 // padding du block-container
         const maxX = blockDims.width - taskWidth - containerPadding * 2
@@ -765,8 +766,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
     }
 
     // Calculer la taille minimale basée sur les tâches enfants
-    const taskWidth = 150
-    const taskHeight = 120
+    const taskWidth = 140
+    const taskHeight = 60
     const containerPadding = 8
     const headerHeight = 50
 
@@ -840,12 +841,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
     e.preventDefault()
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     const module = modules.find(m => m.id === id)
 
     // Ne pas supprimer la tâche PLAY obligatoire
     if (module?.isPlay) {
       return
+    }
+
+    // Désélectionner si c'est le module sélectionné
+    if (selectedModuleId === id) {
+      onSelectModule(null)
     }
 
     // Supprimer les liens associés
@@ -863,7 +869,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
         return m
       }).filter(m => m.id !== id))
     }
-  }
+  }, [modules, links, selectedModuleId, onSelectModule, setModules, setLinks])
+
+  // Exposer handleDelete au parent via callback
+  useEffect(() => {
+    if (onDeleteModule) {
+      onDeleteModule(handleDelete)
+    }
+  }, [handleDelete, onDeleteModule])
 
   // Obtenir le style du lien selon son type
   const getLinkStyle = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
@@ -977,7 +990,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
 
   // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
   const getModuleAbsolutePosition = (module: ModuleBlock) => {
-    const dims = module.isBlock ? getBlockDimensions(module) : { width: 150, height: 120 }
+    const dims = module.isBlock ? getBlockDimensions(module) : { width: 140, height: 60 }
 
     // Si le module est dans un block, calculer sa position absolue
     let absoluteX = module.x
@@ -1491,7 +1504,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
           <>
             {modules.filter(m => !m.parentId).map((module, index) => {
               const isBlock = module.isBlock || module.isPlay
-              const dimensions = isBlock ? getBlockDimensions(module) : { width: 150, height: 120 }
+              const dimensions = isBlock ? getBlockDimensions(module) : { width: 140, height: 60 }
 
               if (isBlock) {
                 // Rendu d'un Block ou PLAY
@@ -1612,7 +1625,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                       {/* Deuxième ligne : Inventory (SEULEMENT pour les PLAY) */}
                       {module.isPlay && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3 }}>
-                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', minWidth: 60 }}>
+                          <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary', minWidth: 60 }}>
                             Inventory:
                           </Typography>
                           <TextField
@@ -1624,7 +1637,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                             placeholder="hosts"
                             sx={{
                               '& .MuiInput-input': {
-                                fontSize: '0.65rem',
+                                fontSize: '0.75rem',
                                 padding: '1px 0',
                                 color: 'text.secondary',
                               },
@@ -1692,8 +1705,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                 let relativeY = e.clientY - sectionRect.top - offsetY
 
                                 // Contraindre dans les limites de la section
-                                const taskWidth = 150
-                                const taskHeight = 120
+                                const taskWidth = 140
+                                const taskHeight = 60
                                 relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
                                 relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
 
@@ -1765,8 +1778,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                     let relativeY = e.clientY - sectionRect.top - 60
 
                                     // Contraindre dans les limites de la section
-                                    const taskWidth = 150
-                                    const taskHeight = 120
+                                    const taskWidth = 140
+                                    const taskHeight = 60
                                     relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
                                     relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
 
@@ -1873,9 +1886,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         position: 'absolute',
                                         left: task.x || 10,
                                         top: task.y || 10,
-                                        width: 150,
-                                        minHeight: 120,
-                                        p: 1,
+                                        width: 140,
+                                        minHeight: 60,
+                                        p: 0.75,
                                         cursor: 'move',
                                         border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                                         zIndex: draggedModuleId === task.id ? 10 : 1,
@@ -1885,63 +1898,57 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         },
                                       }}
                                     >
-                                      {/* Header avec numéro et delete */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                                      {/* ID et nom de la tâche sur la même ligne */}
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                                         <Box
                                           sx={{
-                                            width: 20,
-                                            height: 20,
-                                            borderRadius: '50%',
+                                            minWidth: 18,
+                                            height: 18,
+                                            px: 0.5,
+                                            borderRadius: '4px',
                                             bgcolor: taskTheme.numberBgColor,
                                             color: 'white',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontWeight: 'bold',
-                                            fontSize: '0.65rem',
+                                            fontSize: '0.6rem',
+                                            flexShrink: 0,
                                           }}
                                         >
                                           {modules.filter(m => m.parentId === module.id && m.parentSection === 'normal').indexOf(task) + 1}
                                         </Box>
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDelete(task.id)
+                                        <TextField
+                                          fullWidth
+                                          variant="standard"
+                                          value={task.taskName}
+                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                                          onClick={(e) => e.stopPropagation()}
+                                          sx={{
+                                            '& .MuiInput-input': {
+                                              fontWeight: 'bold',
+                                              fontSize: '0.75rem',
+                                              padding: '0',
+                                            },
+                                            '& .MuiInput-root:before': {
+                                              borderBottom: 'none',
+                                            },
+                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                                            },
                                           }}
-                                          sx={{ p: 0.25 }}
-                                        >
-                                          <DeleteIcon sx={{ fontSize: 16 }} />
-                                        </IconButton>
+                                        />
                                       </Box>
 
-                                      {/* Nom de la tâche (éditable) */}
-                                      <TextField
-                                        fullWidth
-                                        variant="standard"
-                                        value={task.taskName}
-                                        onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        sx={{
-                                          mb: 0.5,
-                                          '& .MuiInput-input': {
-                                            fontWeight: 'bold',
-                                            fontSize: '0.75rem',
-                                            padding: '2px 0',
-                                          },
-                                        }}
-                                      />
-
                                       {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, mb: 0.25, display: 'block', fontSize: '0.65rem' }}>
+                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Description */}
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem' }}>
-                                        {task.description}
-                                      </Typography>
+                                      {/* Placeholder pour icônes futures */}
+                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                                        {/* Icônes seront ajoutées ici */}
+                                      </Box>
                                     </Paper>
                                   )
                                 })
@@ -2011,8 +2018,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                 let relativeY = e.clientY - sectionRect.top - offsetY
 
                                 // Contraindre dans les limites de la section
-                                const taskWidth = 150
-                                const taskHeight = 120
+                                const taskWidth = 140
+                                const taskHeight = 60
                                 const sectionWidth = sectionRect.width
                                 const sectionHeight = sectionRect.height
 
@@ -2182,9 +2189,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         position: 'absolute',
                                         left: task.x || 10,
                                         top: task.y || 10,
-                                        width: 150,
-                                        minHeight: 120,
-                                        p: 1,
+                                        width: 140,
+                                        minHeight: 60,
+                                        p: 0.75,
                                         cursor: 'move',
                                         border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                                         zIndex: draggedModuleId === task.id ? 10 : 1,
@@ -2194,63 +2201,57 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         },
                                       }}
                                     >
-                                      {/* Header avec numéro et delete */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                                      {/* ID et nom de la tâche sur la même ligne */}
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                                         <Box
                                           sx={{
-                                            width: 20,
-                                            height: 20,
-                                            borderRadius: '50%',
+                                            minWidth: 18,
+                                            height: 18,
+                                            px: 0.5,
+                                            borderRadius: '4px',
                                             bgcolor: taskTheme.numberBgColor,
                                             color: 'white',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontWeight: 'bold',
-                                            fontSize: '0.65rem',
+                                            fontSize: '0.6rem',
+                                            flexShrink: 0,
                                           }}
                                         >
                                           {modules.filter(m => m.parentId === module.id && m.parentSection === 'rescue').indexOf(task) + 1}
                                         </Box>
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDelete(task.id)
+                                        <TextField
+                                          fullWidth
+                                          variant="standard"
+                                          value={task.taskName}
+                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                                          onClick={(e) => e.stopPropagation()}
+                                          sx={{
+                                            '& .MuiInput-input': {
+                                              fontWeight: 'bold',
+                                              fontSize: '0.75rem',
+                                              padding: '0',
+                                            },
+                                            '& .MuiInput-root:before': {
+                                              borderBottom: 'none',
+                                            },
+                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                                            },
                                           }}
-                                          sx={{ p: 0.25 }}
-                                        >
-                                          <DeleteIcon sx={{ fontSize: 16 }} />
-                                        </IconButton>
+                                        />
                                       </Box>
 
-                                      {/* Nom de la tâche (éditable) */}
-                                      <TextField
-                                        fullWidth
-                                        variant="standard"
-                                        value={task.taskName}
-                                        onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        sx={{
-                                          mb: 0.5,
-                                          '& .MuiInput-input': {
-                                            fontWeight: 'bold',
-                                            fontSize: '0.75rem',
-                                            padding: '2px 0',
-                                          },
-                                        }}
-                                      />
-
                                       {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, mb: 0.25, display: 'block', fontSize: '0.65rem' }}>
+                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Description */}
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem' }}>
-                                        {task.description}
-                                      </Typography>
+                                      {/* Placeholder pour icônes futures */}
+                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                                        {/* Icônes seront ajoutées ici */}
+                                      </Box>
                                     </Paper>
                                   )
                                 })
@@ -2320,8 +2321,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                 let relativeY = e.clientY - sectionRect.top - offsetY
 
                                 // Contraindre dans les limites de la section
-                                const taskWidth = 150
-                                const taskHeight = 120
+                                const taskWidth = 140
+                                const taskHeight = 60
                                 const sectionWidth = sectionRect.width
                                 const sectionHeight = sectionRect.height
 
@@ -2491,9 +2492,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         position: 'absolute',
                                         left: task.x || 10,
                                         top: task.y || 10,
-                                        width: 150,
-                                        minHeight: 120,
-                                        p: 1,
+                                        width: 140,
+                                        minHeight: 60,
+                                        p: 0.75,
                                         cursor: 'move',
                                         border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                                         zIndex: draggedModuleId === task.id ? 10 : 1,
@@ -2503,63 +2504,57 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                                         },
                                       }}
                                     >
-                                      {/* Header avec numéro et delete */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                                      {/* ID et nom de la tâche sur la même ligne */}
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                                         <Box
                                           sx={{
-                                            width: 20,
-                                            height: 20,
-                                            borderRadius: '50%',
+                                            minWidth: 18,
+                                            height: 18,
+                                            px: 0.5,
+                                            borderRadius: '4px',
                                             bgcolor: taskTheme.numberBgColor,
                                             color: 'white',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             fontWeight: 'bold',
-                                            fontSize: '0.65rem',
+                                            fontSize: '0.6rem',
+                                            flexShrink: 0,
                                           }}
                                         >
                                           {modules.filter(m => m.parentId === module.id && m.parentSection === 'always').indexOf(task) + 1}
                                         </Box>
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDelete(task.id)
+                                        <TextField
+                                          fullWidth
+                                          variant="standard"
+                                          value={task.taskName}
+                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                                          onClick={(e) => e.stopPropagation()}
+                                          sx={{
+                                            '& .MuiInput-input': {
+                                              fontWeight: 'bold',
+                                              fontSize: '0.75rem',
+                                              padding: '0',
+                                            },
+                                            '& .MuiInput-root:before': {
+                                              borderBottom: 'none',
+                                            },
+                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                                            },
                                           }}
-                                          sx={{ p: 0.25 }}
-                                        >
-                                          <DeleteIcon sx={{ fontSize: 16 }} />
-                                        </IconButton>
+                                        />
                                       </Box>
 
-                                      {/* Nom de la tâche (éditable) */}
-                                      <TextField
-                                        fullWidth
-                                        variant="standard"
-                                        value={task.taskName}
-                                        onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        sx={{
-                                          mb: 0.5,
-                                          '& .MuiInput-input': {
-                                            fontWeight: 'bold',
-                                            fontSize: '0.75rem',
-                                            padding: '2px 0',
-                                          },
-                                        }}
-                                      />
-
                                       {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, mb: 0.25, display: 'block', fontSize: '0.65rem' }}>
+                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Description */}
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem' }}>
-                                        {task.description}
-                                      </Typography>
+                                      {/* Placeholder pour icônes futures */}
+                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                                        {/* Icônes seront ajoutées ici */}
+                                      </Box>
                                     </Paper>
                                   )
                                 })
@@ -2767,9 +2762,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                       position: 'absolute',
                       left: module.x,
                       top: module.y,
-                      width: 150,
-                      minHeight: 120,
-                      p: 1,
+                      width: 140,
+                      minHeight: 60,
+                      p: 0.75,
                       cursor: 'move',
                       border: selectedModuleId === module.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                       zIndex: draggedModuleId === module.id ? 10 : 1,
@@ -2779,63 +2774,57 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                       },
                     }}
                   >
-                    {/* Header avec numéro et delete */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    {/* ID et nom de la tâche sur la même ligne */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                       <Box
                         sx={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
+                          minWidth: 18,
+                          height: 18,
+                          px: 0.5,
+                          borderRadius: '4px',
                           bgcolor: taskTheme.numberBgColor,
                           color: 'white',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 'bold',
-                          fontSize: '0.65rem',
+                          fontSize: '0.6rem',
+                          flexShrink: 0,
                         }}
                       >
                         {modules.filter(m => !m.parentId).indexOf(module) + 1}
                       </Box>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDelete(module.id)
+                      <TextField
+                        fullWidth
+                        variant="standard"
+                        value={module.taskName}
+                        onChange={(e) => updateTaskName(module.id, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                          '& .MuiInput-input': {
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem',
+                            padding: '0',
+                          },
+                          '& .MuiInput-root:before': {
+                            borderBottom: 'none',
+                          },
+                          '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                            borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                          },
                         }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <DeleteIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
+                      />
                     </Box>
 
-                    {/* Nom de la tâche (éditable) */}
-                    <TextField
-                      fullWidth
-                      variant="standard"
-                      value={module.taskName}
-                      onChange={(e) => updateTaskName(module.id, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      sx={{
-                        mb: 0.5,
-                        '& .MuiInput-input': {
-                          fontWeight: 'bold',
-                          fontSize: '0.75rem',
-                          padding: '2px 0',
-                        },
-                      }}
-                    />
-
                     {/* Nom du module */}
-                    <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, mb: 0.25, display: 'block', fontSize: '0.65rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
                       {module.collection}.{module.name}
                     </Typography>
 
-                    {/* Description */}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, fontSize: '0.6rem' }}>
-                      {module.description}
-                    </Typography>
+                    {/* Placeholder pour icônes futures */}
+                    <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                      {/* Icônes seront ajoutées ici */}
+                    </Box>
                   </Paper>
                 )
               }

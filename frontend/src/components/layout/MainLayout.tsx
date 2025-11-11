@@ -1,7 +1,7 @@
 import { Box, IconButton, Tooltip } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import PlaybookZone from '../zones/PlaybookZone'
 import VarsZone from '../zones/VarsZone'
 import ModulesZone from '../zones/ModulesZone'
@@ -26,6 +26,7 @@ const MainLayout = () => {
   const [isResizingConfig, setIsResizingConfig] = useState(false)
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
+  const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -216,7 +217,11 @@ const MainLayout = () => {
               </IconButton>
             </Tooltip>
           )}
-          <WorkZone onSelectModule={setSelectedModule} selectedModuleId={selectedModule?.id || null} />
+          <WorkZone
+            onSelectModule={setSelectedModule}
+            selectedModuleId={selectedModule?.id || null}
+            onDeleteModule={(callback) => { deleteModuleCallbackRef.current = callback }}
+          />
         </Box>
 
         {/* Zone Config - Droite redimensionnable */}
@@ -261,7 +266,11 @@ const MainLayout = () => {
                 }}
               />
             </Box>
-            <ConfigZone selectedModule={selectedModule} onCollapse={() => setIsConfigCollapsed(true)} />
+            <ConfigZone
+              selectedModule={selectedModule}
+              onCollapse={() => setIsConfigCollapsed(true)}
+              onDelete={deleteModuleCallbackRef.current || undefined}
+            />
           </Box>
         )}
       </Box>
