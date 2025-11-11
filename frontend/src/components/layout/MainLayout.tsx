@@ -18,6 +18,8 @@ interface SelectedModule {
   ignoreErrors?: boolean
   become?: boolean
   loop?: string
+  isBlock?: boolean
+  isPlay?: boolean
 }
 
 const MainLayout = () => {

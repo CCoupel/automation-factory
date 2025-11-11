@@ -63,7 +63,7 @@ interface Play {
 }
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
   onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => void) => void
@@ -913,6 +913,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
         become: updates.become !== undefined ? updates.become : module.become,
         loop: updates.loop !== undefined ? updates.loop : module.loop,
+        isBlock: module.isBlock,
+        isPlay: module.isPlay,
       })
     }
   }, [modules, selectedModuleId, onSelectModule, setModules])
@@ -1576,7 +1578,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       when: module.when,
                       ignoreErrors: module.ignoreErrors,
                       become: module.become,
-                      loop: module.loop
+                      loop: module.loop,
+                      isBlock: module.isBlock,
+                      isPlay: module.isPlay
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}
@@ -1685,6 +1689,21 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                               },
                             }}
                           />
+                        </Box>
+                      )}
+
+                      {/* Icônes d'attributs (SEULEMENT pour les blocks, pas les PLAY) */}
+                      {!module.isPlay && (
+                        <Box sx={{ display: 'flex', gap: 0.5, pl: 3, mt: 0.5 }}>
+                          <Tooltip title={module.when ? `Condition: ${module.when}` : 'No condition'}>
+                            <HelpOutlineIcon sx={{ fontSize: 12, color: module.when ? '#1976d2' : '#ccc' }} />
+                          </Tooltip>
+                          <Tooltip title={module.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                            <ErrorOutlineIcon sx={{ fontSize: 12, color: module.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                          </Tooltip>
+                          <Tooltip title={module.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                            <SecurityIcon sx={{ fontSize: 12, color: module.become ? '#d32f2f' : '#ccc' }} />
+                          </Tooltip>
                         </Box>
                       )}
                     </Box>
@@ -1878,7 +1897,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           when: task.when,
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
-                                          loop: task.loop
+                                          loop: task.loop,
+                                          isBlock: task.isBlock,
+                                          isPlay: task.isPlay
                                         })
                                       }}
                                       draggable
@@ -2196,7 +2217,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           when: task.when,
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
-                                          loop: task.loop
+                                          loop: task.loop,
+                                          isBlock: task.isBlock,
+                                          isPlay: task.isPlay
                                         })
                                       }}
                                       draggable
@@ -2514,7 +2537,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                           when: task.when,
                                           ignoreErrors: task.ignoreErrors,
                                           become: task.become,
-                                          loop: task.loop
+                                          loop: task.loop,
+                                          isBlock: task.isBlock,
+                                          isPlay: task.isPlay
                                         })
                                       }}
                                       draggable
@@ -2843,7 +2868,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       when: module.when,
                       ignoreErrors: module.ignoreErrors,
                       become: module.become,
-                      loop: module.loop
+                      loop: module.loop,
+                      isBlock: module.isBlock,
+                      isPlay: module.isPlay
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}

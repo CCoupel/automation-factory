@@ -16,6 +16,8 @@ interface ConfigZoneProps {
     ignoreErrors?: boolean
     become?: boolean
     loop?: string
+    isBlock?: boolean
+    isPlay?: boolean
   } | null
   onCollapse?: () => void
   onDelete?: (id: string) => void
@@ -134,15 +136,18 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
                     onChange={(e) => onUpdateModule?.(selectedModule.id, { when: e.target.value || undefined })}
                   />
 
-                  <TextField
-                    label="loop"
-                    fullWidth
-                    size="small"
-                    placeholder="{{ item_list }}"
-                    helperText="Loop over items"
-                    value={selectedModule.loop || ''}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value || undefined })}
-                  />
+                  {/* Loop - SEULEMENT pour les tâches, pas les blocks */}
+                  {!selectedModule.isBlock && !selectedModule.isPlay && (
+                    <TextField
+                      label="loop"
+                      fullWidth
+                      size="small"
+                      placeholder="{{ item_list }}"
+                      helperText="Loop over items"
+                      value={selectedModule.loop || ''}
+                      onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value || undefined })}
+                    />
+                  )}
 
                   <TextField
                     label="tags"
