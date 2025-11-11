@@ -890,6 +890,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => {
+    // Trouver le module avant la mise à jour
+    const module = modules.find(m => m.id === id)
+    if (!module) return
+
+    // Mettre à jour le module dans l'état
     setModules(modules.map(m => {
       if (m.id === id) {
         return { ...m, ...updates }
@@ -899,19 +904,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     // Mettre à jour aussi le module sélectionné si c'est celui-ci
     if (selectedModuleId === id) {
-      const module = modules.find(m => m.id === id)
-      if (module) {
-        onSelectModule({
-          id: module.id,
-          name: module.name,
-          collection: module.collection,
-          taskName: module.taskName,
-          when: updates.when !== undefined ? updates.when : module.when,
-          ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
-          become: updates.become !== undefined ? updates.become : module.become,
-          loop: updates.loop !== undefined ? updates.loop : module.loop,
-        })
-      }
+      onSelectModule({
+        id: module.id,
+        name: module.name,
+        collection: module.collection,
+        taskName: module.taskName,
+        when: updates.when !== undefined ? updates.when : module.when,
+        ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
+        become: updates.become !== undefined ? updates.become : module.become,
+        loop: updates.loop !== undefined ? updates.loop : module.loop,
+      })
     }
   }, [modules, selectedModuleId, onSelectModule, setModules])
 

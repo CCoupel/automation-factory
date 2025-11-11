@@ -275,8 +275,8 @@ const MainLayout = () => {
             <ConfigZone
               selectedModule={selectedModule}
               onCollapse={() => setIsConfigCollapsed(true)}
-              onDelete={deleteModuleCallbackRef.current || undefined}
-              onUpdateModule={updateModuleCallbackRef.current || undefined}
+              onDelete={(id) => deleteModuleCallbackRef.current?.(id)}
+              onUpdateModule={(id, updates) => updateModuleCallbackRef.current?.(id, updates)}
             />
           </Box>
         )}

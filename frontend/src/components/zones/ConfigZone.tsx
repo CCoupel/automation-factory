@@ -131,7 +131,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
                     placeholder="ansible_os_family == 'Debian'"
                     helperText="Conditional execution"
                     value={selectedModule.when || ''}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { when: e.target.value })}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { when: e.target.value || undefined })}
                   />
 
                   <TextField
@@ -141,7 +141,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
                     placeholder="{{ item_list }}"
                     helperText="Loop over items"
                     value={selectedModule.loop || ''}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value })}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value || undefined })}
                   />
 
                   <TextField
