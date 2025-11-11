@@ -14,6 +14,10 @@ interface SelectedModule {
   name: string
   collection: string
   taskName: string
+  when?: string
+  ignoreErrors?: boolean
+  become?: boolean
+  loop?: string
 }
 
 const MainLayout = () => {
@@ -27,6 +31,7 @@ const MainLayout = () => {
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
+  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => void) | null>(null)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -221,6 +226,7 @@ const MainLayout = () => {
             onSelectModule={setSelectedModule}
             selectedModuleId={selectedModule?.id || null}
             onDeleteModule={(callback) => { deleteModuleCallbackRef.current = callback }}
+            onUpdateModule={(callback) => { updateModuleCallbackRef.current = callback }}
           />
         </Box>
 
@@ -270,6 +276,7 @@ const MainLayout = () => {
               selectedModule={selectedModule}
               onCollapse={() => setIsConfigCollapsed(true)}
               onDelete={deleteModuleCallbackRef.current || undefined}
+              onUpdateModule={updateModuleCallbackRef.current || undefined}
             />
           </Box>
         )}

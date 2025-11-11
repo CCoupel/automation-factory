@@ -8,6 +8,10 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import SecurityIcon from '@mui/icons-material/Security'
+import LoopIcon from '@mui/icons-material/Loop'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 interface ModuleBlock {
@@ -31,6 +35,11 @@ interface ModuleBlock {
   parentSection?: 'normal' | 'rescue' | 'always' // Section du block parent où cette tâche est placée
   width?: number // Largeur personnalisée du block
   height?: number // Hauteur personnalisée du block
+  // Attributs de tâche
+  when?: string // Condition when
+  ignoreErrors?: boolean // Ignorer les erreurs
+  become?: boolean // Exécuter avec sudo
+  loop?: string // Définition de la loop
 }
 
 interface Link {
@@ -54,12 +63,13 @@ interface Play {
 }
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
+  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => void) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   // Gestion des PLAYs avec onglets
@@ -878,6 +888,40 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
     }
   }, [handleDelete, onDeleteModule])
 
+  // Fonction pour mettre à jour un module
+  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string }>) => {
+    setModules(modules.map(m => {
+      if (m.id === id) {
+        return { ...m, ...updates }
+      }
+      return m
+    }))
+
+    // Mettre à jour aussi le module sélectionné si c'est celui-ci
+    if (selectedModuleId === id) {
+      const module = modules.find(m => m.id === id)
+      if (module) {
+        onSelectModule({
+          id: module.id,
+          name: module.name,
+          collection: module.collection,
+          taskName: module.taskName,
+          when: updates.when !== undefined ? updates.when : module.when,
+          ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
+          become: updates.become !== undefined ? updates.become : module.become,
+          loop: updates.loop !== undefined ? updates.loop : module.loop,
+        })
+      }
+    }
+  }, [modules, selectedModuleId, onSelectModule, setModules])
+
+  // Exposer handleUpdateModuleAttributes au parent via callback
+  useEffect(() => {
+    if (onUpdateModule) {
+      onUpdateModule(handleUpdateModuleAttributes)
+    }
+  }, [handleUpdateModuleAttributes, onUpdateModule])
+
   // Obtenir le style du lien selon son type
   const getLinkStyle = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
     switch (type) {
@@ -1526,7 +1570,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                       id: module.id,
                       name: module.name,
                       collection: module.collection,
-                      taskName: module.taskName
+                      taskName: module.taskName,
+                      when: module.when,
+                      ignoreErrors: module.ignoreErrors,
+                      become: module.become,
+                      loop: module.loop
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}
@@ -1824,7 +1872,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                           id: task.id,
                                           name: task.name,
                                           collection: task.collection,
-                                          taskName: task.taskName
+                                          taskName: task.taskName,
+                                          when: task.when,
+                                          ignoreErrors: task.ignoreErrors,
+                                          become: task.become,
+                                          loop: task.loop
                                         })
                                       }}
                                       draggable
@@ -1937,9 +1989,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Placeholder pour icônes futures */}
+                                      {/* Icônes d'attributs de tâche */}
                                       <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        {/* Icônes seront ajoutées ici */}
+                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                                        </Tooltip>
                                       </Box>
                                     </Paper>
                                   )
@@ -2127,7 +2190,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                           id: task.id,
                                           name: task.name,
                                           collection: task.collection,
-                                          taskName: task.taskName
+                                          taskName: task.taskName,
+                                          when: task.when,
+                                          ignoreErrors: task.ignoreErrors,
+                                          become: task.become,
+                                          loop: task.loop
                                         })
                                       }}
                                       draggable
@@ -2240,9 +2307,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Placeholder pour icônes futures */}
+                                      {/* Icônes d'attributs de tâche */}
                                       <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        {/* Icônes seront ajoutées ici */}
+                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                                        </Tooltip>
                                       </Box>
                                     </Paper>
                                   )
@@ -2430,7 +2508,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                           id: task.id,
                                           name: task.name,
                                           collection: task.collection,
-                                          taskName: task.taskName
+                                          taskName: task.taskName,
+                                          when: task.when,
+                                          ignoreErrors: task.ignoreErrors,
+                                          become: task.become,
+                                          loop: task.loop
                                         })
                                       }}
                                       draggable
@@ -2543,9 +2625,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                                         {task.collection}.{task.name}
                                       </Typography>
 
-                                      {/* Placeholder pour icônes futures */}
+                                      {/* Icônes d'attributs de tâche */}
                                       <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        {/* Icônes seront ajoutées ici */}
+                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                                        </Tooltip>
+                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                                        </Tooltip>
                                       </Box>
                                     </Paper>
                                   )
@@ -2744,7 +2837,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                       id: module.id,
                       name: module.name,
                       collection: module.collection,
-                      taskName: module.taskName
+                      taskName: module.taskName,
+                      when: module.when,
+                      ignoreErrors: module.ignoreErrors,
+                      become: module.become,
+                      loop: module.loop
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}
@@ -2813,9 +2910,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                       {module.collection}.{module.name}
                     </Typography>
 
-                    {/* Placeholder pour icônes futures */}
+                    {/* Icônes d'attributs de tâche */}
                     <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                      {/* Icônes seront ajoutées ici */}
+                      <Tooltip title={module.when ? `Condition: ${module.when}` : 'No condition'}>
+                        <HelpOutlineIcon sx={{ fontSize: 12, color: module.when ? '#1976d2' : '#ccc' }} />
+                      </Tooltip>
+                      <Tooltip title={module.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                        <ErrorOutlineIcon sx={{ fontSize: 12, color: module.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                      </Tooltip>
+                      <Tooltip title={module.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                        <SecurityIcon sx={{ fontSize: 12, color: module.become ? '#d32f2f' : '#ccc' }} />
+                      </Tooltip>
+                      <Tooltip title={module.loop ? `Loop: ${module.loop}` : 'No loop'}>
+                        <LoopIcon sx={{ fontSize: 12, color: module.loop ? '#388e3c' : '#ccc' }} />
+                      </Tooltip>
                     </Box>
                   </Paper>
                 )

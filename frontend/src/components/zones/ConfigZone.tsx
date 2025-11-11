@@ -12,9 +12,19 @@ interface ConfigZoneProps {
     name: string
     collection: string
     taskName: string
+    when?: string
+    ignoreErrors?: boolean
+    become?: boolean
+    loop?: string
   } | null
   onCollapse?: () => void
   onDelete?: (id: string) => void
+  onUpdateModule?: (id: string, updates: Partial<{
+    when?: string
+    ignoreErrors?: boolean
+    become?: boolean
+    loop?: string
+  }>) => void
 }
 
 // Configuration des modules (à déplacer vers un fichier de config plus tard)
@@ -41,7 +51,7 @@ const moduleConfigs: Record<string, Array<{ name: string; type: string; required
   ],
 }
 
-const ConfigZone = ({ selectedModule, onCollapse, onDelete }: ConfigZoneProps) => {
+const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: ConfigZoneProps) => {
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
 
   return (
@@ -120,6 +130,18 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete }: ConfigZoneProps) =
                     size="small"
                     placeholder="ansible_os_family == 'Debian'"
                     helperText="Conditional execution"
+                    value={selectedModule.when || ''}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { when: e.target.value })}
+                  />
+
+                  <TextField
+                    label="loop"
+                    fullWidth
+                    size="small"
+                    placeholder="{{ item_list }}"
+                    helperText="Loop over items"
+                    value={selectedModule.loop || ''}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value })}
                   />
 
                   <TextField
@@ -137,7 +159,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete }: ConfigZoneProps) =
                     select
                     SelectProps={{ native: true }}
                     helperText="Continue on error"
-                    defaultValue="no"
+                    value={selectedModule.ignoreErrors ? 'yes' : 'no'}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { ignoreErrors: e.target.value === 'yes' })}
                   >
                     <option value="no">no</option>
                     <option value="yes">yes</option>
@@ -150,7 +173,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete }: ConfigZoneProps) =
                     select
                     SelectProps={{ native: true }}
                     helperText="Execute with sudo"
-                    defaultValue="no"
+                    value={selectedModule.become ? 'yes' : 'no'}
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { become: e.target.value === 'yes' })}
                   >
                     <option value="no">no</option>
                     <option value="yes">yes</option>
