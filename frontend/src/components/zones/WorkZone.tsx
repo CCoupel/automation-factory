@@ -1323,6 +1323,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
         ref={canvasRef}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
+        onClick={(e) => {
+          // Désélectionner si on clique directement sur le canvas (pas sur un module)
+          if (e.target === e.currentTarget) {
+            onSelectModule(null)
+          }
+        }}
         sx={{
           flex: 1,
           position: 'relative',
