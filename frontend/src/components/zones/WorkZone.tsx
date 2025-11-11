@@ -151,6 +151,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [editingTabIndex, setEditingTabIndex] = useState<number | null>(null)
   // Toutes les sections sont collapsed par défaut
   const [collapsedBlockSections, setCollapsedBlockSections] = useState<Set<string>>(new Set(['*:rescue', '*:always'])) // Format: "blockId:section" - Tasks ouverte par défaut
+  // Sections du PLAY - Format: "playId:section" - tasks ouverte par défaut
+  const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:variables', '*:pre_tasks', '*:post_tasks', '*:handlers']))
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
 
   const GRID_SIZE = 50
@@ -730,6 +732,50 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     const key = `${blockId}:${section}`
     const wildcardKey = `*:${section}`
     return collapsedBlockSections.has(key) || collapsedBlockSections.has(wildcardKey)
+  }
+
+  const isPlaySectionCollapsed = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+    const key = `${playId}:${section}`
+    const wildcardKey = `*:${section}`
+    return collapsedPlaySections.has(key) || collapsedPlaySections.has(wildcardKey)
+  }
+
+  const togglePlaySection = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+    setCollapsedPlaySections(prev => {
+      const newSet = new Set(prev)
+      const key = `${playId}:${section}`
+      const wildcardKey = `*:${section}`
+
+      // Retirer le wildcard s'il existe
+      newSet.delete(wildcardKey)
+
+      if (newSet.has(key)) {
+        // Si déjà fermée, l'ouvrir
+        newSet.delete(key)
+      } else {
+        // Si déjà ouverte, la fermer
+        newSet.add(key)
+      }
+
+      return newSet
+    })
+  }
+
+  const getPlaySectionColor = (section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+    switch (section) {
+      case 'variables':
+        return '#673ab7' // Violet profond
+      case 'pre_tasks':
+        return '#9c27b0' // Violet
+      case 'tasks':
+        return '#1976d2' // Bleu
+      case 'post_tasks':
+        return '#00796b' // Vert foncé
+      case 'handlers':
+        return '#ff9800' // Orange
+      default:
+        return '#757575' // Gris
+    }
   }
 
   const getSectionColor = (section: 'normal' | 'rescue' | 'always') => {
@@ -1344,45 +1390,235 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
       </Box>
 
-      {/* Zone Variables */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          px: 3,
-          py: 1,
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid #ddd',
-        }}
-      >
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', minWidth: 80 }}>
-          Variables:
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 1, flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          {currentPlay.variables.map((variable, index) => (
-            <Chip
-              key={index}
-              label={`${variable.key}: ${variable.value}`}
-              size="small"
-              onDelete={() => deleteVariable(index)}
-              color="primary"
-              variant="outlined"
-            />
-          ))}
-
-          <Button
-            size="small"
-            startIcon={<AddIcon />}
-            variant="outlined"
-            onClick={addVariable}
+      {/* PLAY Sections - Workspace Level */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
+        {/* Section 1: Variables */}
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'variables')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: `${getPlaySectionColor('variables')}15`,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: `${getPlaySectionColor('variables')}25` }
+            }}
           >
-            Add Variable
-          </Button>
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'variables') : false
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('variables') }}>
+              Variables ({currentPlay.variables.length})
+            </Typography>
+          </Box>
+          {(() => {
+            const playModule = modules.find(m => m.isPlay)
+            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'variables') : false
+            return !collapsed ? (
+              <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {currentPlay.variables.map((variable, index) => (
+                    <Chip
+                      key={index}
+                      label={`${variable.key}: ${variable.value}`}
+                      size="small"
+                      onDelete={() => deleteVariable(index)}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    variant="outlined"
+                    onClick={addVariable}
+                  >
+                    Add Variable
+                  </Button>
+                </Box>
+              </Box>
+            ) : null
+          })()}
+        </Box>
+
+        {/* Section 2: Pre-Tasks */}
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'pre_tasks')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: `${getPlaySectionColor('pre_tasks')}15`,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: `${getPlaySectionColor('pre_tasks')}25` }
+            }}
+          >
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('pre_tasks') }}>
+              Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
+            </Typography>
+          </Box>
+          {(() => {
+            const playModule = modules.find(m => m.isPlay)
+            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
+            return !collapsed ? (
+              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('pre_tasks')}08` }}>
+                <Typography variant="caption" color="text.secondary">
+                  Drop tasks here (executed before main tasks)
+                </Typography>
+              </Box>
+            ) : null
+          })()}
+        </Box>
+
+        {/* Section 3: Tasks (default open) */}
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'tasks')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: `${getPlaySectionColor('tasks')}15`,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: `${getPlaySectionColor('tasks')}25` }
+            }}
+          >
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('tasks') }}>
+              Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
+            </Typography>
+          </Box>
+          {(() => {
+            const playModule = modules.find(m => m.isPlay)
+            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
+            return !collapsed ? (
+              <Box sx={{ px: 3, py: 2, minHeight: 100, bgcolor: `${getPlaySectionColor('tasks')}08` }}>
+                <Typography variant="caption" color="text.secondary">
+                  Main workspace area - this section contains all regular tasks
+                </Typography>
+              </Box>
+            ) : null
+          })()}
+        </Box>
+
+        {/* Section 4: Post-Tasks */}
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'post_tasks')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: `${getPlaySectionColor('post_tasks')}15`,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: `${getPlaySectionColor('post_tasks')}25` }
+            }}
+          >
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('post_tasks') }}>
+              Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
+            </Typography>
+          </Box>
+          {(() => {
+            const playModule = modules.find(m => m.isPlay)
+            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
+            return !collapsed ? (
+              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('post_tasks')}08` }}>
+                <Typography variant="caption" color="text.secondary">
+                  Drop tasks here (executed after main tasks)
+                </Typography>
+              </Box>
+            ) : null
+          })()}
+        </Box>
+
+        {/* Section 5: Handlers */}
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'handlers')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: `${getPlaySectionColor('handlers')}15`,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: `${getPlaySectionColor('handlers')}25` }
+            }}
+          >
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('handlers') }}>
+              Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
+            </Typography>
+          </Box>
+          {(() => {
+            const playModule = modules.find(m => m.isPlay)
+            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
+            return !collapsed ? (
+              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('handlers')}08` }}>
+                <Typography variant="caption" color="text.secondary">
+                  Drop handlers here (executed when notified)
+                </Typography>
+              </Box>
+            ) : null
+          })()}
         </Box>
       </Box>
-
 
       {/* Drop Zone - Canvas libre */}
       <Box
@@ -1729,6 +1965,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         </Box>
                       )}
                     </Box>
+
 
                     {/* Contenu du block avec 3 sections - SEULEMENT pour les blocks, pas les PLAY */}
                     {!module.isPlay && !collapsedBlocks.has(module.id) && (
