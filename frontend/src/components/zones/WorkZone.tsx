@@ -175,8 +175,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [editingTabIndex, setEditingTabIndex] = useState<number | null>(null)
   // Toutes les sections sont collapsed par défaut
   const [collapsedBlockSections, setCollapsedBlockSections] = useState<Set<string>>(new Set(['*:rescue', '*:always'])) // Format: "blockId:section" - Tasks ouverte par défaut
-  // Sections du PLAY - Format: "playId:section" - tasks ouverte par défaut
-  const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:variables', '*:pre_tasks', '*:post_tasks', '*:handlers']))
+  // Sections du PLAY - Format: "playId:section" - Variables et Tasks ouvertes par défaut
+  const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:pre_tasks', '*:post_tasks', '*:handlers']))
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
 
   const GRID_SIZE = 50
