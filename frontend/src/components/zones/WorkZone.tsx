@@ -1611,20 +1611,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule }: WorkZone
                               )}
                             </IconButton>
                           )}
-                          {/* Bouton delete SEULEMENT pour les blocks et tâches, pas les PLAY */}
-                          {!module.isPlay && (
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDelete(module.id)
-                              }}
-                              sx={{ p: 0.25 }}
-                            >
-                              <DeleteIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                          )}
                         </Box>
                       </Box>
 
