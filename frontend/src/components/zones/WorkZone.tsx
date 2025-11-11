@@ -975,8 +975,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
     }
   }
 
-  // Calculer le point de connexion d'un module (en tenant compte s'il est dans un block)
-  const getModuleConnectionPoint = (module: ModuleBlock) => {
+  // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
+  const getModuleAbsolutePosition = (module: ModuleBlock) => {
     const dims = module.isBlock ? getBlockDimensions(module) : { width: 150, height: 120 }
 
     // Si le module est dans un block, calculer sa position absolue
@@ -1024,8 +1024,84 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
     }
 
     return {
-      x: absoluteX + dims.width / 2,
-      y: absoluteY + dims.height / 2
+      x: absoluteX,
+      y: absoluteY,
+      width: dims.width,
+      height: dims.height
+    }
+  }
+
+  // Calculer les points de connexion sur les bords des modules
+  const getModuleConnectionPoint = (fromModule: ModuleBlock, toModule: ModuleBlock) => {
+    const fromPos = getModuleAbsolutePosition(fromModule)
+    const toPos = getModuleAbsolutePosition(toModule)
+
+    // Centres des modules
+    const fromCenterX = fromPos.x + fromPos.width / 2
+    const fromCenterY = fromPos.y + fromPos.height / 2
+    const toCenterX = toPos.x + toPos.width / 2
+    const toCenterY = toPos.y + toPos.height / 2
+
+    // Calculer l'angle entre les deux modules
+    const dx = toCenterX - fromCenterX
+    const dy = toCenterY - fromCenterY
+
+    // Déterminer quel côté utiliser pour chaque module
+    let fromX, fromY, toX, toY
+
+    // Pour le module source (from)
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Connexion horizontale (gauche/droite)
+      if (dx > 0) {
+        // toModule est à droite de fromModule -> sortie par la droite
+        fromX = fromPos.x + fromPos.width
+        fromY = fromCenterY
+      } else {
+        // toModule est à gauche de fromModule -> sortie par la gauche
+        fromX = fromPos.x
+        fromY = fromCenterY
+      }
+    } else {
+      // Connexion verticale (haut/bas)
+      if (dy > 0) {
+        // toModule est en dessous de fromModule -> sortie par le bas
+        fromX = fromCenterX
+        fromY = fromPos.y + fromPos.height
+      } else {
+        // toModule est au-dessus de fromModule -> sortie par le haut
+        fromX = fromCenterX
+        fromY = fromPos.y
+      }
+    }
+
+    // Pour le module destination (to)
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Connexion horizontale (gauche/droite)
+      if (dx > 0) {
+        // toModule est à droite de fromModule -> entrée par la gauche
+        toX = toPos.x
+        toY = toCenterY
+      } else {
+        // toModule est à gauche de fromModule -> entrée par la droite
+        toX = toPos.x + toPos.width
+        toY = toCenterY
+      }
+    } else {
+      // Connexion verticale (haut/bas)
+      if (dy > 0) {
+        // toModule est en dessous de fromModule -> entrée par le haut
+        toX = toCenterX
+        toY = toPos.y
+      } else {
+        // toModule est au-dessus de fromModule -> entrée par le bas
+        toX = toCenterX
+        toY = toPos.y + toPos.height
+      }
+    }
+
+    return {
+      from: { x: fromX, y: fromY },
+      to: { x: toX, y: toY }
     }
   }
 
@@ -1285,13 +1361,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
               }
             }
 
-            const from = getModuleConnectionPoint(fromModule)
-            const to = getModuleConnectionPoint(toModule)
+            const connectionPoints = getModuleConnectionPoint(fromModule, toModule)
 
-            const x1 = from.x
-            const y1 = from.y
-            const x2 = to.x
-            const y2 = to.y
+            const x1 = connectionPoints.from.x
+            const y1 = connectionPoints.from.y
+            const x2 = connectionPoints.to.x
+            const y2 = connectionPoints.to.y
 
             const midX = (x1 + x2) / 2
             const midY = (y1 + y2) / 2
@@ -1301,6 +1376,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
 
             return (
               <g key={link.id} style={{ pointerEvents: 'all' }}>
+                {/* Point de connexion source */}
+                <circle
+                  cx={x1}
+                  cy={y1}
+                  r="4"
+                  fill={style.stroke}
+                  stroke="white"
+                  strokeWidth="1.5"
+                />
                 {/* Ligne */}
                 <line
                   x1={x1}
@@ -1310,6 +1394,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId }: WorkZoneProps) => {
                   stroke={style.stroke}
                   strokeWidth={style.strokeWidth || '2'}
                   strokeDasharray={style.strokeDasharray}
+                />
+                {/* Point de connexion destination */}
+                <circle
+                  cx={x2}
+                  cy={y2}
+                  r="4"
+                  fill={style.stroke}
+                  stroke="white"
+                  strokeWidth="1.5"
                 />
                 {/* Flèche au milieu */}
                 <polygon
