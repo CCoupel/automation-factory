@@ -31,8 +31,8 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   const [activeTab, setActiveTab] = useState(0)
 
   // Éléments génériques (blocks, handlers, etc.)
+  // Note: 'play' n'est pas inclus car il y a un PLAY unique et obligatoire par espace de travail
   const genericElements = [
-    { name: 'play', description: 'Define a play in the playbook' },
     { name: 'block', description: 'Group tasks with error handling' },
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
