@@ -24,7 +24,7 @@ interface ModuleBlock {
   x: number
   y: number
   isBlock?: boolean // Indique si c'est un block conteneur
-  isPlay?: boolean // Indique si c'est un PLAY (racine de généalogie)
+  isPlay?: boolean // Indique si c'est un START task (dans une section de PLAY)
   inventory?: string // Inventaire spécifique au PLAY
   children?: string[] // IDs des tâches dans la section normale (deprecated - use blockSections)
   blockSections?: {
@@ -33,7 +33,7 @@ interface ModuleBlock {
     always: string[]    // IDs des tâches dans la section always
   }
   parentId?: string // ID du block parent (si dans un block)
-  parentSection?: 'normal' | 'rescue' | 'always' // Section du block parent où cette tâche est placée
+  parentSection?: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' // Section du block parent OU section de PLAY
   width?: number // Largeur personnalisée du block
   height?: number // Hauteur personnalisée du block
   // Attributs de tâche
@@ -42,13 +42,6 @@ interface ModuleBlock {
   become?: boolean // Exécuter avec sudo
   loop?: string // Définition de la loop
   delegateTo?: string // Délégation à un autre hôte
-  // Sections du PLAY
-  playSections?: {
-    pre_tasks: string[]   // IDs des tâches dans pre_tasks
-    tasks: string[]       // IDs des tâches dans tasks
-    post_tasks: string[]  // IDs des tâches dans post_tasks
-    handlers: string[]    // IDs des handlers
-  }
   // Les variables sont gérées dans Play.variables
   // Les rôles seront gérés séparément (à implémenter)
 }
@@ -89,22 +82,53 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       id: 'play-1',
       name: 'Play 1',
       modules: [
+        // START task for pre_tasks section
         {
-          id: 'play-1-main',
+          id: 'play-1-start-pre-tasks',
           collection: 'ansible.generic',
-          name: 'play',
-          description: 'Define a play in the playbook',
-          taskName: 'Play 1',
+          name: 'start',
+          description: 'Start point for pre-tasks',
+          taskName: 'START',
           x: 50,
-          y: 50,
+          y: 20,
           isPlay: true,
-          inventory: 'hosts',
-          playSections: {
-            pre_tasks: [],
-            tasks: [],
-            post_tasks: [],
-            handlers: [],
-          },
+          parentSection: 'pre_tasks',
+        },
+        // START task for tasks section
+        {
+          id: 'play-1-start-tasks',
+          collection: 'ansible.generic',
+          name: 'start',
+          description: 'Start point for tasks',
+          taskName: 'START',
+          x: 50,
+          y: 20,
+          isPlay: true,
+          parentSection: 'tasks',
+        },
+        // START task for post_tasks section
+        {
+          id: 'play-1-start-post-tasks',
+          collection: 'ansible.generic',
+          name: 'start',
+          description: 'Start point for post-tasks',
+          taskName: 'START',
+          x: 50,
+          y: 20,
+          isPlay: true,
+          parentSection: 'post_tasks',
+        },
+        // START task for handlers section
+        {
+          id: 'play-1-start-handlers',
+          collection: 'ansible.generic',
+          name: 'start',
+          description: 'Start point for handlers',
+          taskName: 'START',
+          x: 50,
+          y: 20,
+          isPlay: true,
+          parentSection: 'handlers',
         },
       ],
       links: [],
@@ -1481,13 +1505,71 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay)
+            const playModule = modules.find(m => m.isPlay && m.parentSection === 'pre_tasks')
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
             return !collapsed ? (
-              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('pre_tasks')}08` }}>
-                <Typography variant="caption" color="text.secondary">
-                  Drop tasks here (executed before main tasks)
-                </Typography>
+              <Box
+                sx={{
+                  position: 'relative',
+                  minHeight: 150,
+                  bgcolor: `${getPlaySectionColor('pre_tasks')}08`,
+                  overflow: 'auto',
+                  p: 2
+                }}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                {/* Render START task and other tasks in pre_tasks section */}
+                {modules
+                  .filter(m => m.parentSection === 'pre_tasks')
+                  .map(task => (
+                    <Paper
+                      key={task.id}
+                      elevation={selectedModuleId === task.id ? 6 : 3}
+                      onClick={() => onSelectModule({
+                        id: task.id,
+                        name: task.name,
+                        collection: task.collection,
+                        taskName: task.taskName,
+                        when: task.when,
+                        ignoreErrors: task.ignoreErrors,
+                        become: task.become,
+                        loop: task.loop,
+                        delegateTo: task.delegateTo,
+                        isBlock: task.isBlock,
+                        isPlay: task.isPlay
+                      })}
+                      draggable
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
+                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+                      sx={{
+                        position: 'absolute',
+                        left: task.x,
+                        top: task.y,
+                        width: task.isPlay ? 140 : 140,
+                        minHeight: 60,
+                        p: 1.5,
+                        cursor: 'move',
+                        border: task.isPlay ? '2px solid #9c27b0' : '2px solid #ddd',
+                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
+                        bgcolor: task.isPlay ? '#f3e5f5' : 'background.paper',
+                        zIndex: draggedModuleId === task.id ? 10 : 1,
+                        opacity: draggedModuleId === task.id ? 0.7 : 1,
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PlayArrowIcon sx={{ fontSize: 16, color: '#9c27b0' }} />
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {task.taskName}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  ))
+                }
               </Box>
             ) : null
           })()}
@@ -1523,13 +1605,71 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay)
+            const playModule = modules.find(m => m.isPlay && m.parentSection === 'tasks')
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
             return !collapsed ? (
-              <Box sx={{ px: 3, py: 2, minHeight: 100, bgcolor: `${getPlaySectionColor('tasks')}08` }}>
-                <Typography variant="caption" color="text.secondary">
-                  Main workspace area - this section contains all regular tasks
-                </Typography>
+              <Box
+                sx={{
+                  position: 'relative',
+                  minHeight: 200,
+                  bgcolor: `${getPlaySectionColor('tasks')}08`,
+                  overflow: 'auto',
+                  p: 2
+                }}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                {/* Render START task and other tasks in tasks section */}
+                {modules
+                  .filter(m => m.parentSection === 'tasks')
+                  .map(task => (
+                    <Paper
+                      key={task.id}
+                      elevation={selectedModuleId === task.id ? 6 : 3}
+                      onClick={() => onSelectModule({
+                        id: task.id,
+                        name: task.name,
+                        collection: task.collection,
+                        taskName: task.taskName,
+                        when: task.when,
+                        ignoreErrors: task.ignoreErrors,
+                        become: task.become,
+                        loop: task.loop,
+                        delegateTo: task.delegateTo,
+                        isBlock: task.isBlock,
+                        isPlay: task.isPlay
+                      })}
+                      draggable
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
+                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+                      sx={{
+                        position: 'absolute',
+                        left: task.x,
+                        top: task.y,
+                        width: task.isPlay ? 140 : 140,
+                        minHeight: 60,
+                        p: 1.5,
+                        cursor: 'move',
+                        border: task.isPlay ? '2px solid #1976d2' : '2px solid #ddd',
+                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
+                        bgcolor: task.isPlay ? '#e3f2fd' : 'background.paper',
+                        zIndex: draggedModuleId === task.id ? 10 : 1,
+                        opacity: draggedModuleId === task.id ? 0.7 : 1,
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PlayArrowIcon sx={{ fontSize: 16, color: '#1976d2' }} />
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {task.taskName}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  ))
+                }
               </Box>
             ) : null
           })()}
@@ -1565,13 +1705,71 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay)
+            const playModule = modules.find(m => m.isPlay && m.parentSection === 'post_tasks')
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
             return !collapsed ? (
-              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('post_tasks')}08` }}>
-                <Typography variant="caption" color="text.secondary">
-                  Drop tasks here (executed after main tasks)
-                </Typography>
+              <Box
+                sx={{
+                  position: 'relative',
+                  minHeight: 150,
+                  bgcolor: `${getPlaySectionColor('post_tasks')}08`,
+                  overflow: 'auto',
+                  p: 2
+                }}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                {/* Render START task and other tasks in post_tasks section */}
+                {modules
+                  .filter(m => m.parentSection === 'post_tasks')
+                  .map(task => (
+                    <Paper
+                      key={task.id}
+                      elevation={selectedModuleId === task.id ? 6 : 3}
+                      onClick={() => onSelectModule({
+                        id: task.id,
+                        name: task.name,
+                        collection: task.collection,
+                        taskName: task.taskName,
+                        when: task.when,
+                        ignoreErrors: task.ignoreErrors,
+                        become: task.become,
+                        loop: task.loop,
+                        delegateTo: task.delegateTo,
+                        isBlock: task.isBlock,
+                        isPlay: task.isPlay
+                      })}
+                      draggable
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
+                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+                      sx={{
+                        position: 'absolute',
+                        left: task.x,
+                        top: task.y,
+                        width: task.isPlay ? 140 : 140,
+                        minHeight: 60,
+                        p: 1.5,
+                        cursor: 'move',
+                        border: task.isPlay ? '2px solid #00796b' : '2px solid #ddd',
+                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
+                        bgcolor: task.isPlay ? '#e0f2f1' : 'background.paper',
+                        zIndex: draggedModuleId === task.id ? 10 : 1,
+                        opacity: draggedModuleId === task.id ? 0.7 : 1,
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PlayArrowIcon sx={{ fontSize: 16, color: '#00796b' }} />
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {task.taskName}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  ))
+                }
               </Box>
             ) : null
           })()}
@@ -1607,13 +1805,71 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay)
+            const playModule = modules.find(m => m.isPlay && m.parentSection === 'handlers')
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
             return !collapsed ? (
-              <Box sx={{ px: 3, py: 2, minHeight: 80, bgcolor: `${getPlaySectionColor('handlers')}08` }}>
-                <Typography variant="caption" color="text.secondary">
-                  Drop handlers here (executed when notified)
-                </Typography>
+              <Box
+                sx={{
+                  position: 'relative',
+                  minHeight: 150,
+                  bgcolor: `${getPlaySectionColor('handlers')}08`,
+                  overflow: 'auto',
+                  p: 2
+                }}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                {/* Render START task and other tasks in handlers section */}
+                {modules
+                  .filter(m => m.parentSection === 'handlers')
+                  .map(task => (
+                    <Paper
+                      key={task.id}
+                      elevation={selectedModuleId === task.id ? 6 : 3}
+                      onClick={() => onSelectModule({
+                        id: task.id,
+                        name: task.name,
+                        collection: task.collection,
+                        taskName: task.taskName,
+                        when: task.when,
+                        ignoreErrors: task.ignoreErrors,
+                        become: task.become,
+                        loop: task.loop,
+                        delegateTo: task.delegateTo,
+                        isBlock: task.isBlock,
+                        isPlay: task.isPlay
+                      })}
+                      draggable
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
+                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+                      sx={{
+                        position: 'absolute',
+                        left: task.x,
+                        top: task.y,
+                        width: task.isPlay ? 140 : 140,
+                        minHeight: 60,
+                        p: 1.5,
+                        cursor: 'move',
+                        border: task.isPlay ? '2px solid #ff9800' : '2px solid #ddd',
+                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
+                        bgcolor: task.isPlay ? '#fff3e0' : 'background.paper',
+                        zIndex: draggedModuleId === task.id ? 10 : 1,
+                        opacity: draggedModuleId === task.id ? 0.7 : 1,
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PlayArrowIcon sx={{ fontSize: 16, color: '#ff9800' }} />
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {task.taskName}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  ))
+                }
               </Box>
             ) : null
           })()}
