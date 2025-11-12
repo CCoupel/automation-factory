@@ -25,25 +25,43 @@ Ansible Builder est un constructeur graphique de playbook ansible.
 L'interface se compose de plusieurs parties:
 
 **Barre haute 1 (Zone Play):**
-- Centralise les informations relatives au playbook (version, nom, inventaire...)
+- Centralise les informations relatives au playbook (version, nom...)
 
 **Barre haute 2 (Zone Vars):**
 - Centralise les variables du playbook
+- doit pouvoir etre refermée
 
 **Barre basse (Zone System):**
 - Permet de télécharger le playbook résultant
 - Affiche les logs
 - Affiche les résultats de compilation
 - La zone est redimensionnable
+- doit pouvoir etre refermée
 
 **Zone gauche (Zone Modules):**
 - 2 onglets: Generic et Modules
 - La zone est redimensionnable
 - Affiche les modules organisés par collection
+- doit pouvoir etre refermée
 
-**Zone centrale (Zone de Travail):**
-- Représente le playbook sous la forme de blocks en drag & drop depuis la zone modules
-- C'est le canvas principal où on construit le playbook
+
+**Zone centrale (Zone de Travail/Playbook):**
+- Représente le playbook 
+- organisé sous forme d'onglets par PLAY
+
+**Zone interne (Zone de Play):**
+- Représente le playbook 
+- organisé sous forme d'onglets par PLAY
+- se presente sous la forme d'un accordeon de
+  - Variables:
+    - liste les variables du Playsous la forme de blocks en drag & drop depuis la zone modules
+    - peux etre refermé et redimmentionné
+  - Pre-tasks, Tasks, Post-tasks et Handlers
+    - 1 seul section ouverte a la fois
+    - occupe tout l'esapce de travail
+    - chaque section peux recevoir les taches et les blocks
+    - une tache speciale (START) est toujours presentesans pouvoir etre deplacée ni supprimée.
+
 
 **Zone droite (Zone de Configuration):**
 - Représente les éléments de configuration du module sélectionné
@@ -271,6 +289,74 @@ const getModuleConnectionPoint = (module: ModuleBlock) => {
 }
 ```
 
+#### Position absolue des tâches dans sections PLAY
+
+**Problème initial:**
+Les liens n'étaient pas alignés correctement avec les bords des tâches dans les sections PLAY (pre_tasks, tasks, post_tasks, handlers). Le point d'accroche était décalé vers la droite et vers le bas.
+
+**Cause racine:**
+L'utilisation de `getBoundingClientRect()` sur l'élément tâche pendant le rendu retournait l'ancienne position DOM avant que React ne mette à jour le DOM après un drop. Les liens étaient donc calculés avec les coordonnées obsolètes.
+
+**Solution adoptée:**
+Utiliser les coordonnées de l'état React (`module.x`, `module.y`) qui sont mises à jour immédiatement, combinées avec la position de la section parente.
+
+```typescript
+// Calcul de position pour tâches dans sections PLAY
+if (module.parentSection && !module.parentId) {
+  // 1. Mapper le ref approprié selon la section
+  let sectionRef: React.RefObject<HTMLDivElement> | null = null
+  switch (module.parentSection) {
+    case 'variables': sectionRef = variablesSectionRef; break
+    case 'pre_tasks': sectionRef = preTasksSectionRef; break
+    case 'tasks': sectionRef = tasksSectionRef; break
+    case 'post_tasks': sectionRef = postTasksSectionRef; break
+    case 'handlers': sectionRef = handlersSectionRef; break
+  }
+
+  // 2. Obtenir position de la section via getBoundingClientRect
+  const containerRect = playSectionsContainerRef.current.getBoundingClientRect()
+  const sectionRect = sectionRef.current.getBoundingClientRect()
+
+  // 3. Calculer position relative (avec compensation scroll)
+  const sectionRelativeTop = sectionRect.top - containerRect.top + containerScrollTop
+  const sectionRelativeLeft = sectionRect.left - containerRect.left + containerScrollLeft
+
+  // 4. Position absolue = position section + coordonnées état React
+  // IMPORTANT: NE PAS ajouter le padding car module.x/y sont déjà
+  // relatifs au bord intérieur (après padding)
+  absoluteX = sectionRelativeLeft + module.x
+  absoluteY = sectionRelativeTop + module.y
+
+  // 5. Obtenir dimensions réelles via DOM pour calcul correct du bord bas
+  const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+  if (taskElement) {
+    const taskRect = taskElement.getBoundingClientRect()
+    dims = { width: taskRect.width, height: taskRect.height }
+  }
+}
+```
+
+**Points clés de la solution:**
+
+1. **Utiliser l'état React pour position:** `module.x` et `module.y` sont mis à jour immédiatement dans l'état après un drop, contrairement au DOM qui se met à jour après le re-render
+
+2. **Calculer position de section via getBoundingClientRect:** Pour obtenir la position absolue de la section dans le conteneur
+
+3. **Compensation du scroll:** Ajouter `scrollTop` et `scrollLeft` du conteneur pour gérer le cas où l'utilisateur a scrollé
+
+4. **NE PAS ajouter le padding:** Les coordonnées `module.x` et `module.y` sont déjà relatives au bord intérieur de la section (après padding de 16px = `p: 2` en MUI)
+
+5. **Récupérer dimensions réelles:** Utiliser `getBoundingClientRect()` sur l'élément tâche pour obtenir la hauteur/largeur réelle et corriger le point d'accroche du bord bas
+
+6. **Attribut data-task-id:** Chaque tâche Paper possède `data-task-id={task.id}` pour permettre la sélection DOM via `querySelector()`
+
+**Références DOM nécessaires:**
+- `playSectionsContainerRef`: Conteneur principal des sections PLAY
+- `variablesSectionRef`, `preTasksSectionRef`, `tasksSectionRef`, `postTasksSectionRef`, `handlersSectionRef`: Refs individuels pour chaque section
+
+**Résultat:**
+Les 4 points d'accroche (haut, bas, gauche, droite) sont maintenant parfaitement alignés avec les bords des tâches, même immédiatement après un drag & drop.
+
 ---
 
 ## 🔗 Système de Liens
@@ -452,8 +538,15 @@ interface ModuleBlock {
 
 4. **Calcul des positions dans les sections**
    - Utiliser les coordonnées relatives à la section, pas au canvas
-   - Tenir compte du padding de section (4px)
+   - Tenir compte du padding de section (4px pour blocks, 16px pour sections PLAY)
    - Contraindre dans les limites de la section
+
+5. **Calcul de position des liens pour sections PLAY**
+   - **NE JAMAIS** utiliser `getBoundingClientRect()` directement sur l'élément tâche pour obtenir sa position après un drop
+   - Utiliser les coordonnées de l'état React (`module.x`, `module.y`) qui sont mises à jour immédiatement
+   - Utiliser `getBoundingClientRect()` UNIQUEMENT pour obtenir la position de la section parente
+   - **NE PAS** ajouter le padding de la section aux coordonnées (déjà incluses dans `module.x/y`)
+   - Utiliser `getBoundingClientRect()` sur la tâche UNIQUEMENT pour obtenir les dimensions (width/height)
 
 ### Visibilité des Éléments
 
@@ -520,16 +613,18 @@ kubectl apply -f k8s/frontend/
 - Gère le canvas, drag & drop, liens
 - Rendu des blocks et sections
 - **Lignes importantes:**
-  - ~76: État initial `collapsedBlockSections`
-  - ~102-126: `getBlockDimensions()` - calcul hauteur dynamique
+  - ~77-83: Refs DOM pour sections PLAY (playSectionsContainerRef, variablesSectionRef, etc.)
+  - ~86-98: État initial des PLAYs avec onglets
+  - ~102-126: `getBlockDimensions()` - calcul hauteur dynamique blocks
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
-  - ~527-554: `toggleBlockSection()` - comportement accordion
-  - ~902-953: `getModuleConnectionPoint()` - calcul positions absolues
-  - ~1016-1110: Rendu des liens SVG avec visibilité conditionnelle
-  - ~1174-1430: Section Tasks avec handler onDrop
-  - ~1493-1735: Section Rescue avec handler onDrop
-  - ~1802-2044: Section Always avec handler onDrop
+  - ~527-554: `toggleBlockSection()` - comportement accordion blocks
+  - ~1237-1343: `getModuleAbsolutePosition()` - calcul positions absolues (blocks + PLAY sections)
+  - ~1282-1335: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
+  - ~1339-1410: `getModuleConnectionPoint()` - calcul points d'accroche des liens
+  - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
+  - ~1790-2560: Rendu des sections PLAY (Variables, Pre-tasks, Tasks, Post-tasks, Handlers)
+  - ~1868, ~2032, ~2196, ~2360: Attribut `data-task-id` sur chaque tâche Paper
 
 ---
 
@@ -549,6 +644,10 @@ kubectl apply -f k8s/frontend/
 - [x] Redimensionnement dynamique des blocks selon section ouverte
 - [x] Couleurs distinctes pour chaque section
 - [x] Headers cliquables pour expand/collapse
+- [x] Architecture PLAY avec sections (Variables, Pre-tasks, Tasks, Post-tasks, Handlers)
+- [x] Comportement accordion pour sections PLAY (une section ouverte à la fois)
+- [x] Alignement précis des liens avec les bords des tâches dans sections PLAY
+- [x] Visibilité conditionnelle des liens (sections PLAY réduites)
 
 ---
 
