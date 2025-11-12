@@ -1468,6 +1468,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     })
   }
 
+  // Calculer quelles sections sont ouvertes
+  const playModule = modules.find(m => m.isPlay)
+  const isVariablesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'variables') : false
+  const isPreTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'pre_tasks') : false
+  const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
+  const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
+  const isHandlersOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'handlers') : false
+
   return (
     <Box
       sx={{
@@ -1478,7 +1486,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }}
     >
       {/* Onglets PLAYs */}
-      <Box sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #ddd' }}>
+      <Box sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
           <Tabs
             value={activePlayIndex}
@@ -1555,9 +1563,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       </Box>
 
       {/* PLAY Sections - Workspace Level */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden' }}>
         {/* Section 1: Variables */}
-        <Box sx={{ borderBottom: '1px solid #ddd' }}>
+        <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1585,34 +1593,30 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               Variables ({currentPlay.variables.length})
             </Typography>
           </Box>
-          {(() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'variables') : false
-            return !collapsed ? (
-              <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {currentPlay.variables.map((variable, index) => (
-                    <Chip
-                      key={index}
-                      label={`${variable.key}: ${variable.value}`}
-                      size="small"
-                      onDelete={() => deleteVariable(index)}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
-                  <Button
+          {isVariablesOpen && (
+            <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                {currentPlay.variables.map((variable, index) => (
+                  <Chip
+                    key={index}
+                    label={`${variable.key}: ${variable.value}`}
                     size="small"
-                    startIcon={<AddIcon />}
+                    onDelete={() => deleteVariable(index)}
+                    color="primary"
                     variant="outlined"
-                    onClick={addVariable}
-                  >
-                    Add Variable
-                  </Button>
-                </Box>
+                  />
+                ))}
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="outlined"
+                  onClick={addVariable}
+                >
+                  Add Variable
+                </Button>
               </Box>
-            ) : null
-          })()}
+            </Box>
+          )}
         </Box>
 
         {/* Section 2: Pre-Tasks */}
@@ -1620,11 +1624,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           borderBottom: '1px solid #ddd',
           display: 'flex',
           flexDirection: 'column',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
-            return collapsed ? '0 0 auto' : 1
-          })(),
+          flex: isPreTasksOpen ? 1 : '0 0 auto',
           minHeight: 0
         }}>
           <Box
@@ -1654,10 +1654,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
             </Typography>
           </Box>
-          {(() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
-            return !collapsed ? (
+          {isPreTasksOpen && (
               <Box
                 sx={{
                   position: 'relative',
@@ -1722,8 +1719,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   ))
                 }
               </Box>
-            ) : null
-          })()}
+          )}
         </Box>
 
         {/* Section 3: Tasks (default open) */}
@@ -1731,11 +1727,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           borderBottom: '1px solid #ddd',
           display: 'flex',
           flexDirection: 'column',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
-            return collapsed ? '0 0 auto' : 1
-          })(),
+          flex: isTasksOpen ? 1 : '0 0 auto',
           minHeight: 0
         }}>
           <Box
@@ -1765,10 +1757,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
             </Typography>
           </Box>
-          {(() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
-            return !collapsed ? (
+          {isTasksOpen && (
               <Box
                 sx={{
                   position: 'relative',
@@ -1833,8 +1822,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   ))
                 }
               </Box>
-            ) : null
-          })()}
+          )}
         </Box>
 
         {/* Section 4: Post-Tasks */}
@@ -1842,11 +1830,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           borderBottom: '1px solid #ddd',
           display: 'flex',
           flexDirection: 'column',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
-            return collapsed ? '0 0 auto' : 1
-          })(),
+          flex: isPostTasksOpen ? 1 : '0 0 auto',
           minHeight: 0
         }}>
           <Box
@@ -1876,10 +1860,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
             </Typography>
           </Box>
-          {(() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
-            return !collapsed ? (
+          {isPostTasksOpen && (
               <Box
                 sx={{
                   position: 'relative',
@@ -1944,8 +1925,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   ))
                 }
               </Box>
-            ) : null
-          })()}
+          )}
         </Box>
 
         {/* Section 5: Handlers */}
@@ -1953,11 +1933,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           borderBottom: '1px solid #ddd',
           display: 'flex',
           flexDirection: 'column',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
-            return collapsed ? '0 0 auto' : 1
-          })(),
+          flex: isHandlersOpen ? 1 : '0 0 auto',
           minHeight: 0
         }}>
           <Box
@@ -1987,10 +1963,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
             </Typography>
           </Box>
-          {(() => {
-            const playModule = modules.find(m => m.isPlay)
-            const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
-            return !collapsed ? (
+          {isHandlersOpen && (
               <Box
                 sx={{
                   position: 'relative',
@@ -2055,8 +2028,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   ))
                 }
               </Box>
-            ) : null
-          })()}
+          )}
         </Box>
       </Box>
 
