@@ -1281,43 +1281,25 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
     } else if (module.parentSection && !module.parentId) {
       // Module dans une PLAY section (pas dans un block)
-      // Utiliser les refs pour obtenir les vraies positions
-      const containerRect = playSectionsContainerRef.current?.getBoundingClientRect()
-      let sectionRef: React.RefObject<HTMLDivElement> | null = null
+      // Utiliser directement les coordonnées DOM de la tâche
+      if (playSectionsContainerRef.current) {
+        // Trouver l'élément DOM de la tâche via data-task-id
+        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
 
-      switch (module.parentSection) {
-        case 'variables':
-          sectionRef = variablesSectionRef
-          break
-        case 'pre_tasks':
-          sectionRef = preTasksSectionRef
-          break
-        case 'tasks':
-          sectionRef = tasksSectionRef
-          break
-        case 'post_tasks':
-          sectionRef = postTasksSectionRef
-          break
-        case 'handlers':
-          sectionRef = handlersSectionRef
-          break
-      }
+        if (taskElement) {
+          const taskRect = taskElement.getBoundingClientRect()
+          const containerRect = playSectionsContainerRef.current.getBoundingClientRect()
 
-      if (sectionRef?.current) {
-        // Approche simplifiée: utiliser offsetTop/offsetLeft au lieu de getBoundingClientRect
-        // Les sections ont p: 2 (16px de padding)
-        const sectionPadding = 16 // p: 2 => 16px
-
-        // offsetTop/offsetLeft donnent la position relative au parent positionné (offsetParent)
-        // qui devrait être le conteneur des PLAY sections
-        const sectionOffsetTop = sectionRef.current.offsetTop || 0
-        const sectionOffsetLeft = sectionRef.current.offsetLeft || 0
-
-        // Position de la tâche = position section + padding section + position module
-        absoluteY = sectionOffsetTop + sectionPadding + module.y
-        absoluteX = sectionOffsetLeft + sectionPadding + module.x
+          // Position absolue = position viewport de la tâche - position viewport du conteneur
+          absoluteY = taskRect.top - containerRect.top
+          absoluteX = taskRect.left - containerRect.left
+        } else {
+          // Fallback si l'élément n'est pas trouvé
+          absoluteX = module.x
+          absoluteY = module.y
+        }
       } else {
-        // Fallback si les refs ne sont pas encore disponibles
+        // Fallback si le conteneur n'est pas disponible
         absoluteX = module.x
         absoluteY = module.y
       }
@@ -1883,6 +1865,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   .map(task => (
                     <Paper
                       key={task.id}
+                      data-task-id={task.id}
                       elevation={selectedModuleId === task.id ? 6 : 3}
                       onClick={() => onSelectModule({
                         id: task.id,
@@ -2046,6 +2029,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   .map(task => (
                     <Paper
                       key={task.id}
+                      data-task-id={task.id}
                       elevation={selectedModuleId === task.id ? 6 : 3}
                       onClick={() => onSelectModule({
                         id: task.id,
@@ -2209,6 +2193,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   .map(task => (
                     <Paper
                       key={task.id}
+                      data-task-id={task.id}
                       elevation={selectedModuleId === task.id ? 6 : 3}
                       onClick={() => onSelectModule({
                         id: task.id,
@@ -2372,6 +2357,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   .map(task => (
                     <Paper
                       key={task.id}
+                      data-task-id={task.id}
                       elevation={selectedModuleId === task.id ? 6 : 3}
                       onClick={() => onSelectModule({
                         id: task.id,
