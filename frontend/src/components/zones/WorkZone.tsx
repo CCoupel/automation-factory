@@ -1709,11 +1709,70 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PlayArrowIcon sx={{ fontSize: 16, color: '#9c27b0' }} />
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {task.taskName}
-                        </Typography>
+                      {/* ID et nom de la tâche sur la même ligne */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            minWidth: 18,
+                            height: 18,
+                            px: 0.5,
+                            borderRadius: '4px',
+                            bgcolor: getPlaySectionColor('pre_tasks'),
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.6rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {modules.filter(m => m.parentSection === 'pre_tasks').indexOf(task) + 1}
+                        </Box>
+                        <TextField
+                          fullWidth
+                          variant="standard"
+                          value={task.taskName}
+                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              padding: '0',
+                            },
+                            '& .MuiInput-root:before': {
+                              borderBottom: 'none',
+                            },
+                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      {/* Nom du module */}
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
+                        {task.collection}.{task.name}
+                      </Typography>
+
+                      {/* Icônes d'attributs de tâche */}
+                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                        </Tooltip>
                       </Box>
                     </Paper>
                   ))
@@ -1812,11 +1871,70 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PlayArrowIcon sx={{ fontSize: 16, color: '#1976d2' }} />
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {task.taskName}
-                        </Typography>
+                      {/* ID et nom de la tâche sur la même ligne */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            minWidth: 18,
+                            height: 18,
+                            px: 0.5,
+                            borderRadius: '4px',
+                            bgcolor: getPlaySectionColor('tasks'),
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.6rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {modules.filter(m => m.parentSection === 'tasks').indexOf(task) + 1}
+                        </Box>
+                        <TextField
+                          fullWidth
+                          variant="standard"
+                          value={task.taskName}
+                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              padding: '0',
+                            },
+                            '& .MuiInput-root:before': {
+                              borderBottom: 'none',
+                            },
+                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      {/* Nom du module */}
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
+                        {task.collection}.{task.name}
+                      </Typography>
+
+                      {/* Icônes d'attributs de tâche */}
+                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                        </Tooltip>
                       </Box>
                     </Paper>
                   ))
@@ -1915,11 +2033,70 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PlayArrowIcon sx={{ fontSize: 16, color: '#00796b' }} />
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {task.taskName}
-                        </Typography>
+                      {/* ID et nom de la tâche sur la même ligne */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            minWidth: 18,
+                            height: 18,
+                            px: 0.5,
+                            borderRadius: '4px',
+                            bgcolor: getPlaySectionColor('post_tasks'),
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.6rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {modules.filter(m => m.parentSection === 'post_tasks').indexOf(task) + 1}
+                        </Box>
+                        <TextField
+                          fullWidth
+                          variant="standard"
+                          value={task.taskName}
+                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              padding: '0',
+                            },
+                            '& .MuiInput-root:before': {
+                              borderBottom: 'none',
+                            },
+                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      {/* Nom du module */}
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
+                        {task.collection}.{task.name}
+                      </Typography>
+
+                      {/* Icônes d'attributs de tâche */}
+                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                        </Tooltip>
                       </Box>
                     </Paper>
                   ))
@@ -2018,11 +2195,70 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         },
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <PlayArrowIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                        <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {task.taskName}
-                        </Typography>
+                      {/* ID et nom de la tâche sur la même ligne */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <Box
+                          sx={{
+                            minWidth: 18,
+                            height: 18,
+                            px: 0.5,
+                            borderRadius: '4px',
+                            bgcolor: getPlaySectionColor('handlers'),
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.6rem',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {modules.filter(m => m.parentSection === 'handlers').indexOf(task) + 1}
+                        </Box>
+                        <TextField
+                          fullWidth
+                          variant="standard"
+                          value={task.taskName}
+                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              padding: '0',
+                            },
+                            '& .MuiInput-root:before': {
+                              borderBottom: 'none',
+                            },
+                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
+                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
+                            },
+                          }}
+                        />
+                      </Box>
+
+                      {/* Nom du module */}
+                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
+                        {task.collection}.{task.name}
+                      </Typography>
+
+                      {/* Icônes d'attributs de tâche */}
+                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
+                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
+                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
+                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
+                        </Tooltip>
+                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
+                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
+                        </Tooltip>
                       </Box>
                     </Paper>
                   ))
