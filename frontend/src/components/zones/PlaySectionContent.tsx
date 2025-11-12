@@ -64,6 +64,7 @@ interface PlaySectionContentProps {
   handleModuleDragStart: (id: string, e: React.DragEvent) => void
   handleModuleDragOver: (targetId: string, e: React.DragEvent) => void
   handleModuleDropOnModule: (targetId: string, e: React.DragEvent) => void
+  handleBlockSectionDrop: (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => void
   getBlockTheme: (blockId: string) => {
     backgroundColor: string
     borderColor: string
@@ -90,6 +91,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
   handleModuleDragStart,
   handleModuleDragOver,
   handleModuleDropOnModule,
+  handleBlockSectionDrop,
   getBlockTheme,
   getBlockDimensions,
   getSectionColor,
@@ -228,7 +230,14 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
 
                     {/* Contenu section Normal */}
                     {!isSectionCollapsed(task.id, 'normal') && (
-                      <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('normal')}08`, p: 0.5 }}>
+                      <Box
+                        sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('normal')}08`, p: 0.5 }}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          // Ne pas bloquer la propagation
+                        }}
+                        onDrop={(e) => handleBlockSectionDrop(task.id, 'normal', e)}
+                      >
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                           Drop tasks here
                         </Typography>
@@ -261,7 +270,14 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
 
                     {/* Contenu section Rescue */}
                     {!isSectionCollapsed(task.id, 'rescue') && (
-                      <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}>
+                      <Box
+                        sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          // Ne pas bloquer la propagation
+                        }}
+                        onDrop={(e) => handleBlockSectionDrop(task.id, 'rescue', e)}
+                      >
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                           Drop tasks here
                         </Typography>
@@ -294,7 +310,14 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
 
                     {/* Contenu section Always */}
                     {!isSectionCollapsed(task.id, 'always') && (
-                      <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}>
+                      <Box
+                        sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          // Ne pas bloquer la propagation
+                        }}
+                        onDrop={(e) => handleBlockSectionDrop(task.id, 'always', e)}
+                      >
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                           Drop tasks here
                         </Typography>

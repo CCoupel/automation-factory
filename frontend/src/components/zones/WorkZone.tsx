@@ -617,6 +617,127 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return 'normal'
   }
 
+  // Handler pour le drop dans une section de block
+  const handleBlockSectionDrop = (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => {
+    const sourceId = e.dataTransfer.getData('existingModule')
+    const moduleData = e.dataTransfer.getData('module')
+
+    // Si on drop le block parent sur sa propre section, laisser l'événement remonter pour le déplacement
+    if (sourceId === blockId) {
+      return
+    }
+
+    // Calculer la position relative à la section
+    const sectionElem = e.currentTarget as HTMLElement
+    const sectionRect = sectionElem.getBoundingClientRect()
+    const dragOffsetXStr = e.dataTransfer.getData('dragOffsetX')
+    const dragOffsetYStr = e.dataTransfer.getData('dragOffsetY')
+    const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : 75
+    const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : 60
+
+    let relativeX = e.clientX - sectionRect.left - offsetX
+    let relativeY = e.clientY - sectionRect.top - offsetY
+
+    // Contraindre dans les limites de la section
+    const taskWidth = 140
+    const taskHeight = 60
+    relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
+    relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
+
+    // Cas 1: Module existant déplacé
+    if (sourceId) {
+      const sourceModule = modules.find(m => m.id === sourceId)
+      if (!sourceModule) return
+
+      // Sous-cas 1.1: Même section - repositionnement
+      if (sourceModule.parentId === blockId && sourceModule.parentSection === section) {
+        e.preventDefault()
+        e.stopPropagation()
+        setModules(prev => prev.map(m =>
+          m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
+        ))
+        return
+      }
+      // Sous-cas 1.2: Tâche externe (zone de travail ou autre section)
+      else {
+        // Vérifier si la tâche a des liens
+        const hasLinks = links.some(l => l.from === sourceId || l.to === sourceId)
+
+        if (!hasLinks) {
+          // Pas de liens: déplacer la tâche dans cette section
+          e.preventDefault()
+          e.stopPropagation()
+          // Retirer de l'ancienne section si elle était dans une
+          if (sourceModule.parentId && sourceModule.parentSection) {
+            setModules(prev => prev.map(m => {
+              if (m.id === sourceModule.parentId) {
+                const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+                const oldSection = sourceModule.parentSection!
+                return {
+                  ...m,
+                  blockSections: {
+                    ...sections,
+                    [oldSection]: sections[oldSection].filter(id => id !== sourceId)
+                  }
+                }
+              }
+              return m
+            }))
+          }
+
+          // Ajouter à cette section
+          addTaskToBlockSection(sourceId, blockId, section, relativeX, relativeY)
+          return
+        } else {
+          // A des liens: créer un lien avec le block
+          e.preventDefault()
+          e.stopPropagation()
+          createLink(getLinkTypeFromSource(sourceId), sourceId, blockId)
+          return
+        }
+      }
+    }
+    // Cas 2: Nouveau module depuis la palette
+    else if (moduleData) {
+      const parsedData = JSON.parse(moduleData)
+      // Ne pas permettre de déposer un PLAY ou un BLOCK dans une section
+      if (parsedData.name !== 'play' && parsedData.name !== 'block') {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
+        const newModule: ModuleBlock = {
+          id: newModuleId,
+          collection: parsedData.collection,
+          name: parsedData.name,
+          description: parsedData.description || '',
+          taskName: `${parsedData.name} task`,
+          x: relativeX,
+          y: relativeY,
+          parentId: blockId,
+          parentSection: section,
+        }
+
+        setModules([...modules, newModule])
+
+        // Ajouter l'ID à la section du block
+        setModules(prev => prev.map(m => {
+          if (m.id === blockId) {
+            const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+            return {
+              ...m,
+              blockSections: {
+                ...sections,
+                [section]: [...sections[section], newModuleId]
+              }
+            }
+          }
+          return m
+        }))
+      }
+    }
+  }
+
   const createLink = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers', fromId: string, toId: string) => {
     const sourceId = fromId
     const targetId = toId
@@ -1959,6 +2080,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragStart={handleModuleDragStart}
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
+                  handleBlockSectionDrop={handleBlockSectionDrop}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2033,6 +2155,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragStart={handleModuleDragStart}
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
+                  handleBlockSectionDrop={handleBlockSectionDrop}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2107,6 +2230,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragStart={handleModuleDragStart}
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
+                  handleBlockSectionDrop={handleBlockSectionDrop}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2181,6 +2305,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragStart={handleModuleDragStart}
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
+                  handleBlockSectionDrop={handleBlockSectionDrop}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
