@@ -1276,62 +1276,73 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     } else if (module.parentSection && !module.parentId) {
       // Module dans une PLAY section (pas dans un block)
       // Calculer l'offset Y en fonction des sections PLAY précédentes
-      const playHeaderHeight = 40
-      const playSectionMinHeight = 200 // Hauteur minimale quand la section est ouverte
+      const sectionHeaderHeight = 40 // Hauteur des headers de section (~py: 1 + texte)
 
       const playModule = modules.find(m => m.isPlay)
       const isVariablesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'variables') : false
       const isPreTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'pre_tasks') : false
       const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
       const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
+      const isHandlersOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'handlers') : false
 
-      // Commencer après le header des tabs (environ 60px)
+      // Commencer à 0 (position relative au conteneur des PLAY sections)
       absoluteY = 0
 
-      // Section Variables
-      absoluteY += playHeaderHeight
+      // Section Variables (borderBottom: '1px solid #ddd', flexShrink: 0)
+      absoluteY += sectionHeaderHeight
       if (isVariablesOpen && module.parentSection !== 'variables') {
-        absoluteY += 60 // Hauteur du contenu variables
+        absoluteY += 48 // Hauteur approximative du contenu variables (py: 1.5 => 12px * 2 + contenu ~24px)
       }
 
-      // Section Pre-Tasks
-      if (module.parentSection === 'pre_tasks') {
-        absoluteY += playHeaderHeight
-      } else if (module.parentSection === 'tasks' || module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
-        absoluteY += playHeaderHeight
+      // Section Pre-Tasks (borderBottom + flexShrink: 0 ou flex: 1)
+      if (module.parentSection !== 'variables') {
+        absoluteY += sectionHeaderHeight
+      }
+
+      // Si on est dans une section après Pre-Tasks et que Pre-Tasks est ouvert, estimer sa hauteur
+      if (module.parentSection === 'tasks' || module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
         if (isPreTasksOpen) {
-          absoluteY += playSectionMinHeight
+          // Estimer la hauteur basée sur le nombre de tâches ou utiliser une hauteur minimale
+          // On va utiliser la hauteur disponible divisée par le nombre de sections ouvertes
+          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
+          const estimatedHeight = openSectionsCount > 0 ? 300 : 200 // Hauteur approximative
+          absoluteY += estimatedHeight
         }
       }
 
       // Section Tasks
-      if (module.parentSection === 'tasks') {
-        absoluteY += playHeaderHeight
-      } else if (module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
-        absoluteY += playHeaderHeight
+      if (module.parentSection !== 'variables' && module.parentSection !== 'pre_tasks') {
+        absoluteY += sectionHeaderHeight
+      }
+
+      // Si on est dans une section après Tasks et que Tasks est ouvert
+      if (module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
         if (isTasksOpen) {
-          absoluteY += playSectionMinHeight
+          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
+          const estimatedHeight = openSectionsCount > 0 ? 300 : 200
+          absoluteY += estimatedHeight
         }
       }
 
       // Section Post-Tasks
-      if (module.parentSection === 'post_tasks') {
-        absoluteY += playHeaderHeight
-      } else if (module.parentSection === 'handlers') {
-        absoluteY += playHeaderHeight
+      if (module.parentSection === 'handlers') {
+        absoluteY += sectionHeaderHeight
         if (isPostTasksOpen) {
-          absoluteY += playSectionMinHeight
+          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
+          const estimatedHeight = openSectionsCount > 0 ? 300 : 200
+          absoluteY += estimatedHeight
         }
       }
 
-      // Section Handlers
+      // Section Handlers - juste le header si c'est la section du module
       if (module.parentSection === 'handlers') {
-        absoluteY += playHeaderHeight
+        // Déjà ajouté au-dessus
       }
 
       // Ajouter la position de la tâche dans sa section + padding
-      absoluteX = module.x + 16 // 16 = padding left de la section
-      absoluteY += module.y + 16 // 16 = padding top de la section
+      // Les sections utilisent p: 2 => 16px de padding
+      absoluteX = module.x + 16
+      absoluteY += module.y + 16
     }
 
     return {
@@ -1651,7 +1662,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
                 return null
               }
+            } else if (fromModule.parentSection && !fromModule.parentId) {
+              // Module dans une PLAY section - vérifier si la section est fermée
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule && isPlaySectionCollapsed(playModule.id, fromModule.parentSection as any)) {
+                return null
+              }
             }
+
             if (toModule.parentId) {
               const toParent = modules.find(m => m.id === toModule.parentId)
               if (toParent && collapsedBlocks.has(toParent.id)) {
@@ -1659,6 +1677,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               }
               // Cacher aussi si la section est réduite
               if (toModule.parentSection && isSectionCollapsed(toModule.parentId, toModule.parentSection)) {
+                return null
+              }
+            } else if (toModule.parentSection && !toModule.parentId) {
+              // Module dans une PLAY section - vérifier si la section est fermée
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule && isPlaySectionCollapsed(playModule.id, toModule.parentSection as any)) {
                 return null
               }
             }
