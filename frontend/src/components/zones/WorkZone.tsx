@@ -1312,7 +1312,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         // Les éléments position: absolute sont positionnés par rapport au bord de contenu (après padding)
         const sectionPadding = 16 // p: 2 => 16px
         absoluteY = sectionRect.top - containerRect.top + sectionPadding + module.y
-        absoluteX = sectionPadding + module.x
+        absoluteX = sectionRect.left - containerRect.left + sectionPadding + module.x
       } else {
         // Fallback si les refs ne sont pas encore disponibles
         absoluteX = module.x
