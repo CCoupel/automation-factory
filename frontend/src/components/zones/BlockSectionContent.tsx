@@ -130,6 +130,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
           return (
             <Paper
               key={taskId}
+              data-task-id={task.id}
               elevation={selectedModuleId === task.id ? 6 : 3}
               onClick={(e) => {
                 e.stopPropagation()

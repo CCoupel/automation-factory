@@ -701,22 +701,25 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     // Cas 2: Nouveau module depuis la palette
     else if (moduleData) {
       const parsedData = JSON.parse(moduleData)
-      // Ne pas permettre de déposer un PLAY ou un BLOCK dans une section
-      if (parsedData.name !== 'play' && parsedData.name !== 'block') {
+      // Ne pas permettre de déposer un PLAY dans une section (les blocks sont autorisés)
+      if (parsedData.name !== 'play') {
         e.preventDefault()
         e.stopPropagation()
 
         const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
+        const isBlock = parsedData.name === 'block'
         const newModule: ModuleBlock = {
           id: newModuleId,
           collection: parsedData.collection,
           name: parsedData.name,
           description: parsedData.description || '',
-          taskName: `${parsedData.name} task`,
+          taskName: `${parsedData.name} ${isBlock ? 'block' : 'task'}`,
           x: relativeX,
           y: relativeY,
           parentId: blockId,
           parentSection: section,
+          isBlock: isBlock,
+          ...(isBlock && { blockSections: { normal: [], rescue: [], always: [] } }),
         }
 
         setModules([...modules, newModule])
@@ -1421,40 +1424,56 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     if (module.parentId && module.parentSection) {
       const parent = modules.find(m => m.id === module.parentId)
       if (parent) {
-        // Position de base du parent
-        absoluteX = parent.x
-        absoluteY = parent.y
+        // Essayer d'obtenir la vraie position via le DOM (plus précis)
+        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+        if (taskElement && canvasRef.current) {
+          const canvasRect = canvasRef.current.getBoundingClientRect()
+          const taskRect = taskElement.getBoundingClientRect()
 
-        // Ajouter la hauteur du header du block
-        const blockHeaderHeight = 50
-        absoluteY += blockHeaderHeight
+          // Position relative au canvas (en tenant compte du scroll)
+          const canvasScrollTop = canvasRef.current.scrollTop
+          const canvasScrollLeft = canvasRef.current.scrollLeft
 
-        // Avec le comportement accordion, ajouter la hauteur des sections qui précèdent
-        const sectionHeaderHeight = 25
-        const minContentHeight = 200
-        const sections: Array<'normal' | 'rescue' | 'always'> = ['normal', 'rescue', 'always']
+          absoluteX = taskRect.left - canvasRect.left + canvasScrollLeft
+          absoluteY = taskRect.top - canvasRect.top + canvasScrollTop
+          dims = { width: taskRect.width, height: taskRect.height }
+        } else {
+          // Fallback: calcul manuel si l'élément DOM n'est pas trouvé
+          // Position de base du parent
+          absoluteX = parent.x
+          absoluteY = parent.y
 
-        for (const section of sections) {
-          // Si on est arrivé à la section de la tâche, arrêter
-          if (section === module.parentSection) {
-            // Ajouter la hauteur du header de cette section
+          // Ajouter la hauteur du header du block
+          const blockHeaderHeight = 50
+          absoluteY += blockHeaderHeight
+
+          // Avec le comportement accordion, ajouter la hauteur des sections qui précèdent
+          const sectionHeaderHeight = 25
+          const minContentHeight = 200
+          const sections: Array<'normal' | 'rescue' | 'always'> = ['normal', 'rescue', 'always']
+
+          for (const section of sections) {
+            // Si on est arrivé à la section de la tâche, arrêter
+            if (section === module.parentSection) {
+              // Ajouter la hauteur du header de cette section
+              absoluteY += sectionHeaderHeight
+              break
+            }
+
+            // Ajouter la hauteur du header de la section précédente
             absoluteY += sectionHeaderHeight
-            break
+
+            // Avec accordion, une seule section peut être ouverte
+            // Si cette section précédente est ouverte, ajouter sa hauteur de contenu
+            if (!isSectionCollapsed(parent.id, section)) {
+              absoluteY += minContentHeight
+            }
           }
 
-          // Ajouter la hauteur du header de la section précédente
-          absoluteY += sectionHeaderHeight
-
-          // Avec accordion, une seule section peut être ouverte
-          // Si cette section précédente est ouverte, ajouter sa hauteur de contenu
-          if (!isSectionCollapsed(parent.id, section)) {
-            absoluteY += minContentHeight
-          }
+          // Ajouter la position de la tâche dans sa section + padding
+          absoluteX += module.x + 4 // 4 = padding de la section
+          absoluteY += module.y + 4 // 4 = padding de la section
         }
-
-        // Ajouter la position de la tâche dans sa section + padding
-        absoluteX += module.x + 4 // 4 = padding de la section
-        absoluteY += module.y + 4 // 4 = padding de la section
       }
     } else if (module.parentSection && !module.parentId) {
       // Module dans une PLAY section (pas dans un block)
