@@ -1628,7 +1628,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay && m.parentSection === 'pre_tasks')
+            const playModule = modules.find(m => m.isPlay)
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
             return !collapsed ? (
               <Box
@@ -1728,7 +1728,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay && m.parentSection === 'tasks')
+            const playModule = modules.find(m => m.isPlay)
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
             return !collapsed ? (
               <Box
@@ -1828,7 +1828,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay && m.parentSection === 'post_tasks')
+            const playModule = modules.find(m => m.isPlay)
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
             return !collapsed ? (
               <Box
@@ -1928,7 +1928,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {(() => {
-            const playModule = modules.find(m => m.isPlay && m.parentSection === 'handlers')
+            const playModule = modules.find(m => m.isPlay)
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
             return !collapsed ? (
               <Box
