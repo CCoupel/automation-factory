@@ -1,6 +1,8 @@
 import { Box, IconButton, Tooltip } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef } from 'react'
 import PlaybookZone from '../zones/PlaybookZone'
 import VarsZone from '../zones/VarsZone'
@@ -33,6 +35,8 @@ const MainLayout = () => {
   const [isResizingConfig, setIsResizingConfig] = useState(false)
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
+  const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
+  const [isVarsCollapsed, setIsVarsCollapsed] = useState(true) // Collapsed by default since Variables are in PLAY sections now
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
   const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) | null>(null)
 
@@ -109,15 +113,60 @@ const MainLayout = () => {
       </Box>
 
       {/* Zone Vars - Barre haute 2 */}
-      <Box
-        sx={{
-          height: '60px',
-          borderBottom: '1px solid #ddd',
-          flexShrink: 0,
-        }}
-      >
-        <VarsZone />
-      </Box>
+      {!isVarsCollapsed ? (
+        <Box
+          sx={{
+            height: '60px',
+            borderBottom: '1px solid #ddd',
+            flexShrink: 0,
+            position: 'relative',
+          }}
+        >
+          <VarsZone />
+          {/* Bouton de collapse */}
+          <Tooltip title="Hide Variables Zone" placement="bottom">
+            <IconButton
+              size="small"
+              onClick={() => setIsVarsCollapsed(true)}
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                bgcolor: 'background.paper',
+                boxShadow: 1,
+                '&:hover': {
+                  bgcolor: 'primary.light',
+                },
+              }}
+            >
+              <ExpandLessIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            height: '30px',
+            borderBottom: '1px solid #ddd',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.paper',
+            cursor: 'pointer',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+          onClick={() => setIsVarsCollapsed(false)}
+        >
+          <Tooltip title="Show Variables Zone" placement="bottom">
+            <IconButton size="small">
+              <ExpandMoreIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
 
       {/* Zone Centrale - 3 colonnes */}
       <Box
@@ -286,47 +335,89 @@ const MainLayout = () => {
       </Box>
 
       {/* Zone System - Barre basse redimensionnable */}
-      <Box
-        sx={{
-          height: `${systemZoneHeight}px`,
-          borderTop: '1px solid #ddd',
-          flexShrink: 0,
-          position: 'relative',
-        }}
-      >
-        {/* Poignée de redimensionnement */}
+      {!isSystemCollapsed ? (
         <Box
-          onMouseDown={handleSystemMouseDown}
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '6px',
-            cursor: 'ns-resize',
-            bgcolor: isResizingSystem ? 'primary.main' : 'transparent',
-            '&:hover': {
-              bgcolor: 'primary.light',
-            },
-            transition: 'background-color 0.2s',
-            zIndex: 10,
+            height: `${systemZoneHeight}px`,
+            borderTop: '1px solid #ddd',
+            flexShrink: 0,
+            position: 'relative',
           }}
         >
+          {/* Poignée de redimensionnement */}
           <Box
+            onMouseDown={handleSystemMouseDown}
             sx={{
               position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '40px',
-              height: '3px',
-              borderRadius: '2px',
-              bgcolor: isResizingSystem ? 'white' : '#999',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              cursor: 'ns-resize',
+              bgcolor: isResizingSystem ? 'primary.main' : 'transparent',
+              '&:hover': {
+                bgcolor: 'primary.light',
+              },
+              transition: 'background-color 0.2s',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-          />
+          >
+            <Box
+              sx={{
+                width: '40px',
+                height: '3px',
+                borderRadius: '2px',
+                bgcolor: isResizingSystem ? 'white' : '#999',
+              }}
+            />
+            {/* Bouton de collapse */}
+            <Tooltip title="Hide System Zone" placement="top">
+              <IconButton
+                size="small"
+                onClick={() => setIsSystemCollapsed(true)}
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  bgcolor: 'background.paper',
+                  boxShadow: 1,
+                  '&:hover': {
+                    bgcolor: 'primary.light',
+                  },
+                }}
+              >
+                <ExpandMoreIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <SystemZone />
         </Box>
-        <SystemZone />
-      </Box>
+      ) : (
+        <Box
+          sx={{
+            height: '30px',
+            borderTop: '1px solid #ddd',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.paper',
+            cursor: 'pointer',
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+          onClick={() => setIsSystemCollapsed(false)}
+        >
+          <Tooltip title="Show System Zone" placement="top">
+            <IconButton size="small">
+              <ExpandLessIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
     </Box>
   )
 }
