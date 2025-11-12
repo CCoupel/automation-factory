@@ -557,7 +557,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
         if (sourceHasIncomingLink) {
           // Créer un lien entre la source et le block parent de la cible
-          createLink('normal', sourceId, targetModule.parentId!)
+          createLink(getLinkTypeFromSource(sourceId), sourceId, targetModule.parentId!)
         } else {
           // Déplacer la source dans la section de la cible
           const targetParentBlock = modules.find(m => m.id === targetModule.parentId)
@@ -577,11 +577,34 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         (sourceModule.parentId !== targetId && targetModule.parentId !== sourceId && !isTargetInBlock)
 
       if (canCreateLink) {
-        // Tous les liens sont maintenant de type 'normal' (les sections dans les blocks géreront rescue/always)
-        createLink('normal', sourceId, targetId)
+        // Le type de lien est déterminé par la section source
+        createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
       }
     }
     setDraggedModuleId(null)
+  }
+
+  // Déterminer le type de lien basé sur la section parente de la tâche source
+  const getLinkTypeFromSource = (sourceId: string): 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' => {
+    const sourceModule = modules.find(m => m.id === sourceId)
+
+    // Si la tâche est dans une section PLAY, utiliser le type de la section
+    if (sourceModule?.parentSection && !sourceModule.parentId) {
+      // Tâche dans une section PLAY
+      if (sourceModule.parentSection === 'pre_tasks') return 'pre_tasks'
+      if (sourceModule.parentSection === 'tasks') return 'tasks'
+      if (sourceModule.parentSection === 'post_tasks') return 'post_tasks'
+      if (sourceModule.parentSection === 'handlers') return 'handlers'
+    }
+
+    // Si la tâche est dans une section de block
+    if (sourceModule?.parentSection && sourceModule.parentId) {
+      if (sourceModule.parentSection === 'rescue') return 'rescue'
+      if (sourceModule.parentSection === 'always') return 'always'
+    }
+
+    // Par défaut, lien normal
+    return 'normal'
   }
 
   const createLink = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers', fromId: string, toId: string) => {
@@ -1910,8 +1933,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable={!task.isPlay}
-                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
+                      draggable={true}
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
@@ -2074,8 +2097,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable={!task.isPlay}
-                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
+                      draggable={true}
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
@@ -2238,8 +2261,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable={!task.isPlay}
-                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
+                      draggable={true}
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
@@ -2402,8 +2425,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         isBlock: task.isBlock,
                         isPlay: task.isPlay
                       })}
-                      draggable={!task.isPlay}
-                      onDragStart={(e) => !task.isPlay && handleModuleDragStart(task.id, e)}
+                      draggable={true}
+                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
                       onDragOver={(e) => handleModuleDragOver(task.id, e)}
                       onDrop={(e) => handleModuleDropOnModule(task.id, e)}
                       sx={{
@@ -2800,7 +2823,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       // A des liens: créer un lien avec le block
                                       e.preventDefault()
                                       e.stopPropagation()
-                                      createLink('normal', sourceId, module.id)
+                                      createLink(getLinkTypeFromSource(sourceId), sourceId, module.id)
                                       return
                                     }
                                   }
@@ -2907,8 +2930,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                           // Vérifier si c'est la MÊME section
                                           if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien normal
-                                            createLink('normal', sourceId, task.id)
+                                            // Même section : créer un lien
+                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
                                           }
                                           // Différente section : ne rien faire
                                           return
@@ -2923,7 +2946,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                         if (hasIncomingLink) {
                                           // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink('normal', sourceId, task.parentId!)
+                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
                                         } else {
                                           // Orpheline : déplacer la tâche dans la section de la cible
                                           const offsetX = (task.x || 10) + 160
@@ -3137,7 +3160,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       // A des liens: créer un lien avec le block
                                       e.preventDefault()
                                       e.stopPropagation()
-                                      createLink('normal', sourceId, module.id)
+                                      createLink(getLinkTypeFromSource(sourceId), sourceId, module.id)
                                       return
                                     }
                                   }
@@ -3231,8 +3254,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                           // Vérifier si c'est la MÊME section
                                           if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien normal
-                                            createLink('normal', sourceId, task.id)
+                                            // Même section : créer un lien
+                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
                                           }
                                           // Différente section : ne rien faire
                                           return
@@ -3247,7 +3270,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                         if (hasIncomingLink) {
                                           // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink('normal', sourceId, task.parentId!)
+                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
                                         } else {
                                           // Orpheline : déplacer la tâche dans la section de la cible
                                           const offsetX = (task.x || 10) + 160
@@ -3461,7 +3484,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       // A des liens: créer un lien avec le block
                                       e.preventDefault()
                                       e.stopPropagation()
-                                      createLink('normal', sourceId, module.id)
+                                      createLink(getLinkTypeFromSource(sourceId), sourceId, module.id)
                                       return
                                     }
                                   }
@@ -3555,8 +3578,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                           // Vérifier si c'est la MÊME section
                                           if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien normal
-                                            createLink('normal', sourceId, task.id)
+                                            // Même section : créer un lien
+                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
                                           }
                                           // Différente section : ne rien faire
                                           return
@@ -3571,7 +3594,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                         if (hasIncomingLink) {
                                           // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink('normal', sourceId, task.parentId!)
+                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
                                         } else {
                                           // Orpheline : déplacer la tâche dans la section de la cible
                                           const offsetX = (task.x || 10) + 160
