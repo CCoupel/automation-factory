@@ -770,24 +770,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       const key = `${playId}:${section}`
       const wildcardKey = `*:${section}`
 
-      // Comportement accordion: une seule section ouverte à la fois
-      const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
+      // Retirer le wildcard s'il existe
+      newSet.delete(wildcardKey)
 
-      if (isCurrentlyCollapsed) {
-        // Fermer toutes les sections de ce PLAY
-        const allSections: Array<'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['variables', 'pre_tasks', 'tasks', 'post_tasks', 'handlers']
-        allSections.forEach(s => {
-          newSet.delete(`*:${s}`)
-          newSet.add(`${playId}:${s}`)
-        })
-
-        // Ouvrir uniquement la section cliquée
-        newSet.delete(wildcardKey)
+      if (newSet.has(key)) {
+        // Si déjà fermée, l'ouvrir
         newSet.delete(key)
       } else {
-        // Si déjà ouverte, ne rien faire (on garde toujours une section ouverte)
-        // Ou la fermer si on veut permettre de tout fermer
-        // Pour l'instant on ne fait rien pour garder toujours une section ouverte
+        // Si déjà ouverte, la fermer
+        newSet.add(key)
       }
 
       return newSet
@@ -1547,18 +1538,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       </Box>
 
       {/* PLAY Sections - Workspace Level */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, height: 0, bgcolor: 'background.paper' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
         {/* Section 1: Variables */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            return playModule && !isPlaySectionCollapsed(playModule.id, 'variables') ? 1 : 0
-          })(),
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1590,7 +1572,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             const playModule = modules.find(m => m.isPlay)
             const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'variables') : false
             return !collapsed ? (
-              <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08`, flex: 1, overflow: 'auto' }}>
+              <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                   {currentPlay.variables.map((variable, index) => (
                     <Chip
@@ -1617,16 +1599,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
 
         {/* Section 2: Pre-Tasks */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            return playModule && !isPlaySectionCollapsed(playModule.id, 'pre_tasks') ? 1 : 0
-          })(),
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1661,7 +1634,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Box
                 sx={{
                   position: 'relative',
-                  flex: 1,
+                  minHeight: 150,
                   bgcolor: `${getPlaySectionColor('pre_tasks')}08`,
                   overflow: 'auto',
                   p: 2
@@ -1726,16 +1699,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
 
         {/* Section 3: Tasks (default open) */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            return playModule && !isPlaySectionCollapsed(playModule.id, 'tasks') ? 1 : 0
-          })(),
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1770,7 +1734,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Box
                 sx={{
                   position: 'relative',
-                  flex: 1,
+                  minHeight: 200,
                   bgcolor: `${getPlaySectionColor('tasks')}08`,
                   overflow: 'auto',
                   p: 2
@@ -1835,16 +1799,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
 
         {/* Section 4: Post-Tasks */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            return playModule && !isPlaySectionCollapsed(playModule.id, 'post_tasks') ? 1 : 0
-          })(),
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1879,7 +1834,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Box
                 sx={{
                   position: 'relative',
-                  flex: 1,
+                  minHeight: 150,
                   bgcolor: `${getPlaySectionColor('post_tasks')}08`,
                   overflow: 'auto',
                   p: 2
@@ -1944,16 +1899,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
 
         {/* Section 5: Handlers */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          flex: (() => {
-            const playModule = modules.find(m => m.isPlay)
-            return playModule && !isPlaySectionCollapsed(playModule.id, 'handlers') ? 1 : 0
-          })(),
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <Box sx={{ borderBottom: '1px solid #ddd' }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -1988,7 +1934,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Box
                 sx={{
                   position: 'relative',
-                  flex: 1,
+                  minHeight: 150,
                   bgcolor: `${getPlaySectionColor('handlers')}08`,
                   overflow: 'auto',
                   p: 2
