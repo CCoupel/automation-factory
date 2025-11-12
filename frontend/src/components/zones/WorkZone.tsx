@@ -770,16 +770,22 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       const key = `${playId}:${section}`
       const wildcardKey = `*:${section}`
 
-      // Retirer le wildcard s'il existe
-      newSet.delete(wildcardKey)
+      // Comportement accordion: une seule section ouverte à la fois
+      const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
 
-      if (newSet.has(key)) {
-        // Si déjà fermée, l'ouvrir
+      if (isCurrentlyCollapsed) {
+        // Fermer toutes les sections de ce PLAY
+        const allSections: Array<'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['variables', 'pre_tasks', 'tasks', 'post_tasks', 'handlers']
+        allSections.forEach(s => {
+          newSet.delete(`*:${s}`)
+          newSet.add(`${playId}:${s}`)
+        })
+
+        // Ouvrir uniquement la section cliquée
+        newSet.delete(wildcardKey)
         newSet.delete(key)
-      } else {
-        // Si déjà ouverte, la fermer
-        newSet.add(key)
       }
+      // Si déjà ouverte, ne rien faire (garder au moins une section ouverte)
 
       return newSet
     })
