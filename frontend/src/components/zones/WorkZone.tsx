@@ -1235,7 +1235,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
   const getModuleAbsolutePosition = (module: ModuleBlock) => {
-    const dims = module.isBlock ? getBlockDimensions(module) : { width: module.isPlay ? 100 : 140, height: 60 }
+    // Dimensions par défaut
+    let dims = module.isBlock ? getBlockDimensions(module) : { width: module.isPlay ? 100 : 140, height: 60 }
 
     // Si le module est dans un block, calculer sa position absolue
     let absoluteX = module.x
@@ -1281,25 +1282,54 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
     } else if (module.parentSection && !module.parentId) {
       // Module dans une PLAY section (pas dans un block)
-      // Utiliser directement les coordonnées DOM de la tâche
-      if (playSectionsContainerRef.current) {
-        // Trouver l'élément DOM de la tâche via data-task-id
-        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+      // Utiliser les coordonnées de l'état React (module.x, module.y) + position de la section
 
+      // Mapper les refs de section
+      let sectionRef: React.RefObject<HTMLDivElement> | null = null
+      switch (module.parentSection) {
+        case 'variables':
+          sectionRef = variablesSectionRef
+          break
+        case 'pre_tasks':
+          sectionRef = preTasksSectionRef
+          break
+        case 'tasks':
+          sectionRef = tasksSectionRef
+          break
+        case 'post_tasks':
+          sectionRef = postTasksSectionRef
+          break
+        case 'handlers':
+          sectionRef = handlersSectionRef
+          break
+      }
+
+      if (sectionRef?.current && playSectionsContainerRef.current) {
+        // Utiliser getBoundingClientRect pour obtenir les positions réelles
+        const containerRect = playSectionsContainerRef.current.getBoundingClientRect()
+        const sectionRect = sectionRef.current.getBoundingClientRect()
+
+        // Position de la section relative au conteneur (en tenant compte du scroll)
+        const containerScrollTop = playSectionsContainerRef.current.scrollTop
+        const containerScrollLeft = playSectionsContainerRef.current.scrollLeft
+
+        const sectionRelativeTop = sectionRect.top - containerRect.top + containerScrollTop
+        const sectionRelativeLeft = sectionRect.left - containerRect.left + containerScrollLeft
+
+        // Position absolue = position de la section + position relative de la tâche
+        // Note: module.x et module.y sont déjà relatifs au bord intérieur de la section (après padding)
+        // donc on N'AJOUTE PAS le padding ici
+        absoluteX = sectionRelativeLeft + module.x
+        absoluteY = sectionRelativeTop + module.y
+
+        // Obtenir aussi les dimensions réelles via le DOM
+        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
         if (taskElement) {
           const taskRect = taskElement.getBoundingClientRect()
-          const containerRect = playSectionsContainerRef.current.getBoundingClientRect()
-
-          // Position absolue = position viewport de la tâche - position viewport du conteneur
-          absoluteY = taskRect.top - containerRect.top
-          absoluteX = taskRect.left - containerRect.left
-        } else {
-          // Fallback si l'élément n'est pas trouvé
-          absoluteX = module.x
-          absoluteY = module.y
+          dims = { width: taskRect.width, height: taskRect.height }
         }
       } else {
-        // Fallback si le conteneur n'est pas disponible
+        // Fallback
         absoluteX = module.x
         absoluteY = module.y
       }
