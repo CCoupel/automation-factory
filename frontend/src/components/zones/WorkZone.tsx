@@ -75,6 +75,12 @@ interface WorkZoneProps {
 
 const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
+  const playSectionsContainerRef = useRef<HTMLDivElement>(null)
+  const variablesSectionRef = useRef<HTMLDivElement>(null)
+  const preTasksSectionRef = useRef<HTMLDivElement>(null)
+  const tasksSectionRef = useRef<HTMLDivElement>(null)
+  const postTasksSectionRef = useRef<HTMLDivElement>(null)
+  const handlersSectionRef = useRef<HTMLDivElement>(null)
 
   // Gestion des PLAYs avec onglets
   const [plays, setPlays] = useState<Play[]>([
@@ -1275,74 +1281,39 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
     } else if (module.parentSection && !module.parentId) {
       // Module dans une PLAY section (pas dans un block)
-      // Calculer l'offset Y en fonction des sections PLAY précédentes
-      const sectionHeaderHeight = 40 // Hauteur des headers de section (~py: 1 + texte)
+      // Utiliser les refs pour obtenir les vraies positions
+      const containerRect = playSectionsContainerRef.current?.getBoundingClientRect()
+      let sectionRef: React.RefObject<HTMLDivElement> | null = null
 
-      const playModule = modules.find(m => m.isPlay)
-      const isVariablesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'variables') : false
-      const isPreTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'pre_tasks') : false
-      const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
-      const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
-      const isHandlersOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'handlers') : false
-
-      // Commencer à 0 (position relative au conteneur des PLAY sections)
-      absoluteY = 0
-
-      // Section Variables (borderBottom: '1px solid #ddd', flexShrink: 0)
-      absoluteY += sectionHeaderHeight
-      if (isVariablesOpen && module.parentSection !== 'variables') {
-        absoluteY += 48 // Hauteur approximative du contenu variables (py: 1.5 => 12px * 2 + contenu ~24px)
+      switch (module.parentSection) {
+        case 'variables':
+          sectionRef = variablesSectionRef
+          break
+        case 'pre_tasks':
+          sectionRef = preTasksSectionRef
+          break
+        case 'tasks':
+          sectionRef = tasksSectionRef
+          break
+        case 'post_tasks':
+          sectionRef = postTasksSectionRef
+          break
+        case 'handlers':
+          sectionRef = handlersSectionRef
+          break
       }
 
-      // Section Pre-Tasks (borderBottom + flexShrink: 0 ou flex: 1)
-      if (module.parentSection !== 'variables') {
-        absoluteY += sectionHeaderHeight
-      }
+      if (containerRect && sectionRef?.current) {
+        const sectionRect = sectionRef.current.getBoundingClientRect()
 
-      // Si on est dans une section après Pre-Tasks et que Pre-Tasks est ouvert, estimer sa hauteur
-      if (module.parentSection === 'tasks' || module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
-        if (isPreTasksOpen) {
-          // Estimer la hauteur basée sur le nombre de tâches ou utiliser une hauteur minimale
-          // On va utiliser la hauteur disponible divisée par le nombre de sections ouvertes
-          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
-          const estimatedHeight = openSectionsCount > 0 ? 300 : 200 // Hauteur approximative
-          absoluteY += estimatedHeight
-        }
+        // Position absolue relative au conteneur des PLAY sections
+        absoluteY = sectionRect.top - containerRect.top + module.y
+        absoluteX = module.x
+      } else {
+        // Fallback si les refs ne sont pas encore disponibles
+        absoluteX = module.x
+        absoluteY = module.y
       }
-
-      // Section Tasks
-      if (module.parentSection !== 'variables' && module.parentSection !== 'pre_tasks') {
-        absoluteY += sectionHeaderHeight
-      }
-
-      // Si on est dans une section après Tasks et que Tasks est ouvert
-      if (module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
-        if (isTasksOpen) {
-          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
-          const estimatedHeight = openSectionsCount > 0 ? 300 : 200
-          absoluteY += estimatedHeight
-        }
-      }
-
-      // Section Post-Tasks
-      if (module.parentSection === 'handlers') {
-        absoluteY += sectionHeaderHeight
-        if (isPostTasksOpen) {
-          const openSectionsCount = [isPreTasksOpen, isTasksOpen, isPostTasksOpen, isHandlersOpen].filter(Boolean).length
-          const estimatedHeight = openSectionsCount > 0 ? 300 : 200
-          absoluteY += estimatedHeight
-        }
-      }
-
-      // Section Handlers - juste le header si c'est la section du module
-      if (module.parentSection === 'handlers') {
-        // Déjà ajouté au-dessus
-      }
-
-      // Ajouter la position de la tâche dans sa section + padding
-      // Les sections utilisent p: 2 => 16px de padding
-      absoluteX = module.x + 16
-      absoluteY += module.y + 16
     }
 
     return {
@@ -1633,7 +1604,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       </Box>
 
       {/* PLAY Sections - Workspace Level */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+      <Box ref={playSectionsContainerRef} sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         {/* SVG pour les lignes de connexion */}
         <svg
           style={{
@@ -1825,7 +1796,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             </Typography>
           </Box>
           {isVariablesOpen && (
-            <Box sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
+            <Box ref={variablesSectionRef} sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                 {currentPlay.variables.map((variable, index) => (
                   <Chip
@@ -1887,6 +1858,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
           {isPreTasksOpen && (
               <Box
+                ref={preTasksSectionRef}
                 sx={{
                   position: 'relative',
                   flex: 1,
@@ -2049,6 +2021,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
           {isTasksOpen && (
               <Box
+                ref={tasksSectionRef}
                 sx={{
                   position: 'relative',
                   flex: 1,
@@ -2211,6 +2184,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
           {isPostTasksOpen && (
               <Box
+                ref={postTasksSectionRef}
                 sx={{
                   position: 'relative',
                   flex: 1,
@@ -2373,6 +2347,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
           {isHandlersOpen && (
               <Box
+                ref={handlersSectionRef}
                 sx={{
                   position: 'relative',
                   flex: 1,
