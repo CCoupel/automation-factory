@@ -2044,14 +2044,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           }
         }}
         sx={{
-          flex: 1,
-          position: 'relative',
-          overflow: 'auto',
-          bgcolor: 'background.default',
-          backgroundImage: gridEnabled
-            ? `linear-gradient(#e0e0e0 1px, transparent 1px), linear-gradient(90deg, #e0e0e0 1px, transparent 1px)`
-            : 'none',
-          backgroundSize: gridEnabled ? `${GRID_SIZE}px ${GRID_SIZE}px` : 'auto',
+          display: 'none', // Hidden - all modules are now in PLAY sections
         }}
       >
         {/* SVG pour les lignes de connexion */}
