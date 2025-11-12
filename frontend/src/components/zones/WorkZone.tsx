@@ -1307,8 +1307,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         const sectionRect = sectionRef.current.getBoundingClientRect()
 
         // Position absolue relative au conteneur des PLAY sections
-        absoluteY = sectionRect.top - containerRect.top + module.y
-        absoluteX = module.x
+        // Les sections ont p: 2 (16px de padding)
+        // getBoundingClientRect() donne la position du bord extérieur
+        // Les éléments position: absolute sont positionnés par rapport au bord de contenu (après padding)
+        const sectionPadding = 16 // p: 2 => 16px
+        absoluteY = sectionRect.top - containerRect.top + sectionPadding + module.y
+        absoluteX = sectionPadding + module.x
       } else {
         // Fallback si les refs ne sont pas encore disponibles
         absoluteX = module.x
