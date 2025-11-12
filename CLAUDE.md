@@ -611,7 +611,7 @@ kubectl apply -f k8s/frontend/
 **`frontend/src/components/zones/WorkZone.tsx`**
 - Composant principal de la zone de travail
 - Gère le canvas, drag & drop, liens
-- Rendu des blocks et sections
+- Rendu des blocks et sections PLAY via composant réutilisable
 - **Lignes importantes:**
   - ~77-83: Refs DOM pour sections PLAY (playSectionsContainerRef, variablesSectionRef, etc.)
   - ~86-98: État initial des PLAYs avec onglets
@@ -623,8 +623,24 @@ kubectl apply -f k8s/frontend/
   - ~1282-1335: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
   - ~1339-1410: `getModuleConnectionPoint()` - calcul points d'accroche des liens
   - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
-  - ~1790-2560: Rendu des sections PLAY (Variables, Pre-tasks, Tasks, Post-tasks, Handlers)
-  - ~1868, ~2032, ~2196, ~2360: Attribut `data-task-id` sur chaque tâche Paper
+  - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
+
+**`frontend/src/components/zones/PlaySectionContent.tsx`**
+- Composant réutilisable pour le rendu des sections PLAY
+- Gère le rendu des tâches simples et des blocks avec leurs 3 sections (Tasks, Rescue, Always)
+- Élimine la duplication de code entre les 4 sections PLAY (pre_tasks, tasks, post_tasks, handlers)
+- **Fonctionnalités:**
+  - Rendu conditionnel: blocks avec 3 sections vs tâches simples
+  - Drag & drop handlers pour tâches et blocks
+  - Attribut `data-task-id` sur chaque Paper pour calcul des liens
+  - Gestion du collapse/expand des blocks et sections
+  - Couleurs distinctes par section avec numbering
+- **Props principales:**
+  - `sectionName`: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+  - `modules`: array des modules à afficher
+  - `collapsedBlocks`, `collapsedBlockSections`: Sets pour état collapse
+  - Handlers: toggleBlockCollapse, toggleBlockSection, handleModuleDragStart, etc.
+- **Réduction de code:** ~1,200 lignes de duplication éliminées, net: ~800 lignes
 
 ---
 
@@ -648,6 +664,7 @@ kubectl apply -f k8s/frontend/
 - [x] Comportement accordion pour sections PLAY (une section ouverte à la fois)
 - [x] Alignement précis des liens avec les bords des tâches dans sections PLAY
 - [x] Visibilité conditionnelle des liens (sections PLAY réduites)
+- [x] Composant réutilisable PlaySectionContent pour sections PLAY (refactoring ~800 lignes)
 
 ---
 

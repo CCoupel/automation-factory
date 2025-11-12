@@ -14,6 +14,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import LoopIcon from '@mui/icons-material/Loop'
 import SendIcon from '@mui/icons-material/Send'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import PlaySectionContent from './PlaySectionContent'
 
 interface ModuleBlock {
   id: string
@@ -297,11 +298,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       offsetX = parseFloat(dragOffsetXStr)
       offsetY = parseFloat(dragOffsetYStr)
     } else if (movedModule) {
-      // Sinon, si c'est un nouveau module depuis la palette, utiliser le centre
+      // Module existant déplacé
       if (movedModule.isBlock || movedModule.isPlay) {
         const dims = getBlockDimensions(movedModule)
         offsetX = dims.width / 2
         offsetY = dims.height / 2
+      }
+    } else if (moduleData) {
+      // Nouveau module depuis la palette - vérifier si c'est un block/play
+      const parsedData = JSON.parse(moduleData)
+      if (parsedData.name === 'block' || parsedData.name === 'play') {
+        // Pour un nouveau block/play, utiliser un offset par défaut raisonnable
+        // Un block fait environ 400x300, donc offset au centre
+        offsetX = 200
+        offsetY = 150
       }
     }
 
@@ -840,17 +850,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     const sectionRect = sectionElem.getBoundingClientRect()
     const dragOffsetXStr = e.dataTransfer.getData('dragOffsetX')
     const dragOffsetYStr = e.dataTransfer.getData('dragOffsetY')
-    const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : 75
-    const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : 60
-
-    let relativeX = e.clientX - sectionRect.left - offsetX
-    let relativeY = e.clientY - sectionRect.top - offsetY
-
-    // Contraindre dans les limites de la section
-    const taskWidth = 140
-    const taskHeight = 60
-    relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
-    relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
 
     // Cas 1: Module existant déplacé
     if (sourceId) {
@@ -859,6 +858,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
       // Ne pas autoriser le déplacement des tâches START
       if (sourceModule.isPlay) return
+
+      // Déterminer l'offset selon le type de module
+      const isBlock = sourceModule.isBlock
+      const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : (isBlock ? 200 : 75)
+      const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : (isBlock ? 150 : 60)
+
+      let relativeX = e.clientX - sectionRect.left - offsetX
+      let relativeY = e.clientY - sectionRect.top - offsetY
+
+      // Contraindre dans les limites de la section
+      const itemWidth = isBlock ? 400 : 140
+      const itemHeight = isBlock ? 300 : 60
+      relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - itemWidth))
+      relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - itemHeight))
 
       // Sous-cas 1.1: Même section - repositionnement
       if (sourceModule.parentSection === section) {
@@ -869,23 +882,23 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         ))
         return
       }
-      // Sous-cas 1.2: Tâche externe (autre section ou zone de travail)
+      // Sous-cas 1.2: Tâche/Block externe (autre section ou zone de travail)
       else {
         // Vérifier si la tâche a des liens
         const hasLinks = links.some(l => l.from === sourceId || l.to === sourceId)
 
         if (!hasLinks) {
-          // Pas de liens: déplacer la tâche dans cette section
+          // Pas de liens: déplacer la tâche/block dans cette section
           e.preventDefault()
           e.stopPropagation()
 
-          // Mettre à jour la tâche avec la nouvelle section et position
+          // Mettre à jour la tâche/block avec la nouvelle section et position
           setModules(prev => prev.map(m =>
             m.id === sourceId ? { ...m, parentSection: section, x: relativeX, y: relativeY, parentId: undefined } : m
           ))
           return
         } else {
-          // A des liens: on ne peut pas déplacer une tâche avec des liens entre sections
+          // A des liens: on ne peut pas déplacer une tâche/block avec des liens entre sections
           e.preventDefault()
           e.stopPropagation()
           return
@@ -895,20 +908,38 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     // Cas 2: Nouveau module depuis la palette
     else if (moduleData) {
       const parsedData = JSON.parse(moduleData)
-      // Ne pas permettre de déposer un block dans une section
-      if (parsedData.name !== 'block' && parsedData.name !== 'play') {
+      // Ne pas permettre de déposer un PLAY dans une section
+      if (parsedData.name !== 'play') {
         e.preventDefault()
         e.stopPropagation()
+
+        const isBlock = parsedData.name === 'block'
+
+        // Ajuster l'offset selon le type (block ou tâche)
+        const dropOffsetX = isBlock ? 200 : 75
+        const dropOffsetY = isBlock ? 150 : 60
+        const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : dropOffsetX
+        const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : dropOffsetY
+
+        let relativeX = e.clientX - sectionRect.left - offsetX
+        let relativeY = e.clientY - sectionRect.top - offsetY
+
+        // Contraindre dans les limites de la section
+        const itemWidth = isBlock ? 400 : 140
+        const itemHeight = isBlock ? 300 : 60
+        relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - itemWidth))
+        relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - itemHeight))
 
         const newModule: ModuleBlock = {
           id: `module-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           collection: parsedData.collection,
           name: parsedData.name,
           description: parsedData.description || '',
-          taskName: `${parsedData.name} task`,
+          taskName: isBlock ? 'Error Handling Block' : `${parsedData.name} task`,
           x: relativeX,
           y: relativeY,
-          isBlock: parsedData.name === 'block',
+          isBlock: isBlock,
+          blockSections: isBlock ? { normal: [], rescue: [], always: [] } : undefined,
           parentSection: section, // Assigner à la section du PLAY
         }
 
@@ -1912,117 +1943,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 onDrop={(e) => handlePlaySectionDrop('pre_tasks', e)}
                 onDragOver={handleDragOver}
               >
-                {/* Render START task and other tasks in pre_tasks section */}
-                {modules
-                  .filter(m => m.parentSection === 'pre_tasks')
-                  .map(task => (
-                    <Paper
-                      key={task.id}
-                      data-task-id={task.id}
-                      elevation={selectedModuleId === task.id ? 6 : 3}
-                      onClick={() => onSelectModule({
-                        id: task.id,
-                        name: task.name,
-                        collection: task.collection,
-                        taskName: task.taskName,
-                        when: task.when,
-                        ignoreErrors: task.ignoreErrors,
-                        become: task.become,
-                        loop: task.loop,
-                        delegateTo: task.delegateTo,
-                        isBlock: task.isBlock,
-                        isPlay: task.isPlay
-                      })}
-                      draggable={true}
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
-                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
-                      sx={{
-                        position: 'absolute',
-                        left: task.x,
-                        top: task.y,
-                        width: task.isPlay ? 100 : 140,
-                        minHeight: 60,
-                        p: 1.5,
-                        cursor: task.isPlay ? 'pointer' : 'move',
-                        border: task.isPlay ? '2px solid #9c27b0' : '2px solid #ddd',
-                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
-                        bgcolor: task.isPlay ? '#f3e5f5' : 'background.paper',
-                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
-                      {/* ID et nom de la tâche sur la même ligne */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <Box
-                          sx={{
-                            minWidth: 18,
-                            height: 18,
-                            px: 0.5,
-                            borderRadius: '4px',
-                            bgcolor: getPlaySectionColor('pre_tasks'),
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.6rem',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {modules.filter(m => m.parentSection === 'pre_tasks').indexOf(task) + 1}
-                        </Box>
-                        <TextField
-                          fullWidth
-                          variant="standard"
-                          value={task.taskName}
-                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            '& .MuiInput-input': {
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              padding: '0',
-                            },
-                            '& .MuiInput-root:before': {
-                              borderBottom: 'none',
-                            },
-                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      {/* Nom du module */}
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
-                        {task.collection}.{task.name}
-                      </Typography>
-
-                      {/* Icônes d'attributs de tâche */}
-                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                        </Tooltip>
-                      </Box>
-                    </Paper>
-                  ))
-                }
+                {/* Render START task and other tasks/blocks in pre_tasks section */}
+                <PlaySectionContent
+                  sectionName="pre_tasks"
+                  modules={modules}
+                  selectedModuleId={selectedModuleId}
+                  draggedModuleId={draggedModuleId}
+                  collapsedBlocks={collapsedBlocks}
+                  collapsedBlockSections={collapsedBlockSections}
+                  onSelectModule={onSelectModule}
+                  updateTaskName={updateTaskName}
+                  toggleBlockCollapse={toggleBlockCollapse}
+                  toggleBlockSection={toggleBlockSection}
+                  isSectionCollapsed={isSectionCollapsed}
+                  handleModuleDragStart={handleModuleDragStart}
+                  handleModuleDragOver={handleModuleDragOver}
+                  handleModuleDropOnModule={handleModuleDropOnModule}
+                  getBlockTheme={getBlockTheme}
+                  getBlockDimensions={getBlockDimensions}
+                  getSectionColor={getSectionColor}
+                  getPlaySectionColor={getPlaySectionColor}
+                />
               </Box>
           )}
         </Box>
@@ -2076,117 +2017,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 onDrop={(e) => handlePlaySectionDrop('tasks', e)}
                 onDragOver={handleDragOver}
               >
-                {/* Render START task and other tasks in tasks section */}
-                {modules
-                  .filter(m => m.parentSection === 'tasks')
-                  .map(task => (
-                    <Paper
-                      key={task.id}
-                      data-task-id={task.id}
-                      elevation={selectedModuleId === task.id ? 6 : 3}
-                      onClick={() => onSelectModule({
-                        id: task.id,
-                        name: task.name,
-                        collection: task.collection,
-                        taskName: task.taskName,
-                        when: task.when,
-                        ignoreErrors: task.ignoreErrors,
-                        become: task.become,
-                        loop: task.loop,
-                        delegateTo: task.delegateTo,
-                        isBlock: task.isBlock,
-                        isPlay: task.isPlay
-                      })}
-                      draggable={true}
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
-                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
-                      sx={{
-                        position: 'absolute',
-                        left: task.x,
-                        top: task.y,
-                        width: task.isPlay ? 100 : 140,
-                        minHeight: 60,
-                        p: 1.5,
-                        cursor: task.isPlay ? 'pointer' : 'move',
-                        border: task.isPlay ? '2px solid #1976d2' : '2px solid #ddd',
-                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
-                        bgcolor: task.isPlay ? '#e3f2fd' : 'background.paper',
-                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
-                      {/* ID et nom de la tâche sur la même ligne */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <Box
-                          sx={{
-                            minWidth: 18,
-                            height: 18,
-                            px: 0.5,
-                            borderRadius: '4px',
-                            bgcolor: getPlaySectionColor('tasks'),
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.6rem',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {modules.filter(m => m.parentSection === 'tasks').indexOf(task) + 1}
-                        </Box>
-                        <TextField
-                          fullWidth
-                          variant="standard"
-                          value={task.taskName}
-                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            '& .MuiInput-input': {
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              padding: '0',
-                            },
-                            '& .MuiInput-root:before': {
-                              borderBottom: 'none',
-                            },
-                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      {/* Nom du module */}
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
-                        {task.collection}.{task.name}
-                      </Typography>
-
-                      {/* Icônes d'attributs de tâche */}
-                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                        </Tooltip>
-                      </Box>
-                    </Paper>
-                  ))
-                }
+                {/* Render START task and other tasks/blocks in tasks section */}
+                <PlaySectionContent
+                  sectionName="tasks"
+                  modules={modules}
+                  selectedModuleId={selectedModuleId}
+                  draggedModuleId={draggedModuleId}
+                  collapsedBlocks={collapsedBlocks}
+                  collapsedBlockSections={collapsedBlockSections}
+                  onSelectModule={onSelectModule}
+                  updateTaskName={updateTaskName}
+                  toggleBlockCollapse={toggleBlockCollapse}
+                  toggleBlockSection={toggleBlockSection}
+                  isSectionCollapsed={isSectionCollapsed}
+                  handleModuleDragStart={handleModuleDragStart}
+                  handleModuleDragOver={handleModuleDragOver}
+                  handleModuleDropOnModule={handleModuleDropOnModule}
+                  getBlockTheme={getBlockTheme}
+                  getBlockDimensions={getBlockDimensions}
+                  getSectionColor={getSectionColor}
+                  getPlaySectionColor={getPlaySectionColor}
+                />
               </Box>
           )}
         </Box>
@@ -2241,116 +2092,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in post_tasks section */}
-                {modules
-                  .filter(m => m.parentSection === 'post_tasks')
-                  .map(task => (
-                    <Paper
-                      key={task.id}
-                      data-task-id={task.id}
-                      elevation={selectedModuleId === task.id ? 6 : 3}
-                      onClick={() => onSelectModule({
-                        id: task.id,
-                        name: task.name,
-                        collection: task.collection,
-                        taskName: task.taskName,
-                        when: task.when,
-                        ignoreErrors: task.ignoreErrors,
-                        become: task.become,
-                        loop: task.loop,
-                        delegateTo: task.delegateTo,
-                        isBlock: task.isBlock,
-                        isPlay: task.isPlay
-                      })}
-                      draggable={true}
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
-                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
-                      sx={{
-                        position: 'absolute',
-                        left: task.x,
-                        top: task.y,
-                        width: task.isPlay ? 100 : 140,
-                        minHeight: 60,
-                        p: 1.5,
-                        cursor: task.isPlay ? 'pointer' : 'move',
-                        border: task.isPlay ? '2px solid #00796b' : '2px solid #ddd',
-                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
-                        bgcolor: task.isPlay ? '#e0f2f1' : 'background.paper',
-                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
-                      {/* ID et nom de la tâche sur la même ligne */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <Box
-                          sx={{
-                            minWidth: 18,
-                            height: 18,
-                            px: 0.5,
-                            borderRadius: '4px',
-                            bgcolor: getPlaySectionColor('post_tasks'),
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.6rem',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {modules.filter(m => m.parentSection === 'post_tasks').indexOf(task) + 1}
-                        </Box>
-                        <TextField
-                          fullWidth
-                          variant="standard"
-                          value={task.taskName}
-                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            '& .MuiInput-input': {
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              padding: '0',
-                            },
-                            '& .MuiInput-root:before': {
-                              borderBottom: 'none',
-                            },
-                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      {/* Nom du module */}
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
-                        {task.collection}.{task.name}
-                      </Typography>
-
-                      {/* Icônes d'attributs de tâche */}
-                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                        </Tooltip>
-                      </Box>
-                    </Paper>
-                  ))
-                }
+                <PlaySectionContent
+                  sectionName="post_tasks"
+                  modules={modules}
+                  selectedModuleId={selectedModuleId}
+                  draggedModuleId={draggedModuleId}
+                  collapsedBlocks={collapsedBlocks}
+                  collapsedBlockSections={collapsedBlockSections}
+                  onSelectModule={onSelectModule}
+                  updateTaskName={updateTaskName}
+                  toggleBlockCollapse={toggleBlockCollapse}
+                  toggleBlockSection={toggleBlockSection}
+                  isSectionCollapsed={isSectionCollapsed}
+                  handleModuleDragStart={handleModuleDragStart}
+                  handleModuleDragOver={handleModuleDragOver}
+                  handleModuleDropOnModule={handleModuleDropOnModule}
+                  getBlockTheme={getBlockTheme}
+                  getBlockDimensions={getBlockDimensions}
+                  getSectionColor={getSectionColor}
+                  getPlaySectionColor={getPlaySectionColor}
+                />
               </Box>
           )}
         </Box>
@@ -2405,116 +2166,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in handlers section */}
-                {modules
-                  .filter(m => m.parentSection === 'handlers')
-                  .map(task => (
-                    <Paper
-                      key={task.id}
-                      data-task-id={task.id}
-                      elevation={selectedModuleId === task.id ? 6 : 3}
-                      onClick={() => onSelectModule({
-                        id: task.id,
-                        name: task.name,
-                        collection: task.collection,
-                        taskName: task.taskName,
-                        when: task.when,
-                        ignoreErrors: task.ignoreErrors,
-                        become: task.become,
-                        loop: task.loop,
-                        delegateTo: task.delegateTo,
-                        isBlock: task.isBlock,
-                        isPlay: task.isPlay
-                      })}
-                      draggable={true}
-                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                      onDragOver={(e) => handleModuleDragOver(task.id, e)}
-                      onDrop={(e) => handleModuleDropOnModule(task.id, e)}
-                      sx={{
-                        position: 'absolute',
-                        left: task.x,
-                        top: task.y,
-                        width: task.isPlay ? 100 : 140,
-                        minHeight: 60,
-                        p: 1.5,
-                        cursor: task.isPlay ? 'pointer' : 'move',
-                        border: task.isPlay ? '2px solid #ff9800' : '2px solid #ddd',
-                        borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
-                        bgcolor: task.isPlay ? '#fff3e0' : 'background.paper',
-                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
-                      {/* ID et nom de la tâche sur la même ligne */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <Box
-                          sx={{
-                            minWidth: 18,
-                            height: 18,
-                            px: 0.5,
-                            borderRadius: '4px',
-                            bgcolor: getPlaySectionColor('handlers'),
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.6rem',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {modules.filter(m => m.parentSection === 'handlers').indexOf(task) + 1}
-                        </Box>
-                        <TextField
-                          fullWidth
-                          variant="standard"
-                          value={task.taskName}
-                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            '& .MuiInput-input': {
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              padding: '0',
-                            },
-                            '& .MuiInput-root:before': {
-                              borderBottom: 'none',
-                            },
-                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      {/* Nom du module */}
-                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: 'text.secondary', display: 'block', fontSize: '0.55rem' }}>
-                        {task.collection}.{task.name}
-                      </Typography>
-
-                      {/* Icônes d'attributs de tâche */}
-                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                        </Tooltip>
-                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                        </Tooltip>
-                      </Box>
-                    </Paper>
-                  ))
-                }
+                <PlaySectionContent
+                  sectionName="handlers"
+                  modules={modules}
+                  selectedModuleId={selectedModuleId}
+                  draggedModuleId={draggedModuleId}
+                  collapsedBlocks={collapsedBlocks}
+                  collapsedBlockSections={collapsedBlockSections}
+                  onSelectModule={onSelectModule}
+                  updateTaskName={updateTaskName}
+                  toggleBlockCollapse={toggleBlockCollapse}
+                  toggleBlockSection={toggleBlockSection}
+                  isSectionCollapsed={isSectionCollapsed}
+                  handleModuleDragStart={handleModuleDragStart}
+                  handleModuleDragOver={handleModuleDragOver}
+                  handleModuleDropOnModule={handleModuleDropOnModule}
+                  getBlockTheme={getBlockTheme}
+                  getBlockDimensions={getBlockDimensions}
+                  getSectionColor={getSectionColor}
+                  getPlaySectionColor={getPlaySectionColor}
+                />
               </Box>
           )}
         </Box>
@@ -2831,33 +2502,42 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 // Cas 2: Nouveau module depuis la palette
                                 else if (moduleData) {
                                   const parsedData = JSON.parse(moduleData)
-                                  // Ne pas permettre de déposer un block dans une section
-                                  if (parsedData.name !== 'block' && parsedData.name !== 'play') {
+                                  // Ne pas permettre de déposer un PLAY dans une section
+                                  if (parsedData.name !== 'play') {
                                     e.preventDefault()
                                     e.stopPropagation()
+
+                                    const isBlock = parsedData.name === 'block'
+
                                     // Calculer la position relative à la section
                                     const sectionElem = e.currentTarget as HTMLElement
                                     const sectionRect = sectionElem.getBoundingClientRect()
 
-                                    let relativeX = e.clientX - sectionRect.left - 75
-                                    let relativeY = e.clientY - sectionRect.top - 60
+                                    // Ajuster l'offset selon le type (block ou tâche)
+                                    const dropOffsetX = isBlock ? 200 : 75
+                                    const dropOffsetY = isBlock ? 150 : 60
+
+                                    let relativeX = e.clientX - sectionRect.left - dropOffsetX
+                                    let relativeY = e.clientY - sectionRect.top - dropOffsetY
 
                                     // Contraindre dans les limites de la section
-                                    const taskWidth = 140
-                                    const taskHeight = 60
-                                    relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
-                                    relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
+                                    const itemWidth = isBlock ? 400 : 140
+                                    const itemHeight = isBlock ? 300 : 60
+                                    relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - itemWidth))
+                                    relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - itemHeight))
 
                                     const newModule: ModuleBlock = {
                                       id: Date.now().toString(),
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
-                                      taskName: `Task with ${parsedData.name}`,
+                                      taskName: isBlock ? 'Error Handling Block' : `Task with ${parsedData.name}`,
                                       x: relativeX,
                                       y: relativeY,
                                       parentId: module.id,
-                                      parentSection: 'normal'
+                                      parentSection: 'normal',
+                                      isBlock: isBlock,
+                                      blockSections: isBlock ? { normal: [], rescue: [], always: [] } : undefined
                                     }
                                     setModules(prev => [...prev, newModule])
 
@@ -3168,20 +2848,36 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 // Cas 2: Nouveau module depuis la palette
                                 else if (moduleData) {
                                   const parsedData = JSON.parse(moduleData)
-                                  // Ne pas permettre de déposer un block dans une section
-                                  if (parsedData.name !== 'block' && parsedData.name !== 'play') {
+                                  // Ne pas permettre de déposer un PLAY dans une section
+                                  if (parsedData.name !== 'play') {
                                     e.preventDefault()
                                     e.stopPropagation()
+
+                                    const isBlock = parsedData.name === 'block'
+
+                                    // Ajuster l'offset et contraintes selon le type (block ou tâche)
+                                    const dropOffsetX = isBlock ? 200 : offsetX
+                                    const dropOffsetY = isBlock ? 150 : offsetY
+                                    const itemWidth = isBlock ? 400 : taskWidth
+                                    const itemHeight = isBlock ? 300 : taskHeight
+
+                                    let adjustedX = e.clientX - sectionRect.left - dropOffsetX
+                                    let adjustedY = e.clientY - sectionRect.top - dropOffsetY
+                                    adjustedX = Math.max(0, Math.min(adjustedX, sectionRect.width - itemWidth))
+                                    adjustedY = Math.max(0, Math.min(adjustedY, sectionRect.height - itemHeight))
+
                                     const newModule: ModuleBlock = {
                                       id: Date.now().toString(),
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
-                                      taskName: `Task with ${parsedData.name}`,
-                                      x: relativeX,
-                                      y: relativeY,
+                                      taskName: isBlock ? 'Error Handling Block' : `Task with ${parsedData.name}`,
+                                      x: adjustedX,
+                                      y: adjustedY,
                                       parentId: module.id,
-                                      parentSection: 'rescue'
+                                      parentSection: 'rescue',
+                                      isBlock: isBlock,
+                                      blockSections: isBlock ? { normal: [], rescue: [], always: [] } : undefined
                                     }
                                     setModules(prev => [...prev, newModule])
 
@@ -3492,20 +3188,36 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 // Cas 2: Nouveau module depuis la palette
                                 else if (moduleData) {
                                   const parsedData = JSON.parse(moduleData)
-                                  // Ne pas permettre de déposer un block dans une section
-                                  if (parsedData.name !== 'block' && parsedData.name !== 'play') {
+                                  // Ne pas permettre de déposer un PLAY dans une section
+                                  if (parsedData.name !== 'play') {
                                     e.preventDefault()
                                     e.stopPropagation()
+
+                                    const isBlock = parsedData.name === 'block'
+
+                                    // Ajuster l'offset et contraintes selon le type (block ou tâche)
+                                    const dropOffsetX = isBlock ? 200 : offsetX
+                                    const dropOffsetY = isBlock ? 150 : offsetY
+                                    const itemWidth = isBlock ? 400 : taskWidth
+                                    const itemHeight = isBlock ? 300 : taskHeight
+
+                                    let adjustedX = e.clientX - sectionRect.left - dropOffsetX
+                                    let adjustedY = e.clientY - sectionRect.top - dropOffsetY
+                                    adjustedX = Math.max(0, Math.min(adjustedX, sectionRect.width - itemWidth))
+                                    adjustedY = Math.max(0, Math.min(adjustedY, sectionRect.height - itemHeight))
+
                                     const newModule: ModuleBlock = {
                                       id: Date.now().toString(),
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
-                                      taskName: `Task with ${parsedData.name}`,
-                                      x: relativeX,
-                                      y: relativeY,
+                                      taskName: isBlock ? 'Error Handling Block' : `Task with ${parsedData.name}`,
+                                      x: adjustedX,
+                                      y: adjustedY,
                                       parentId: module.id,
-                                      parentSection: 'always'
+                                      parentSection: 'always',
+                                      isBlock: isBlock,
+                                      blockSections: isBlock ? { normal: [], rescue: [], always: [] } : undefined
                                     }
                                     setModules(prev => [...prev, newModule])
 
