@@ -8,6 +8,7 @@ import SecurityIcon from '@mui/icons-material/Security'
 import LoopIcon from '@mui/icons-material/Loop'
 import SendIcon from '@mui/icons-material/Send'
 import React from 'react'
+import BlockSectionContent from './BlockSectionContent'
 
 interface ModuleBlock {
   id: string
@@ -238,9 +239,26 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                         }}
                         onDrop={(e) => handleBlockSectionDrop(task.id, 'normal', e)}
                       >
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                          Drop tasks here
-                        </Typography>
+                        <BlockSectionContent
+                          blockId={task.id}
+                          section="normal"
+                          modules={modules}
+                          selectedModuleId={selectedModuleId}
+                          draggedModuleId={draggedModuleId}
+                          collapsedBlocks={collapsedBlocks}
+                          collapsedBlockSections={collapsedBlockSections}
+                          onSelectModule={onSelectModule}
+                          updateTaskName={updateTaskName}
+                          toggleBlockCollapse={toggleBlockCollapse}
+                          toggleBlockSection={toggleBlockSection}
+                          isSectionCollapsed={isSectionCollapsed}
+                          handleModuleDragStart={handleModuleDragStart}
+                          handleModuleDragOver={handleModuleDragOver}
+                          handleModuleDropOnModule={handleModuleDropOnModule}
+                          getBlockTheme={getBlockTheme}
+                          getBlockDimensions={getBlockDimensions}
+                          getSectionColor={getSectionColor}
+                        />
                       </Box>
                     )}
 
@@ -278,9 +296,26 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                         }}
                         onDrop={(e) => handleBlockSectionDrop(task.id, 'rescue', e)}
                       >
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                          Drop tasks here
-                        </Typography>
+                        <BlockSectionContent
+                          blockId={task.id}
+                          section="rescue"
+                          modules={modules}
+                          selectedModuleId={selectedModuleId}
+                          draggedModuleId={draggedModuleId}
+                          collapsedBlocks={collapsedBlocks}
+                          collapsedBlockSections={collapsedBlockSections}
+                          onSelectModule={onSelectModule}
+                          updateTaskName={updateTaskName}
+                          toggleBlockCollapse={toggleBlockCollapse}
+                          toggleBlockSection={toggleBlockSection}
+                          isSectionCollapsed={isSectionCollapsed}
+                          handleModuleDragStart={handleModuleDragStart}
+                          handleModuleDragOver={handleModuleDragOver}
+                          handleModuleDropOnModule={handleModuleDropOnModule}
+                          getBlockTheme={getBlockTheme}
+                          getBlockDimensions={getBlockDimensions}
+                          getSectionColor={getSectionColor}
+                        />
                       </Box>
                     )}
 
@@ -318,9 +353,26 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                         }}
                         onDrop={(e) => handleBlockSectionDrop(task.id, 'always', e)}
                       >
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                          Drop tasks here
-                        </Typography>
+                        <BlockSectionContent
+                          blockId={task.id}
+                          section="always"
+                          modules={modules}
+                          selectedModuleId={selectedModuleId}
+                          draggedModuleId={draggedModuleId}
+                          collapsedBlocks={collapsedBlocks}
+                          collapsedBlockSections={collapsedBlockSections}
+                          onSelectModule={onSelectModule}
+                          updateTaskName={updateTaskName}
+                          toggleBlockCollapse={toggleBlockCollapse}
+                          toggleBlockSection={toggleBlockSection}
+                          isSectionCollapsed={isSectionCollapsed}
+                          handleModuleDragStart={handleModuleDragStart}
+                          handleModuleDragOver={handleModuleDragOver}
+                          handleModuleDropOnModule={handleModuleDropOnModule}
+                          getBlockTheme={getBlockTheme}
+                          getBlockDimensions={getBlockDimensions}
+                          getSectionColor={getSectionColor}
+                        />
                       </Box>
                     )}
                   </Box>

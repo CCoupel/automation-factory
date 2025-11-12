@@ -15,6 +15,7 @@ import LoopIcon from '@mui/icons-material/Loop'
 import SendIcon from '@mui/icons-material/Send'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
+import BlockSectionContent from './BlockSectionContent'
 
 interface ModuleBlock {
   id: string
@@ -2685,169 +2686,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                               }}
                               sx={{ position: 'relative', height: '100%', minHeight: 200, p: 0.5, bgcolor: 'rgba(25, 118, 210, 0.08)' }}
                             >
-                              {module.blockSections?.normal && module.blockSections.normal.length > 0 ? (
-                                module.blockSections.normal.map(taskId => {
-                                  const task = modules.find(m => m.id === taskId)
-                                  if (!task) return null
-
-                                  const taskTheme = getTaskTheme(task.id)
-
-                                  return (
-                                    <Paper
-                                      key={taskId}
-                                      elevation={selectedModuleId === task.id ? 6 : 3}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        onSelectModule({
-                                          id: task.id,
-                                          name: task.name,
-                                          collection: task.collection,
-                                          taskName: task.taskName,
-                                          when: task.when,
-                                          ignoreErrors: task.ignoreErrors,
-                                          become: task.become,
-                                          loop: task.loop,
-                                          delegateTo: task.delegateTo,
-                                          isBlock: task.isBlock,
-                                          isPlay: task.isPlay
-                                        })
-                                      }}
-                                      draggable
-                                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                                      onDragOver={(e) => {
-                                        e.preventDefault()
-                                        // Ne pas bloquer la propagation pour permettre le drop sur la section
-                                      }}
-                                      onDrop={(e) => {
-                                        const sourceId = e.dataTransfer.getData('existingModule')
-
-                                        // Si drop sur soi-même, laisser l'événement remonter à la section pour le repositionnement
-                                        if (sourceId === task.id) {
-                                          return
-                                        }
-
-                                        const sourceModule = modules.find(m => m.id === sourceId)
-
-                                        // Si la source est dans une zone de block
-                                        if (sourceModule?.parentId && sourceModule?.parentSection) {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-
-                                          // Vérifier si c'est la MÊME section
-                                          if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien
-                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
-                                          }
-                                          // Différente section : ne rien faire
-                                          return
-                                        }
-
-                                        // Source externe (zone de travail)
-                                        e.preventDefault()
-                                        e.stopPropagation()
-
-                                        // Vérifier si la source a un lien parent (entrant)
-                                        const hasIncomingLink = links.some(l => l.to === sourceId)
-
-                                        if (hasIncomingLink) {
-                                          // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
-                                        } else {
-                                          // Orpheline : déplacer la tâche dans la section de la cible
-                                          const offsetX = (task.x || 10) + 160
-                                          const offsetY = task.y || 10
-                                          addTaskToBlockSection(sourceId, task.parentId!, task.parentSection!, offsetX, offsetY)
-                                        }
-                                      }}
-                                      sx={{
-                                        position: 'absolute',
-                                        left: task.x || 10,
-                                        top: task.y || 10,
-                                        width: 140,
-                                        minHeight: 60,
-                                        p: 0.75,
-                                        cursor: 'move',
-                                        border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
-                                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                                        '&:hover': {
-                                          boxShadow: 6,
-                                        },
-                                      }}
-                                    >
-                                      {/* ID et nom de la tâche sur la même ligne */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                                        <Box
-                                          sx={{
-                                            minWidth: 18,
-                                            height: 18,
-                                            px: 0.5,
-                                            borderRadius: '4px',
-                                            bgcolor: taskTheme.numberBgColor,
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: 'bold',
-                                            fontSize: '0.6rem',
-                                            flexShrink: 0,
-                                          }}
-                                        >
-                                          {modules.filter(m => m.parentId === module.id && m.parentSection === 'normal').indexOf(task) + 1}
-                                        </Box>
-                                        <TextField
-                                          fullWidth
-                                          variant="standard"
-                                          value={task.taskName}
-                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                          onClick={(e) => e.stopPropagation()}
-                                          sx={{
-                                            '& .MuiInput-input': {
-                                              fontWeight: 'bold',
-                                              fontSize: '0.75rem',
-                                              padding: '0',
-                                            },
-                                            '& .MuiInput-root:before': {
-                                              borderBottom: 'none',
-                                            },
-                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                                            },
-                                          }}
-                                        />
-                                      </Box>
-
-                                      {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
-                                        {task.collection}.{task.name}
-                                      </Typography>
-
-                                      {/* Icônes d'attributs de tâche */}
-                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                                        </Tooltip>
-                                      </Box>
-                                    </Paper>
-                                  )
-                                })
-                              ) : (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                  Drop tasks here
-                                </Typography>
-                              )}
+                              <BlockSectionContent
+                                blockId={module.id}
+                                section="normal"
+                                modules={modules}
+                                selectedModuleId={selectedModuleId}
+                                draggedModuleId={draggedModuleId}
+                                collapsedBlocks={collapsedBlocks}
+                                collapsedBlockSections={collapsedBlockSections}
+                                onSelectModule={onSelectModule}
+                                updateTaskName={updateTaskName}
+                                toggleBlockCollapse={toggleBlockCollapse}
+                                toggleBlockSection={toggleBlockSection}
+                                isSectionCollapsed={isSectionCollapsed}
+                                handleModuleDragStart={handleModuleDragStart}
+                                handleModuleDragOver={handleModuleDragOver}
+                                handleModuleDropOnModule={handleModuleDropOnModule}
+                                getBlockTheme={getBlockTheme}
+                                getBlockDimensions={getBlockDimensions}
+                                getSectionColor={getSectionColor}
+                              />
                             </Box>
                           </Box>
                         )}
@@ -3025,169 +2883,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                               }}
                               sx={{ position: 'relative', height: '100%', minHeight: 200, p: 0.5, bgcolor: 'rgba(255, 152, 0, 0.08)' }}
                             >
-                              {module.blockSections?.rescue && module.blockSections.rescue.length > 0 ? (
-                                module.blockSections.rescue.map(taskId => {
-                                  const task = modules.find(m => m.id === taskId)
-                                  if (!task) return null
-
-                                  const taskTheme = getTaskTheme(task.id)
-
-                                  return (
-                                    <Paper
-                                      key={taskId}
-                                      elevation={selectedModuleId === task.id ? 6 : 3}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        onSelectModule({
-                                          id: task.id,
-                                          name: task.name,
-                                          collection: task.collection,
-                                          taskName: task.taskName,
-                                          when: task.when,
-                                          ignoreErrors: task.ignoreErrors,
-                                          become: task.become,
-                                          loop: task.loop,
-                                          delegateTo: task.delegateTo,
-                                          isBlock: task.isBlock,
-                                          isPlay: task.isPlay
-                                        })
-                                      }}
-                                      draggable
-                                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                                      onDragOver={(e) => {
-                                        e.preventDefault()
-                                        // Ne pas bloquer la propagation pour permettre le drop sur la section
-                                      }}
-                                      onDrop={(e) => {
-                                        const sourceId = e.dataTransfer.getData('existingModule')
-
-                                        // Si drop sur soi-même, laisser l'événement remonter à la section pour le repositionnement
-                                        if (sourceId === task.id) {
-                                          return
-                                        }
-
-                                        const sourceModule = modules.find(m => m.id === sourceId)
-
-                                        // Si la source est dans une zone de block
-                                        if (sourceModule?.parentId && sourceModule?.parentSection) {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-
-                                          // Vérifier si c'est la MÊME section
-                                          if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien
-                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
-                                          }
-                                          // Différente section : ne rien faire
-                                          return
-                                        }
-
-                                        // Source externe (zone de travail)
-                                        e.preventDefault()
-                                        e.stopPropagation()
-
-                                        // Vérifier si la source a un lien parent (entrant)
-                                        const hasIncomingLink = links.some(l => l.to === sourceId)
-
-                                        if (hasIncomingLink) {
-                                          // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
-                                        } else {
-                                          // Orpheline : déplacer la tâche dans la section de la cible
-                                          const offsetX = (task.x || 10) + 160
-                                          const offsetY = task.y || 10
-                                          addTaskToBlockSection(sourceId, task.parentId!, task.parentSection!, offsetX, offsetY)
-                                        }
-                                      }}
-                                      sx={{
-                                        position: 'absolute',
-                                        left: task.x || 10,
-                                        top: task.y || 10,
-                                        width: 140,
-                                        minHeight: 60,
-                                        p: 0.75,
-                                        cursor: 'move',
-                                        border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
-                                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                                        '&:hover': {
-                                          boxShadow: 6,
-                                        },
-                                      }}
-                                    >
-                                      {/* ID et nom de la tâche sur la même ligne */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                                        <Box
-                                          sx={{
-                                            minWidth: 18,
-                                            height: 18,
-                                            px: 0.5,
-                                            borderRadius: '4px',
-                                            bgcolor: taskTheme.numberBgColor,
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: 'bold',
-                                            fontSize: '0.6rem',
-                                            flexShrink: 0,
-                                          }}
-                                        >
-                                          {modules.filter(m => m.parentId === module.id && m.parentSection === 'rescue').indexOf(task) + 1}
-                                        </Box>
-                                        <TextField
-                                          fullWidth
-                                          variant="standard"
-                                          value={task.taskName}
-                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                          onClick={(e) => e.stopPropagation()}
-                                          sx={{
-                                            '& .MuiInput-input': {
-                                              fontWeight: 'bold',
-                                              fontSize: '0.75rem',
-                                              padding: '0',
-                                            },
-                                            '& .MuiInput-root:before': {
-                                              borderBottom: 'none',
-                                            },
-                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                                            },
-                                          }}
-                                        />
-                                      </Box>
-
-                                      {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
-                                        {task.collection}.{task.name}
-                                      </Typography>
-
-                                      {/* Icônes d'attributs de tâche */}
-                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                                        </Tooltip>
-                                      </Box>
-                                    </Paper>
-                                  )
-                                })
-                              ) : (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                  Drop tasks here
-                                </Typography>
-                              )}
+                              <BlockSectionContent
+                                blockId={module.id}
+                                section="rescue"
+                                modules={modules}
+                                selectedModuleId={selectedModuleId}
+                                draggedModuleId={draggedModuleId}
+                                collapsedBlocks={collapsedBlocks}
+                                collapsedBlockSections={collapsedBlockSections}
+                                onSelectModule={onSelectModule}
+                                updateTaskName={updateTaskName}
+                                toggleBlockCollapse={toggleBlockCollapse}
+                                toggleBlockSection={toggleBlockSection}
+                                isSectionCollapsed={isSectionCollapsed}
+                                handleModuleDragStart={handleModuleDragStart}
+                                handleModuleDragOver={handleModuleDragOver}
+                                handleModuleDropOnModule={handleModuleDropOnModule}
+                                getBlockTheme={getBlockTheme}
+                                getBlockDimensions={getBlockDimensions}
+                                getSectionColor={getSectionColor}
+                              />
                             </Box>
                           </Box>
                         )}
@@ -3365,169 +3080,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                               }}
                               sx={{ position: 'relative', height: '100%', minHeight: 200, p: 0.5, bgcolor: 'rgba(76, 175, 80, 0.08)' }}
                             >
-                              {module.blockSections?.always && module.blockSections.always.length > 0 ? (
-                                module.blockSections.always.map(taskId => {
-                                  const task = modules.find(m => m.id === taskId)
-                                  if (!task) return null
-
-                                  const taskTheme = getTaskTheme(task.id)
-
-                                  return (
-                                    <Paper
-                                      key={taskId}
-                                      elevation={selectedModuleId === task.id ? 6 : 3}
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        onSelectModule({
-                                          id: task.id,
-                                          name: task.name,
-                                          collection: task.collection,
-                                          taskName: task.taskName,
-                                          when: task.when,
-                                          ignoreErrors: task.ignoreErrors,
-                                          become: task.become,
-                                          loop: task.loop,
-                                          delegateTo: task.delegateTo,
-                                          isBlock: task.isBlock,
-                                          isPlay: task.isPlay
-                                        })
-                                      }}
-                                      draggable
-                                      onDragStart={(e) => handleModuleDragStart(task.id, e)}
-                                      onDragOver={(e) => {
-                                        e.preventDefault()
-                                        // Ne pas bloquer la propagation pour permettre le drop sur la section
-                                      }}
-                                      onDrop={(e) => {
-                                        const sourceId = e.dataTransfer.getData('existingModule')
-
-                                        // Si drop sur soi-même, laisser l'événement remonter à la section pour le repositionnement
-                                        if (sourceId === task.id) {
-                                          return
-                                        }
-
-                                        const sourceModule = modules.find(m => m.id === sourceId)
-
-                                        // Si la source est dans une zone de block
-                                        if (sourceModule?.parentId && sourceModule?.parentSection) {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-
-                                          // Vérifier si c'est la MÊME section
-                                          if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                                            // Même section : créer un lien
-                                            createLink(getLinkTypeFromSource(sourceId), sourceId, task.id)
-                                          }
-                                          // Différente section : ne rien faire
-                                          return
-                                        }
-
-                                        // Source externe (zone de travail)
-                                        e.preventDefault()
-                                        e.stopPropagation()
-
-                                        // Vérifier si la source a un lien parent (entrant)
-                                        const hasIncomingLink = links.some(l => l.to === sourceId)
-
-                                        if (hasIncomingLink) {
-                                          // A un parent : créer un lien entre la source et le block parent de la cible
-                                          createLink(getLinkTypeFromSource(sourceId), sourceId, task.parentId!)
-                                        } else {
-                                          // Orpheline : déplacer la tâche dans la section de la cible
-                                          const offsetX = (task.x || 10) + 160
-                                          const offsetY = task.y || 10
-                                          addTaskToBlockSection(sourceId, task.parentId!, task.parentSection!, offsetX, offsetY)
-                                        }
-                                      }}
-                                      sx={{
-                                        position: 'absolute',
-                                        left: task.x || 10,
-                                        top: task.y || 10,
-                                        width: 140,
-                                        minHeight: 60,
-                                        p: 0.75,
-                                        cursor: 'move',
-                                        border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
-                                        zIndex: draggedModuleId === task.id ? 10 : 1,
-                                        opacity: draggedModuleId === task.id ? 0.7 : 1,
-                                        '&:hover': {
-                                          boxShadow: 6,
-                                        },
-                                      }}
-                                    >
-                                      {/* ID et nom de la tâche sur la même ligne */}
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                                        <Box
-                                          sx={{
-                                            minWidth: 18,
-                                            height: 18,
-                                            px: 0.5,
-                                            borderRadius: '4px',
-                                            bgcolor: taskTheme.numberBgColor,
-                                            color: 'white',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: 'bold',
-                                            fontSize: '0.6rem',
-                                            flexShrink: 0,
-                                          }}
-                                        >
-                                          {modules.filter(m => m.parentId === module.id && m.parentSection === 'always').indexOf(task) + 1}
-                                        </Box>
-                                        <TextField
-                                          fullWidth
-                                          variant="standard"
-                                          value={task.taskName}
-                                          onChange={(e) => updateTaskName(task.id, e.target.value)}
-                                          onClick={(e) => e.stopPropagation()}
-                                          sx={{
-                                            '& .MuiInput-input': {
-                                              fontWeight: 'bold',
-                                              fontSize: '0.75rem',
-                                              padding: '0',
-                                            },
-                                            '& .MuiInput-root:before': {
-                                              borderBottom: 'none',
-                                            },
-                                            '& .MuiInput-root:hover:not(.Mui-disabled):before': {
-                                              borderBottom: '1px solid rgba(0, 0, 0, 0.42)',
-                                            },
-                                          }}
-                                        />
-                                      </Box>
-
-                                      {/* Nom du module */}
-                                      <Typography variant="caption" sx={{ fontWeight: 'medium', color: taskTheme.moduleNameColor, display: 'block', fontSize: '0.55rem' }}>
-                                        {task.collection}.{task.name}
-                                      </Typography>
-
-                                      {/* Icônes d'attributs de tâche */}
-                                      <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                                        <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                                          <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                                          <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                                          <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                                          <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                                        </Tooltip>
-                                        <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                                          <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                                        </Tooltip>
-                                      </Box>
-                                    </Paper>
-                                  )
-                                })
-                              ) : (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                  Drop tasks here
-                                </Typography>
-                              )}
+                              <BlockSectionContent
+                                blockId={module.id}
+                                section="always"
+                                modules={modules}
+                                selectedModuleId={selectedModuleId}
+                                draggedModuleId={draggedModuleId}
+                                collapsedBlocks={collapsedBlocks}
+                                collapsedBlockSections={collapsedBlockSections}
+                                onSelectModule={onSelectModule}
+                                updateTaskName={updateTaskName}
+                                toggleBlockCollapse={toggleBlockCollapse}
+                                toggleBlockSection={toggleBlockSection}
+                                isSectionCollapsed={isSectionCollapsed}
+                                handleModuleDragStart={handleModuleDragStart}
+                                handleModuleDragOver={handleModuleDragOver}
+                                handleModuleDropOnModule={handleModuleDropOnModule}
+                                getBlockTheme={getBlockTheme}
+                                getBlockDimensions={getBlockDimensions}
+                                getSectionColor={getSectionColor}
+                              />
                             </Box>
                           </Box>
                         )}
