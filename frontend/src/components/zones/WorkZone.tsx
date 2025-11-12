@@ -1229,7 +1229,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
   const getModuleAbsolutePosition = (module: ModuleBlock) => {
-    const dims = module.isBlock ? getBlockDimensions(module) : { width: 140, height: 60 }
+    const dims = module.isBlock ? getBlockDimensions(module) : { width: module.isPlay ? 100 : 140, height: 60 }
 
     // Si le module est dans un block, calculer sa position absolue
     let absoluteX = module.x
@@ -1273,6 +1273,65 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         absoluteX += module.x + 4 // 4 = padding de la section
         absoluteY += module.y + 4 // 4 = padding de la section
       }
+    } else if (module.parentSection && !module.parentId) {
+      // Module dans une PLAY section (pas dans un block)
+      // Calculer l'offset Y en fonction des sections PLAY précédentes
+      const playHeaderHeight = 40
+      const playSectionMinHeight = 200 // Hauteur minimale quand la section est ouverte
+
+      const playModule = modules.find(m => m.isPlay)
+      const isVariablesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'variables') : false
+      const isPreTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'pre_tasks') : false
+      const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
+      const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
+
+      // Commencer après le header des tabs (environ 60px)
+      absoluteY = 0
+
+      // Section Variables
+      absoluteY += playHeaderHeight
+      if (isVariablesOpen && module.parentSection !== 'variables') {
+        absoluteY += 60 // Hauteur du contenu variables
+      }
+
+      // Section Pre-Tasks
+      if (module.parentSection === 'pre_tasks') {
+        absoluteY += playHeaderHeight
+      } else if (module.parentSection === 'tasks' || module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
+        absoluteY += playHeaderHeight
+        if (isPreTasksOpen) {
+          absoluteY += playSectionMinHeight
+        }
+      }
+
+      // Section Tasks
+      if (module.parentSection === 'tasks') {
+        absoluteY += playHeaderHeight
+      } else if (module.parentSection === 'post_tasks' || module.parentSection === 'handlers') {
+        absoluteY += playHeaderHeight
+        if (isTasksOpen) {
+          absoluteY += playSectionMinHeight
+        }
+      }
+
+      // Section Post-Tasks
+      if (module.parentSection === 'post_tasks') {
+        absoluteY += playHeaderHeight
+      } else if (module.parentSection === 'handlers') {
+        absoluteY += playHeaderHeight
+        if (isPostTasksOpen) {
+          absoluteY += playSectionMinHeight
+        }
+      }
+
+      // Section Handlers
+      if (module.parentSection === 'handlers') {
+        absoluteY += playHeaderHeight
+      }
+
+      // Ajouter la position de la tâche dans sa section + padding
+      absoluteX = module.x + 16 // 16 = padding left de la section
+      absoluteY += module.y + 16 // 16 = padding top de la section
     }
 
     return {
@@ -1563,7 +1622,155 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       </Box>
 
       {/* PLAY Sections - Workspace Level */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+        {/* SVG pour les lignes de connexion */}
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 2,
+            pointerEvents: 'none',
+          }}
+        >
+          {links.map((link) => {
+            const fromModule = modules.find(m => m.id === link.from)
+            const toModule = modules.find(m => m.id === link.to)
+
+            if (!fromModule || !toModule) return null
+
+            // Cacher le lien si une des tâches est dans un block réduit
+            if (fromModule.parentId) {
+              const fromParent = modules.find(m => m.id === fromModule.parentId)
+              if (fromParent && collapsedBlocks.has(fromParent.id)) {
+                return null
+              }
+              // Cacher aussi si la section est réduite
+              if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
+                return null
+              }
+            }
+            if (toModule.parentId) {
+              const toParent = modules.find(m => m.id === toModule.parentId)
+              if (toParent && collapsedBlocks.has(toParent.id)) {
+                return null
+              }
+              // Cacher aussi si la section est réduite
+              if (toModule.parentSection && isSectionCollapsed(toModule.parentId, toModule.parentSection)) {
+                return null
+              }
+            }
+
+            const connectionPoints = getModuleConnectionPoint(fromModule, toModule)
+
+            const x1 = connectionPoints.from.x
+            const y1 = connectionPoints.from.y
+            const x2 = connectionPoints.to.x
+            const y2 = connectionPoints.to.y
+
+            const midX = (x1 + x2) / 2
+            const midY = (y1 + y2) / 2
+
+            const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
+            const style = getLinkStyle(link.type)
+
+            return (
+              <g key={link.id} style={{ pointerEvents: 'all' }}>
+                {/* Point de connexion source */}
+                <circle
+                  cx={x1}
+                  cy={y1}
+                  r="4"
+                  fill={style.stroke}
+                  stroke="white"
+                  strokeWidth="1.5"
+                />
+                {/* Ligne */}
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={style.stroke}
+                  strokeWidth={style.strokeWidth || '2'}
+                  strokeDasharray={style.strokeDasharray}
+                />
+                {/* Point de connexion destination */}
+                <circle
+                  cx={x2}
+                  cy={y2}
+                  r="4"
+                  fill={style.stroke}
+                  stroke="white"
+                  strokeWidth="1.5"
+                />
+                {/* Flèche au milieu */}
+                <polygon
+                  points="0,-4 8,0 0,4"
+                  fill={style.stroke}
+                  transform={`translate(${midX}, ${midY}) rotate(${angle})`}
+                />
+                {/* Label du type de lien */}
+                {style.label && (
+                  <text
+                    x={midX}
+                    y={midY - 15}
+                    textAnchor="middle"
+                    fill={style.stroke}
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
+                    {style.label}
+                  </text>
+                )}
+                {/* Zone cliquable invisible */}
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke="transparent"
+                  strokeWidth="20"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => setHoveredLinkId(link.id)}
+                  onMouseLeave={() => setHoveredLinkId(null)}
+                />
+                {/* Bouton de suppression */}
+                {hoveredLinkId === link.id && (
+                  <>
+                    <circle
+                      cx={midX}
+                      cy={midY}
+                      r="10"
+                      fill="white"
+                      stroke="#dc004e"
+                      strokeWidth="2"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => deleteLink(link.id)}
+                      onMouseEnter={() => setHoveredLinkId(link.id)}
+                      onMouseLeave={() => setHoveredLinkId(null)}
+                    />
+                    <text
+                      x={midX}
+                      y={midY + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#dc004e"
+                      fontSize="12"
+                      fontWeight="bold"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      ×
+                    </text>
+                  </>
+                )}
+              </g>
+            )
+          })}
+        </svg>
+
         {/* Section 1: Variables */}
         <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
           <Box
@@ -2283,154 +2490,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           display: 'none', // Hidden - all modules are now in PLAY sections
         }}
       >
-        {/* SVG pour les lignes de connexion */}
-        <svg
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          {links.map((link) => {
-            const fromModule = modules.find(m => m.id === link.from)
-            const toModule = modules.find(m => m.id === link.to)
-
-            if (!fromModule || !toModule) return null
-
-            // Cacher le lien si une des tâches est dans un block réduit
-            if (fromModule.parentId) {
-              const fromParent = modules.find(m => m.id === fromModule.parentId)
-              if (fromParent && collapsedBlocks.has(fromParent.id)) {
-                return null
-              }
-              // Cacher aussi si la section est réduite
-              if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
-                return null
-              }
-            }
-            if (toModule.parentId) {
-              const toParent = modules.find(m => m.id === toModule.parentId)
-              if (toParent && collapsedBlocks.has(toParent.id)) {
-                return null
-              }
-              // Cacher aussi si la section est réduite
-              if (toModule.parentSection && isSectionCollapsed(toModule.parentId, toModule.parentSection)) {
-                return null
-              }
-            }
-
-            const connectionPoints = getModuleConnectionPoint(fromModule, toModule)
-
-            const x1 = connectionPoints.from.x
-            const y1 = connectionPoints.from.y
-            const x2 = connectionPoints.to.x
-            const y2 = connectionPoints.to.y
-
-            const midX = (x1 + x2) / 2
-            const midY = (y1 + y2) / 2
-
-            const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
-            const style = getLinkStyle(link.type)
-
-            return (
-              <g key={link.id} style={{ pointerEvents: 'all' }}>
-                {/* Point de connexion source */}
-                <circle
-                  cx={x1}
-                  cy={y1}
-                  r="4"
-                  fill={style.stroke}
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-                {/* Ligne */}
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={style.stroke}
-                  strokeWidth={style.strokeWidth || '2'}
-                  strokeDasharray={style.strokeDasharray}
-                />
-                {/* Point de connexion destination */}
-                <circle
-                  cx={x2}
-                  cy={y2}
-                  r="4"
-                  fill={style.stroke}
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-                {/* Flèche au milieu */}
-                <polygon
-                  points="0,-4 8,0 0,4"
-                  fill={style.stroke}
-                  transform={`translate(${midX}, ${midY}) rotate(${angle})`}
-                />
-                {/* Label du type de lien */}
-                {style.label && (
-                  <text
-                    x={midX}
-                    y={midY - 15}
-                    textAnchor="middle"
-                    fill={style.stroke}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {style.label}
-                  </text>
-                )}
-                {/* Zone cliquable invisible */}
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke="transparent"
-                  strokeWidth="20"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredLinkId(link.id)}
-                  onMouseLeave={() => setHoveredLinkId(null)}
-                />
-                {/* Bouton de suppression */}
-                {hoveredLinkId === link.id && (
-                  <>
-                    <circle
-                      cx={midX}
-                      cy={midY}
-                      r="10"
-                      fill="white"
-                      stroke="#dc004e"
-                      strokeWidth="2"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => deleteLink(link.id)}
-                      onMouseEnter={() => setHoveredLinkId(link.id)}
-                      onMouseLeave={() => setHoveredLinkId(null)}
-                    />
-                    <text
-                      x={midX}
-                      y={midY + 1}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="#dc004e"
-                      fontSize="12"
-                      fontWeight="bold"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      ×
-                    </text>
-                  </>
-                )}
-              </g>
-            )
-          })}
-        </svg>
-
         {modules.length === 0 ? (
           <Box
             sx={{
