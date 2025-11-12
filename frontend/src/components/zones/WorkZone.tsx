@@ -770,13 +770,24 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       const key = `${playId}:${section}`
       const wildcardKey = `*:${section}`
 
-      // Comportement accordion: une seule section ouverte à la fois
+      // La section Variables fonctionne indépendamment (pas d'accordion)
+      if (section === 'variables') {
+        newSet.delete(wildcardKey)
+        if (newSet.has(key)) {
+          newSet.delete(key)
+        } else {
+          newSet.add(key)
+        }
+        return newSet
+      }
+
+      // Comportement accordion pour les sections de tâches uniquement
       const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
 
       if (isCurrentlyCollapsed) {
-        // Fermer toutes les sections de ce PLAY
-        const allSections: Array<'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['variables', 'pre_tasks', 'tasks', 'post_tasks', 'handlers']
-        allSections.forEach(s => {
+        // Fermer toutes les sections de tâches de ce PLAY (pas Variables)
+        const taskSections: Array<'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['pre_tasks', 'tasks', 'post_tasks', 'handlers']
+        taskSections.forEach(s => {
           newSet.delete(`*:${s}`)
           newSet.add(`${playId}:${s}`)
         })
@@ -785,7 +796,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         newSet.delete(wildcardKey)
         newSet.delete(key)
       }
-      // Si déjà ouverte, ne rien faire (garder au moins une section ouverte)
+      // Si déjà ouverte, ne rien faire (garder au moins une section de tâches ouverte)
 
       return newSet
     })
