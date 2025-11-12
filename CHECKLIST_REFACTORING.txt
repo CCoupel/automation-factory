@@ -1,0 +1,234 @@
+CHECKLIST DE REFACTORING - ANSIBLE BUILDER FRONTEND
+====================================================
+
+PHASE 1: GAINS CRITIQUES (Semaine 1)
+====================================
+
+1. CREATE: TaskAttributeIcons Component
+   [ ] Create components/common/TaskAttributeIcons.tsx
+   [ ] Define Props interface
+   [ ] Implement icon rendering logic
+   [ ] Add React.memo() for performance
+   [ ] Add TypeScript types
+   [ ] Test with different scenarios
+   Effort: 1-2 hours
+   Impact: Reduces PlaySectionContent.tsx + WorkZone.tsx usage
+
+2. CREATE: startTasksFactory Utility
+   [ ] Create utils/startTasksFactory.ts
+   [ ] Define createStartTasks() function
+   [ ] Export types
+   [ ] Add JSDoc comments
+   [ ] Test factory output
+   Effort: 30 mins
+   Impact: Eliminates START tasks duplication in WorkZone.tsx
+
+3. CREATE: themeColors Constants
+   [ ] Create constants/themeColors.ts
+   [ ] Define SECTION_COLORS
+   [ ] Define LINK_STYLES
+   [ ] Define BLOCK_THEMES
+   [ ] Add documentation
+   [ ] Update imports in WorkZone.tsx
+   Effort: 1 hour
+   Impact: Centralize color definitions
+
+---
+
+PHASE 2: HAUTE PRIORITE (Semaine 2)
+====================================
+
+4. CREATE: BlockSectionHeader Component
+   [ ] Create components/common/BlockSectionHeader.tsx
+   [ ] Define Props interface
+   [ ] Implement header rendering
+   [ ] Add expand/collapse icons
+   [ ] Test with PlaySectionContent data
+   Effort: 1 hour
+   Impact: Replaces 3 header sections in PlaySectionContent.tsx
+
+5. CREATE: BlockSectionContent Component
+   [ ] Create components/common/BlockSectionContent.tsx
+   [ ] Define Props interface
+   [ ] Implement content area rendering
+   [ ] Handle collapsed state
+   [ ] Add children support
+   Effort: 45 mins
+   Impact: Replaces 3 content sections in PlaySectionContent.tsx
+
+6. REFACTOR: PlaySectionContent.tsx
+   [ ] Import TaskAttributeIcons
+   [ ] Import BlockSectionHeader + BlockSectionContent
+   [ ] Replace icon rendering (Lines 398-414)
+   [ ] Replace section headers (Lines 205-227, 238-260, 271-293)
+   [ ] Test both block and task rendering
+   [ ] Verify all props are passed correctly
+   Effort: 2-3 hours
+   Expected Lines Before: 423
+   Expected Lines After: 280
+   Gain: 143 lines
+
+7. CREATE: layoutDimensions Constants
+   [ ] Create constants/layoutDimensions.ts
+   [ ] Define BLOCK_DIMENSIONS
+   [ ] Define TASK_DIMENSIONS
+   [ ] Define padding/spacing constants
+   [ ] Update WorkZone.tsx imports
+   Effort: 1 hour
+   Impact: Centralize layout values
+
+---
+
+PHASE 3: MOYENNE PRIORITE (Semaine 3)
+======================================
+
+8. CREATE: TaskAttributeFormField Component
+   [ ] Create components/common/TaskAttributeFormField.tsx
+   [ ] Define field configurations
+   [ ] Implement TextField wrapper
+   [ ] Add placeholder/helperText logic
+   [ ] Test with ConfigZone data
+   Effort: 1.5 hours
+   Impact: Replaces 7 repetitive form fields
+
+9. REFACTOR: ConfigZone.tsx
+   [ ] Import TaskAttributeFormField
+   [ ] Import constants/moduleConfigs
+   [ ] Replace form fields (Lines 123-199)
+   [ ] Replace select option blocks (Lines 232-259)
+   [ ] Test form field updates
+   [ ] Verify onChange handlers work
+   Effort: 2 hours
+   Expected Lines Before: 279
+   Expected Lines After: 200
+   Gain: 79 lines
+
+10. CREATE: DraggableModuleItem Component
+    [ ] Create components/common/DraggableModuleItem.tsx
+    [ ] Define Props interface
+    [ ] Implement ListItem + ListItemButton
+    [ ] Add drag & drop handler
+    [ ] Support custom icons
+    Effort: 1 hour
+    Impact: Replaces module list duplication
+
+11. REFACTOR: ModulesZone.tsx
+    [ ] Import DraggableModuleItem
+    [ ] Refactor Generic tab (Lines 118-154)
+    [ ] Refactor Modules tab (Lines 159-212)
+    [ ] Test drag & drop still works
+    [ ] Verify module data serialization
+    Effort: 1.5 hours
+    Expected Lines Before: 219
+    Expected Lines After: 140
+    Gain: 79 lines
+
+---
+
+PHASE 4: FINITION (Semaine 4)
+=============================
+
+12. CREATE: SelectOptionField Component (Optional)
+    [ ] Create components/common/SelectOptionField.tsx
+    [ ] Define generic select options component
+    [ ] Support custom option lists
+    [ ] Test with ConfigZone selects
+    Effort: 1 hour
+    Impact: Consolidate select options rendering
+
+13. CREATE: BlockHeader Component (Optional)
+    [ ] Create components/common/BlockHeader.tsx
+    [ ] Combine name field + collapse button
+    [ ] Add attribute icons display
+    [ ] Test with PlaySectionContent blocks
+    Effort: 1.5 hours
+    Impact: Further reduce PlaySectionContent complexity
+
+14. CREATE: themeUtils Utility
+    [ ] Create utils/themeUtils.ts
+    [ ] Extract getBlockTheme() from WorkZone.tsx
+    [ ] Extract getTaskTheme() from WorkZone.tsx
+    [ ] Extract getLinkStyle() from WorkZone.tsx
+    [ ] Add unit tests
+    Effort: 1.5 hours
+    Impact: Centralize theme logic
+
+15. CREATE: useDragDrop Hook
+    [ ] Create hooks/useDragDrop.ts
+    [ ] Define hook interface
+    [ ] Consolidate drag & drop logic
+    [ ] Document usage patterns
+    Effort: 1.5 hours
+    Impact: Reusable drag & drop pattern
+
+16. DOCUMENTATION
+    [ ] Document new component APIs
+    [ ] Create usage examples
+    [ ] Update component README
+    [ ] Add migration guide for old code
+    [ ] Add TypeScript strict mode checks
+    Effort: 2 hours
+
+17. TESTING
+    [ ] Unit tests for TaskAttributeIcons
+    [ ] Unit tests for BlockSectionHeader/Content
+    [ ] Unit tests for form fields
+    [ ] Integration tests for PlaySectionContent
+    [ ] Integration tests for ConfigZone
+    [ ] Integration tests for ModulesZone
+    Effort: 3-4 hours
+
+---
+
+VERIFICATION CHECKLIST
+======================
+
+Before committing each phase:
+
+[ ] All imports are correct
+[ ] No TypeScript errors (eslint + tsc)
+[ ] Components render without console errors
+[ ] Drag & drop still works
+[ ] Form submissions still work
+[ ] Colors/themes display correctly
+[ ] Icons display correctly
+[ ] Responsive design still works
+[ ] Git diff shows expected file changes
+[ ] Commit message follows convention
+
+---
+
+ROLLBACK PLAN
+=============
+
+If issues arise:
+1. Identify which component caused the issue
+2. Revert the specific component file
+3. Keep other working components
+4. Fix the problematic component separately
+5. Re-test before re-merging
+
+---
+
+SUMMARY
+=======
+
+Total Effort:   20-25 hours
+Total Gain:     700-750 lines
+Phases:         4
+Components:     7
+Constants:      3
+Utils:          3
+Files Modified: 4
+Files Created:  12
+
+Estimated Timeline:
+- Week 1: Phases 1 (4-5 hours)
+- Week 2: Phase 2 (6-7 hours)
+- Week 3: Phase 3 (6-7 hours)
+- Week 4: Phase 4 (4-5 hours)
+
+Recommended Start Date: After current feature stabilizes
+Risk Level: LOW (incremental, easy to rollback)
+Testing: Required for each phase
+

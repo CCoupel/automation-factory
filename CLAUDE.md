@@ -689,3 +689,52 @@ kubectl apply -f k8s/frontend/
 - [ ] Tests automatisés (pytest backend, vitest frontend)
 - [ ] Monitoring (Prometheus + Grafana)
 - [ ] Logging centralisé (ELK ou Loki)
+
+---
+
+## 📊 Optimisations Futures
+
+Une analyse approfondie du codebase a identifié **7 opportunités majeures de mutualisation** pouvant éliminer **700-750 lignes de code dupliqué** (réduction de 14% du codebase).
+
+### Documentation d'Analyse
+
+**📄 [README_OPTIMISATION.md](README_OPTIMISATION.md)** - Point d'entrée
+- Résumé exécutif des opportunités d'optimisation
+- Tableau des 7 duplications identifiées avec gains estimés
+- Plan de refactoring en 4 phases
+- ROI et recommandations
+
+**📄 [ANALYSE_OPTIMISATION_CODE.md](ANALYSE_OPTIMISATION_CODE.md)** - Analyse détaillée (199 lignes)
+- Analyse technique de chaque duplication
+- 7 composants réutilisables proposés
+- 3 constantes à extraire
+- Impact par fichier avec métriques
+
+**📄 [EXEMPLES_REFACTORING.txt](EXEMPLES_REFACTORING.txt)** - Code concret (85 lignes)
+- 5 exemples before/after avec code snippets
+- Calcul des gains pour chaque cas
+- Patterns de réutilisation
+
+**📄 [CHECKLIST_REFACTORING.txt](CHECKLIST_REFACTORING.txt)** - Guide d'implémentation (253 lignes)
+- 17 éléments à implémenter avec détails
+- Sous-tâches par composant
+- Efforts estimés et vérifications
+
+### Principales Optimisations Identifiées
+
+1. **TaskAttributeIcons** (100 lignes) - Icônes d'attributs de tâches dupliquées
+2. **BlockSectionHeader/Content** (90 lignes) - Headers de sections de blocks
+3. **DraggableModuleItem** (80 lignes) - Items de modules draggables
+4. **TaskAttributeFormField** (60 lignes) - Champs de formulaire répétitifs
+5. **SelectOptionField** (40 lignes) - Selects avec options standard
+6. **START Task Rendering** (64 lignes) - Tâches START des PLAYs
+7. **Module List Rendering** (30 lignes) - Listes dans ModulesZone
+
+### Plan d'Exécution Recommandé
+
+**Phase 1 (Semaine 1):** TaskAttributeIcons + constantes (214 lignes, 4-5h)
+**Phase 2 (Semaine 2):** BlockSectionHeader/Content (303 lignes, 6-7h)
+**Phase 3 (Semaine 3):** DraggableModuleItem + FormFields (268 lignes, 6-7h)
+**Phase 4 (Semaine 4):** SelectOptionField + finitions (90 lignes, 4-5h)
+
+**Effort total:** 20-25 heures | **Gain:** 875 lignes | **ROI:** Excellent
