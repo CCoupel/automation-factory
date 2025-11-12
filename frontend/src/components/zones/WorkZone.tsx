@@ -785,6 +785,92 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     })
   }
 
+  const handlePlaySectionDrop = (section: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers', e: React.DragEvent) => {
+    const sourceId = e.dataTransfer.getData('existingModule')
+    const moduleData = e.dataTransfer.getData('module')
+
+    // Calculer la position relative à la section
+    const sectionElem = e.currentTarget as HTMLElement
+    const sectionRect = sectionElem.getBoundingClientRect()
+    const dragOffsetXStr = e.dataTransfer.getData('dragOffsetX')
+    const dragOffsetYStr = e.dataTransfer.getData('dragOffsetY')
+    const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : 75
+    const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : 60
+
+    let relativeX = e.clientX - sectionRect.left - offsetX
+    let relativeY = e.clientY - sectionRect.top - offsetY
+
+    // Contraindre dans les limites de la section
+    const taskWidth = 140
+    const taskHeight = 60
+    relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - taskWidth))
+    relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - taskHeight))
+
+    // Cas 1: Module existant déplacé
+    if (sourceId) {
+      const sourceModule = modules.find(m => m.id === sourceId)
+      if (!sourceModule) return
+
+      // Ne pas autoriser le déplacement des tâches START
+      if (sourceModule.isPlay) return
+
+      // Sous-cas 1.1: Même section - repositionnement
+      if (sourceModule.parentSection === section) {
+        e.preventDefault()
+        e.stopPropagation()
+        setModules(prev => prev.map(m =>
+          m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
+        ))
+        return
+      }
+      // Sous-cas 1.2: Tâche externe (autre section ou zone de travail)
+      else {
+        // Vérifier si la tâche a des liens
+        const hasLinks = links.some(l => l.from === sourceId || l.to === sourceId)
+
+        if (!hasLinks) {
+          // Pas de liens: déplacer la tâche dans cette section
+          e.preventDefault()
+          e.stopPropagation()
+
+          // Mettre à jour la tâche avec la nouvelle section et position
+          setModules(prev => prev.map(m =>
+            m.id === sourceId ? { ...m, parentSection: section, x: relativeX, y: relativeY, parentId: undefined } : m
+          ))
+          return
+        } else {
+          // A des liens: on ne peut pas déplacer une tâche avec des liens entre sections
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+      }
+    }
+    // Cas 2: Nouveau module depuis la palette
+    else if (moduleData) {
+      const parsedData = JSON.parse(moduleData)
+      // Ne pas permettre de déposer un block dans une section
+      if (parsedData.name !== 'block' && parsedData.name !== 'play') {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const newModule: ModuleBlock = {
+          id: `module-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          collection: parsedData.collection,
+          name: parsedData.name,
+          description: parsedData.description || '',
+          taskName: `${parsedData.name} task`,
+          x: relativeX,
+          y: relativeY,
+          isBlock: parsedData.name === 'block',
+          parentSection: section, // Assigner à la section du PLAY
+        }
+
+        setModules([...modules, newModule])
+      }
+    }
+  }
+
   const getPlaySectionColor = (section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
     switch (section) {
       case 'variables':
@@ -1553,7 +1639,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   overflow: 'auto',
                   p: 2
                 }}
-                onDrop={handleDrop}
+                onDrop={(e) => handlePlaySectionDrop('pre_tasks', e)}
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in pre_tasks section */}
@@ -1653,7 +1739,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   overflow: 'auto',
                   p: 2
                 }}
-                onDrop={handleDrop}
+                onDrop={(e) => handlePlaySectionDrop('tasks', e)}
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in tasks section */}
@@ -1753,7 +1839,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   overflow: 'auto',
                   p: 2
                 }}
-                onDrop={handleDrop}
+                onDrop={(e) => handlePlaySectionDrop('post_tasks', e)}
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in post_tasks section */}
@@ -1853,7 +1939,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   overflow: 'auto',
                   p: 2
                 }}
-                onDrop={handleDrop}
+                onDrop={(e) => handlePlaySectionDrop('handlers', e)}
                 onDragOver={handleDragOver}
               >
                 {/* Render START task and other tasks in handlers section */}
