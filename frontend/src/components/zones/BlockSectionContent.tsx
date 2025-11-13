@@ -51,6 +51,7 @@ interface BlockSectionContentProps {
   handleModuleDragStart: (id: string, e: React.DragEvent) => void
   handleModuleDragOver: (targetId: string, e: React.DragEvent) => void
   handleModuleDropOnModule: (targetId: string, e: React.DragEvent) => void
+  handleBlockSectionDrop: (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => void
   handleResizeStart: (blockId: string, direction: string, e: React.MouseEvent) => void
   getBlockTheme: (id: string) => { borderColor: string; bgColor: string; iconColor: string }
   getBlockDimensions: (blockId: string) => { height: number }
@@ -74,6 +75,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   handleModuleDragStart,
   handleModuleDragOver,
   handleModuleDropOnModule,
+  handleBlockSectionDrop,
   handleResizeStart,
   getBlockTheme,
   getBlockDimensions,
@@ -362,7 +364,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     </Typography>
                   </Box>
                   {!isSectionCollapsed(task.id, 'normal') && (
-                    <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('normal')}08`, p: 0.5 }}>
+                    <Box
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                      }}
+                      onDrop={(e) => handleBlockSectionDrop(task.id, 'normal', e)}
+                      sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('normal')}08`, p: 0.5 }}
+                    >
                       <BlockSectionContent
                         blockId={task.id}
                         section="normal"
@@ -380,6 +388,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleBlockSectionDrop={handleBlockSectionDrop}
                         handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
@@ -412,7 +421,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     </Typography>
                   </Box>
                   {!isSectionCollapsed(task.id, 'rescue') && (
-                    <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}>
+                    <Box
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                      }}
+                      onDrop={(e) => handleBlockSectionDrop(task.id, 'rescue', e)}
+                      sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}
+                    >
                       <BlockSectionContent
                         blockId={task.id}
                         section="rescue"
@@ -430,6 +445,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleBlockSectionDrop={handleBlockSectionDrop}
                         handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
@@ -462,7 +478,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     </Typography>
                   </Box>
                   {!isSectionCollapsed(task.id, 'always') && (
-                    <Box sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}>
+                    <Box
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                      }}
+                      onDrop={(e) => handleBlockSectionDrop(task.id, 'always', e)}
+                      sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}
+                    >
                       <BlockSectionContent
                         blockId={task.id}
                         section="always"
@@ -480,6 +502,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleBlockSectionDrop={handleBlockSectionDrop}
                         handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}

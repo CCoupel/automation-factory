@@ -558,16 +558,25 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           return
         }
 
-        // Empêcher les liens circulaires (mini START vers son propre block parent)
+        // Parser le mini START ID pour extraire blockId et section
         const startIdParts = sourceId.split('-')
+        const section = startIdParts[startIdParts.length - 2]
         const blockId = startIdParts.slice(0, -2).join('-')
 
+        // Empêcher les liens circulaires (mini START vers son propre block parent)
         if (targetId === blockId || targetModule.parentId === sourceId) {
           setDraggedModuleId(null)
           return
         }
 
-        // Créer le lien - même comportement que PLAY START
+        // VALIDATION: Le mini START ne peut créer de lien qu'avec une tâche de la même section
+        if (targetModule.parentId !== blockId || targetModule.parentSection !== section) {
+          console.log('Mini START can only create links with tasks in the same section')
+          setDraggedModuleId(null)
+          return
+        }
+
+        // Créer le lien
         createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
         setDraggedModuleId(null)
         return
@@ -578,18 +587,52 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
       if (!sourceModule || !targetModule) return
 
-      // Vérifier les types de sections
-      const isSourceInBlockSection = sourceModule.parentId && sourceModule.parentSection
-      const isTargetInBlockSection = targetModule.parentId && targetModule.parentSection
-      const isSourceInPlaySection = !sourceModule.parentId && sourceModule.parentSection
-      const isTargetInPlaySection = !targetModule.parentId && targetModule.parentSection
-
       // Empêcher les liens circulaires (source vers son parent ou vice versa)
       if (sourceModule.parentId === targetId || targetModule.parentId === sourceId) {
         return
       }
 
-      // Créer le lien - même comportement pour sections PLAY et sections de blocks
+      // CAS SPÉCIAL: START task de section PLAY (isPlay = true)
+      if (sourceModule.isPlay) {
+        // Un START task de PLAY ne peut créer de lien qu'avec une tâche de la même section PLAY
+        // (ou un block entier, mais ce cas est géré dans handleBlockSectionDrop)
+        if (!targetModule.parentId && targetModule.parentSection) {
+          // Vérifier que c'est la même section PLAY
+          if (sourceModule.parentSection !== targetModule.parentSection) {
+            console.log('PLAY START can only create links with tasks in the same PLAY section')
+            return
+          }
+        } else {
+          // La cible n'est pas dans une section PLAY
+          console.log('PLAY START can only create links with tasks in the same PLAY section')
+          return
+        }
+      }
+
+      // VALIDATION: Les deux tâches doivent être dans la même section
+      // Cas 1: Deux tâches dans des sections de blocks
+      if (sourceModule.parentId && sourceModule.parentSection && targetModule.parentId && targetModule.parentSection) {
+        // Doivent être dans le même block ET la même section
+        if (sourceModule.parentId !== targetModule.parentId || sourceModule.parentSection !== targetModule.parentSection) {
+          console.log('Tasks must be in the same block section to create a link')
+          return
+        }
+      }
+      // Cas 2: Deux tâches dans des sections PLAY (hors START tasks déjà gérés)
+      else if (!sourceModule.parentId && sourceModule.parentSection && !targetModule.parentId && targetModule.parentSection) {
+        // Doivent être dans la même section PLAY
+        if (sourceModule.parentSection !== targetModule.parentSection) {
+          console.log('Tasks must be in the same PLAY section to create a link')
+          return
+        }
+      }
+      // Cas 3: Une tâche dans une section, l'autre pas (ou sections différentes)
+      else {
+        console.log('Tasks must be in the same type of section to create a link')
+        return
+      }
+
+      // Créer le lien
       createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
     }
     setDraggedModuleId(null)

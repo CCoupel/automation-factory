@@ -571,6 +571,89 @@ const getModuleOrVirtual = (moduleId: string): ModuleBlock | null => {
 - **always**: Lien vers section always d'un block
 - **pre_tasks, tasks, post_tasks, handlers**: Liens depuis un PLAY
 
+### Règles de Validation des Liens
+
+**Principe fondamental:** Les liens ne peuvent être créés qu'entre tâches de la **même section**.
+
+#### Validation pour Mini START Tasks
+
+Les mini START tasks (dans les sections de blocks) peuvent uniquement créer des liens avec des tâches/blocks de **la même section du même block**:
+
+```typescript
+// Dans handleModuleDropOnModule (lignes 572-577)
+if (targetModule.parentId !== blockId || targetModule.parentSection !== section) {
+  console.log('Mini START can only create links with tasks in the same section')
+  setDraggedModuleId(null)
+  return
+}
+```
+
+#### Validation pour PLAY START Tasks
+
+Les PLAY START tasks peuvent uniquement créer des liens avec des tâches de **la même section PLAY**:
+
+```typescript
+// Dans handleModuleDropOnModule (lignes 595-610)
+if (sourceModule.isPlay) {
+  if (!targetModule.parentId && targetModule.parentSection) {
+    if (sourceModule.parentSection !== targetModule.parentSection) {
+      console.log('PLAY START can only create links with tasks in the same PLAY section')
+      return
+    }
+  } else {
+    console.log('PLAY START can only create links with tasks in the same PLAY section')
+    return
+  }
+}
+```
+
+#### Validation pour Tâches dans Sections de Blocks
+
+Les tâches dans les sections de blocks peuvent uniquement créer des liens avec d'autres tâches du **même block ET de la même section**:
+
+```typescript
+// Dans handleModuleDropOnModule (lignes 614-619)
+if (sourceModule.parentId && sourceModule.parentSection && targetModule.parentId && targetModule.parentSection) {
+  if (sourceModule.parentId !== targetModule.parentId || sourceModule.parentSection !== targetModule.parentSection) {
+    console.log('Tasks must be in the same block section to create a link')
+    return
+  }
+}
+```
+
+#### Validation pour Tâches dans Sections PLAY
+
+Les tâches dans les sections PLAY peuvent uniquement créer des liens avec d'autres tâches de **la même section PLAY**:
+
+```typescript
+// Dans handleModuleDropOnModule (lignes 622-627)
+else if (!sourceModule.parentId && sourceModule.parentSection && !targetModule.parentId && targetModule.parentSection) {
+  if (sourceModule.parentSection !== targetModule.parentSection) {
+    console.log('Tasks must be in the same PLAY section to create a link')
+    return
+  }
+}
+```
+
+#### Validation pour Types de Sections Différents
+
+Toute tentative de créer un lien entre des tâches de types de sections différents est rejetée:
+
+```typescript
+// Dans handleModuleDropOnModule (lignes 630-633)
+else {
+  console.log('Tasks must be in the same type of section to create a link')
+  return
+}
+```
+
+**Résumé des règles:**
+- ✅ Mini START → Tâche/Block (même section du même block)
+- ✅ PLAY START → Tâche (même section PLAY)
+- ✅ Tâche block → Tâche block (même block + même section)
+- ✅ Tâche PLAY → Tâche PLAY (même section PLAY)
+- ❌ Tous les autres cas (sections différentes, types différents)
+
 ### Affichage des Liens
 
 **SVG avec zIndex approprié:**
@@ -822,7 +905,12 @@ kubectl apply -f k8s/frontend/
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
   - ~527-554: `toggleBlockSection()` - comportement accordion blocks
-  - ~551-579: Création de liens depuis mini START tasks dans `handleModuleDropOnModule()`
+  - ~551-636: `handleModuleDropOnModule()` - création de liens avec validation stricte (même section)
+  - ~572-577: Validation liens mini START (même block + même section)
+  - ~595-610: Validation liens PLAY START (même section PLAY)
+  - ~614-619: Validation liens tâches dans sections de blocks (même block + même section)
+  - ~622-627: Validation liens tâches dans sections PLAY (même section PLAY)
+  - ~630-633: Rejet des liens entre types de sections différents
   - ~628-635: Détection du type de lien pour mini START dans `getLinkTypeFromSource()`
   - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
   - ~1418-1605: `getModuleAbsolutePosition()` - calcul positions absolues avec approche récursive
@@ -859,10 +947,14 @@ kubectl apply -f k8s/frontend/
   - Attribut `data-task-id` sur mini START pour calcul des liens
   - Rendu récursif des blocks imbriqués avec leurs 3 sections
   - Gestion du resize avec 8 directions (nw, ne, sw, se, n, s, e, w)
+  - Support du drop dans les blocks imbriqués via propagation récursive de handleBlockSectionDrop
 - **Lignes importantes:**
+  - ~54: Interface BlockSectionContentProps avec handleBlockSectionDrop
+  - ~77: Destructuration de handleBlockSectionDrop dans les props
   - ~105-145: Mini START task dans section vide
   - ~170-210: Mini START task dans section avec tâches
   - ~244-379: Appels récursifs à BlockSectionContent pour blocks imbriqués
+  - ~275-279, ~325-329, ~375-379: Handlers onDragOver/onDrop pour drop dans blocks imbriqués
 
 ---
 
@@ -897,7 +989,8 @@ kubectl apply -f k8s/frontend/
 - [x] Redimensionnement des blocks avec 8 directions (nw, ne, sw, se, n, s, e, w)
 - [x] Calcul de position récursif pour tâches dans sections de blocks (gère blocks imbriqués)
 - [x] Compensation du padding (4px) pour alignement précis des liens dans sections de blocks
-- [x] Liens créés librement entre toutes sections (PLAY ↔ block, block ↔ block, section ↔ section)
+- [x] Support du drop dans les blocks imbriqués (propagation récursive de handleBlockSectionDrop)
+- [x] Validation stricte des liens (même section uniquement pour tous les types de tâches)
 
 ---
 
