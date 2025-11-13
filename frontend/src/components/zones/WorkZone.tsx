@@ -548,6 +548,36 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     // Si on drop un module existant sur un autre
     if (sourceId && sourceId !== targetId) {
+      // CAS SPÉCIAL: Si la source est un mini START task (pattern: blockId-section-start)
+      if (sourceId.endsWith('-start')) {
+        const targetModule = modules.find(m => m.id === targetId)
+
+        // Vérifier que la cible existe (pas un header d'accordéon)
+        if (!targetModule) {
+          setDraggedModuleId(null)
+          return
+        }
+
+        // Extraire blockId et section du mini START
+        // Pattern: blockId-section-start (ex: "abc123-normal-start")
+        const startIdParts = sourceId.split('-')
+        const section = startIdParts[startIdParts.length - 2] // avant-dernier élément
+        const blockId = startIdParts.slice(0, -2).join('-') // tout sauf les 2 derniers éléments
+
+        // Vérifier que la cible est dans la même section du même block
+        const isTargetInSameSection =
+          targetModule.parentId === blockId &&
+          targetModule.parentSection === section
+
+        if (isTargetInSameSection) {
+          // Créer un lien du mini START vers la tâche cible
+          createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
+        }
+
+        setDraggedModuleId(null)
+        return
+      }
+
       const sourceModule = modules.find(m => m.id === sourceId)
       const targetModule = modules.find(m => m.id === targetId)
 
@@ -597,6 +627,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Déterminer le type de lien basé sur la section parente de la tâche source
   const getLinkTypeFromSource = (sourceId: string): 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' => {
+    // Gérer les mini START tasks des sections de blocks (pattern: blockId-section-start)
+    if (sourceId.endsWith('-start')) {
+      if (sourceId.includes('-normal-start')) return 'normal'
+      if (sourceId.includes('-rescue-start')) return 'rescue'
+      if (sourceId.includes('-always-start')) return 'always'
+    }
+
     const sourceModule = modules.find(m => m.id === sourceId)
 
     // Si la tâche est dans une section PLAY, utiliser le type de la section
@@ -705,6 +742,24 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     // Si on drop le block parent sur sa propre section, laisser l'événement remonter pour le déplacement
     if (sourceId === blockId) {
+      return
+    }
+
+    // Cas spécial: START de section PLAY droppé dans une section de block
+    if (sourceId) {
+      const sourceModule = modules.find(m => m.id === sourceId)
+
+      // Si c'est un START de section PLAY (isPlay = true), créer un lien avec le block
+      if (sourceModule && sourceModule.isPlay) {
+        e.preventDefault()
+        e.stopPropagation()
+        createLink(getLinkTypeFromSource(sourceId), sourceId, blockId)
+        return
+      }
+    }
+
+    // Ignorer les mini START tasks des blocks - ils ne doivent pas être déplacés
+    if (sourceId && sourceId.endsWith('-start')) {
       return
     }
 
@@ -1373,6 +1428,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
   const getModuleAbsolutePosition = (module: ModuleBlock) => {
+    // Si c'est un module virtuel (mini START task), utiliser sa position directement
+    if (module.collection === 'virtual') {
+      // Obtenir les dimensions depuis le DOM
+      const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+      const dims = taskElement ? { width: taskElement.getBoundingClientRect().width, height: taskElement.getBoundingClientRect().height } : { width: 60, height: 40 }
+
+      return {
+        x: module.x,
+        y: module.y,
+        width: dims.width,
+        height: dims.height
+      }
+    }
+
     // Dimensions par défaut
     let dims = module.isBlock ? getBlockDimensions(module) : { width: module.isPlay ? 100 : 140, height: 60 }
 
@@ -1495,6 +1564,47 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       width: dims.width,
       height: dims.height
     }
+  }
+
+  // Obtenir un module ou créer un objet virtuel pour un mini START task
+  const getModuleOrVirtual = (moduleId: string): ModuleBlock | null => {
+    // Essayer de trouver dans modules
+    const module = modules.find(m => m.id === moduleId)
+    if (module) return module
+
+    // Si c'est un mini START task (pattern: blockId-section-start)
+    if (moduleId.endsWith('-start')) {
+      // Obtenir la position depuis le DOM
+      const taskElement = document.querySelector(`[data-task-id="${moduleId}"]`)
+      if (!taskElement) return null
+
+      const containerRect = playSectionsContainerRef.current?.getBoundingClientRect()
+      if (!containerRect) return null
+
+      const taskRect = taskElement.getBoundingClientRect()
+
+      // Calculer position relative au conteneur
+      const containerScrollTop = playSectionsContainerRef.current?.scrollTop || 0
+      const containerScrollLeft = playSectionsContainerRef.current?.scrollLeft || 0
+
+      const x = taskRect.left - containerRect.left + containerScrollLeft
+      const y = taskRect.top - containerRect.top + containerScrollTop
+
+      // Créer un module virtuel
+      return {
+        id: moduleId,
+        collection: 'virtual',
+        name: 'mini-start',
+        description: 'Mini START task',
+        taskName: 'START',
+        x,
+        y,
+        isBlock: false,
+        isPlay: false,
+      }
+    }
+
+    return null
   }
 
   // Calculer les points de connexion sur les bords des modules
@@ -1791,8 +1901,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           }}
         >
           {links.map((link) => {
-            const fromModule = modules.find(m => m.id === link.from)
-            const toModule = modules.find(m => m.id === link.to)
+            const fromModule = getModuleOrVirtual(link.from)
+            const toModule = getModuleOrVirtual(link.to)
 
             if (!fromModule || !toModule) return null
 

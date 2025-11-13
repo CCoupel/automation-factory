@@ -114,6 +114,104 @@ Chaque block Ansible est composé de **3 sections intégrées**:
 - Les tâches sont cachées quand on réduit leur section spécifique
 - Les liens entre tâches sont aussi cachés dans ces cas
 
+### Mini START Tasks
+
+Chaque section de block (normal, rescue, always) possède un **mini START task** qui sert de point de départ pour les liens dans la section.
+
+**Apparence:**
+- Dimensions: 60x40px (plus petit que les START des sections PLAY qui font 100x60px)
+- Position fixe: (20, 10) dans chaque section
+- Border radius: '0 50% 50% 0' (demi-cercle à droite, comme les PLAY START)
+- Couleur thème selon la section:
+  - Normal (Tasks): Bleu (`#1976d2`)
+  - Rescue: Orange (`#ff9800`)
+  - Always: Vert (`#4caf50`)
+- Background: Couleur de section avec opacité 15% (ex: `${getSectionColor(section)}15`)
+- Texte: "START" en caption, couleur de la section
+
+**Comportement:**
+- **Draggable:** Peut être glissé-déposé pour créer des liens
+- **Non-déplaçable:** Reste toujours à la position (20, 10)
+- **Création de liens:** Drop sur une tâche/block de la même section crée un lien
+- **Validation:** Les liens ne peuvent être créés qu'avec des tâches/blocks de la même section
+- **Prévention:** Ne crée pas de liens avec les headers d'accordéon
+
+**Pattern d'ID:**
+- Format: `${blockId}-${section}-start`
+- Exemple: `"abc123-normal-start"`, `"def456-rescue-start"`
+- Permet l'identification via le pattern `id.endsWith('-start')`
+
+**Système de Module Virtuel:**
+
+Les mini START tasks n'existent pas dans le tableau `modules[]`. Pour gérer leur positionnement et les liens, un système de **module virtuel** a été implémenté:
+
+```typescript
+const getModuleOrVirtual = (moduleId: string): ModuleBlock | null => {
+  // Essayer de trouver dans modules
+  const module = modules.find(m => m.id === moduleId)
+  if (module) return module
+
+  // Si c'est un mini START task (pattern: blockId-section-start)
+  if (moduleId.endsWith('-start')) {
+    // Obtenir position depuis le DOM via data-task-id
+    const taskElement = document.querySelector(`[data-task-id="${moduleId}"]`)
+
+    // Calculer position absolue relative au conteneur
+    // ...
+
+    // Créer un module virtuel
+    return {
+      id: moduleId,
+      collection: 'virtual',
+      name: 'mini-start',
+      x, y,
+      isBlock: false,
+      isPlay: false,
+    }
+  }
+
+  return null
+}
+```
+
+**Utilisation dans le rendu des liens:**
+```typescript
+// Au lieu de modules.find()
+const fromModule = getModuleOrVirtual(link.from)
+const toModule = getModuleOrVirtual(link.to)
+```
+
+**Calcul du type de lien:**
+```typescript
+const getLinkTypeFromSource = (sourceId: string) => {
+  // Mini START tasks des sections de blocks
+  if (sourceId.endsWith('-start')) {
+    if (sourceId.includes('-normal-start')) return 'normal'
+    if (sourceId.includes('-rescue-start')) return 'rescue'
+    if (sourceId.includes('-always-start')) return 'always'
+  }
+  // ...
+}
+```
+
+**Liens depuis PLAY START vers Blocks:**
+
+Les START tasks des sections PLAY (pre_tasks, tasks, post_tasks, handlers) peuvent créer des liens avec des blocks entiers quand ils sont droppés dans une section de block:
+
+- Le PLAY START n'est **pas déplacé** dans la section du block
+- Un lien est créé entre le PLAY START et le **block entier** (pas une tâche spécifique)
+- Type de lien: selon la section PLAY source ('pre_tasks', 'tasks', 'post_tasks', 'handlers')
+
+```typescript
+// Dans handleBlockSectionDrop
+if (sourceModule && sourceModule.isPlay) {
+  e.preventDefault()
+  e.stopPropagation()
+  createLink(getLinkTypeFromSource(sourceId), sourceId, blockId)
+  return
+}
+```
+
 ---
 
 ## 🎯 Système de Drag & Drop
@@ -619,11 +717,17 @@ kubectl apply -f k8s/frontend/
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
   - ~527-554: `toggleBlockSection()` - comportement accordion blocks
+  - ~551-579: Création de liens depuis mini START tasks dans `handleModuleDropOnModule()`
+  - ~628-635: Détection du type de lien pour mini START dans `getLinkTypeFromSource()`
+  - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
   - ~1237-1343: `getModuleAbsolutePosition()` - calcul positions absolues (blocks + PLAY sections)
   - ~1282-1335: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
   - ~1339-1410: `getModuleConnectionPoint()` - calcul points d'accroche des liens
+  - ~1428-1442: Gestion des modules virtuels (mini START) dans `getModuleAbsolutePosition()`
+  - ~1569-1609: `getModuleOrVirtual()` - création de modules virtuels pour mini START
   - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
   - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
+  - ~1904-1905: Utilisation de `getModuleOrVirtual()` dans le rendu des liens
 
 **`frontend/src/components/zones/PlaySectionContent.tsx`**
 - Composant réutilisable pour le rendu des sections PLAY
@@ -641,6 +745,20 @@ kubectl apply -f k8s/frontend/
   - `collapsedBlocks`, `collapsedBlockSections`: Sets pour état collapse
   - Handlers: toggleBlockCollapse, toggleBlockSection, handleModuleDragStart, etc.
 - **Réduction de code:** ~1,200 lignes de duplication éliminées, net: ~800 lignes
+
+**`frontend/src/components/zones/BlockSectionContent.tsx`**
+- Composant réutilisable pour le rendu récursif des sections de blocks
+- Gère le rendu des tâches et blocks imbriqués dans les 3 sections (Tasks, Rescue, Always)
+- **Fonctionnalités:**
+  - Rendu des mini START tasks (60x40px) avec couleurs thématiques
+  - Drag & drop handlers pour création de liens depuis mini START
+  - Attribut `data-task-id` sur mini START pour calcul des liens
+  - Rendu récursif des blocks imbriqués avec leurs 3 sections
+  - Gestion du resize avec 8 directions (nw, ne, sw, se, n, s, e, w)
+- **Lignes importantes:**
+  - ~105-145: Mini START task dans section vide
+  - ~170-210: Mini START task dans section avec tâches
+  - ~244-379: Appels récursifs à BlockSectionContent pour blocks imbriqués
 
 ---
 
@@ -665,6 +783,14 @@ kubectl apply -f k8s/frontend/
 - [x] Alignement précis des liens avec les bords des tâches dans sections PLAY
 - [x] Visibilité conditionnelle des liens (sections PLAY réduites)
 - [x] Composant réutilisable PlaySectionContent pour sections PLAY (refactoring ~800 lignes)
+- [x] Mini START tasks dans les sections de blocks (60x40px, thématisés)
+- [x] Système de module virtuel pour gérer les mini START tasks
+- [x] Création de liens depuis mini START vers tâches/blocks de la même section
+- [x] Validation de scope pour liens mini START (même section uniquement)
+- [x] Liens depuis PLAY START vers blocks (sans déplacement du START)
+- [x] Prévention du déplacement des mini START tasks
+- [x] Composant réutilisable BlockSectionContent avec rendu récursif des blocks imbriqués
+- [x] Redimensionnement des blocks avec 8 directions (nw, ne, sw, se, n, s, e, w)
 
 ---
 

@@ -101,25 +101,115 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
 
   if (taskIds.length === 0) {
     return (
-      <Box
-        sx={{
-          position: 'relative',
-          height: '100%',
-          minHeight: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'text.secondary',
-          fontSize: '0.75rem',
-        }}
-      >
-        Drop tasks or blocks here
-      </Box>
+      <>
+        {/* Mini START task - always visible */}
+        <Paper
+          data-task-id={`${blockId}-${section}-start`}
+          elevation={2}
+          draggable={true}
+          onDragStart={(e) => handleModuleDragStart(`${blockId}-${section}-start`, e)}
+          onDragOver={(e) => {
+            e.preventDefault()
+          }}
+          onDrop={(e) => {
+            const sourceId = e.dataTransfer.getData('existingModule')
+            if (sourceId && sourceId !== `${blockId}-${section}-start`) {
+              e.preventDefault()
+              e.stopPropagation()
+              handleModuleDropOnModule(`${blockId}-${section}-start`, e)
+            }
+          }}
+          sx={{
+            position: 'absolute',
+            left: 20,
+            top: 10,
+            width: 60,
+            height: 40,
+            p: 0.5,
+            cursor: 'move',
+            border: `2px solid ${getSectionColor(section)}`,
+            borderRadius: '0 50% 50% 0',
+            bgcolor: `${getSectionColor(section)}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1,
+            '&:hover': {
+              boxShadow: 4,
+            },
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(section), fontSize: '0.6rem' }}>
+            START
+          </Typography>
+        </Paper>
+
+        {/* Empty message */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: 100,
+            top: 10,
+            right: 10,
+            bottom: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'text.secondary',
+            fontSize: '0.75rem',
+          }}
+        >
+          Drop tasks or blocks here
+        </Box>
+      </>
     )
   }
 
   return (
     <>
+      {/* Mini START task - always visible */}
+      <Paper
+        data-task-id={`${blockId}-${section}-start`}
+        elevation={2}
+        draggable={true}
+        onDragStart={(e) => handleModuleDragStart(`${blockId}-${section}-start`, e)}
+        onDragOver={(e) => {
+          e.preventDefault()
+        }}
+        onDrop={(e) => {
+          const sourceId = e.dataTransfer.getData('existingModule')
+          if (sourceId && sourceId !== `${blockId}-${section}-start`) {
+            e.preventDefault()
+            e.stopPropagation()
+            handleModuleDropOnModule(`${blockId}-${section}-start`, e)
+          }
+        }}
+        sx={{
+          position: 'absolute',
+          left: 20,
+          top: 10,
+          width: 60,
+          height: 40,
+          p: 0.5,
+          cursor: 'move',
+          border: `2px solid ${getSectionColor(section)}`,
+          borderRadius: '0 50% 50% 0',
+          bgcolor: `${getSectionColor(section)}15`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1,
+          '&:hover': {
+            boxShadow: 4,
+          },
+        }}
+      >
+        <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(section), fontSize: '0.6rem' }}>
+          START
+        </Typography>
+      </Paper>
+
+      {/* Existing tasks */}
       {taskIds.map(taskId => {
         const task = modules.find(m => m.id === taskId)
         if (!task) return null
