@@ -694,35 +694,8 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
             }}
             draggable
             onDragStart={(e) => handleModuleDragStart(task.id, e)}
-            onDragOver={(e) => {
-              e.preventDefault()
-            }}
-            onDrop={(e) => {
-              const sourceId = e.dataTransfer.getData('existingModule')
-              if (sourceId === task.id) {
-                return
-              }
-
-              const sourceModule = modules.find(m => m.id === sourceId)
-
-              // Si la source est dans une zone de block
-              if (sourceModule?.parentId && sourceModule?.parentSection) {
-                e.preventDefault()
-                e.stopPropagation()
-
-                // Vérifier si c'est la MÊME section
-                if (sourceModule.parentId === task.parentId && sourceModule.parentSection === task.parentSection) {
-                  // Même section : créer un lien (à gérer par le parent)
-                  handleModuleDropOnModule(task.id, e)
-                }
-                return
-              }
-
-              // Source externe
-              e.preventDefault()
-              e.stopPropagation()
-              handleModuleDropOnModule(task.id, e)
-            }}
+            onDragOver={(e) => handleModuleDragOver(task.id, e)}
+            onDrop={(e) => handleModuleDropOnModule(task.id, e)}
             sx={{
               position: 'absolute',
               left: task.x || 10,

@@ -351,41 +351,68 @@ const handleModuleDropOnModule = (targetId: string, e: React.DragEvent) => {
 
 ### Calcul des Positions
 
-#### Position absolue des tâches dans sections
+#### Position absolue des tâches dans sections de blocks
+
+**Approche récursive** pour gérer les blocks imbriqués et les blocks dans les sections PLAY :
 
 ```typescript
-const getModuleConnectionPoint = (module: ModuleBlock) => {
+const getModuleAbsolutePosition = (module: ModuleBlock) => {
   if (module.parentId && module.parentSection) {
-    const parent = modules.find(m => m.id === module.parentId)
+    // Tâche dans une section de block
+    // Calculer position = position absolue du block parent + offset de la section + coordonnées de la tâche
 
-    // Position de base du parent
-    absoluteX = parent.x
-    absoluteY = parent.y
+    const parentBlock = modules.find(m => m.id === module.parentId)
+    if (parentBlock) {
+      // Obtenir la position absolue du block parent (récursif si block imbriqué)
+      const parentPosition = getModuleAbsolutePosition(parentBlock)
 
-    // Ajouter hauteur du header block
-    absoluteY += blockHeaderHeight (50px)
+      // Ajouter header du block (50px)
+      const blockHeaderHeight = 50
+      absoluteY = parentPosition.y + blockHeaderHeight
 
-    // Ajouter hauteur des sections précédentes (avec accordion)
-    for (const section of ['normal', 'rescue', 'always']) {
-      if (section === module.parentSection) {
-        absoluteY += sectionHeaderHeight (25px)
-        break
+      // Ajouter hauteur des sections précédentes (avec accordion)
+      const sectionHeaderHeight = 25
+      const minContentHeight = 200
+
+      const sections = ['normal', 'rescue', 'always'] as const
+      for (const section of sections) {
+        if (section === module.parentSection) {
+          // C'est notre section, ajouter le header et arrêter
+          absoluteY += sectionHeaderHeight
+          break
+        }
+
+        // Section précédente : ajouter header
+        absoluteY += sectionHeaderHeight
+
+        // Si la section précédente n'est pas collapsed, ajouter le contenu
+        if (!isSectionCollapsed(module.parentId, section)) {
+          absoluteY += minContentHeight
+        }
       }
 
-      absoluteY += sectionHeaderHeight
-      if (!isSectionCollapsed(parent.id, section)) {
-        absoluteY += minContentHeight (200px)
-      }
+      // Position X = position X du block parent
+      absoluteX = parentPosition.x
+
+      // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
+      const padding = 4
+
+      // Ajouter les coordonnées de la tâche + padding
+      absoluteX += padding + module.x
+      absoluteY += padding + module.y
     }
-
-    // Ajouter position relative dans section + padding
-    absoluteX += module.x + 4
-    absoluteY += module.y + 4
   }
 
-  return { x: absoluteX + width/2, y: absoluteY + height/2 }
+  return { x: absoluteX, y: absoluteY }
 }
 ```
+
+**Points clés:**
+- **Récursion** : `getModuleAbsolutePosition(parentBlock)` permet de gérer les blocks imbriqués à n niveaux
+- **Padding compensé** : Le padding de 4px de la section Box (`p: 0.5`) est ajouté explicitement
+- **Coordonnées React** : Utilise `module.x` et `module.y` de l'état React (mis à jour immédiatement après drop)
+- **Accordion géré** : Les sections collapsed ne contribuent que leur header (25px), pas leur contenu (200px)
+- **Indépendant du DOM** : Ne dépend pas de `playSectionsContainerRef` ou `getBoundingClientRect()` pour les blocks
 
 #### Position absolue des tâches dans sections PLAY
 
@@ -454,6 +481,84 @@ if (module.parentSection && !module.parentId) {
 
 **Résultat:**
 Les 4 points d'accroche (haut, bas, gauche, droite) sont maintenant parfaitement alignés avec les bords des tâches, même immédiatement après un drag & drop.
+
+#### Position absolue des mini START tasks
+
+**Approche récursive** identique aux tâches normales dans les sections de blocks :
+
+```typescript
+const getModuleOrVirtual = (moduleId: string): ModuleBlock | null => {
+  // Si c'est un mini START task (pattern: blockId-section-start)
+  if (moduleId.endsWith('-start')) {
+    const parts = moduleId.split('-')
+    if (parts.length >= 3 && parts[parts.length - 1] === 'start') {
+      const section = parts[parts.length - 2] as 'normal' | 'rescue' | 'always'
+      const blockId = parts.slice(0, -2).join('-')
+
+      // Calculer position = position absolue du block parent + offset de la section + coordonnées hardcodées (20, 10)
+      const parentBlock = modules.find(m => m.id === blockId)
+
+      if (parentBlock) {
+        // Obtenir la position absolue du block parent (récursif si block imbriqué)
+        const parentPosition = getModuleAbsolutePosition(parentBlock)
+
+        // Ajouter header du block (50px)
+        const blockHeaderHeight = 50
+        let y = parentPosition.y + blockHeaderHeight
+
+        // Ajouter hauteur des sections précédentes (avec accordion)
+        const sectionHeaderHeight = 25
+        const minContentHeight = 200
+
+        const sections = ['normal', 'rescue', 'always'] as const
+        for (const sect of sections) {
+          if (sect === section) {
+            // C'est notre section, ajouter le header et arrêter
+            y += sectionHeaderHeight
+            break
+          }
+
+          // Section précédente : ajouter header
+          y += sectionHeaderHeight
+
+          // Si la section précédente n'est pas collapsed, ajouter le contenu
+          if (!isSectionCollapsed(blockId, sect)) {
+            y += minContentHeight
+          }
+        }
+
+        // Position X = position X du block parent
+        let x = parentPosition.x
+
+        // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
+        const padding = 4
+
+        // Ajouter les coordonnées hardcodées du mini START + padding
+        x += padding + 20
+        y += padding + 10
+
+        // Créer un module virtuel
+        return {
+          id: moduleId,
+          collection: 'virtual',
+          name: 'mini-start',
+          x, y,
+          isBlock: false,
+          isPlay: false,
+        }
+      }
+    }
+  }
+
+  return null
+}
+```
+
+**Points clés:**
+- **Même approche récursive** que pour les tâches normales : utilise `getModuleAbsolutePosition(parentBlock)`
+- **Coordonnées hardcodées** : Les mini START sont toujours à (20, 10) dans leur section
+- **Module virtuel** : Les mini START n'existent pas dans `modules[]`, créés dynamiquement
+- **Pattern d'ID** : `${blockId}-${section}-start` permet l'identification via `endsWith('-start')`
 
 ---
 
@@ -720,11 +825,10 @@ kubectl apply -f k8s/frontend/
   - ~551-579: Création de liens depuis mini START tasks dans `handleModuleDropOnModule()`
   - ~628-635: Détection du type de lien pour mini START dans `getLinkTypeFromSource()`
   - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
-  - ~1237-1343: `getModuleAbsolutePosition()` - calcul positions absolues (blocks + PLAY sections)
-  - ~1282-1335: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
-  - ~1339-1410: `getModuleConnectionPoint()` - calcul points d'accroche des liens
-  - ~1428-1442: Gestion des modules virtuels (mini START) dans `getModuleAbsolutePosition()`
-  - ~1569-1609: `getModuleOrVirtual()` - création de modules virtuels pour mini START
+  - ~1418-1605: `getModuleAbsolutePosition()` - calcul positions absolues avec approche récursive
+  - ~1422-1473: Calcul position tâches dans sections de blocks avec récursion + padding compensé
+  - ~1474-1515: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
+  - ~1543-1605: `getModuleOrVirtual()` - création de modules virtuels pour mini START avec approche récursive
   - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
   - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
   - ~1904-1905: Utilisation de `getModuleOrVirtual()` dans le rendu des liens
@@ -791,6 +895,9 @@ kubectl apply -f k8s/frontend/
 - [x] Prévention du déplacement des mini START tasks
 - [x] Composant réutilisable BlockSectionContent avec rendu récursif des blocks imbriqués
 - [x] Redimensionnement des blocks avec 8 directions (nw, ne, sw, se, n, s, e, w)
+- [x] Calcul de position récursif pour tâches dans sections de blocks (gère blocks imbriqués)
+- [x] Compensation du padding (4px) pour alignement précis des liens dans sections de blocks
+- [x] Liens créés librement entre toutes sections (PLAY ↔ block, block ↔ block, section ↔ section)
 
 ---
 

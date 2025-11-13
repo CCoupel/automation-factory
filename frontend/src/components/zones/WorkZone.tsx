@@ -558,22 +558,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           return
         }
 
-        // Extraire blockId et section du mini START
-        // Pattern: blockId-section-start (ex: "abc123-normal-start")
+        // Empêcher les liens circulaires (mini START vers son propre block parent)
         const startIdParts = sourceId.split('-')
-        const section = startIdParts[startIdParts.length - 2] // avant-dernier élément
-        const blockId = startIdParts.slice(0, -2).join('-') // tout sauf les 2 derniers éléments
+        const blockId = startIdParts.slice(0, -2).join('-')
 
-        // Vérifier que la cible est dans la même section du même block
-        const isTargetInSameSection =
-          targetModule.parentId === blockId &&
-          targetModule.parentSection === section
-
-        if (isTargetInSameSection) {
-          // Créer un lien du mini START vers la tâche cible
-          createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
+        if (targetId === blockId || targetModule.parentId === sourceId) {
+          setDraggedModuleId(null)
+          return
         }
 
+        // Créer le lien - même comportement que PLAY START
+        createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
         setDraggedModuleId(null)
         return
       }
@@ -583,44 +578,19 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
       if (!sourceModule || !targetModule) return
 
-      // Vérifier si les deux modules sont dans la même section du même block
-      const areBothInSameSection = sourceModule?.parentId && targetModule?.parentId &&
-        sourceModule.parentId === targetModule.parentId &&
-        sourceModule.parentSection === targetModule.parentSection
+      // Vérifier les types de sections
+      const isSourceInBlockSection = sourceModule.parentId && sourceModule.parentSection
+      const isTargetInBlockSection = targetModule.parentId && targetModule.parentSection
+      const isSourceInPlaySection = !sourceModule.parentId && sourceModule.parentSection
+      const isTargetInPlaySection = !targetModule.parentId && targetModule.parentSection
 
-      // CAS SPÉCIAL: Si la source est externe et la cible est dans un block
-      const isSourceExternal = !sourceModule.parentId
-      const isTargetInBlock = targetModule.parentId && targetModule.parentSection
-
-      if (isSourceExternal && isTargetInBlock) {
-        // Vérifier si la source a un lien entrant
-        const sourceHasIncomingLink = links.some(l => l.to === sourceId)
-
-        if (sourceHasIncomingLink) {
-          // Créer un lien entre la source et le block parent de la cible
-          createLink(getLinkTypeFromSource(sourceId), sourceId, targetModule.parentId!)
-        } else {
-          // Déplacer la source dans la section de la cible
-          const targetParentBlock = modules.find(m => m.id === targetModule.parentId)
-          if (targetParentBlock) {
-            // Calculer une position dans la section (à côté de la cible)
-            const offsetX = (targetModule.x || 10) + 160 // Décalage horizontal
-            const offsetY = targetModule.y || 10
-
-            addTaskToBlockSection(sourceId, targetModule.parentId!, targetModule.parentSection!, offsetX, offsetY)
-          }
-        }
+      // Empêcher les liens circulaires (source vers son parent ou vice versa)
+      if (sourceModule.parentId === targetId || targetModule.parentId === sourceId) {
         return
       }
 
-      // CAS NORMAL: Les deux sont dans la même section du même block, ou tous deux externes
-      const canCreateLink = areBothInSameSection ||
-        (sourceModule.parentId !== targetId && targetModule.parentId !== sourceId && !isTargetInBlock)
-
-      if (canCreateLink) {
-        // Le type de lien est déterminé par la section source
-        createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
-      }
+      // Créer le lien - même comportement pour sections PLAY et sections de blocks
+      createLink(getLinkTypeFromSource(sourceId), sourceId, targetId)
     }
     setDraggedModuleId(null)
   }
@@ -1450,57 +1420,54 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     let absoluteY = module.y
 
     if (module.parentId && module.parentSection) {
-      const parent = modules.find(m => m.id === module.parentId)
-      if (parent) {
-        // Essayer d'obtenir la vraie position via le DOM (plus précis)
-        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-        if (taskElement && canvasRef.current) {
-          const canvasRect = canvasRef.current.getBoundingClientRect()
-          const taskRect = taskElement.getBoundingClientRect()
+      // Tâche dans une section de block
+      // Calculer position = position absolue du block parent + offset de la section + coordonnées de la tâche
 
-          // Position relative au canvas (en tenant compte du scroll)
-          const canvasScrollTop = canvasRef.current.scrollTop
-          const canvasScrollLeft = canvasRef.current.scrollLeft
+      const parentBlock = modules.find(m => m.id === module.parentId)
+      if (parentBlock) {
+        // Obtenir la position absolue du block parent (peut être récursif si block imbriqué)
+        const parentPosition = getModuleAbsolutePosition(parentBlock)
 
-          absoluteX = taskRect.left - canvasRect.left + canvasScrollLeft
-          absoluteY = taskRect.top - canvasRect.top + canvasScrollTop
-          dims = { width: taskRect.width, height: taskRect.height }
-        } else {
-          // Fallback: calcul manuel si l'élément DOM n'est pas trouvé
-          // Position de base du parent
-          absoluteX = parent.x
-          absoluteY = parent.y
+        // Ajouter header du block (50px)
+        const blockHeaderHeight = 50
+        absoluteY = parentPosition.y + blockHeaderHeight
 
-          // Ajouter la hauteur du header du block
-          const blockHeaderHeight = 50
-          absoluteY += blockHeaderHeight
+        // Ajouter hauteur des sections précédentes (avec accordion)
+        const sectionHeaderHeight = 25
+        const minContentHeight = 200
 
-          // Avec le comportement accordion, ajouter la hauteur des sections qui précèdent
-          const sectionHeaderHeight = 25
-          const minContentHeight = 200
-          const sections: Array<'normal' | 'rescue' | 'always'> = ['normal', 'rescue', 'always']
-
-          for (const section of sections) {
-            // Si on est arrivé à la section de la tâche, arrêter
-            if (section === module.parentSection) {
-              // Ajouter la hauteur du header de cette section
-              absoluteY += sectionHeaderHeight
-              break
-            }
-
-            // Ajouter la hauteur du header de la section précédente
+        const sections = ['normal', 'rescue', 'always'] as const
+        for (const section of sections) {
+          if (section === module.parentSection) {
+            // C'est notre section, ajouter le header et arrêter
             absoluteY += sectionHeaderHeight
-
-            // Avec accordion, une seule section peut être ouverte
-            // Si cette section précédente est ouverte, ajouter sa hauteur de contenu
-            if (!isSectionCollapsed(parent.id, section)) {
-              absoluteY += minContentHeight
-            }
+            break
           }
 
-          // Ajouter la position de la tâche dans sa section + padding
-          absoluteX += module.x + 4 // 4 = padding de la section
-          absoluteY += module.y + 4 // 4 = padding de la section
+          // Section précédente : ajouter header
+          absoluteY += sectionHeaderHeight
+
+          // Si la section précédente n'est pas collapsed, ajouter le contenu
+          if (!isSectionCollapsed(module.parentId, section)) {
+            absoluteY += minContentHeight
+          }
+        }
+
+        // Position X = position X du block parent
+        absoluteX = parentPosition.x
+
+        // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
+        const padding = 4
+
+        // Ajouter les coordonnées de la tâche + padding
+        absoluteX += padding + module.x
+        absoluteY += padding + module.y
+
+        // Obtenir dimensions via DOM
+        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+        if (taskElement) {
+          const taskRect = taskElement.getBoundingClientRect()
+          dims = { width: taskRect.width, height: taskRect.height }
         }
       }
     } else if (module.parentSection && !module.parentId) {
@@ -1574,33 +1541,67 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     // Si c'est un mini START task (pattern: blockId-section-start)
     if (moduleId.endsWith('-start')) {
-      // Obtenir la position depuis le DOM
-      const taskElement = document.querySelector(`[data-task-id="${moduleId}"]`)
-      if (!taskElement) return null
+      // Parser le blockId et la section depuis moduleId
+      const parts = moduleId.split('-')
+      if (parts.length >= 3 && parts[parts.length - 1] === 'start') {
+        const section = parts[parts.length - 2] as 'normal' | 'rescue' | 'always'
+        const blockId = parts.slice(0, -2).join('-')
 
-      const containerRect = playSectionsContainerRef.current?.getBoundingClientRect()
-      if (!containerRect) return null
+        // Calculer position = position absolue du block parent + offset de la section + coordonnées hardcodées (20, 10)
+        const parentBlock = modules.find(m => m.id === blockId)
 
-      const taskRect = taskElement.getBoundingClientRect()
+        if (parentBlock) {
+          // Obtenir la position absolue du block parent (peut être récursif si block imbriqué)
+          const parentPosition = getModuleAbsolutePosition(parentBlock)
 
-      // Calculer position relative au conteneur
-      const containerScrollTop = playSectionsContainerRef.current?.scrollTop || 0
-      const containerScrollLeft = playSectionsContainerRef.current?.scrollLeft || 0
+          // Ajouter header du block (50px)
+          const blockHeaderHeight = 50
+          let y = parentPosition.y + blockHeaderHeight
 
-      const x = taskRect.left - containerRect.left + containerScrollLeft
-      const y = taskRect.top - containerRect.top + containerScrollTop
+          // Ajouter hauteur des sections précédentes (avec accordion)
+          const sectionHeaderHeight = 25
+          const minContentHeight = 200
 
-      // Créer un module virtuel
-      return {
-        id: moduleId,
-        collection: 'virtual',
-        name: 'mini-start',
-        description: 'Mini START task',
-        taskName: 'START',
-        x,
-        y,
-        isBlock: false,
-        isPlay: false,
+          const sections = ['normal', 'rescue', 'always'] as const
+          for (const sect of sections) {
+            if (sect === section) {
+              // C'est notre section, ajouter le header et arrêter
+              y += sectionHeaderHeight
+              break
+            }
+
+            // Section précédente : ajouter header
+            y += sectionHeaderHeight
+
+            // Si la section précédente n'est pas collapsed, ajouter le contenu
+            if (!isSectionCollapsed(blockId, sect)) {
+              y += minContentHeight
+            }
+          }
+
+          // Position X = position X du block parent
+          let x = parentPosition.x
+
+          // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
+          const padding = 4
+
+          // Ajouter les coordonnées hardcodées du mini START + padding
+          x += padding + 20
+          y += padding + 10
+
+          // Créer un module virtuel
+          return {
+            id: moduleId,
+            collection: 'virtual',
+            name: 'mini-start',
+            description: 'Mini START task',
+            taskName: 'START',
+            x,
+            y,
+            isBlock: false,
+            isPlay: false,
+          }
+        }
       }
     }
 
@@ -2639,6 +2640,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             <Box
                               className="section-container"
                               data-section="normal"
+                              data-section-id={`${module.id}-normal`}
                               onDragOver={(e) => {
                                 e.preventDefault()
                                 // Ne pas bloquer la propagation pour permettre au canvas de recevoir l'événement
@@ -2839,6 +2841,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             <Box
                               className="section-container"
                               data-section="rescue"
+                              data-section-id={`${module.id}-rescue`}
                               onDragOver={(e) => {
                                 e.preventDefault()
                                 // Ne pas bloquer la propagation pour permettre au canvas de recevoir l'événement
@@ -3038,6 +3041,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             <Box
                               className="section-container"
                               data-section="always"
+                              data-section-id={`${module.id}-always`}
                               onDragOver={(e) => {
                                 e.preventDefault()
                                 // Ne pas bloquer la propagation pour permettre au canvas de recevoir l'événement
