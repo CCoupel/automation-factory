@@ -42,6 +42,7 @@ interface BlockSectionContentProps {
   draggedModuleId: string | null
   collapsedBlocks: Set<string>
   collapsedBlockSections: Set<string>
+  resizingBlock: { id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null
   onSelectModule: (module: any) => void
   updateTaskName: (id: string, name: string) => void
   toggleBlockCollapse: (id: string) => void
@@ -50,6 +51,7 @@ interface BlockSectionContentProps {
   handleModuleDragStart: (id: string, e: React.DragEvent) => void
   handleModuleDragOver: (targetId: string, e: React.DragEvent) => void
   handleModuleDropOnModule: (targetId: string, e: React.DragEvent) => void
+  handleResizeStart: (blockId: string, direction: string, e: React.MouseEvent) => void
   getBlockTheme: (id: string) => { borderColor: string; bgColor: string; iconColor: string }
   getBlockDimensions: (blockId: string) => { height: number }
   getSectionColor: (section: 'normal' | 'rescue' | 'always') => string
@@ -63,6 +65,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   draggedModuleId,
   collapsedBlocks,
   collapsedBlockSections,
+  resizingBlock,
   onSelectModule,
   updateTaskName,
   toggleBlockCollapse,
@@ -71,6 +74,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   handleModuleDragStart,
   handleModuleDragOver,
   handleModuleDropOnModule,
+  handleResizeStart,
   getBlockTheme,
   getBlockDimensions,
   getSectionColor,
@@ -156,13 +160,14 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                 position: 'absolute',
                 left: task.x || 10,
                 top: task.y || 10,
-                width: 400,
-                height: blockDims.height,
+                width: task.width || 400,
+                height: task.height || blockDims.height,
                 cursor: 'move',
                 border: `2px solid ${blockTheme.borderColor}`,
                 bgcolor: blockTheme.bgColor,
                 zIndex: draggedModuleId === task.id ? 10 : 1,
                 opacity: draggedModuleId === task.id ? 0.7 : 1,
+                overflow: 'visible',
                 '&:hover': {
                   boxShadow: 6,
                 },
@@ -276,6 +281,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         draggedModuleId={draggedModuleId}
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
+                        resizingBlock={resizingBlock}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}
@@ -284,6 +290,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
@@ -324,6 +331,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         draggedModuleId={draggedModuleId}
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
+                        resizingBlock={resizingBlock}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}
@@ -332,6 +340,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
@@ -372,6 +381,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         draggedModuleId={draggedModuleId}
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
+                        resizingBlock={resizingBlock}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}
@@ -380,6 +390,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         handleModuleDragStart={handleModuleDragStart}
                         handleModuleDragOver={handleModuleDragOver}
                         handleModuleDropOnModule={handleModuleDropOnModule}
+                        handleResizeStart={handleResizeStart}
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
@@ -387,6 +398,183 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     </Box>
                   )}
                 </Box>
+              )}
+
+              {/* Poignées de redimensionnement - 8 directions - seulement pour les blocks non collapsed */}
+              {!collapsedBlocks.has(task.id) && (
+                <>
+                  {/* Coin Nord-Ouest */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'nw', e)}
+                    sx={{
+                      position: 'absolute',
+                      top: -6,
+                      left: -6,
+                      width: 16,
+                      height: 16,
+                      cursor: 'nwse-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'nw' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: '50%',
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Coin Nord-Est */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'ne', e)}
+                    sx={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 16,
+                      height: 16,
+                      cursor: 'nesw-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'ne' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: '50%',
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Coin Sud-Ouest */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'sw', e)}
+                    sx={{
+                      position: 'absolute',
+                      bottom: -6,
+                      left: -6,
+                      width: 16,
+                      height: 16,
+                      cursor: 'nesw-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'sw' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: '50%',
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Coin Sud-Est */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'se', e)}
+                    sx={{
+                      position: 'absolute',
+                      bottom: -6,
+                      right: -6,
+                      width: 16,
+                      height: 16,
+                      cursor: 'nwse-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'se' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: '50%',
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Bord Nord */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'n', e)}
+                    sx={{
+                      position: 'absolute',
+                      top: -6,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 40,
+                      height: 12,
+                      cursor: 'ns-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'n' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: 2,
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Bord Sud */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 's', e)}
+                    sx={{
+                      position: 'absolute',
+                      bottom: -6,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 40,
+                      height: 12,
+                      cursor: 'ns-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 's' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: 2,
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Bord Ouest */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'w', e)}
+                    sx={{
+                      position: 'absolute',
+                      left: -6,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 12,
+                      height: 40,
+                      cursor: 'ew-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'w' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: 2,
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+
+                  {/* Bord Est */}
+                  <Box
+                    onMouseDown={(e) => handleResizeStart(task.id, 'e', e)}
+                    sx={{
+                      position: 'absolute',
+                      right: -6,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: 12,
+                      height: 40,
+                      cursor: 'ew-resize',
+                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'e' ? 'primary.dark' : 'primary.main',
+                      border: `2px solid white`,
+                      borderRadius: 2,
+                      opacity: 1,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
+                      transition: 'all 0.2s',
+                      zIndex: 20,
+                    }}
+                  />
+                </>
               )}
             </Paper>
           )

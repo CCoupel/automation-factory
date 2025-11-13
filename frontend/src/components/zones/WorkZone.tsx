@@ -1181,127 +1181,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }
 
-  const handleResizeStart = (blockId: string, direction: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-
-    const block = modules.find(m => m.id === blockId)
-    if (!block) return
-
-    const dimensions = getBlockDimensions(block)
-    setResizingBlock({
-      id: blockId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startWidth: dimensions.width,
-      startHeight: dimensions.height,
-      startBlockX: block.x,
-      startBlockY: block.y,
-      direction
-    })
-  }
-
-  const handleBlockResize = (e: MouseEvent) => {
-    if (!resizingBlock) return
-
-    const deltaX = e.clientX - resizingBlock.startX
-    const deltaY = e.clientY - resizingBlock.startY
-
-    const direction = resizingBlock.direction
-
-    let newWidth = resizingBlock.startWidth
-    let newHeight = resizingBlock.startHeight
-    let newX = resizingBlock.startBlockX
-    let newY = resizingBlock.startBlockY
-
-    // Calculer nouvelles dimensions selon la direction
-    if (direction.includes('e')) { // East (droite)
-      newWidth = resizingBlock.startWidth + deltaX
-    }
-    if (direction.includes('w')) { // West (gauche)
-      newWidth = resizingBlock.startWidth - deltaX
-      newX = resizingBlock.startBlockX + deltaX
-    }
-    if (direction.includes('s')) { // South (bas)
-      newHeight = resizingBlock.startHeight + deltaY
-    }
-    if (direction.includes('n')) { // North (haut)
-      newHeight = resizingBlock.startHeight - deltaY
-      newY = resizingBlock.startBlockY + deltaY
-    }
-
-    // Calculer la taille minimale basée sur les tâches enfants
-    const taskWidth = 140
-    const taskHeight = 60
-    const containerPadding = 8
-    const headerHeight = 50
-
-    // Trouver les enfants de ce block
-    const children = modules.filter(m => m.parentId === resizingBlock.id)
-
-    // Calculer la taille minimale nécessaire pour contenir toutes les tâches
-    let minWidth = 250
-    let minHeight = 150
-
-    if (children.length > 0) {
-      const maxChildX = Math.max(...children.map(c => c.x + taskWidth))
-      const maxChildY = Math.max(...children.map(c => c.y + taskHeight))
-
-      minWidth = Math.max(250, maxChildX + containerPadding * 2)
-      minHeight = Math.max(150, maxChildY + headerHeight + containerPadding * 2)
-    }
-
-    // Limites minimales basées sur les enfants
-    if (newWidth < minWidth) {
-      newWidth = minWidth
-      // Si on redimensionne par la gauche, ajuster la position X
-      if (direction.includes('w')) {
-        newX = resizingBlock.startBlockX + resizingBlock.startWidth - minWidth
-      }
-    }
-
-    if (newHeight < minHeight) {
-      newHeight = minHeight
-      // Si on redimensionne par le haut, ajuster la position Y
-      if (direction.includes('n')) {
-        newY = resizingBlock.startBlockY + resizingBlock.startHeight - minHeight
-      }
-    }
-
-    // Appliquer la grille si activée
-    if (gridEnabled) {
-      newWidth = snapToGrid(newWidth)
-      newHeight = snapToGrid(newHeight)
-      newX = snapToGrid(newX)
-      newY = snapToGrid(newY)
-    }
-
-    setModules(prev => prev.map(m =>
-      m.id === resizingBlock.id
-        ? { ...m, width: newWidth, height: newHeight, x: newX, y: newY }
-        : m
-    ))
-  }
-
-  const handleBlockResizeEnd = () => {
-    setResizingBlock(null)
-  }
-
-  // Event listeners pour le redimensionnement
-  React.useEffect(() => {
-    if (resizingBlock) {
-      document.addEventListener('mousemove', handleBlockResize as any)
-      document.addEventListener('mouseup', handleBlockResizeEnd)
-    } else {
-      document.removeEventListener('mousemove', handleBlockResize as any)
-      document.removeEventListener('mouseup', handleBlockResizeEnd)
-    }
-    return () => {
-      document.removeEventListener('mousemove', handleBlockResize as any)
-      document.removeEventListener('mouseup', handleBlockResizeEnd)
-    }
-  }, [resizingBlock])
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
@@ -2172,6 +2051,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   draggedModuleId={draggedModuleId}
                   collapsedBlocks={collapsedBlocks}
                   collapsedBlockSections={collapsedBlockSections}
+                  resizingBlock={resizingBlock}
                   onSelectModule={onSelectModule}
                   updateTaskName={updateTaskName}
                   toggleBlockCollapse={toggleBlockCollapse}
@@ -2181,6 +2061,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
                   handleBlockSectionDrop={handleBlockSectionDrop}
+                  handleResizeStart={handleResizeStart}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2247,6 +2128,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   draggedModuleId={draggedModuleId}
                   collapsedBlocks={collapsedBlocks}
                   collapsedBlockSections={collapsedBlockSections}
+                  resizingBlock={resizingBlock}
                   onSelectModule={onSelectModule}
                   updateTaskName={updateTaskName}
                   toggleBlockCollapse={toggleBlockCollapse}
@@ -2256,6 +2138,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
                   handleBlockSectionDrop={handleBlockSectionDrop}
+                  handleResizeStart={handleResizeStart}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2322,6 +2205,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   draggedModuleId={draggedModuleId}
                   collapsedBlocks={collapsedBlocks}
                   collapsedBlockSections={collapsedBlockSections}
+                  resizingBlock={resizingBlock}
                   onSelectModule={onSelectModule}
                   updateTaskName={updateTaskName}
                   toggleBlockCollapse={toggleBlockCollapse}
@@ -2331,6 +2215,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
                   handleBlockSectionDrop={handleBlockSectionDrop}
+                  handleResizeStart={handleResizeStart}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2397,6 +2282,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   draggedModuleId={draggedModuleId}
                   collapsedBlocks={collapsedBlocks}
                   collapsedBlockSections={collapsedBlockSections}
+                  resizingBlock={resizingBlock}
                   onSelectModule={onSelectModule}
                   updateTaskName={updateTaskName}
                   toggleBlockCollapse={toggleBlockCollapse}
@@ -2406,6 +2292,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   handleModuleDragOver={handleModuleDragOver}
                   handleModuleDropOnModule={handleModuleDropOnModule}
                   handleBlockSectionDrop={handleBlockSectionDrop}
+                  handleResizeStart={handleResizeStart}
                   getBlockTheme={getBlockTheme}
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
@@ -2486,8 +2373,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       position: 'absolute',
                       left: module.x,
                       top: module.y,
-                      width: dimensions.width,
-                      minHeight: dimensions.height,
+                      width: module.width || dimensions.width,
+                      height: module.height || dimensions.height,
                       p: 1,
                       cursor: 'move',
                       border: selectedModuleId === module.id ? `2px solid ${blockTheme.borderColorSelected}` : `2px solid ${blockTheme.borderColor}`,
@@ -2495,6 +2382,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       bgcolor: blockTheme.backgroundColor,
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
+                      overflow: 'visible',
                       '&:hover': {
                         boxShadow: 6,
                       },
@@ -2793,6 +2681,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 draggedModuleId={draggedModuleId}
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
+                                resizingBlock={resizingBlock}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -2801,6 +2690,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
@@ -2990,6 +2880,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 draggedModuleId={draggedModuleId}
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
+                                resizingBlock={resizingBlock}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -2998,6 +2889,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
@@ -3187,6 +3079,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 draggedModuleId={draggedModuleId}
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
+                                resizingBlock={resizingBlock}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -3195,6 +3088,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
@@ -3213,16 +3107,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'nw', e)}
                           sx={{
                             position: 'absolute',
-                            top: -4,
-                            left: -4,
-                            width: 10,
-                            height: 10,
+                            top: -6,
+                            left: -6,
+                            width: 16,
+                            height: 16,
                             cursor: 'nwse-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'nw' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'nw' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
                             borderRadius: '50%',
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'scale(1.2)' },
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3233,16 +3128,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'ne', e)}
                           sx={{
                             position: 'absolute',
-                            top: -4,
-                            right: -4,
-                            width: 10,
-                            height: 10,
+                            top: -6,
+                            right: -6,
+                            width: 16,
+                            height: 16,
                             cursor: 'nesw-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'ne' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'ne' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
                             borderRadius: '50%',
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'scale(1.2)' },
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3253,16 +3149,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'sw', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -4,
-                            left: -4,
-                            width: 10,
-                            height: 10,
+                            bottom: -6,
+                            left: -6,
+                            width: 16,
+                            height: 16,
                             cursor: 'nesw-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'sw' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'sw' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
                             borderRadius: '50%',
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'scale(1.2)' },
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3273,16 +3170,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'se', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -4,
-                            right: -4,
-                            width: 10,
-                            height: 10,
+                            bottom: -6,
+                            right: -6,
+                            width: 16,
+                            height: 16,
                             cursor: 'nwse-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'se' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'se' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
                             borderRadius: '50%',
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'scale(1.2)' },
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3293,17 +3191,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'n', e)}
                           sx={{
                             position: 'absolute',
-                            top: -4,
+                            top: -6,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            width: 30,
-                            height: 8,
+                            width: 40,
+                            height: 12,
                             cursor: 'ns-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'n' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
-                            borderRadius: 1,
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'translateX(-50%) scaleY(1.3)' },
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'n' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
+                            borderRadius: 2,
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3314,17 +3213,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 's', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -4,
+                            bottom: -6,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            width: 30,
-                            height: 8,
+                            width: 40,
+                            height: 12,
                             cursor: 'ns-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 's' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
-                            borderRadius: 1,
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'translateX(-50%) scaleY(1.3)' },
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 's' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
+                            borderRadius: 2,
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3335,17 +3235,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'w', e)}
                           sx={{
                             position: 'absolute',
-                            left: -4,
+                            left: -6,
                             top: '50%',
                             transform: 'translateY(-50%)',
-                            width: 8,
-                            height: 30,
+                            width: 12,
+                            height: 40,
                             cursor: 'ew-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'w' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
-                            borderRadius: 1,
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'translateY(-50%) scaleX(1.3)' },
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'w' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
+                            borderRadius: 2,
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
@@ -3356,17 +3257,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'e', e)}
                           sx={{
                             position: 'absolute',
-                            right: -4,
+                            right: -6,
                             top: '50%',
                             transform: 'translateY(-50%)',
-                            width: 8,
-                            height: 30,
+                            width: 12,
+                            height: 40,
                             cursor: 'ew-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'e' ? 'primary.main' : 'white',
-                            border: `2px solid ${blockTheme.borderColor}`,
-                            borderRadius: 1,
-                            opacity: 0.8,
-                            '&:hover': { opacity: 1, bgcolor: 'primary.light', transform: 'translateY(-50%) scaleX(1.3)' },
+                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'e' ? 'primary.dark' : 'primary.main',
+                            border: `2px solid white`,
+                            borderRadius: 2,
+                            opacity: 1,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
                             transition: 'all 0.2s',
                             zIndex: 20,
                           }}
