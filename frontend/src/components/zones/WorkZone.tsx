@@ -618,6 +618,86 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return 'normal'
   }
 
+  // Handlers de redimensionnement
+  const handleResizeStart = (blockId: string, direction: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+
+    const block = modules.find(m => m.id === blockId)
+    if (!block || !block.isBlock) return
+
+    const blockDims = getBlockDimensions(block)
+
+    setResizingBlock({
+      id: blockId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: block.width || blockDims.width,
+      startHeight: block.height || blockDims.height,
+      startBlockX: block.x,
+      startBlockY: block.y,
+      direction
+    })
+  }
+
+  useEffect(() => {
+    if (!resizingBlock) return
+
+    const handleResizeMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - resizingBlock.startX
+      const deltaY = e.clientY - resizingBlock.startY
+
+      let newWidth = resizingBlock.startWidth
+      let newHeight = resizingBlock.startHeight
+      let newX = resizingBlock.startBlockX
+      let newY = resizingBlock.startBlockY
+
+      const minWidth = 300
+      const minHeight = 250
+
+      // Calculer les nouvelles dimensions selon la direction
+      if (resizingBlock.direction.includes('e')) {
+        newWidth = Math.max(minWidth, resizingBlock.startWidth + deltaX)
+      }
+      if (resizingBlock.direction.includes('w')) {
+        const potentialWidth = Math.max(minWidth, resizingBlock.startWidth - deltaX)
+        if (potentialWidth >= minWidth) {
+          newWidth = potentialWidth
+          newX = resizingBlock.startBlockX + (resizingBlock.startWidth - newWidth)
+        }
+      }
+      if (resizingBlock.direction.includes('s')) {
+        newHeight = Math.max(minHeight, resizingBlock.startHeight + deltaY)
+      }
+      if (resizingBlock.direction.includes('n')) {
+        const potentialHeight = Math.max(minHeight, resizingBlock.startHeight - deltaY)
+        if (potentialHeight >= minHeight) {
+          newHeight = potentialHeight
+          newY = resizingBlock.startBlockY + (resizingBlock.startHeight - newHeight)
+        }
+      }
+
+      // Mettre à jour le block
+      setModules(prev => prev.map(m =>
+        m.id === resizingBlock.id
+          ? { ...m, width: newWidth, height: newHeight, x: newX, y: newY }
+          : m
+      ))
+    }
+
+    const handleResizeEnd = () => {
+      setResizingBlock(null)
+    }
+
+    document.addEventListener('mousemove', handleResizeMove)
+    document.addEventListener('mouseup', handleResizeEnd)
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove)
+      document.removeEventListener('mouseup', handleResizeEnd)
+    }
+  }, [resizingBlock, modules])
+
   // Handler pour le drop dans une section de block
   const handleBlockSectionDrop = (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => {
     const sourceId = e.dataTransfer.getData('existingModule')
@@ -1101,7 +1181,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }
 
-  const handleBlockResizeStart = (blockId: string, direction: string, e: React.MouseEvent) => {
+  const handleResizeStart = (blockId: string, direction: string, e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
 
@@ -3130,7 +3210,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       <>
                         {/* Coin Nord-Ouest */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'nw', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'nw', e)}
                           sx={{
                             position: 'absolute',
                             top: -4,
@@ -3150,7 +3230,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Coin Nord-Est */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'ne', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'ne', e)}
                           sx={{
                             position: 'absolute',
                             top: -4,
@@ -3170,7 +3250,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Coin Sud-Ouest */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'sw', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'sw', e)}
                           sx={{
                             position: 'absolute',
                             bottom: -4,
@@ -3190,7 +3270,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Coin Sud-Est */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'se', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'se', e)}
                           sx={{
                             position: 'absolute',
                             bottom: -4,
@@ -3210,7 +3290,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Bord Nord */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'n', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'n', e)}
                           sx={{
                             position: 'absolute',
                             top: -4,
@@ -3231,7 +3311,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Bord Sud */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 's', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 's', e)}
                           sx={{
                             position: 'absolute',
                             bottom: -4,
@@ -3252,7 +3332,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Bord Ouest */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'w', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'w', e)}
                           sx={{
                             position: 'absolute',
                             left: -4,
@@ -3273,7 +3353,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                         {/* Bord Est */}
                         <Box
-                          onMouseDown={(e) => handleBlockResizeStart(module.id, 'e', e)}
+                          onMouseDown={(e) => handleResizeStart(module.id, 'e', e)}
                           sx={{
                             position: 'absolute',
                             right: -4,
