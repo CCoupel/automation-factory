@@ -850,6 +850,39 @@ interface ModuleBlock {
    - **NE PAS** ajouter le padding de la section aux coordonnées (déjà incluses dans `module.x/y`)
    - Utiliser `getBoundingClientRect()` sur la tâche UNIQUEMENT pour obtenir les dimensions (width/height)
 
+6. **Duplication de tâches/blocks lors du déplacement depuis sections de blocks**
+   - **Problème:** Quand on déplace une tâche/block depuis une section de block vers l'extérieur, l'élément apparaît dupliqué (présent à la fois dans la section source ET à la destination)
+   - **Cause racine:** Le canvas principal a `display: 'none'` (ligne 2584 de WorkZone.tsx), donc les drops "hors du block" atterrissent en réalité sur les sections PLAY (pre_tasks, tasks, post_tasks, handlers)
+   - **Solution:** `handlePlaySectionDrop` doit retirer la tâche de l'ancien parent block en supprimant son ID du `blockSections[oldSection]` avant de la déplacer
+   - **Code correct:**
+     ```typescript
+     const oldParentId = sourceModule.parentId
+     const oldSection = sourceModule.parentSection
+
+     setModules(prev => prev.map(m => {
+       // 1. Retirer de l'ancien parent block si existe
+       if (oldParentId && m.id === oldParentId && oldSection) {
+         const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+         return {
+           ...m,
+           blockSections: {
+             ...sections,
+             [oldSection]: sections[oldSection].filter(id => id !== sourceId)
+           }
+         }
+       }
+
+       // 2. Mettre à jour la tâche avec la nouvelle section PLAY
+       if (m.id === sourceId) {
+         return { ...m, parentSection: section, x: relativeX, y: relativeY, parentId: undefined }
+       }
+
+       return m
+     }))
+     ```
+   - **Importance de `setModules(prev => ...)`:** Utiliser TOUJOURS la forme fonctionnelle pour éviter les stale closures et garantir l'accès à l'état le plus récent
+   - **Opération atomique:** Tout faire en un seul `setModules` pour éviter les race conditions entre plusieurs `setModules` consécutifs
+
 ### Visibilité des Éléments
 
 1. **Cacher les liens quand on réduit**
@@ -871,6 +904,26 @@ interface ModuleBlock {
 2. **Sets pour collapsed state**
    - Utiliser `new Set(prev)` pour copier
    - Format des clés: `"blockId:section"` ou `"*:section"`
+
+3. **Forme fonctionnelle de `setModules`**
+   - **TOUJOURS** utiliser `setModules(prev => ...)` au lieu de `setModules(modules.map(...))`
+   - La forme fonctionnelle garantit l'accès à l'état le plus récent et évite les stale closures
+   - **Problème avec forme directe:**
+     ```typescript
+     // ❌ MAUVAIS: utilise l'état capturé dans la closure
+     const task = modules.find(m => m.id === taskId)
+     setModules(modules.map(m => ...))
+     ```
+   - **Forme correcte:**
+     ```typescript
+     // ✅ BON: utilise l'état le plus récent via la fonction callback
+     setModules(prev => {
+       const task = prev.find(m => m.id === taskId)
+       return prev.map(m => ...)
+     })
+     ```
+   - Particulièrement critique dans les handlers d'événements drag & drop où plusieurs `setModules` peuvent être appelés rapidement
+   - Évite les bugs de duplication et de synchronisation d'état
 
 ---
 
@@ -929,6 +982,8 @@ kubectl apply -f k8s/frontend/
   - ~630-633: Rejet des liens entre types de sections différents
   - ~628-635: Détection du type de lien pour mini START dans `getLinkTypeFromSource()`
   - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
+  - ~1179-1310: `handlePlaySectionDrop()` - gestion des drops dans sections PLAY avec nettoyage des blockSections (résout bug de duplication)
+  - ~1275-1304: Nettoyage atomique des tâches sortant de sections de blocks (retire de blockSections avant déplacement)
   - ~1418-1605: `getModuleAbsolutePosition()` - calcul positions absolues avec approche récursive
   - ~1422-1473: Calcul position tâches dans sections de blocks avec récursion + padding compensé
   - ~1474-1515: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
@@ -1010,6 +1065,9 @@ kubectl apply -f k8s/frontend/
 - [x] Collapse des blocks avec taille uniforme (140x60px comme une tâche normale)
 - [x] Redimensionnement hybride des blocks (manuel + automatique avec calcul récursif)
 - [x] Auto-expansion des blocks pour contenir les tâches/blocks imbriqués (évite débordement)
+- [x] Correction du bug de duplication lors du déplacement de tâches/blocks depuis sections de blocks vers sections PLAY
+- [x] Nettoyage atomique des blockSections lors du déplacement (forme fonctionnelle setModules)
+- [x] Utilisation systématique de setModules(prev => ...) pour éviter stale closures
 
 ---
 

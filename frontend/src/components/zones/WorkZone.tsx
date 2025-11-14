@@ -307,13 +307,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     const target = e.target as HTMLElement
     const blockContainerElem = target.closest('.block-container')
 
-    console.log('🎯 [CANVAS DROP] Début handleDrop:', {
-      targetClass: target.className,
-      hasBlockContainer: !!blockContainerElem,
-      clientX: e.clientX,
-      clientY: e.clientY
-    })
-
     // Toujours utiliser le canvas principal pour le calcul de position
     if (!canvasRef.current) return
     const rect = canvasRef.current.getBoundingClientRect()
@@ -321,24 +314,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     const moduleData = e.dataTransfer.getData('module')
     const existingModuleId = e.dataTransfer.getData('existingModule')
 
-    console.log('📦 [CANVAS DROP] Données du drag:', {
-      hasModuleData: !!moduleData,
-      existingModuleId,
-      moduleDataParsed: moduleData ? JSON.parse(moduleData).name : null
-    })
-
     // Déterminer si c'est un block/PLAY qui est déplacé
     const movedModule = existingModuleId ? modules.find(m => m.id === existingModuleId) : null
     const isMovingBlockOrPlay = movedModule && (movedModule.isBlock || movedModule.isPlay)
-
-    console.log('🚚 [CANVAS DROP] Module déplacé:', {
-      movedModuleName: movedModule?.taskName,
-      isBlock: movedModule?.isBlock,
-      isPlay: movedModule?.isPlay,
-      isMovingBlockOrPlay,
-      parentId: movedModule?.parentId,
-      parentSection: movedModule?.parentSection
-    })
 
     // Récupérer l'offset du drag (où l'utilisateur a cliqué sur le module)
     const dragOffsetXStr = e.dataTransfer.getData('dragOffsetX')
@@ -468,69 +446,67 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     if (!blockContainerElem || isMovingBlockOrPlay) {
       if (existingModuleId) {
         // Repositionnement d'un module existant
-        const movedModule = modules.find(m => m.id === existingModuleId)
+        // Vérifier les liens AVANT de faire toute modification
+        const hasLinks = links.some(l => l.from === existingModuleId || l.to === existingModuleId)
 
-        // Si c'est une tâche dans une section de block
-        if (movedModule?.parentId && movedModule?.parentSection && !movedModule.isBlock && !movedModule.isPlay) {
-          console.log('🔍 [DROP] Tâche de section détectée:', {
-            taskId: existingModuleId,
-            taskName: movedModule.taskName,
-            parentId: movedModule.parentId,
-            parentSection: movedModule.parentSection,
-            dropPosition: { x, y }
-          })
+        // Utiliser setModules avec forme fonctionnelle pour accéder au nouvel état
+        setModules(prev => {
+          const movedModule = prev.find(m => m.id === existingModuleId)
+          if (!movedModule) return prev
 
-          // Vérifier si la tâche a des liens
-          const hasLinks = links.some(l => l.from === existingModuleId || l.to === existingModuleId)
-          console.log('🔗 [DROP] Vérification des liens:', {
-            hasLinks,
-            allLinks: links.filter(l => l.from === existingModuleId || l.to === existingModuleId)
-          })
+          // Si c'est une tâche ou un block dans une section de block
+          if (movedModule.parentId && movedModule.parentSection && !movedModule.isPlay) {
+            if (hasLinks) {
+              // A des liens: ne pas permettre le déplacement
+              return prev
+            }
 
-          if (hasLinks) {
-            // A des liens: ne pas permettre le déplacement
-            console.log('❌ [DROP] Déplacement bloqué: tâche a des liens')
-            setDraggedModuleId(null)
-            return
-          }
-
-          console.log('✅ [DROP] Déplacement autorisé: sortie de la section vers zone de travail')
-
-          // Pas de liens: permettre le déplacement hors du block
-          // Retirer de l'ancienne section
-          setModules(prev => prev.map(m => {
-            if (m.id === movedModule.parentId) {
-              const sections = m.blockSections || { normal: [], rescue: [], always: [] }
-              const oldSection = movedModule.parentSection!
-              console.log('📤 [DROP] Retrait de la section:', { blockId: m.id, section: oldSection })
-              return {
-                ...m,
-                blockSections: {
-                  ...sections,
-                  [oldSection]: sections[oldSection].filter(id => id !== existingModuleId)
+            // Pas de liens: permettre le déplacement hors du block
+            // Retirer de l'ancienne section ET déplacer le module en un seul appel
+            return prev.map(m => {
+              if (m.id === movedModule.parentId) {
+                const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+                const oldSection = movedModule.parentSection!
+                return {
+                  ...m,
+                  blockSections: {
+                    ...sections,
+                    [oldSection]: sections[oldSection].filter(id => id !== existingModuleId)
+                  }
                 }
               }
-            }
-            // Déplacer le module dans la zone de travail
-            if (m.id === existingModuleId) {
-              console.log('🎯 [DROP] Déplacement vers zone de travail:', { x, y })
-              return { ...m, x, y, parentId: undefined, parentSection: undefined }
-            }
-            return m
-          }))
+              // Déplacer le module dans la zone de travail
+              if (m.id === existingModuleId) {
+                return { ...m, x, y, parentId: undefined, parentSection: undefined }
+              }
+              return m
+            })
+          }
 
+          // Si ce n'est pas une tâche dans une section, retourner l'état inchangé
+          return prev
+        })
+
+        if (hasLinks) {
           setDraggedModuleId(null)
           return
         }
 
-        setModules(modules.map(m => {
+        const movedModule = modules.find(m => m.id === existingModuleId)
+        // Si le module a été déplacé hors d'une section, on a déjà tout fait ci-dessus
+        if (movedModule?.parentId && movedModule?.parentSection && !movedModule.isPlay) {
+          setDraggedModuleId(null)
+          return
+        }
+
+        setModules(prev => prev.map(m => {
           // Retirer du parent si dans un block (ancienne logique pour les blocks sans sections)
           if (m.id === movedModule?.parentId && m.children) {
             return { ...m, children: m.children.filter(id => id !== existingModuleId) }
           }
           // Déplacer le module
           if (m.id === existingModuleId) {
-            return { ...m, x, y, parentId: undefined }
+            return { ...m, x, y, parentId: undefined, parentSection: undefined }
           }
           // Les enfants du block ne doivent PAS être déplacés car leurs positions sont relatives au parent
           // Seul le block parent bouge
@@ -870,26 +846,51 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           // Pas de liens: déplacer la tâche dans cette section
           e.preventDefault()
           e.stopPropagation()
-          // Retirer de l'ancienne section si elle était dans une
-          if (sourceModule.parentId && sourceModule.parentSection) {
-            setModules(prev => prev.map(m => {
-              if (m.id === sourceModule.parentId) {
+
+          // Un seul appel à setModules pour: retirer de l'ancien parent + ajouter au nouveau parent + update la tâche
+          setModules(prev => {
+            const oldParentId = sourceModule.parentId
+            const oldSection = sourceModule.parentSection
+
+            return prev.map(m => {
+              // 1. Retirer de l'ancien parent (si existe)
+              if (oldParentId && m.id === oldParentId) {
                 const sections = m.blockSections || { normal: [], rescue: [], always: [] }
-                const oldSection = sourceModule.parentSection!
                 return {
                   ...m,
                   blockSections: {
                     ...sections,
-                    [oldSection]: sections[oldSection].filter(id => id !== sourceId)
+                    [oldSection!]: sections[oldSection!].filter(id => id !== sourceId)
                   }
                 }
               }
-              return m
-            }))
-          }
 
-          // Ajouter à cette section
-          addTaskToBlockSection(sourceId, blockId, section, relativeX, relativeY)
+              // 2. Ajouter au nouveau parent
+              if (m.id === blockId) {
+                const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+                return {
+                  ...m,
+                  blockSections: {
+                    ...sections,
+                    [section]: sections[section].includes(sourceId) ? sections[section] : [...sections[section], sourceId]
+                  }
+                }
+              }
+
+              // 3. Mettre à jour la tâche elle-même
+              if (m.id === sourceId) {
+                return {
+                  ...m,
+                  parentId: blockId,
+                  parentSection: section,
+                  x: relativeX,
+                  y: relativeY
+                }
+              }
+
+              return m
+            })
+          })
           return
         } else {
           // A des liens: créer un lien avec le block
@@ -924,22 +925,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           ...(isBlock && { blockSections: { normal: [], rescue: [], always: [] } }),
         }
 
-        setModules([...modules, newModule])
+        // Un seul appel à setModules pour ajouter le module ET mettre à jour blockSections
+        setModules(prev => {
+          // Ajouter le nouveau module
+          const updatedModules = [...prev, newModule]
 
-        // Ajouter l'ID à la section du block
-        setModules(prev => prev.map(m => {
-          if (m.id === blockId) {
-            const sections = m.blockSections || { normal: [], rescue: [], always: [] }
-            return {
-              ...m,
-              blockSections: {
-                ...sections,
-                [section]: [...sections[section], newModuleId]
+          // Mettre à jour le block parent pour ajouter l'ID à la section
+          return updatedModules.map(m => {
+            if (m.id === blockId) {
+              const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+              return {
+                ...m,
+                blockSections: {
+                  ...sections,
+                  [section]: [...sections[section], newModuleId]
+                }
               }
             }
-          }
-          return m
-        }))
+            return m
+          })
+        })
       }
     }
   }
@@ -1046,47 +1051,50 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }
 
   const addTaskToBlockSection = (taskId: string, blockId: string, section: 'normal' | 'rescue' | 'always', x?: number, y?: number) => {
-    const task = modules.find(m => m.id === taskId)
-    const block = modules.find(m => m.id === blockId)
+    // Utiliser la forme fonctionnelle pour garantir l'accès à l'état le plus récent
+    setModules(prev => {
+      const task = prev.find(m => m.id === taskId)
+      const block = prev.find(m => m.id === blockId)
 
-    if (!task || !block || !block.isBlock) return
+      if (!task || !block || !block.isBlock) return prev
 
-    // Si la tâche vient d'une autre section du même block, la retirer de l'ancienne section
-    const oldSection = task.parentSection
+      // Si la tâche vient d'une autre section du même block, la retirer de l'ancienne section
+      const oldSection = task.parentSection
 
-    // Mettre à jour le block pour ajouter la tâche à la section appropriée
-    setModules(modules.map(m => {
-      if (m.id === blockId) {
-        const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+      // Mettre à jour le block pour ajouter la tâche à la section appropriée
+      return prev.map(m => {
+        if (m.id === blockId) {
+          const sections = m.blockSections || { normal: [], rescue: [], always: [] }
 
-        // Retirer de l'ancienne section si elle change
-        const updatedSections = { ...sections }
-        if (oldSection && oldSection !== section && updatedSections[oldSection]) {
-          updatedSections[oldSection] = updatedSections[oldSection].filter(id => id !== taskId)
+          // Retirer de l'ancienne section si elle change
+          const updatedSections = { ...sections }
+          if (oldSection && oldSection !== section && updatedSections[oldSection]) {
+            updatedSections[oldSection] = updatedSections[oldSection].filter(id => id !== taskId)
+          }
+
+          // Ajouter à la nouvelle section si pas déjà présente
+          if (!updatedSections[section].includes(taskId)) {
+            updatedSections[section] = [...updatedSections[section], taskId]
+          }
+
+          return {
+            ...m,
+            blockSections: updatedSections
+          }
         }
-
-        // Ajouter à la nouvelle section si pas déjà présente
-        if (!updatedSections[section].includes(taskId)) {
-          updatedSections[section] = [...updatedSections[section], taskId]
+        // Mettre à jour la tâche avec le parent, la section et la position
+        if (m.id === taskId) {
+          return {
+            ...m,
+            parentId: blockId,
+            parentSection: section,
+            x: x !== undefined ? x : (m.x || 10),
+            y: y !== undefined ? y : (m.y || 10)
+          }
         }
-
-        return {
-          ...m,
-          blockSections: updatedSections
-        }
-      }
-      // Mettre à jour la tâche avec le parent, la section et la position
-      if (m.id === taskId) {
-        return {
-          ...m,
-          parentId: blockId,
-          parentSection: section,
-          x: x !== undefined ? x : (m.x || 10),
-          y: y !== undefined ? y : (m.y || 10)
-        }
-      }
-      return m
-    }))
+        return m
+      })
+    })
   }
 
   const toggleBlockSection = (blockId: string, section: 'normal' | 'rescue' | 'always') => {
@@ -1219,10 +1227,30 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           e.preventDefault()
           e.stopPropagation()
 
-          // Mettre à jour la tâche/block avec la nouvelle section et position
-          setModules(prev => prev.map(m =>
-            m.id === sourceId ? { ...m, parentSection: section, x: relativeX, y: relativeY, parentId: undefined } : m
-          ))
+          // Retirer de l'ancienne section de block si elle était dans une
+          const oldParentId = sourceModule.parentId
+          const oldSection = sourceModule.parentSection
+
+          setModules(prev => prev.map(m => {
+            // 1. Retirer de l'ancien parent block si existe
+            if (oldParentId && m.id === oldParentId && oldSection) {
+              const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+              return {
+                ...m,
+                blockSections: {
+                  ...sections,
+                  [oldSection]: sections[oldSection].filter(id => id !== sourceId)
+                }
+              }
+            }
+
+            // 2. Mettre à jour la tâche/block avec la nouvelle section PLAY et position
+            if (m.id === sourceId) {
+              return { ...m, parentSection: section, x: relativeX, y: relativeY, parentId: undefined }
+            }
+
+            return m
+          }))
           return
         } else {
           // A des liens: on ne peut pas déplacer une tâche/block avec des liens entre sections
