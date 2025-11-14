@@ -104,6 +104,15 @@ Chaque block Ansible est composé de **3 sections intégrées**:
 - Au collapse, les sections internes sont cachées (visibilité conditionnelle)
 - À l'expansion, le block reprend sa taille calculée selon la section ouverte
 
+**Redimensionnement hybride (manuel + automatique):**
+- Les blocks supportent le **redimensionnement manuel** via les poignées de redimensionnement
+- Les dimensions manuelles (`block.width`, `block.height`) servent de **taille minimum**
+- Le block **s'agrandit automatiquement** si le contenu dépasse la taille manuelle
+- Le block **ne se réduit jamais** en dessous de la taille manuelle définie
+- Algorithme: `finalSize = Math.max(manualSize, calculatedContentSize)`
+- Permet d'éviter le débordement des tâches/blocks imbriqués tout en gardant le contrôle manuel
+- Calcul récursif: pour un block imbriqué, `getBlockDimensions()` s'appelle lui-même
+
 ### Gestion des Tâches dans les Sections
 
 **Positionnement:**
@@ -908,7 +917,7 @@ kubectl apply -f k8s/frontend/
 - **Lignes importantes:**
   - ~77-83: Refs DOM pour sections PLAY (playSectionsContainerRef, variablesSectionRef, etc.)
   - ~86-98: État initial des PLAYs avec onglets
-  - ~102-126: `getBlockDimensions()` - calcul hauteur dynamique blocks
+  - ~197-292: `getBlockDimensions()` - calcul hybride (manuel + automatique) avec récursion pour blocks imbriqués
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
   - ~527-554: `toggleBlockSection()` - comportement accordion blocks
@@ -999,6 +1008,8 @@ kubectl apply -f k8s/frontend/
 - [x] Support du drop dans les blocks imbriqués (propagation récursive de handleBlockSectionDrop)
 - [x] Validation stricte des liens (même section uniquement pour tous les types de tâches)
 - [x] Collapse des blocks avec taille uniforme (140x60px comme une tâche normale)
+- [x] Redimensionnement hybride des blocks (manuel + automatique avec calcul récursif)
+- [x] Auto-expansion des blocks pour contenir les tâches/blocks imbriqués (évite débordement)
 
 ---
 

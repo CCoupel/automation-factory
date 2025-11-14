@@ -205,16 +205,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return { width: 140, height: 60 }
     }
 
-    // Si le block a des dimensions personnalisées, les utiliser
-    if (block.width && block.height) {
-      return { width: block.width, height: block.height }
-    }
-
-    // Les blocks normaux - calculer automatiquement selon les sections
+    // Les blocks normaux - calculer automatiquement selon le contenu des sections
     const baseWidth = 250
     const headerHeight = 50
     const sectionHeaderHeight = 25
     const minSectionContentHeight = 200 // Hauteur minimum de chaque section
+    const sectionPadding = 4 // Padding de la section Box (p: 0.5 en MUI = 4px)
+    const bottomPadding = 20 // Padding en bas pour l'espace
+
+    // Dimensions manuelles (définies par redimensionnement manuel)
+    // Utilisées comme minimum - le block ne peut pas être plus petit que ça
+    const manualWidth = block.width || baseWidth
+    const manualHeight = block.height || 0
 
     let totalHeight = headerHeight
 
@@ -225,15 +227,67 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     // Ajouter les headers de toutes les sections
     totalHeight += sections.length * sectionHeaderHeight
 
-    // Ajouter le contenu seulement pour la section ouverte (s'il y en a une)
+    // Calculer le contenu de la section ouverte basé sur les tâches réelles
     const openSection = sections.find(section => !isSectionCollapsed(block.id, section))
-    if (openSection) {
-      totalHeight += minSectionContentHeight
+    if (openSection && block.blockSections) {
+      const taskIds = block.blockSections[openSection] || []
+
+      if (taskIds.length === 0) {
+        // Section vide - utiliser la hauteur minimum
+        totalHeight += minSectionContentHeight
+      } else {
+        // Calculer la hauteur nécessaire pour contenir toutes les tâches
+        let maxBottomY = 0
+        let maxRightX = 0
+
+        taskIds.forEach(taskId => {
+          const task = modules.find(m => m.id === taskId)
+          if (task) {
+            const taskY = task.y || 10
+            let taskHeight = 60 // Hauteur par défaut d'une tâche
+
+            // Si c'est un block imbriqué, obtenir sa hauteur calculée
+            if (task.isBlock) {
+              const nestedBlockDims = getBlockDimensions(task)
+              taskHeight = nestedBlockDims.height
+              maxRightX = Math.max(maxRightX, (task.x || 10) + nestedBlockDims.width)
+            } else {
+              maxRightX = Math.max(maxRightX, (task.x || 10) + 140)
+            }
+
+            maxBottomY = Math.max(maxBottomY, taskY + taskHeight)
+          }
+        })
+
+        // Ajouter le padding de la section et un espace en bas
+        const sectionContentHeight = Math.max(
+          maxBottomY + bottomPadding,
+          minSectionContentHeight
+        )
+
+        totalHeight += sectionContentHeight
+
+        // Ajuster la largeur si nécessaire pour contenir les tâches
+        const calculatedWidth = Math.max(
+          baseWidth,
+          maxRightX + sectionPadding * 2 + 20 // padding des deux côtés + marge
+        )
+
+        // Utiliser le maximum entre dimensions manuelles et calculées
+        // Permet de garder le redimensionnement manuel ET de s'agrandir si nécessaire
+        return {
+          width: Math.max(manualWidth, calculatedWidth),
+          height: Math.max(manualHeight, totalHeight)
+        }
+      }
     }
 
+    // Section vide ou pas de blockSections - utiliser hauteur par défaut
+    const defaultHeight = totalHeight + minSectionContentHeight
+
     return {
-      width: baseWidth,
-      height: totalHeight
+      width: Math.max(manualWidth, baseWidth),
+      height: Math.max(manualHeight, defaultHeight)
     }
   }
 

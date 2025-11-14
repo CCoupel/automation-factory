@@ -221,7 +221,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
         // Si c'est un block imbriqué
         if (task.isBlock) {
           const blockTheme = getBlockTheme(task.id)
-          const blockDims = getBlockDimensions(task.id)
+          const blockDims = getBlockDimensions(task)
 
           return (
             <Paper
@@ -252,8 +252,8 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                 position: 'absolute',
                 left: task.x || 10,
                 top: task.y || 10,
-                width: task.width || 400,
-                height: task.height || blockDims.height,
+                width: blockDims.width,
+                height: blockDims.height,
                 cursor: 'move',
                 border: `2px solid ${blockTheme.borderColor}`,
                 bgcolor: blockTheme.bgColor,
