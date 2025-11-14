@@ -686,6 +686,30 @@ else {
 - Cercle blanc avec croix rouge au milieu du lien
 - Cliquable pour supprimer le lien
 
+**Labels de liens:**
+- Les liens des sections PLAY (pre_tasks, tasks, post_tasks, handlers) n'affichent **pas de label texte**
+- Seuls les liens `rescue` et `always` conservent leurs labels (indiquent des comportements spéciaux)
+- Les types de liens restent identifiables par leur couleur et style (dasharray pour handlers)
+
+**Recalcul des points d'accroche lors du collapse/expand:**
+- Les dimensions des blocks sont calculées par `getBlockDimensions()` qui tient compte de l'état `collapsedBlocks`
+- **Problème résolu:** Les dimensions via `getBoundingClientRect()` écrasaient les dimensions calculées (lisait l'ancien DOM)
+- **Solution:** Ne pas utiliser `getBoundingClientRect()` pour obtenir les dimensions des blocks
+- Dans `getModuleAbsolutePosition()`:
+  - Pour les **tâches normales**: utiliser `getBoundingClientRect()` pour width/height (réelles)
+  - Pour les **blocks**: garder les dimensions de `getBlockDimensions()` (tiennent compte de collapsed)
+  ```typescript
+  // Ne récupérer dimensions DOM que pour tâches normales
+  if (!module.isBlock) {
+    const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+    if (taskElement) {
+      const taskRect = taskElement.getBoundingClientRect()
+      dims = { width: taskRect.width, height: taskRect.height }
+    }
+  }
+  ```
+- Garantit que les liens se recalculent immédiatement avec les bonnes dimensions lors du collapse/expand
+
 ### Visibilité des Liens
 
 Les liens sont cachés (`return null`) dans les cas suivants:

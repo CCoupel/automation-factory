@@ -1419,13 +1419,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       case 'always':
         return { stroke: '#4caf50', strokeDasharray: '0', strokeWidth: '3', label: 'always' }
       case 'pre_tasks':
-        return { stroke: '#9c27b0', strokeDasharray: '0', label: 'pre_tasks' }
+        return { stroke: '#9c27b0', strokeDasharray: '0', label: '' }
       case 'tasks':
-        return { stroke: '#1976d2', strokeDasharray: '0', label: 'tasks' }
+        return { stroke: '#1976d2', strokeDasharray: '0', label: '' }
       case 'post_tasks':
-        return { stroke: '#00796b', strokeDasharray: '0', label: 'post_tasks' }
+        return { stroke: '#00796b', strokeDasharray: '0', label: '' }
       case 'handlers':
-        return { stroke: '#f57c00', strokeDasharray: '8,4', label: 'handlers' }
+        return { stroke: '#f57c00', strokeDasharray: '8,4', label: '' }
       default:
         return { stroke: '#1976d2', strokeDasharray: '0', label: '' }
     }
@@ -1588,11 +1588,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         absoluteX += padding + module.x
         absoluteY += padding + module.y
 
-        // Obtenir dimensions via DOM
-        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-        if (taskElement) {
-          const taskRect = taskElement.getBoundingClientRect()
-          dims = { width: taskRect.width, height: taskRect.height }
+        // Obtenir dimensions via DOM seulement pour les tâches normales
+        // Pour les blocks imbriqués, on garde les dimensions calculées par getBlockDimensions (qui tiennent compte de collapsed)
+        if (!module.isBlock) {
+          const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+          if (taskElement) {
+            const taskRect = taskElement.getBoundingClientRect()
+            dims = { width: taskRect.width, height: taskRect.height }
+          }
         }
       }
     } else if (module.parentSection && !module.parentId) {
@@ -1637,11 +1640,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         absoluteX = sectionRelativeLeft + module.x
         absoluteY = sectionRelativeTop + module.y
 
-        // Obtenir aussi les dimensions réelles via le DOM
-        const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-        if (taskElement) {
-          const taskRect = taskElement.getBoundingClientRect()
-          dims = { width: taskRect.width, height: taskRect.height }
+        // Obtenir les dimensions réelles via le DOM seulement pour les tâches normales
+        // Pour les blocks, on garde les dimensions calculées par getBlockDimensions (qui tiennent compte de collapsed)
+        if (!module.isBlock) {
+          const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
+          if (taskElement) {
+            const taskRect = taskElement.getBoundingClientRect()
+            dims = { width: taskRect.width, height: taskRect.height }
+          }
         }
       } else {
         // Fallback
