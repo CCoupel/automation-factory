@@ -97,6 +97,13 @@ Chaque block Ansible est composé de **3 sections intégrées**:
 - Contenu de section ouverte: minimum 200px
 - Les sections fermées ne montrent que leur header
 
+**Collapse du block entier:**
+- Un block peut être complètement collapsé (réduit) via l'icône dans son header
+- Quand collapsé, le block prend la taille d'une tâche normale : **140x60px**
+- Cette taille uniforme permet une cohérence visuelle avec les autres éléments
+- Au collapse, les sections internes sont cachées (visibilité conditionnelle)
+- À l'expansion, le block reprend sa taille calculée selon la section ouverte
+
 ### Gestion des Tâches dans les Sections
 
 **Positionnement:**
@@ -991,6 +998,7 @@ kubectl apply -f k8s/frontend/
 - [x] Compensation du padding (4px) pour alignement précis des liens dans sections de blocks
 - [x] Support du drop dans les blocks imbriqués (propagation récursive de handleBlockSectionDrop)
 - [x] Validation stricte des liens (même section uniquement pour tous les types de tâches)
+- [x] Collapse des blocks avec taille uniforme (140x60px comme une tâche normale)
 
 ---
 

@@ -200,9 +200,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return { width: 150, height: 50 }
     }
 
-    // Si le block est collapsed, retourner seulement la hauteur du header
+    // Si le block est collapsed, retourner la taille d'une tâche normale
     if (collapsedBlocks.has(block.id)) {
-      return { width: block.width || 250, height: 50 }
+      return { width: 140, height: 60 }
     }
 
     // Si le block a des dimensions personnalisées, les utiliser
@@ -2527,8 +2527,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       position: 'absolute',
                       left: module.x,
                       top: module.y,
-                      width: module.width || dimensions.width,
-                      height: module.height || dimensions.height,
+                      width: dimensions.width,
+                      height: dimensions.height,
                       p: 1,
                       cursor: 'move',
                       border: selectedModuleId === module.id ? `2px solid ${blockTheme.borderColorSelected}` : `2px solid ${blockTheme.borderColor}`,
