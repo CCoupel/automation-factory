@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Tabs, Tab, Button, Chip } from '@mui/material'
+import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tabs, Tab, Button, Chip } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import GridOffIcon from '@mui/icons-material/GridOff'
@@ -8,80 +8,12 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
-import SecurityIcon from '@mui/icons-material/Security'
-import LoopIcon from '@mui/icons-material/Loop'
-import SendIcon from '@mui/icons-material/Send'
 import SettingsIcon from '@mui/icons-material/Settings'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
-
-interface ModuleBlock {
-  id: string
-  collection: string
-  name: string
-  description: string
-  taskName: string
-  x: number
-  y: number
-  isBlock?: boolean // Indique si c'est un block conteneur
-  isPlay?: boolean // Indique si c'est un START task (dans une section de PLAY)
-  inventory?: string // Inventaire spécifique au PLAY
-  children?: string[] // IDs des tâches dans la section normale (deprecated - use blockSections)
-  blockSections?: {
-    normal: string[]    // IDs des tâches dans la section normale
-    rescue: string[]    // IDs des tâches dans la section rescue
-    always: string[]    // IDs des tâches dans la section always
-  }
-  parentId?: string // ID du block parent (si dans un block)
-  parentSection?: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' // Section du block parent OU section de PLAY
-  width?: number // Largeur personnalisée du block
-  height?: number // Hauteur personnalisée du block
-  // Attributs de tâche
-  when?: string // Condition when
-  ignoreErrors?: boolean // Ignorer les erreurs
-  become?: boolean // Exécuter avec sudo
-  loop?: string // Définition de la loop
-  delegateTo?: string // Délégation à un autre hôte
-  // Les variables sont gérées dans Play.variables
-  // Les rôles seront gérés séparément (à implémenter)
-}
-
-interface Link {
-  id: string
-  from: string
-  to: string
-  type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' // Type de lien
-}
-
-interface PlayVariable {
-  key: string
-  value: string
-}
-
-interface PlaySectionAttributes {
-  when?: string
-  ignoreErrors?: boolean
-  become?: boolean
-  loop?: string
-  delegateTo?: string
-}
-
-interface Play {
-  id: string
-  name: string
-  modules: ModuleBlock[]
-  links: Link[]
-  variables: PlayVariable[]
-  sectionAttributes?: {
-    pre_tasks?: PlaySectionAttributes
-    tasks?: PlaySectionAttributes
-    post_tasks?: PlaySectionAttributes
-    handlers?: PlaySectionAttributes
-  }
-}
+import TaskAttributeIcons from '../common/TaskAttributeIcons'
+import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play } from '../../types/playbook'
 
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
@@ -2409,21 +2341,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
             {/* Icônes d'attributs de la section */}
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.when ? `Condition: ${currentPlay.sectionAttributes.pre_tasks.when}` : 'No condition'}>
-                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.when ? '#1976d2' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.become ? '#d32f2f' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.pre_tasks.loop}` : 'No loop'}>
-                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.loop ? '#388e3c' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.pre_tasks.delegateTo}` : 'No delegation'}>
-                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
-              </Tooltip>
+              <TaskAttributeIcons
+                attributes={currentPlay.sectionAttributes?.pre_tasks || {}}
+                size="medium"
+              />
 
               {/* Bouton de configuration */}
               <Tooltip title="Configure section attributes">
@@ -2537,21 +2458,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
             {/* Icônes d'attributs de la section */}
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <Tooltip title={currentPlay.sectionAttributes?.tasks?.when ? `Condition: ${currentPlay.sectionAttributes.tasks.when}` : 'No condition'}>
-                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.when ? '#1976d2' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.become ? '#d32f2f' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.tasks.loop}` : 'No loop'}>
-                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.loop ? '#388e3c' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.tasks.delegateTo}` : 'No delegation'}>
-                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
-              </Tooltip>
+              <TaskAttributeIcons
+                attributes={currentPlay.sectionAttributes?.tasks || {}}
+                size="medium"
+              />
 
               {/* Bouton de configuration */}
               <Tooltip title="Configure section attributes">
@@ -2665,21 +2575,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
             {/* Icônes d'attributs de la section */}
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.when ? `Condition: ${currentPlay.sectionAttributes.post_tasks.when}` : 'No condition'}>
-                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.when ? '#1976d2' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.become ? '#d32f2f' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.post_tasks.loop}` : 'No loop'}>
-                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.loop ? '#388e3c' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.post_tasks.delegateTo}` : 'No delegation'}>
-                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
-              </Tooltip>
+              <TaskAttributeIcons
+                attributes={currentPlay.sectionAttributes?.post_tasks || {}}
+                size="medium"
+              />
 
               {/* Bouton de configuration */}
               <Tooltip title="Configure section attributes">
@@ -2793,21 +2692,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
             {/* Icônes d'attributs de la section */}
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <Tooltip title={currentPlay.sectionAttributes?.handlers?.when ? `Condition: ${currentPlay.sectionAttributes.handlers.when}` : 'No condition'}>
-                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.when ? '#1976d2' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.handlers?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.ignoreErrors ? '#f57c00' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.handlers?.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.become ? '#d32f2f' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.handlers?.loop ? `Loop: ${currentPlay.sectionAttributes.handlers.loop}` : 'No loop'}>
-                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.loop ? '#388e3c' : '#ccc' }} />
-              </Tooltip>
-              <Tooltip title={currentPlay.sectionAttributes?.handlers?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.handlers.delegateTo}` : 'No delegation'}>
-                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.delegateTo ? '#00bcd4' : '#ccc' }} />
-              </Tooltip>
+              <TaskAttributeIcons
+                attributes={currentPlay.sectionAttributes?.handlers || {}}
+                size="medium"
+              />
 
               {/* Bouton de configuration */}
               <Tooltip title="Configure section attributes">

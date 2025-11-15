@@ -1,0 +1,133 @@
+/**
+ * Shared type definitions for the Ansible Playbook Builder
+ *
+ * This file contains all the core interfaces and types used across
+ * the application to represent playbooks, modules, tasks, blocks, and links.
+ */
+
+/**
+ * Represents a module, task, or block in the playbook
+ */
+export interface ModuleBlock {
+  id: string
+  collection: string
+  name: string
+  description?: string
+  taskName?: string
+  x: number
+  y: number
+
+  // Type flags
+  isBlock?: boolean  // Indicates this is a block container
+  isPlay?: boolean   // Indicates this is a START task (in a PLAY section)
+
+  // PLAY-specific attributes
+  inventory?: string
+
+  // Deprecated - use blockSections instead
+  children?: string[]
+
+  // Block sections (for blocks with 3 sections: normal, rescue, always)
+  blockSections?: {
+    normal: string[]   // IDs of tasks in the normal section
+    rescue: string[]   // IDs of tasks in the rescue section
+    always: string[]   // IDs of tasks in the always section
+  }
+
+  // Parent relationship (for tasks within blocks or PLAY sections)
+  parentId?: string
+  parentSection?: 'normal' | 'rescue' | 'always' | 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+
+  // Task attributes (Ansible task parameters)
+  when?: string
+  ignoreErrors?: boolean
+  become?: boolean
+  loop?: string
+  delegateTo?: string
+
+  // Custom dimensions (for blocks)
+  width?: number
+  height?: number
+}
+
+/**
+ * Represents a link between two modules/tasks
+ */
+export interface Link {
+  id: string
+  from: string  // Source module ID
+  to: string    // Destination module ID
+  type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+}
+
+/**
+ * Represents a variable in a PLAY
+ */
+export interface PlayVariable {
+  key: string
+  value: string
+}
+
+/**
+ * Attributes that can be applied to an entire PLAY section
+ */
+export interface PlaySectionAttributes {
+  when?: string
+  ignoreErrors?: boolean
+  become?: boolean
+  loop?: string
+  delegateTo?: string
+}
+
+/**
+ * Represents a PLAY (a tab in the playbook with multiple sections)
+ */
+export interface Play {
+  id: string
+  name: string
+  modules: ModuleBlock[]
+  links: Link[]
+  variables: PlayVariable[]
+  sectionAttributes?: {
+    pre_tasks?: PlaySectionAttributes
+    tasks?: PlaySectionAttributes
+    post_tasks?: PlaySectionAttributes
+    handlers?: PlaySectionAttributes
+  }
+}
+
+/**
+ * Type guard to check if a module is a block
+ */
+export function isBlock(module: ModuleBlock): boolean {
+  return module.isBlock === true
+}
+
+/**
+ * Type guard to check if a module is a PLAY START task
+ */
+export function isPlayStart(module: ModuleBlock): boolean {
+  return module.isPlay === true
+}
+
+/**
+ * Type guard to check if a module is a regular task
+ */
+export function isTask(module: ModuleBlock): boolean {
+  return !module.isBlock && !module.isPlay
+}
+
+/**
+ * Section name type for PLAY sections
+ */
+export type PlaySectionName = 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+
+/**
+ * Section name type for block sections
+ */
+export type BlockSectionName = 'normal' | 'rescue' | 'always'
+
+/**
+ * Combined section name type
+ */
+export type SectionName = PlaySectionName | BlockSectionName

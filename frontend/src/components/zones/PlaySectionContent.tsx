@@ -1,42 +1,11 @@
-import { Box, Paper, IconButton, TextField, Typography, Tooltip } from '@mui/material'
+import { Box, Paper, IconButton, TextField, Typography } from '@mui/material'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
-import SecurityIcon from '@mui/icons-material/Security'
-import LoopIcon from '@mui/icons-material/Loop'
-import SendIcon from '@mui/icons-material/Send'
 import React from 'react'
 import BlockSectionContent from './BlockSectionContent'
-
-interface ModuleBlock {
-  id: string
-  collection: string
-  name: string
-  description: string
-  taskName: string
-  x: number
-  y: number
-  isBlock?: boolean
-  isPlay?: boolean
-  inventory?: string
-  children?: string[]
-  blockSections?: {
-    normal: string[]
-    rescue: string[]
-    always: string[]
-  }
-  parentId?: string
-  parentSection?: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
-  width?: number
-  height?: number
-  when?: string
-  ignoreErrors?: boolean
-  become?: boolean
-  loop?: string
-  delegateTo?: string
-}
+import TaskAttributeIcons from '../common/TaskAttributeIcons'
+import { ModuleBlock } from '../../types/playbook'
 
 interface PlaySectionContentProps {
   sectionName: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
@@ -709,23 +678,17 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
               </Typography>
 
               {/* Icônes d'attributs de tâche */}
-              <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                  <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                </Tooltip>
-                <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                  <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                </Tooltip>
-                <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                  <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                </Tooltip>
-                <Tooltip title={task.loop ? `Loop: ${task.loop}` : 'No loop'}>
-                  <LoopIcon sx={{ fontSize: 12, color: task.loop ? '#388e3c' : '#ccc' }} />
-                </Tooltip>
-                <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                  <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                </Tooltip>
-              </Box>
+              <TaskAttributeIcons
+                attributes={{
+                  when: task.when,
+                  ignoreErrors: task.ignoreErrors,
+                  become: task.become,
+                  loop: task.loop,
+                  delegateTo: task.delegateTo
+                }}
+                size="small"
+                sx={{ mt: 0.25, minHeight: 14 }}
+              />
             </Paper>
           )
         })

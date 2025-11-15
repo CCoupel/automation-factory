@@ -993,6 +993,126 @@ interface ModuleBlock {
 - Support navigation clavier
 - Contraste suffisant pour les liens
 
+**Code Réutilisabilité:**
+- Extraire les composants réutilisables pour éviter la duplication
+- Créer des types partagés dans `types/playbook.ts`
+- Utiliser des composants communs dans `components/common/`
+
+---
+
+## 🔄 Refactoring et Consolidation du Code
+
+### Objectifs de la Refonte
+
+Le codebase a fait l'objet d'un refactoring majeur pour éliminer la duplication de code et améliorer la maintenabilité:
+
+- **~240 lignes de code éliminées** (icônes d'attributs dupliquées 10+ fois)
+- **~120 lignes de types dupliqués** (interfaces définies 3 fois)
+- Amélioration de la cohérence visuelle et comportementale
+- Facilitation des futures modifications
+
+### Composants Réutilisables Créés
+
+#### **TaskAttributeIcons** (`frontend/src/components/common/TaskAttributeIcons.tsx`)
+
+Composant réutilisable pour afficher les 5 icônes d'attributs de tâche Ansible:
+
+- **HelpOutlineIcon** (bleu #1976d2) - Condition `when`
+- **ErrorOutlineIcon** (orange #f57c00) - `ignoreErrors`
+- **SecurityIcon** (rouge #d32f2f) - `become` (sudo)
+- **LoopIcon** (vert #388e3c) - `loop`
+- **SendIcon** (cyan #00bcd4) - `delegateTo`
+
+**Props:**
+```typescript
+interface TaskAttributeIconsProps {
+  attributes: {
+    when?: string
+    ignoreErrors?: boolean
+    become?: boolean
+    loop?: string
+    delegateTo?: string
+  }
+  size?: 'small' | 'medium'  // 12px ou 14px
+  sx?: any  // Styles MUI additionnels
+}
+```
+
+**Usage:**
+```typescript
+// Sur une tâche (size small = 12px)
+<TaskAttributeIcons
+  attributes={{
+    when: task.when,
+    ignoreErrors: task.ignoreErrors,
+    become: task.become,
+    loop: task.loop,
+    delegateTo: task.delegateTo
+  }}
+  size="small"
+  sx={{ mt: 0.5 }}
+/>
+
+// Sur un header de section PLAY (size medium = 14px)
+<TaskAttributeIcons
+  attributes={currentPlay.sectionAttributes?.tasks || {}}
+  size="medium"
+/>
+```
+
+**Utilisé dans:**
+- PlaySectionContent.tsx (ligne ~681) - Tâches dans sections PLAY
+- BlockSectionContent.tsx (lignes ~297, ~749) - Tâches dans blocks
+- WorkZone.tsx (lignes ~2344, ~2461, ~2578, ~2695) - Headers de sections PLAY
+
+### Types Partagés
+
+#### **frontend/src/types/playbook.ts**
+
+Fichier centralisé contenant toutes les interfaces principales:
+
+- `ModuleBlock` - Module, tâche ou block (version consolidée des 3 définitions)
+- `Link` - Lien entre modules
+- `PlayVariable` - Variable d'un PLAY
+- `PlaySectionAttributes` - Attributs d'une section PLAY
+- `Play` - Structure d'un PLAY complet
+
+**Type guards utilitaires:**
+```typescript
+isBlock(module: ModuleBlock): boolean
+isPlayStart(module: ModuleBlock): boolean
+isTask(module: ModuleBlock): boolean
+```
+
+**Type aliases:**
+```typescript
+PlaySectionName = 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+BlockSectionName = 'normal' | 'rescue' | 'always'
+SectionName = PlaySectionName | BlockSectionName
+```
+
+**Importation:**
+```typescript
+import { ModuleBlock, Link, Play, PlayVariable, PlaySectionAttributes } from '../../types/playbook'
+```
+
+### Bénéfices du Refactoring
+
+1. **Maintenabilité:** Modification des icônes ou des tooltips en un seul endroit
+2. **Cohérence:** Comportement identique partout (toutes les icônes toujours visibles)
+3. **Type Safety:** Types partagés garantissent la cohérence entre composants
+4. **Lisibilité:** Code plus concis et facile à comprendre
+5. **Extensibilité:** Facile d'ajouter de nouveaux attributs ou icônes
+
+### Prochaines Opportunités de Refactoring
+
+D'autres duplications ont été identifiées lors de l'analyse du code (voir [README_OPTIMISATION.md](README_OPTIMISATION.md)) mais n'ont pas encore été implémentées:
+
+- **BlockSectionHeader/Content** (~90 lignes) - Headers de sections de blocks
+- **DraggableModuleItem** (~80 lignes) - Items de modules draggables
+- **ResizeHandles** (~864 lignes) - Poignées de redimensionnement 8 directions
+- **START Task Rendering** (~64 lignes) - Rendu des tâches START
+
 ---
 
 ## ⚠️ Pièges à Éviter
@@ -1168,10 +1288,31 @@ kubectl apply -f k8s/frontend/
   - ~2035: SVG des liens avec `key={linkRefreshKey}` pour forcer le re-render
   - ~2070-2116: Vérifications de visibilité des liens avec approche hiérarchique pour sections PLAY
 
+**`frontend/src/types/playbook.ts`**
+- Fichier centralisé pour tous les types partagés
+- Interfaces principales: ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play
+- Type guards: isBlock(), isPlayStart(), isTask()
+- Type aliases: PlaySectionName, BlockSectionName, SectionName
+- **Avantages:**
+  - Élimine ~120 lignes de types dupliqués
+  - Garantit la cohérence des types entre composants
+  - Source unique de vérité pour les interfaces
+
+**`frontend/src/components/common/TaskAttributeIcons.tsx`**
+- Composant réutilisable pour les icônes d'attributs de tâche
+- Affiche 5 icônes: when (bleu), ignoreErrors (orange), become (rouge), loop (vert), delegateTo (cyan)
+- Props: `attributes` (objet), `size` ('small' | 'medium'), `sx` (styles MUI)
+- **Utilisations:**
+  - Tâches dans sections PLAY (size: small)
+  - Tâches dans blocks (size: small)
+  - Headers de sections PLAY (size: medium)
+- **Impact:** Élimine ~240 lignes de code dupliqué
+
 **`frontend/src/components/zones/PlaySectionContent.tsx`**
 - Composant réutilisable pour le rendu des sections PLAY
 - Gère le rendu des tâches simples et des blocks avec leurs 3 sections (Tasks, Rescue, Always)
 - Élimine la duplication de code entre les 4 sections PLAY (pre_tasks, tasks, post_tasks, handlers)
+- **Utilise TaskAttributeIcons:** Ligne ~681 pour les tâches
 - **Fonctionnalités:**
   - Rendu conditionnel: blocks avec 3 sections vs tâches simples
   - Drag & drop handlers pour tâches et blocks
@@ -1253,6 +1394,10 @@ kubectl apply -f k8s/frontend/
 - [x] Interface PlaySectionAttributes pour typage des attributs de sections
 - [x] Initialisation automatique des sectionAttributes dans les nouveaux PLAYs
 - [x] Indicateurs visuels (icônes colorées/grises) selon l'état des attributs de section
+- [x] Refactoring: Types partagés centralisés dans types/playbook.ts (~120 lignes économisées)
+- [x] Refactoring: Composant réutilisable TaskAttributeIcons (~240 lignes économisées)
+- [x] Refactoring: Élimination de la duplication des icônes d'attributs (10+ occurrences)
+- [x] Refactoring: Import des types partagés dans WorkZone, PlaySectionContent, BlockSectionContent
 
 ---
 
