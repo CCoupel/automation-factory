@@ -1139,6 +1139,24 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return collapsedPlaySections.has(key) || collapsedPlaySections.has(wildcardKey)
   }
 
+  // Helper pour récupérer la section PLAY dans laquelle se trouve un module (en remontant la hiérarchie)
+  const getModulePlaySection = (module: ModuleBlock): 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' | null => {
+    // Si le module a directement une parentSection mais pas de parentId, c'est qu'il est directement dans une section PLAY
+    if (module.parentSection && !module.parentId) {
+      return module.parentSection as any
+    }
+
+    // Si le module a un parentId, remonter au parent
+    if (module.parentId) {
+      const parent = modules.find(m => m.id === module.parentId)
+      if (parent) {
+        return getModulePlaySection(parent) // Récursion pour remonter la hiérarchie
+      }
+    }
+
+    return null // Pas dans une section PLAY
+  }
+
   const togglePlaySection = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
     setCollapsedPlaySections(prev => {
       const newSet = new Set(prev)
@@ -2059,6 +2077,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
                 return null
               }
+              // Vérifier si le block parent (ou ses ancêtres) est dans une section PLAY fermée
+              if (fromParent) {
+                const parentPlaySection = getModulePlaySection(fromParent)
+                if (parentPlaySection) {
+                  const playModule = modules.find(m => m.isPlay)
+                  if (playModule && isPlaySectionCollapsed(playModule.id, parentPlaySection)) {
+                    return null
+                  }
+                }
+              }
             } else if (fromModule.parentSection && !fromModule.parentId) {
               // Module dans une PLAY section - vérifier si la section est fermée
               const playModule = modules.find(m => m.isPlay)
@@ -2075,6 +2103,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               // Cacher aussi si la section est réduite
               if (toModule.parentSection && isSectionCollapsed(toModule.parentId, toModule.parentSection)) {
                 return null
+              }
+              // Vérifier si le block parent (ou ses ancêtres) est dans une section PLAY fermée
+              if (toParent) {
+                const parentPlaySection = getModulePlaySection(toParent)
+                if (parentPlaySection) {
+                  const playModule = modules.find(m => m.isPlay)
+                  if (playModule && isPlaySectionCollapsed(playModule.id, parentPlaySection)) {
+                    return null
+                  }
+                }
               }
             } else if (toModule.parentSection && !toModule.parentId) {
               // Module dans une PLAY section - vérifier si la section est fermée

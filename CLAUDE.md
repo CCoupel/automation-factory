@@ -738,9 +738,10 @@ Les liens sont cachés (`return null`) dans les cas suivants:
 
 1. **Block réduit:** Si une des tâches (source ou destination) est dans un block qui a `collapsedBlocks.has(blockId)`
 2. **Section réduite:** Si une des tâches est dans une section vérifiée avec `isSectionCollapsed(blockId, section)`
+3. **Section PLAY fermée (hiérarchique):** Si une des tâches (ou son block parent à n'importe quel niveau) est dans une section PLAY qui n'est pas actuellement ouverte
 
 ```typescript
-// Vérification dans le rendu des liens
+// Vérification dans le rendu des liens (lignes 2070-2116)
 if (fromModule.parentId) {
   const fromParent = modules.find(m => m.id === fromModule.parentId)
   if (fromParent && collapsedBlocks.has(fromParent.id)) {
@@ -749,8 +750,47 @@ if (fromModule.parentId) {
   if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
     return null // Section réduite
   }
+  // Vérifier si le block parent (ou ses ancêtres) est dans une section PLAY fermée
+  if (fromParent) {
+    const parentPlaySection = getModulePlaySection(fromParent)
+    if (parentPlaySection) {
+      const playModule = modules.find(m => m.isPlay)
+      if (playModule && isPlaySectionCollapsed(playModule.id, parentPlaySection)) {
+        return null
+      }
+    }
+  }
 }
 ```
+
+**Helper fonction pour la hiérarchie PLAY (lignes 1142-1158):**
+
+```typescript
+// Récupère la section PLAY d'un module en remontant la hiérarchie (récursif)
+const getModulePlaySection = (module: ModuleBlock): 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' | null => {
+  // Si le module a directement une parentSection mais pas de parentId, c'est qu'il est directement dans une section PLAY
+  if (module.parentSection && !module.parentId) {
+    return module.parentSection as any
+  }
+
+  // Si le module a un parentId, remonter au parent
+  if (module.parentId) {
+    const parent = modules.find(m => m.id === module.parentId)
+    if (parent) {
+      return getModulePlaySection(parent) // Récursion pour remonter la hiérarchie
+    }
+  }
+
+  return null // Pas dans une section PLAY
+}
+```
+
+**Points clés:**
+- **Approche ciblée:** Ne vérifie que les modules dans des blocks (`parentId` existe)
+- **Récursif:** Remonte toute la hiérarchie des parents pour trouver la section PLAY racine
+- **Préserve la logique existante:** Ajouté APRÈS les vérifications de blocks/sections réduits
+- **Gère les sous-blocks:** Un sous-block dans un block dans une section PLAY voit ses liens cachés quand la section PLAY se ferme
+- **N'affecte pas le canvas:** Les modules sans `parentId` (sur le canvas) ne sont pas impactés
 
 ---
 
@@ -1029,6 +1069,7 @@ kubectl apply -f k8s/frontend/
   - ~630-633: Rejet des liens entre types de sections différents
   - ~628-635: Détection du type de lien pour mini START dans `getLinkTypeFromSource()`
   - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
+  - ~1142-1158: `getModulePlaySection()` - helper récursif pour trouver la section PLAY d'un module en remontant la hiérarchie
   - ~1179-1310: `handlePlaySectionDrop()` - gestion des drops dans sections PLAY avec nettoyage des blockSections (résout bug de duplication)
   - ~1275-1304: Nettoyage atomique des tâches sortant de sections de blocks (retire de blockSections avant déplacement)
   - ~1377-1383: useEffect pour rafraîchissement automatique des liens après changement de section PLAY
@@ -1040,6 +1081,7 @@ kubectl apply -f k8s/frontend/
   - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
   - ~1904-1905: Utilisation de `getModuleOrVirtual()` dans le rendu des liens
   - ~2035: SVG des liens avec `key={linkRefreshKey}` pour forcer le re-render
+  - ~2070-2116: Vérifications de visibilité des liens avec approche hiérarchique pour sections PLAY
 
 **`frontend/src/components/zones/PlaySectionContent.tsx`**
 - Composant réutilisable pour le rendu des sections PLAY
