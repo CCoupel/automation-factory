@@ -113,18 +113,6 @@ Chaque block Ansible est composé de **3 sections intégrées**:
 - Permet d'éviter le débordement des tâches/blocks imbriqués tout en gardant le contrôle manuel
 - Calcul récursif: pour un block imbriqué, `getBlockDimensions()` s'appelle lui-même
 
-**Poignées de redimensionnement:**
-- **8 directions** disponibles: 4 coins (nw, ne, sw, se) + 4 bords (n, s, e, w)
-- **Dimensions réduites** pour une interface plus discrète:
-  - Coins: **10×10px** (cercles)
-  - Bords N/S: **30×8px** (rectangles horizontaux)
-  - Bords E/W: **8×30px** (rectangles verticaux)
-  - Position: **-4px** (débordement léger pour faciliter la saisie)
-- **Couleurs thématiques**: adaptation selon le contexte (section de block ou section PLAY)
-- **Effet hover**: scale(1.3) pour les coins, scaleX/Y(1.4) pour les bords
-- **Visibilité**: cachées quand le block est collapsé
-- **Cohérence**: mêmes dimensions dans tous les contextes (canvas, sections PLAY, blocks imbriqués)
-
 ### Gestion des Tâches dans les Sections
 
 **Positionnement:**

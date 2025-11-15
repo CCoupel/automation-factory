@@ -521,10 +521,10 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'nw', e)}
                     sx={{
                       position: 'absolute',
-                      top: -4,
-                      left: -4,
-                      width: 10,
-                      height: 10,
+                      top: -6,
+                      left: -6,
+                      width: 16,
+                      height: 16,
                       cursor: 'nwse-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'nw' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -542,10 +542,10 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'ne', e)}
                     sx={{
                       position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      width: 10,
-                      height: 10,
+                      top: -6,
+                      right: -6,
+                      width: 16,
+                      height: 16,
                       cursor: 'nesw-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'ne' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -563,10 +563,10 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'sw', e)}
                     sx={{
                       position: 'absolute',
-                      bottom: -4,
-                      left: -4,
-                      width: 10,
-                      height: 10,
+                      bottom: -6,
+                      left: -6,
+                      width: 16,
+                      height: 16,
                       cursor: 'nesw-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'sw' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -584,10 +584,10 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'se', e)}
                     sx={{
                       position: 'absolute',
-                      bottom: -4,
-                      right: -4,
-                      width: 10,
-                      height: 10,
+                      bottom: -6,
+                      right: -6,
+                      width: 16,
+                      height: 16,
                       cursor: 'nwse-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'se' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -605,11 +605,11 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'n', e)}
                     sx={{
                       position: 'absolute',
-                      top: -4,
+                      top: -6,
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      width: 30,
-                      height: 8,
+                      width: 40,
+                      height: 12,
                       cursor: 'ns-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'n' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -627,11 +627,11 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 's', e)}
                     sx={{
                       position: 'absolute',
-                      bottom: -4,
+                      bottom: -6,
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      width: 30,
-                      height: 8,
+                      width: 40,
+                      height: 12,
                       cursor: 'ns-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 's' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -649,11 +649,11 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'w', e)}
                     sx={{
                       position: 'absolute',
-                      left: -4,
+                      left: -6,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      width: 8,
-                      height: 30,
+                      width: 12,
+                      height: 40,
                       cursor: 'ew-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'w' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
@@ -671,11 +671,11 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                     onMouseDown={(e) => handleResizeStart(task.id, 'e', e)}
                     sx={{
                       position: 'absolute',
-                      right: -4,
+                      right: -6,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      width: 8,
-                      height: 30,
+                      width: 12,
+                      height: 40,
                       cursor: 'ew-resize',
                       bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'e' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
                       border: `2px solid white`,
