@@ -3352,10 +3352,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'nw', e)}
                           sx={{
                             position: 'absolute',
-                            top: -6,
-                            left: -6,
-                            width: 16,
-                            height: 16,
+                            top: -4,
+                            left: -4,
+                            width: 10,
+                            height: 10,
                             cursor: 'nwse-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'nw' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3373,10 +3373,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'ne', e)}
                           sx={{
                             position: 'absolute',
-                            top: -6,
-                            right: -6,
-                            width: 16,
-                            height: 16,
+                            top: -4,
+                            right: -4,
+                            width: 10,
+                            height: 10,
                             cursor: 'nesw-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'ne' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3394,10 +3394,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'sw', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -6,
-                            left: -6,
-                            width: 16,
-                            height: 16,
+                            bottom: -4,
+                            left: -4,
+                            width: 10,
+                            height: 10,
                             cursor: 'nesw-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'sw' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3415,10 +3415,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'se', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -6,
-                            right: -6,
-                            width: 16,
-                            height: 16,
+                            bottom: -4,
+                            right: -4,
+                            width: 10,
+                            height: 10,
                             cursor: 'nwse-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'se' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3436,11 +3436,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'n', e)}
                           sx={{
                             position: 'absolute',
-                            top: -6,
+                            top: -4,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            width: 40,
-                            height: 12,
+                            width: 30,
+                            height: 8,
                             cursor: 'ns-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'n' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3458,11 +3458,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 's', e)}
                           sx={{
                             position: 'absolute',
-                            bottom: -6,
+                            bottom: -4,
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            width: 40,
-                            height: 12,
+                            width: 30,
+                            height: 8,
                             cursor: 'ns-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 's' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3480,11 +3480,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'w', e)}
                           sx={{
                             position: 'absolute',
-                            left: -6,
+                            left: -4,
                             top: '50%',
                             transform: 'translateY(-50%)',
-                            width: 12,
-                            height: 40,
+                            width: 8,
+                            height: 30,
                             cursor: 'ew-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'w' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,
@@ -3502,11 +3502,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           onMouseDown={(e) => handleResizeStart(module.id, 'e', e)}
                           sx={{
                             position: 'absolute',
-                            right: -6,
+                            right: -4,
                             top: '50%',
                             transform: 'translateY(-50%)',
-                            width: 12,
-                            height: 40,
+                            width: 8,
+                            height: 30,
                             cursor: 'ew-resize',
                             bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'e' ? 'primary.dark' : 'primary.main',
                             border: `2px solid white`,

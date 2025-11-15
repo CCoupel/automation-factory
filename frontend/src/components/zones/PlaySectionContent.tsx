@@ -400,10 +400,10 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'nw', e)}
                       sx={{
                         position: 'absolute',
-                        top: -6,
-                        left: -6,
-                        width: 16,
-                        height: 16,
+                        top: -4,
+                        left: -4,
+                        width: 10,
+                        height: 10,
                         cursor: 'nwse-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'nw' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -421,10 +421,10 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'ne', e)}
                       sx={{
                         position: 'absolute',
-                        top: -6,
-                        right: -6,
-                        width: 16,
-                        height: 16,
+                        top: -4,
+                        right: -4,
+                        width: 10,
+                        height: 10,
                         cursor: 'nesw-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'ne' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -442,10 +442,10 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'sw', e)}
                       sx={{
                         position: 'absolute',
-                        bottom: -6,
-                        left: -6,
-                        width: 16,
-                        height: 16,
+                        bottom: -4,
+                        left: -4,
+                        width: 10,
+                        height: 10,
                         cursor: 'nesw-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'sw' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -463,10 +463,10 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'se', e)}
                       sx={{
                         position: 'absolute',
-                        bottom: -6,
-                        right: -6,
-                        width: 16,
-                        height: 16,
+                        bottom: -4,
+                        right: -4,
+                        width: 10,
+                        height: 10,
                         cursor: 'nwse-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'se' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -484,11 +484,11 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'n', e)}
                       sx={{
                         position: 'absolute',
-                        top: -6,
+                        top: -4,
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: 40,
-                        height: 12,
+                        width: 30,
+                        height: 8,
                         cursor: 'ns-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'n' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -506,11 +506,11 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 's', e)}
                       sx={{
                         position: 'absolute',
-                        bottom: -6,
+                        bottom: -4,
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: 40,
-                        height: 12,
+                        width: 30,
+                        height: 8,
                         cursor: 'ns-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 's' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -528,11 +528,11 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'w', e)}
                       sx={{
                         position: 'absolute',
-                        left: -6,
+                        left: -4,
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        width: 12,
-                        height: 40,
+                        width: 8,
+                        height: 30,
                         cursor: 'ew-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'w' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
@@ -550,11 +550,11 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       onMouseDown={(e) => handleResizeStart(task.id, 'e', e)}
                       sx={{
                         position: 'absolute',
-                        right: -6,
+                        right: -4,
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        width: 12,
-                        height: 40,
+                        width: 8,
+                        height: 30,
                         cursor: 'ew-resize',
                         bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'e' ? getPlaySectionColor(sectionName) : `${getPlaySectionColor(sectionName)}CC`,
                         border: `2px solid white`,
