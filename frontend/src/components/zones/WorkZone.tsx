@@ -1139,38 +1139,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return collapsedPlaySections.has(key) || collapsedPlaySections.has(wildcardKey)
   }
 
-  // Récupère la section PLAY dans laquelle se trouve un module (en remontant la hiérarchie)
-  const getModulePlaySection = (module: ModuleBlock): 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' | null => {
-    // Si le module a directement une parentSection mais pas de parentId, c'est qu'il est directement dans une section PLAY
-    if (module.parentSection && !module.parentId) {
-      return module.parentSection as any
-    }
-
-    // Si le module a un parentId, remonter au parent
-    if (module.parentId) {
-      const parent = modules.find(m => m.id === module.parentId)
-      if (parent) {
-        return getModulePlaySection(parent) // Récursion pour remonter la hiérarchie
-      }
-    }
-
-    return null // Pas dans une section PLAY
-  }
-
-  // Récupère la section PLAY actuellement ouverte
-  const getOpenPlaySection = (): 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers' | null => {
-    const playModule = modules.find(m => m.isPlay)
-    if (!playModule) return null
-
-    if (!isPlaySectionCollapsed(playModule.id, 'variables')) return 'variables'
-    if (!isPlaySectionCollapsed(playModule.id, 'pre_tasks')) return 'pre_tasks'
-    if (!isPlaySectionCollapsed(playModule.id, 'tasks')) return 'tasks'
-    if (!isPlaySectionCollapsed(playModule.id, 'post_tasks')) return 'post_tasks'
-    if (!isPlaySectionCollapsed(playModule.id, 'handlers')) return 'handlers'
-
-    return null
-  }
-
   const togglePlaySection = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
     setCollapsedPlaySections(prev => {
       const newSet = new Set(prev)
@@ -2114,18 +2082,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               if (playModule && isPlaySectionCollapsed(playModule.id, toModule.parentSection as any)) {
                 return null
               }
-            }
-
-            // Vérifier si un des modules (ou ses parents) est dans une section PLAY fermée
-            // Cela gère le cas des sous-blocks dans des sections PLAY
-            const openPlaySection = getOpenPlaySection()
-            const fromPlaySection = getModulePlaySection(fromModule)
-            const toPlaySection = getModulePlaySection(toModule)
-
-            // Cacher le lien si un des modules est dans une section PLAY qui n'est pas ouverte
-            if ((fromPlaySection && fromPlaySection !== openPlaySection) ||
-                (toPlaySection && toPlaySection !== openPlaySection)) {
-              return null
             }
 
             const connectionPoints = getModuleConnectionPoint(fromModule, toModule)
