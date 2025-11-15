@@ -186,6 +186,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // Sections du PLAY - Format: "playId:section" - Variables et Tasks ouvertes par défaut
   const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:pre_tasks', '*:post_tasks', '*:handlers']))
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
+  const [linkRefreshKey, setLinkRefreshKey] = useState(0)
 
   const GRID_SIZE = 50
 
@@ -1372,6 +1373,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }, [handleDelete, onDeleteModule])
 
+  // Forcer un re-calcul des positions des liens après changement de section PLAY
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLinkRefreshKey(prev => prev + 1)
+    }, 100) // Délai pour laisser le DOM se mettre à jour après le changement d'accordéon
+
+    return () => clearTimeout(timer)
+  }, [collapsedPlaySections])
+
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
     // Trouver le module avant la mise à jour
@@ -2022,6 +2032,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       <Box ref={playSectionsContainerRef} sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         {/* SVG pour les lignes de connexion */}
         <svg
+          key={linkRefreshKey}
           style={{
             position: 'absolute',
             top: 0,

@@ -710,6 +710,28 @@ else {
   ```
 - Garantit que les liens se recalculent immédiatement avec les bonnes dimensions lors du collapse/expand
 
+**Recalcul des liens après changement de section PLAY:**
+- **Problème:** Quand on change de section PLAY (accordéon), `getBoundingClientRect()` peut lire l'ancien DOM avant la mise à jour
+- **Solution:** Mécanisme de rafraîchissement automatique avec `linkRefreshKey`
+- **Implémentation:**
+  ```typescript
+  // État pour forcer le re-render du SVG des liens
+  const [linkRefreshKey, setLinkRefreshKey] = useState(0)
+
+  // useEffect qui détecte les changements de sections PLAY
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLinkRefreshKey(prev => prev + 1)
+    }, 100) // Délai pour laisser le DOM se mettre à jour
+    return () => clearTimeout(timer)
+  }, [collapsedPlaySections])
+
+  // SVG avec key pour forcer le re-render
+  <svg key={linkRefreshKey} ... >
+  ```
+- Le délai de 100ms permet au DOM de se mettre à jour complètement après l'animation de l'accordéon
+- Les positions des liens sont recalculées avec les nouvelles positions DOM des sections
+
 ### Visibilité des Liens
 
 Les liens sont cachés (`return null`) dans les cas suivants:
@@ -994,6 +1016,7 @@ kubectl apply -f k8s/frontend/
 - **Lignes importantes:**
   - ~77-83: Refs DOM pour sections PLAY (playSectionsContainerRef, variablesSectionRef, etc.)
   - ~86-98: État initial des PLAYs avec onglets
+  - ~189: État `linkRefreshKey` pour forcer le re-render des liens
   - ~197-292: `getBlockDimensions()` - calcul hybride (manuel + automatique) avec récursion pour blocks imbriqués
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
@@ -1008,6 +1031,7 @@ kubectl apply -f k8s/frontend/
   - ~748-764: Gestion PLAY START → block et prévention du déplacement mini START dans `handleBlockSectionDrop()`
   - ~1179-1310: `handlePlaySectionDrop()` - gestion des drops dans sections PLAY avec nettoyage des blockSections (résout bug de duplication)
   - ~1275-1304: Nettoyage atomique des tâches sortant de sections de blocks (retire de blockSections avant déplacement)
+  - ~1377-1383: useEffect pour rafraîchissement automatique des liens après changement de section PLAY
   - ~1418-1605: `getModuleAbsolutePosition()` - calcul positions absolues avec approche récursive
   - ~1422-1473: Calcul position tâches dans sections de blocks avec récursion + padding compensé
   - ~1474-1515: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
@@ -1015,6 +1039,7 @@ kubectl apply -f k8s/frontend/
   - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
   - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
   - ~1904-1905: Utilisation de `getModuleOrVirtual()` dans le rendu des liens
+  - ~2035: SVG des liens avec `key={linkRefreshKey}` pour forcer le re-render
 
 **`frontend/src/components/zones/PlaySectionContent.tsx`**
 - Composant réutilisable pour le rendu des sections PLAY
