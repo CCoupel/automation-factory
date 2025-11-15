@@ -135,7 +135,7 @@ Chaque block Ansible est composé de **3 sections intégrées**:
 Chaque section de block (normal, rescue, always) possède un **mini START task** qui sert de point de départ pour les liens dans la section.
 
 **Apparence:**
-- Dimensions: 60x40px (plus petit que les START des sections PLAY qui font 100x60px)
+- Dimensions: 60x40px (identique aux PLAY START tasks)
 - Position fixe: (20, 10) dans chaque section
 - Border radius: '0 50% 50% 0' (demi-cercle à droite, comme les PLAY START)
 - Couleur thème selon la section:
@@ -151,6 +151,91 @@ Chaque section de block (normal, rescue, always) possède un **mini START task**
 - **Création de liens:** Drop sur une tâche/block de la même section crée un lien
 - **Validation:** Les liens ne peuvent être créés qu'avec des tâches/blocks de la même section
 - **Prévention:** Ne crée pas de liens avec les headers d'accordéon
+
+---
+
+## 🎭 Architecture des Sections PLAY
+
+### Structure des Sections PLAY
+
+Les sections PLAY (Pre-tasks, Tasks, Post-tasks, Handlers) organisent le workflow du playbook Ansible.
+
+**Sections disponibles:**
+1. **Variables** - Gère les variables du PLAY
+2. **Pre-tasks** - Tâches exécutées avant les rôles
+3. **Tasks** - Tâches principales (section ouverte par défaut)
+4. **Post-tasks** - Tâches exécutées après les rôles
+5. **Handlers** - Gestionnaires d'événements
+
+### PLAY START Tasks
+
+Chaque section PLAY (Pre-tasks, Tasks, Post-tasks, Handlers) possède un **PLAY START task** qui sert de point de départ pour les liens dans la section.
+
+**Apparence:**
+- Dimensions: 60x40px (identique aux mini START tasks des blocks)
+- Position initiale: (50, 20) dans chaque section
+- Border radius: '0 50% 50% 0' (demi-cercle à droite)
+- Couleur thème selon la section PLAY (via `getPlaySectionColor()`)
+- Background: Couleur de section avec opacité 15%
+- Texte: "START" en caption, couleur de la section
+- **Simplifié:** Pas de TextField, pas d'icônes d'attributs, juste "START" centré
+
+**Comportement:**
+- **Draggable:** Peut être glissé-déposé pour créer des liens
+- **Validation:** Les liens ne peuvent être créés qu'avec des tâches de la même section PLAY
+- **Identifiant:** `isPlay: true` dans l'interface ModuleBlock
+
+### Attributs de Sections PLAY
+
+Les sections PLAY peuvent avoir leurs propres attributs qui s'appliquent à toutes les tâches de la section.
+
+**Interface:**
+```typescript
+interface PlaySectionAttributes {
+  when?: string
+  ignoreErrors?: boolean
+  become?: boolean
+  loop?: string
+  delegateTo?: string
+}
+
+interface Play {
+  // ... autres propriétés
+  sectionAttributes?: {
+    pre_tasks?: PlaySectionAttributes
+    tasks?: PlaySectionAttributes
+    post_tasks?: PlaySectionAttributes
+    handlers?: PlaySectionAttributes
+  }
+}
+```
+
+**Affichage sur les Headers d'Accordéon:**
+- Icônes d'attributs affichées à droite du nom de la section
+- HelpOutlineIcon (bleu) - `when` condition
+- ErrorOutlineIcon (orange) - `ignoreErrors`
+- SecurityIcon (rouge) - `become`
+- LoopIcon (vert) - `loop`
+- SendIcon (cyan) - `delegateTo`
+- Icônes grises quand l'attribut n'est pas défini, colorées quand actif
+
+**Configuration:**
+- Bouton SettingsIcon sur chaque header pour ouvrir la configuration
+- Click sur le bouton appelle `onSelectModule()` avec:
+  - `id`: 'section-pre_tasks', 'section-tasks', 'section-post_tasks', ou 'section-handlers'
+  - `collection`: 'section'
+  - `name`: 'Pre-Tasks Section', 'Tasks Section', etc.
+  - Attributs actuels de la section
+
+**Mise à jour des Attributs:**
+- Gérée par `handleUpdateModuleAttributes()` dans WorkZone
+- Détecte les IDs commençant par 'section-'
+- Met à jour `sectionAttributes` dans le Play actif
+- Rafraîchit automatiquement les icônes sur le header
+
+**Initialisation:**
+- Chaque nouveau PLAY initialise `sectionAttributes` avec des objets vides pour chaque section
+- Permet d'éviter les vérifications null/undefined dans le code
 
 **Pattern d'ID:**
 - Format: `${blockId}-${section}-start`
@@ -1159,6 +1244,15 @@ kubectl apply -f k8s/frontend/
 - [x] Correction du bug de duplication lors du déplacement de tâches/blocks depuis sections de blocks vers sections PLAY
 - [x] Nettoyage atomique des blockSections lors du déplacement (forme fonctionnelle setModules)
 - [x] Utilisation systématique de setModules(prev => ...) pour éviter stale closures
+- [x] PLAY START tasks redessinés comme mini START (60x40px au lieu de 100x60px)
+- [x] Simplification des PLAY START tasks (juste "START" centré, sans TextField ni icônes)
+- [x] Système d'attributs pour les sections PLAY (when, ignoreErrors, become, loop, delegateTo)
+- [x] Icônes d'attributs sur les headers d'accordéon des sections PLAY
+- [x] Bouton de configuration (SettingsIcon) sur chaque header de section PLAY
+- [x] Mise à jour des attributs de section via ConfigZone (handleUpdateModuleAttributes étendu)
+- [x] Interface PlaySectionAttributes pour typage des attributs de sections
+- [x] Initialisation automatique des sectionAttributes dans les nouveaux PLAYs
+- [x] Indicateurs visuels (icônes colorées/grises) selon l'état des attributs de section
 
 ---
 

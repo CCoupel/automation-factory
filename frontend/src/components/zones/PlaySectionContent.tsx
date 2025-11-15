@@ -572,6 +572,54 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
             )
           }
 
+          // Si c'est une START task, rendre comme un mini START
+          if (task.isPlay) {
+            return (
+              <Paper
+                key={task.id}
+                data-task-id={task.id}
+                elevation={2}
+                draggable={true}
+                onDragStart={(e) => handleModuleDragStart(task.id, e)}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                }}
+                onDrop={(e) => {
+                  const sourceId = e.dataTransfer.getData('existingModule')
+                  if (sourceId && sourceId !== task.id) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleModuleDropOnModule(task.id, e)
+                  }
+                }}
+                sx={{
+                  position: 'absolute',
+                  left: task.x,
+                  top: task.y,
+                  width: 60,
+                  height: 40,
+                  p: 0.5,
+                  cursor: 'move',
+                  border: `2px solid ${getPlaySectionColor(sectionName)}`,
+                  borderRadius: '0 50% 50% 0',
+                  bgcolor: `${getPlaySectionColor(sectionName)}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: draggedModuleId === task.id ? 10 : 1,
+                  opacity: draggedModuleId === task.id ? 0.7 : 1,
+                  '&:hover': {
+                    boxShadow: 4,
+                  },
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 'bold', color: getPlaySectionColor(sectionName), fontSize: '0.6rem' }}>
+                  START
+                </Typography>
+              </Paper>
+            )
+          }
+
           // Sinon, rendre une tâche normale
           return (
             <Paper
@@ -599,13 +647,13 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                 position: 'absolute',
                 left: task.x,
                 top: task.y,
-                width: task.isPlay ? 100 : 140,
+                width: 140,
                 minHeight: 60,
                 p: 1.5,
-                cursor: task.isPlay ? 'pointer' : 'move',
-                border: task.isPlay ? `2px solid ${getPlaySectionColor(sectionName)}` : '2px solid #ddd',
-                borderRadius: task.isPlay ? '0 50% 50% 0' : 2,
-                bgcolor: task.isPlay ? `${getPlaySectionColor(sectionName)}15` : 'background.paper',
+                cursor: 'move',
+                border: '2px solid #ddd',
+                borderRadius: 2,
+                bgcolor: 'background.paper',
                 zIndex: draggedModuleId === task.id ? 10 : 1,
                 opacity: draggedModuleId === task.id ? 0.7 : 1,
                 '&:hover': {
@@ -631,7 +679,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                     flexShrink: 0,
                   }}
                 >
-                  {modules.filter(m => m.parentSection === sectionName).indexOf(task) + 1}
+                  {modules.filter(m => m.parentSection === sectionName && !m.isPlay).indexOf(task) + 1}
                 </Box>
                 <TextField
                   fullWidth

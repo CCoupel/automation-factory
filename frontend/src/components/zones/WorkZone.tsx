@@ -13,6 +13,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import SecurityIcon from '@mui/icons-material/Security'
 import LoopIcon from '@mui/icons-material/Loop'
 import SendIcon from '@mui/icons-material/Send'
+import SettingsIcon from '@mui/icons-material/Settings'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
@@ -60,12 +61,26 @@ interface PlayVariable {
   value: string
 }
 
+interface PlaySectionAttributes {
+  when?: string
+  ignoreErrors?: boolean
+  become?: boolean
+  loop?: string
+  delegateTo?: string
+}
+
 interface Play {
   id: string
   name: string
   modules: ModuleBlock[]
   links: Link[]
   variables: PlayVariable[]
+  sectionAttributes?: {
+    pre_tasks?: PlaySectionAttributes
+    tasks?: PlaySectionAttributes
+    post_tasks?: PlaySectionAttributes
+    handlers?: PlaySectionAttributes
+  }
 }
 
 interface WorkZoneProps {
@@ -144,6 +159,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         { key: 'ansible_user', value: 'root' },
         { key: 'ansible_port', value: '22' },
       ],
+      sectionAttributes: {
+        pre_tasks: {},
+        tasks: {},
+        post_tasks: {},
+        handlers: {},
+      },
     },
   ])
   const [activePlayIndex, setActivePlayIndex] = useState(0)
@@ -1402,6 +1423,63 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
+    // Si c'est une section PLAY (ID commence par "section-")
+    if (id.startsWith('section-')) {
+      const sectionName = id.replace('section-', '') as 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+
+      setPlays(prevPlays => {
+        const updatedPlays = [...prevPlays]
+        const currentAttributes = updatedPlays[activePlayIndex].sectionAttributes || {
+          pre_tasks: {},
+          tasks: {},
+          post_tasks: {},
+          handlers: {},
+        }
+
+        updatedPlays[activePlayIndex] = {
+          ...updatedPlays[activePlayIndex],
+          sectionAttributes: {
+            ...currentAttributes,
+            [sectionName]: {
+              ...currentAttributes[sectionName],
+              ...updates
+            }
+          }
+        }
+
+        return updatedPlays
+      })
+
+      // Mettre à jour aussi la sélection si c'est celle-ci
+      if (selectedModuleId === id) {
+        const sectionNames = {
+          'pre_tasks': 'Pre-Tasks Section',
+          'tasks': 'Tasks Section',
+          'post_tasks': 'Post-Tasks Section',
+          'handlers': 'Handlers Section'
+        }
+
+        const currentSectionAttrs = currentPlay.sectionAttributes?.[sectionName] || {}
+
+        onSelectModule({
+          id,
+          name: sectionNames[sectionName],
+          collection: 'section',
+          taskName: `${sectionNames[sectionName]} Configuration`,
+          when: updates.when !== undefined ? updates.when : currentSectionAttrs.when,
+          ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : currentSectionAttrs.ignoreErrors,
+          become: updates.become !== undefined ? updates.become : currentSectionAttrs.become,
+          loop: updates.loop !== undefined ? updates.loop : currentSectionAttrs.loop,
+          delegateTo: updates.delegateTo !== undefined ? updates.delegateTo : currentSectionAttrs.delegateTo,
+          isBlock: false,
+          isPlay: false,
+        })
+      }
+
+      return
+    }
+
+    // Sinon, c'est un module normal
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
     if (!module) return
@@ -1430,7 +1508,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         isPlay: module.isPlay,
       })
     }
-  }, [modules, selectedModuleId, onSelectModule, setModules])
+  }, [modules, selectedModuleId, onSelectModule, setModules, setPlays, activePlayIndex, currentPlay])
 
   // Exposer handleUpdateModuleAttributes au parent via callback
   useEffect(() => {
@@ -1899,6 +1977,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       ],
       links: [],
       variables: [],
+      sectionAttributes: {
+        pre_tasks: {},
+        tasks: {},
+        post_tasks: {},
+        handlers: {},
+      },
     }
     setPlays([...plays, newPlay])
     setActivePlayIndex(plays.length)
@@ -2294,12 +2378,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           minHeight: 0
         }}>
           <Box
-            onClick={() => {
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule) {
-                togglePlaySection(playModule.id, 'pre_tasks')
-              }
-            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -2307,18 +2385,75 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('pre_tasks')}15`,
-              cursor: 'pointer',
               '&:hover': { bgcolor: `${getPlaySectionColor('pre_tasks')}25` }
             }}
           >
-            {(() => {
-              const playModule = modules.find(m => m.isPlay)
-              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
-              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-            })()}
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('pre_tasks') }}>
-              Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
-            </Typography>
+            <Box
+              onClick={() => {
+                const playModule = modules.find(m => m.isPlay)
+                if (playModule) {
+                  togglePlaySection(playModule.id, 'pre_tasks')
+                }
+              }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
+            >
+              {(() => {
+                const playModule = modules.find(m => m.isPlay)
+                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
+                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+              })()}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('pre_tasks') }}>
+                Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
+              </Typography>
+            </Box>
+
+            {/* Icônes d'attributs de la section */}
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.when ? `Condition: ${currentPlay.sectionAttributes.pre_tasks.when}` : 'No condition'}>
+                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.when ? '#1976d2' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.become ? '#d32f2f' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.pre_tasks.loop}` : 'No loop'}>
+                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.loop ? '#388e3c' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.pre_tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.pre_tasks.delegateTo}` : 'No delegation'}>
+                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.pre_tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
+              </Tooltip>
+
+              {/* Bouton de configuration */}
+              <Tooltip title="Configure section attributes">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectModule({
+                      id: `section-pre_tasks`,
+                      name: 'Pre-Tasks Section',
+                      collection: 'section',
+                      taskName: 'Pre-Tasks Configuration',
+                      when: currentPlay.sectionAttributes?.pre_tasks?.when,
+                      ignoreErrors: currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors,
+                      become: currentPlay.sectionAttributes?.pre_tasks?.become,
+                      loop: currentPlay.sectionAttributes?.pre_tasks?.loop,
+                      delegateTo: currentPlay.sectionAttributes?.pre_tasks?.delegateTo,
+                      isBlock: false,
+                      isPlay: false,
+                    })
+                  }}
+                  sx={{
+                    p: 0.5,
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
           {isPreTasksOpen && (
               <Box
@@ -2371,12 +2506,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           minHeight: 0
         }}>
           <Box
-            onClick={() => {
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule) {
-                togglePlaySection(playModule.id, 'tasks')
-              }
-            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -2384,18 +2513,75 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('tasks')}15`,
-              cursor: 'pointer',
               '&:hover': { bgcolor: `${getPlaySectionColor('tasks')}25` }
             }}
           >
-            {(() => {
-              const playModule = modules.find(m => m.isPlay)
-              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
-              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-            })()}
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('tasks') }}>
-              Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
-            </Typography>
+            <Box
+              onClick={() => {
+                const playModule = modules.find(m => m.isPlay)
+                if (playModule) {
+                  togglePlaySection(playModule.id, 'tasks')
+                }
+              }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
+            >
+              {(() => {
+                const playModule = modules.find(m => m.isPlay)
+                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
+                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+              })()}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('tasks') }}>
+                Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
+              </Typography>
+            </Box>
+
+            {/* Icônes d'attributs de la section */}
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <Tooltip title={currentPlay.sectionAttributes?.tasks?.when ? `Condition: ${currentPlay.sectionAttributes.tasks.when}` : 'No condition'}>
+                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.when ? '#1976d2' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.become ? '#d32f2f' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.tasks.loop}` : 'No loop'}>
+                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.loop ? '#388e3c' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.tasks.delegateTo}` : 'No delegation'}>
+                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
+              </Tooltip>
+
+              {/* Bouton de configuration */}
+              <Tooltip title="Configure section attributes">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectModule({
+                      id: `section-tasks`,
+                      name: 'Tasks Section',
+                      collection: 'section',
+                      taskName: 'Tasks Configuration',
+                      when: currentPlay.sectionAttributes?.tasks?.when,
+                      ignoreErrors: currentPlay.sectionAttributes?.tasks?.ignoreErrors,
+                      become: currentPlay.sectionAttributes?.tasks?.become,
+                      loop: currentPlay.sectionAttributes?.tasks?.loop,
+                      delegateTo: currentPlay.sectionAttributes?.tasks?.delegateTo,
+                      isBlock: false,
+                      isPlay: false,
+                    })
+                  }}
+                  sx={{
+                    p: 0.5,
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
           {isTasksOpen && (
               <Box
@@ -2448,12 +2634,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           minHeight: 0
         }}>
           <Box
-            onClick={() => {
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule) {
-                togglePlaySection(playModule.id, 'post_tasks')
-              }
-            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -2461,18 +2641,75 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('post_tasks')}15`,
-              cursor: 'pointer',
               '&:hover': { bgcolor: `${getPlaySectionColor('post_tasks')}25` }
             }}
           >
-            {(() => {
-              const playModule = modules.find(m => m.isPlay)
-              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
-              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-            })()}
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('post_tasks') }}>
-              Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
-            </Typography>
+            <Box
+              onClick={() => {
+                const playModule = modules.find(m => m.isPlay)
+                if (playModule) {
+                  togglePlaySection(playModule.id, 'post_tasks')
+                }
+              }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
+            >
+              {(() => {
+                const playModule = modules.find(m => m.isPlay)
+                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
+                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+              })()}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('post_tasks') }}>
+                Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
+              </Typography>
+            </Box>
+
+            {/* Icônes d'attributs de la section */}
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.when ? `Condition: ${currentPlay.sectionAttributes.post_tasks.when}` : 'No condition'}>
+                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.when ? '#1976d2' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.ignoreErrors ? '#f57c00' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.become ? '#d32f2f' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.loop ? `Loop: ${currentPlay.sectionAttributes.post_tasks.loop}` : 'No loop'}>
+                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.loop ? '#388e3c' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.post_tasks?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.post_tasks.delegateTo}` : 'No delegation'}>
+                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.post_tasks?.delegateTo ? '#00bcd4' : '#ccc' }} />
+              </Tooltip>
+
+              {/* Bouton de configuration */}
+              <Tooltip title="Configure section attributes">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectModule({
+                      id: `section-post_tasks`,
+                      name: 'Post-Tasks Section',
+                      collection: 'section',
+                      taskName: 'Post-Tasks Configuration',
+                      when: currentPlay.sectionAttributes?.post_tasks?.when,
+                      ignoreErrors: currentPlay.sectionAttributes?.post_tasks?.ignoreErrors,
+                      become: currentPlay.sectionAttributes?.post_tasks?.become,
+                      loop: currentPlay.sectionAttributes?.post_tasks?.loop,
+                      delegateTo: currentPlay.sectionAttributes?.post_tasks?.delegateTo,
+                      isBlock: false,
+                      isPlay: false,
+                    })
+                  }}
+                  sx={{
+                    p: 0.5,
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
           {isPostTasksOpen && (
               <Box
@@ -2525,12 +2762,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           minHeight: 0
         }}>
           <Box
-            onClick={() => {
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule) {
-                togglePlaySection(playModule.id, 'handlers')
-              }
-            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -2538,18 +2769,75 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('handlers')}15`,
-              cursor: 'pointer',
               '&:hover': { bgcolor: `${getPlaySectionColor('handlers')}25` }
             }}
           >
-            {(() => {
-              const playModule = modules.find(m => m.isPlay)
-              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
-              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-            })()}
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('handlers') }}>
-              Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
-            </Typography>
+            <Box
+              onClick={() => {
+                const playModule = modules.find(m => m.isPlay)
+                if (playModule) {
+                  togglePlaySection(playModule.id, 'handlers')
+                }
+              }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
+            >
+              {(() => {
+                const playModule = modules.find(m => m.isPlay)
+                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
+                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+              })()}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('handlers') }}>
+                Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
+              </Typography>
+            </Box>
+
+            {/* Icônes d'attributs de la section */}
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <Tooltip title={currentPlay.sectionAttributes?.handlers?.when ? `Condition: ${currentPlay.sectionAttributes.handlers.when}` : 'No condition'}>
+                <HelpOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.when ? '#1976d2' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.handlers?.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
+                <ErrorOutlineIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.ignoreErrors ? '#f57c00' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.handlers?.become ? 'Become: yes (sudo)' : 'Become: no'}>
+                <SecurityIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.become ? '#d32f2f' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.handlers?.loop ? `Loop: ${currentPlay.sectionAttributes.handlers.loop}` : 'No loop'}>
+                <LoopIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.loop ? '#388e3c' : '#ccc' }} />
+              </Tooltip>
+              <Tooltip title={currentPlay.sectionAttributes?.handlers?.delegateTo ? `Delegate to: ${currentPlay.sectionAttributes.handlers.delegateTo}` : 'No delegation'}>
+                <SendIcon sx={{ fontSize: 14, color: currentPlay.sectionAttributes?.handlers?.delegateTo ? '#00bcd4' : '#ccc' }} />
+              </Tooltip>
+
+              {/* Bouton de configuration */}
+              <Tooltip title="Configure section attributes">
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSelectModule({
+                      id: `section-handlers`,
+                      name: 'Handlers Section',
+                      collection: 'section',
+                      taskName: 'Handlers Configuration',
+                      when: currentPlay.sectionAttributes?.handlers?.when,
+                      ignoreErrors: currentPlay.sectionAttributes?.handlers?.ignoreErrors,
+                      become: currentPlay.sectionAttributes?.handlers?.become,
+                      loop: currentPlay.sectionAttributes?.handlers?.loop,
+                      delegateTo: currentPlay.sectionAttributes?.handlers?.delegateTo,
+                      isBlock: false,
+                      isPlay: false,
+                    })
+                  }}
+                  sx={{
+                    p: 0.5,
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
+                  }}
+                >
+                  <SettingsIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
           {isHandlersOpen && (
               <Box
