@@ -13,7 +13,17 @@
       "Bash(git push:*)",
       "Bash(curl:*)",
       "Bash(/dev/null)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git revert:*)",
+      "Bash(npm run build:*)",
+      "Bash(__NEW_LINE__ mkdir -p \"c:/Users/cyril/Documents/VScode/Ansible Builder/ANALYSIS\")",
+      "Bash(__NEW_LINE__ echo 'FICHIERS GENERES:' echo ================== ls -lh c:/Users/cyril/Documents/VScode/Ansible Builder/*.{md,txt})",
+      "Bash(__NEW_LINE__ cd 'c:/Users/cyril/Documents/VScode/Ansible Builder' ls -lh *.md *.txt)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 8404 -Force; Stop-Process -Id 12116 -Force\")",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

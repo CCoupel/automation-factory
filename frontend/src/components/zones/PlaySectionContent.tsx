@@ -1,4 +1,4 @@
-import { Box, Paper, IconButton, TextField, Typography } from '@mui/material'
+import { Box, Paper, IconButton, TextField, Typography, Tooltip } from '@mui/material'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -160,20 +160,17 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                   </Box>
 
                   {/* Icônes d'attributs */}
-                  <Box sx={{ display: 'flex', gap: 0.5, pl: 3, mt: 0.5 }}>
-                    <Tooltip title={task.when ? `Condition: ${task.when}` : 'No condition'}>
-                      <HelpOutlineIcon sx={{ fontSize: 12, color: task.when ? '#1976d2' : '#ccc' }} />
-                    </Tooltip>
-                    <Tooltip title={task.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                      <ErrorOutlineIcon sx={{ fontSize: 12, color: task.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                    </Tooltip>
-                    <Tooltip title={task.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                      <SecurityIcon sx={{ fontSize: 12, color: task.become ? '#d32f2f' : '#ccc' }} />
-                    </Tooltip>
-                    <Tooltip title={task.delegateTo ? `Delegate to: ${task.delegateTo}` : 'No delegation'}>
-                      <SendIcon sx={{ fontSize: 12, color: task.delegateTo ? '#00bcd4' : '#ccc' }} />
-                    </Tooltip>
-                  </Box>
+                  <TaskAttributeIcons
+                    attributes={{
+                      when: task.when,
+                      ignoreErrors: task.ignoreErrors,
+                      become: task.become,
+                      loop: task.loop,
+                      delegateTo: task.delegateTo
+                    }}
+                    size="small"
+                    sx={{ pl: 3, mt: 0.5 }}
+                  />
                 </Box>
 
                 {/* Sections du block (normal, rescue, always) */}

@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tabs, Tab, Button, Chip } from '@mui/material'
+import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Tabs, Tab, Button, Chip } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import GridOffIcon from '@mui/icons-material/GridOff'
@@ -2945,20 +2945,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                       {/* Icônes d'attributs (SEULEMENT pour les blocks, pas les PLAY) */}
                       {!module.isPlay && (
-                        <Box sx={{ display: 'flex', gap: 0.5, pl: 3, mt: 0.5 }}>
-                          <Tooltip title={module.when ? `Condition: ${module.when}` : 'No condition'}>
-                            <HelpOutlineIcon sx={{ fontSize: 12, color: module.when ? '#1976d2' : '#ccc' }} />
-                          </Tooltip>
-                          <Tooltip title={module.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                            <ErrorOutlineIcon sx={{ fontSize: 12, color: module.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                          </Tooltip>
-                          <Tooltip title={module.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                            <SecurityIcon sx={{ fontSize: 12, color: module.become ? '#d32f2f' : '#ccc' }} />
-                          </Tooltip>
-                          <Tooltip title={module.delegateTo ? `Delegate to: ${module.delegateTo}` : 'No delegation'}>
-                            <SendIcon sx={{ fontSize: 12, color: module.delegateTo ? '#00bcd4' : '#ccc' }} />
-                          </Tooltip>
-                        </Box>
+                        <TaskAttributeIcons
+                          attributes={{
+                            when: module.when,
+                            ignoreErrors: module.ignoreErrors,
+                            become: module.become,
+                            loop: module.loop,
+                            delegateTo: module.delegateTo
+                          }}
+                          size="small"
+                          sx={{ pl: 3, mt: 0.5 }}
+                        />
                       )}
                     </Box>
 
@@ -3837,23 +3834,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                     </Typography>
 
                     {/* Icônes d'attributs de tâche */}
-                    <Box sx={{ mt: 0.25, display: 'flex', gap: 0.5, minHeight: 14 }}>
-                      <Tooltip title={module.when ? `Condition: ${module.when}` : 'No condition'}>
-                        <HelpOutlineIcon sx={{ fontSize: 12, color: module.when ? '#1976d2' : '#ccc' }} />
-                      </Tooltip>
-                      <Tooltip title={module.ignoreErrors ? 'Ignore errors: yes' : 'Ignore errors: no'}>
-                        <ErrorOutlineIcon sx={{ fontSize: 12, color: module.ignoreErrors ? '#f57c00' : '#ccc' }} />
-                      </Tooltip>
-                      <Tooltip title={module.become ? 'Become: yes (sudo)' : 'Become: no'}>
-                        <SecurityIcon sx={{ fontSize: 12, color: module.become ? '#d32f2f' : '#ccc' }} />
-                      </Tooltip>
-                      <Tooltip title={module.loop ? `Loop: ${module.loop}` : 'No loop'}>
-                        <LoopIcon sx={{ fontSize: 12, color: module.loop ? '#388e3c' : '#ccc' }} />
-                      </Tooltip>
-                      <Tooltip title={module.delegateTo ? `Delegate to: ${module.delegateTo}` : 'No delegation'}>
-                        <SendIcon sx={{ fontSize: 12, color: module.delegateTo ? '#00bcd4' : '#ccc' }} />
-                      </Tooltip>
-                    </Box>
+                    <TaskAttributeIcons
+                      attributes={{
+                        when: module.when,
+                        ignoreErrors: module.ignoreErrors,
+                        become: module.become,
+                        loop: module.loop,
+                        delegateTo: module.delegateTo
+                      }}
+                      size="small"
+                      sx={{ mt: 0.25, minHeight: 14 }}
+                    />
                   </Paper>
                 )
               }
