@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
+import SectionLinks from '../common/SectionLinks'
 import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play } from '../../types/playbook'
 
 interface WorkZoneProps {
@@ -139,7 +140,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // Sections du PLAY - Format: "playId:section" - Variables et Tasks ouvertes par défaut
   const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:pre_tasks', '*:post_tasks', '*:handlers']))
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
-  const [linkRefreshKey, setLinkRefreshKey] = useState(0)
 
   const GRID_SIZE = 50
 
@@ -243,6 +243,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       width: Math.max(manualWidth, baseWidth),
       height: Math.max(manualHeight, defaultHeight)
     }
+  }
+
+  /**
+   * Obtenir les dimensions d'un module (block ou tâche)
+   * Pour usage dans SectionLinks
+   */
+  const getModuleDimensions = (module: ModuleBlock): { width: number; height: number } => {
+    if (module.isBlock) {
+      return getBlockDimensions(module)
+    }
+    // Module virtuel (mini START task) - 60x40px
+    if (module.collection === 'virtual') {
+      return { width: 60, height: 40 }
+    }
+    // Tâche START (PLAY START - isPlay=true) - 60x40px
+    if (module.isPlay) {
+      return { width: 60, height: 40 }
+    }
+    // Tâche normale - 140x60px
+    return { width: 140, height: 60 }
   }
 
   // Obtenir le thème de couleur d'un PLAY (toujours vert)
@@ -1353,6 +1373,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return () => clearTimeout(timer)
   }, [collapsedPlaySections])
 
+
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
     // Si c'est une section PLAY (ID commence par "section-")
@@ -1559,151 +1580,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }
 
-  // Calculer la position absolue d'un module (en tenant compte s'il est dans un block)
-  const getModuleAbsolutePosition = (module: ModuleBlock) => {
-    // Si c'est un module virtuel (mini START task), utiliser sa position directement
-    if (module.collection === 'virtual') {
-      // Obtenir les dimensions depuis le DOM
-      const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-      const dims = taskElement ? { width: taskElement.getBoundingClientRect().width, height: taskElement.getBoundingClientRect().height } : { width: 60, height: 40 }
-
-      return {
-        x: module.x,
-        y: module.y,
-        width: dims.width,
-        height: dims.height
-      }
-    }
-
-    // Dimensions par défaut
-    let dims = module.isBlock ? getBlockDimensions(module) : { width: module.isPlay ? 100 : 140, height: 60 }
-
-    // Si le module est dans un block, calculer sa position absolue
-    let absoluteX = module.x
-    let absoluteY = module.y
-
-    if (module.parentId && module.parentSection) {
-      // Tâche dans une section de block
-      // Calculer position = position absolue du block parent + offset de la section + coordonnées de la tâche
-
-      const parentBlock = modules.find(m => m.id === module.parentId)
-      if (parentBlock) {
-        // Obtenir la position absolue du block parent (peut être récursif si block imbriqué)
-        const parentPosition = getModuleAbsolutePosition(parentBlock)
-
-        // Ajouter header du block (50px)
-        const blockHeaderHeight = 50
-        absoluteY = parentPosition.y + blockHeaderHeight
-
-        // Ajouter hauteur des sections précédentes (avec accordion)
-        const sectionHeaderHeight = 25
-        const minContentHeight = 200
-
-        const sections = ['normal', 'rescue', 'always'] as const
-        for (const section of sections) {
-          if (section === module.parentSection) {
-            // C'est notre section, ajouter le header et arrêter
-            absoluteY += sectionHeaderHeight
-            break
-          }
-
-          // Section précédente : ajouter header
-          absoluteY += sectionHeaderHeight
-
-          // Si la section précédente n'est pas collapsed, ajouter le contenu
-          if (!isSectionCollapsed(module.parentId, section)) {
-            absoluteY += minContentHeight
-          }
-        }
-
-        // Position X = position X du block parent
-        absoluteX = parentPosition.x
-
-        // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
-        const padding = 4
-
-        // Ajouter les coordonnées de la tâche + padding
-        absoluteX += padding + module.x
-        absoluteY += padding + module.y
-
-        // Obtenir dimensions via DOM seulement pour les tâches normales
-        // Pour les blocks imbriqués, on garde les dimensions calculées par getBlockDimensions (qui tiennent compte de collapsed)
-        if (!module.isBlock) {
-          const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-          if (taskElement) {
-            const taskRect = taskElement.getBoundingClientRect()
-            dims = { width: taskRect.width, height: taskRect.height }
-          }
-        }
-      }
-    } else if (module.parentSection && !module.parentId) {
-      // Module dans une PLAY section (pas dans un block)
-      // Utiliser les coordonnées de l'état React (module.x, module.y) + position de la section
-
-      // Mapper les refs de section
-      let sectionRef: React.RefObject<HTMLDivElement> | null = null
-      switch (module.parentSection) {
-        case 'variables':
-          sectionRef = variablesSectionRef
-          break
-        case 'pre_tasks':
-          sectionRef = preTasksSectionRef
-          break
-        case 'tasks':
-          sectionRef = tasksSectionRef
-          break
-        case 'post_tasks':
-          sectionRef = postTasksSectionRef
-          break
-        case 'handlers':
-          sectionRef = handlersSectionRef
-          break
-      }
-
-      if (sectionRef?.current && playSectionsContainerRef.current) {
-        // Utiliser getBoundingClientRect pour obtenir les positions réelles
-        const containerRect = playSectionsContainerRef.current.getBoundingClientRect()
-        const sectionRect = sectionRef.current.getBoundingClientRect()
-
-        // Position de la section relative au conteneur (en tenant compte du scroll)
-        const containerScrollTop = playSectionsContainerRef.current.scrollTop
-        const containerScrollLeft = playSectionsContainerRef.current.scrollLeft
-
-        const sectionRelativeTop = sectionRect.top - containerRect.top + containerScrollTop
-        const sectionRelativeLeft = sectionRect.left - containerRect.left + containerScrollLeft
-
-        // Position absolue = position de la section + position relative de la tâche
-        // Note: module.x et module.y sont déjà relatifs au bord intérieur de la section (après padding)
-        // donc on N'AJOUTE PAS le padding ici
-        absoluteX = sectionRelativeLeft + module.x
-        absoluteY = sectionRelativeTop + module.y
-
-        // Obtenir les dimensions réelles via le DOM seulement pour les tâches normales
-        // Pour les blocks, on garde les dimensions calculées par getBlockDimensions (qui tiennent compte de collapsed)
-        if (!module.isBlock) {
-          const taskElement = document.querySelector(`[data-task-id="${module.id}"]`)
-          if (taskElement) {
-            const taskRect = taskElement.getBoundingClientRect()
-            dims = { width: taskRect.width, height: taskRect.height }
-          }
-        }
-      } else {
-        // Fallback
-        absoluteX = module.x
-        absoluteY = module.y
-      }
-    }
-
-    return {
-      x: absoluteX,
-      y: absoluteY,
-      width: dims.width,
-      height: dims.height
-    }
-  }
 
   // Obtenir un module ou créer un objet virtuel pour un mini START task
-  const getModuleOrVirtual = (moduleId: string): ModuleBlock | null => {
+  const getModuleOrVirtual = (moduleId: string): ModuleBlock | undefined => {
     // Essayer de trouver dans modules
     const module = modules.find(m => m.id === moduleId)
     if (module) return module
@@ -1716,140 +1595,32 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         const section = parts[parts.length - 2] as 'normal' | 'rescue' | 'always'
         const blockId = parts.slice(0, -2).join('-')
 
-        // Calculer position = position absolue du block parent + offset de la section + coordonnées hardcodées (20, 10)
+        // Vérifier que le block parent existe
         const parentBlock = modules.find(m => m.id === blockId)
 
         if (parentBlock) {
-          // Obtenir la position absolue du block parent (peut être récursif si block imbriqué)
-          const parentPosition = getModuleAbsolutePosition(parentBlock)
-
-          // Ajouter header du block (50px)
-          const blockHeaderHeight = 50
-          let y = parentPosition.y + blockHeaderHeight
-
-          // Ajouter hauteur des sections précédentes (avec accordion)
-          const sectionHeaderHeight = 25
-          const minContentHeight = 200
-
-          const sections = ['normal', 'rescue', 'always'] as const
-          for (const sect of sections) {
-            if (sect === section) {
-              // C'est notre section, ajouter le header et arrêter
-              y += sectionHeaderHeight
-              break
-            }
-
-            // Section précédente : ajouter header
-            y += sectionHeaderHeight
-
-            // Si la section précédente n'est pas collapsed, ajouter le contenu
-            if (!isSectionCollapsed(blockId, sect)) {
-              y += minContentHeight
-            }
-          }
-
-          // Position X = position X du block parent
-          let x = parentPosition.x
-
-          // Compensation du padding de la section Box (p: 0.5 = 4px en MUI)
-          const padding = 4
-
-          // Ajouter les coordonnées hardcodées du mini START + padding
-          x += padding + 20
-          y += padding + 10
-
-          // Créer un module virtuel
+          // Créer un module virtuel avec coordonnées RELATIVES à la section
+          // SectionLinks utilisera ces coordonnées directement
           return {
             id: moduleId,
             collection: 'virtual',
             name: 'mini-start',
             description: 'Mini START task',
             taskName: 'START',
-            x,
-            y,
+            x: 20, // Position relative dans la section
+            y: 10, // Position relative dans la section
             isBlock: false,
             isPlay: false,
+            parentId: blockId, // Important: lier au parent block
+            parentSection: section, // Important: lier à la section
           }
         }
       }
     }
 
-    return null
+    return undefined
   }
 
-  // Calculer les points de connexion sur les bords des modules
-  const getModuleConnectionPoint = (fromModule: ModuleBlock, toModule: ModuleBlock) => {
-    const fromPos = getModuleAbsolutePosition(fromModule)
-    const toPos = getModuleAbsolutePosition(toModule)
-
-    // Centres des modules
-    const fromCenterX = fromPos.x + fromPos.width / 2
-    const fromCenterY = fromPos.y + fromPos.height / 2
-    const toCenterX = toPos.x + toPos.width / 2
-    const toCenterY = toPos.y + toPos.height / 2
-
-    // Calculer l'angle entre les deux modules
-    const dx = toCenterX - fromCenterX
-    const dy = toCenterY - fromCenterY
-
-    // Déterminer quel côté utiliser pour chaque module
-    let fromX, fromY, toX, toY
-
-    // Pour le module source (from)
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Connexion horizontale (gauche/droite)
-      if (dx > 0) {
-        // toModule est à droite de fromModule -> sortie par la droite
-        fromX = fromPos.x + fromPos.width
-        fromY = fromCenterY
-      } else {
-        // toModule est à gauche de fromModule -> sortie par la gauche
-        fromX = fromPos.x
-        fromY = fromCenterY
-      }
-    } else {
-      // Connexion verticale (haut/bas)
-      if (dy > 0) {
-        // toModule est en dessous de fromModule -> sortie par le bas
-        fromX = fromCenterX
-        fromY = fromPos.y + fromPos.height
-      } else {
-        // toModule est au-dessus de fromModule -> sortie par le haut
-        fromX = fromCenterX
-        fromY = fromPos.y
-      }
-    }
-
-    // Pour le module destination (to)
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Connexion horizontale (gauche/droite)
-      if (dx > 0) {
-        // toModule est à droite de fromModule -> entrée par la gauche
-        toX = toPos.x
-        toY = toCenterY
-      } else {
-        // toModule est à gauche de fromModule -> entrée par la droite
-        toX = toPos.x + toPos.width
-        toY = toCenterY
-      }
-    } else {
-      // Connexion verticale (haut/bas)
-      if (dy > 0) {
-        // toModule est en dessous de fromModule -> entrée par le haut
-        toX = toCenterX
-        toY = toPos.y
-      } else {
-        // toModule est au-dessus de fromModule -> entrée par le bas
-        toX = toCenterX
-        toY = toPos.y + toPos.height
-      }
-    }
-
-    return {
-      from: { x: fromX, y: fromY },
-      to: { x: toX, y: toY }
-    }
-  }
 
   // Gestion des PLAYs (onglets)
   const addPlay = () => {
@@ -2064,188 +1835,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
       {/* PLAY Sections - Workspace Level */}
       <Box ref={playSectionsContainerRef} sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-        {/* SVG pour les lignes de connexion */}
-        <svg
-          key={linkRefreshKey}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 2,
-            pointerEvents: 'none',
-          }}
-        >
-          {links.map((link) => {
-            const fromModule = getModuleOrVirtual(link.from)
-            const toModule = getModuleOrVirtual(link.to)
-
-            if (!fromModule || !toModule) return null
-
-            // Cacher le lien si une des tâches est dans un block réduit
-            if (fromModule.parentId) {
-              const fromParent = modules.find(m => m.id === fromModule.parentId)
-              if (fromParent && collapsedBlocks.has(fromParent.id)) {
-                return null
-              }
-              // Cacher aussi si la section est réduite
-              if (fromModule.parentSection && isSectionCollapsed(fromModule.parentId, fromModule.parentSection)) {
-                return null
-              }
-              // Vérifier si le block parent (ou ses ancêtres) est dans une section PLAY fermée
-              if (fromParent) {
-                const parentPlaySection = getModulePlaySection(fromParent)
-                if (parentPlaySection) {
-                  const playModule = modules.find(m => m.isPlay)
-                  if (playModule && isPlaySectionCollapsed(playModule.id, parentPlaySection)) {
-                    return null
-                  }
-                }
-              }
-            } else if (fromModule.parentSection && !fromModule.parentId) {
-              // Module dans une PLAY section - vérifier si la section est fermée
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule && isPlaySectionCollapsed(playModule.id, fromModule.parentSection as any)) {
-                return null
-              }
-            }
-
-            if (toModule.parentId) {
-              const toParent = modules.find(m => m.id === toModule.parentId)
-              if (toParent && collapsedBlocks.has(toParent.id)) {
-                return null
-              }
-              // Cacher aussi si la section est réduite
-              if (toModule.parentSection && isSectionCollapsed(toModule.parentId, toModule.parentSection)) {
-                return null
-              }
-              // Vérifier si le block parent (ou ses ancêtres) est dans une section PLAY fermée
-              if (toParent) {
-                const parentPlaySection = getModulePlaySection(toParent)
-                if (parentPlaySection) {
-                  const playModule = modules.find(m => m.isPlay)
-                  if (playModule && isPlaySectionCollapsed(playModule.id, parentPlaySection)) {
-                    return null
-                  }
-                }
-              }
-            } else if (toModule.parentSection && !toModule.parentId) {
-              // Module dans une PLAY section - vérifier si la section est fermée
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule && isPlaySectionCollapsed(playModule.id, toModule.parentSection as any)) {
-                return null
-              }
-            }
-
-            const connectionPoints = getModuleConnectionPoint(fromModule, toModule)
-
-            const x1 = connectionPoints.from.x
-            const y1 = connectionPoints.from.y
-            const x2 = connectionPoints.to.x
-            const y2 = connectionPoints.to.y
-
-            const midX = (x1 + x2) / 2
-            const midY = (y1 + y2) / 2
-
-            const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
-            const style = getLinkStyle(link.type)
-
-            return (
-              <g key={link.id} style={{ pointerEvents: 'all' }}>
-                {/* Point de connexion source */}
-                <circle
-                  cx={x1}
-                  cy={y1}
-                  r="4"
-                  fill={style.stroke}
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-                {/* Ligne */}
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={style.stroke}
-                  strokeWidth={style.strokeWidth || '2'}
-                  strokeDasharray={style.strokeDasharray}
-                />
-                {/* Point de connexion destination */}
-                <circle
-                  cx={x2}
-                  cy={y2}
-                  r="4"
-                  fill={style.stroke}
-                  stroke="white"
-                  strokeWidth="1.5"
-                />
-                {/* Flèche au milieu */}
-                <polygon
-                  points="0,-4 8,0 0,4"
-                  fill={style.stroke}
-                  transform={`translate(${midX}, ${midY}) rotate(${angle})`}
-                />
-                {/* Label du type de lien */}
-                {style.label && (
-                  <text
-                    x={midX}
-                    y={midY - 15}
-                    textAnchor="middle"
-                    fill={style.stroke}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {style.label}
-                  </text>
-                )}
-                {/* Zone cliquable invisible */}
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke="transparent"
-                  strokeWidth="20"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredLinkId(link.id)}
-                  onMouseLeave={() => setHoveredLinkId(null)}
-                />
-                {/* Bouton de suppression */}
-                {hoveredLinkId === link.id && (
-                  <>
-                    <circle
-                      cx={midX}
-                      cy={midY}
-                      r="10"
-                      fill="white"
-                      stroke="#dc004e"
-                      strokeWidth="2"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => deleteLink(link.id)}
-                      onMouseEnter={() => setHoveredLinkId(link.id)}
-                      onMouseLeave={() => setHoveredLinkId(null)}
-                    />
-                    <text
-                      x={midX}
-                      y={midY + 1}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="#dc004e"
-                      fontSize="12"
-                      fontWeight="bold"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      ×
-                    </text>
-                  </>
-                )}
-              </g>
-            )
-          })}
-        </svg>
-
         {/* Section 1: Variables */}
         <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
           <Box
@@ -2263,7 +1852,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               py: 1,
               bgcolor: `${getPlaySectionColor('variables')}15`,
               cursor: 'pointer',
-              '&:hover': { bgcolor: `${getPlaySectionColor('variables')}25` }
+              '&:hover': { bgcolor: `${getPlaySectionColor('variables')}25` },
+              position: 'relative',
+              zIndex: 3
             }}
           >
             {(() => {
@@ -2317,7 +1908,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('pre_tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('pre_tasks')}25` }
+              '&:hover': { bgcolor: `${getPlaySectionColor('pre_tasks')}25` },
+              position: 'relative',
+              zIndex: 3
             }}
           >
             <Box
@@ -2413,6 +2006,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
                   getPlaySectionColor={getPlaySectionColor}
+                  links={links}
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
+                />
+
+                {/* Render links for this section */}
+                <SectionLinks
+                  links={links}
+                  modules={modules}
+                  sectionType="play"
+                  sectionName="pre_tasks"
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
                 />
               </Box>
           )}
@@ -2434,7 +2048,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('tasks')}25` }
+              '&:hover': { bgcolor: `${getPlaySectionColor('tasks')}25` },
+              position: 'relative',
+              zIndex: 3
             }}
           >
             <Box
@@ -2530,6 +2146,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
                   getPlaySectionColor={getPlaySectionColor}
+                  links={links}
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
+                />
+
+                {/* Render links for this section */}
+                <SectionLinks
+                  links={links}
+                  modules={modules}
+                  sectionType="play"
+                  sectionName="tasks"
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
                 />
               </Box>
           )}
@@ -2551,7 +2188,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('post_tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('post_tasks')}25` }
+              '&:hover': { bgcolor: `${getPlaySectionColor('post_tasks')}25` },
+              position: 'relative',
+              zIndex: 3
             }}
           >
             <Box
@@ -2647,6 +2286,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
                   getPlaySectionColor={getPlaySectionColor}
+                  links={links}
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
+                />
+
+                {/* Render links for this section */}
+                <SectionLinks
+                  links={links}
+                  modules={modules}
+                  sectionType="play"
+                  sectionName="post_tasks"
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
                 />
               </Box>
           )}
@@ -2668,7 +2328,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               px: 2,
               py: 1,
               bgcolor: `${getPlaySectionColor('handlers')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('handlers')}25` }
+              '&:hover': { bgcolor: `${getPlaySectionColor('handlers')}25` },
+              position: 'relative',
+              zIndex: 3
             }}
           >
             <Box
@@ -2764,6 +2426,27 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                   getBlockDimensions={getBlockDimensions}
                   getSectionColor={getSectionColor}
                   getPlaySectionColor={getPlaySectionColor}
+                  links={links}
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
+                />
+
+                {/* Render links for this section */}
+                <SectionLinks
+                  links={links}
+                  modules={modules}
+                  sectionType="play"
+                  sectionName="handlers"
+                  getLinkStyle={getLinkStyle}
+                  deleteLink={deleteLink}
+                  hoveredLinkId={hoveredLinkId}
+                  setHoveredLinkId={setHoveredLinkId}
+                  getModuleOrVirtual={getModuleOrVirtual}
+                  getModuleDimensions={getModuleDimensions}
                 />
               </Box>
           )}

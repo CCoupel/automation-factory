@@ -5,7 +5,8 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import React from 'react'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
-import { ModuleBlock } from '../../types/playbook'
+import SectionLinks from '../common/SectionLinks'
+import { ModuleBlock, Link } from '../../types/playbook'
 
 interface PlaySectionContentProps {
   sectionName: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
@@ -46,6 +47,19 @@ interface PlaySectionContentProps {
   getBlockDimensions: (block: ModuleBlock) => { width: number; height: number }
   getSectionColor: (section: 'normal' | 'rescue' | 'always') => string
   getPlaySectionColor: (section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => string
+  // Props pour SectionLinks
+  links: Link[]
+  getLinkStyle: (type: string) => {
+    stroke: string
+    strokeWidth?: string
+    strokeDasharray?: string
+    label?: string
+  }
+  deleteLink: (linkId: string) => void
+  hoveredLinkId: string | null
+  setHoveredLinkId: (linkId: string | null) => void
+  getModuleOrVirtual: (id: string) => ModuleBlock | undefined
+  getModuleDimensions: (module: ModuleBlock) => { width: number; height: number }
 }
 
 const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
@@ -70,6 +84,14 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
   getBlockDimensions,
   getSectionColor,
   getPlaySectionColor,
+  // Props pour SectionLinks
+  links,
+  getLinkStyle,
+  deleteLink,
+  hoveredLinkId,
+  setHoveredLinkId,
+  getModuleOrVirtual,
+  getModuleDimensions,
 }) => {
   return (
     <>
@@ -233,6 +255,21 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
                         />
+
+                        {/* Render links for this block section */}
+                        <SectionLinks
+                          links={links}
+                          modules={modules}
+                          sectionType="block"
+                          sectionName="normal"
+                          parentId={task.id}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
+                        />
                       </Box>
                     )}
 
@@ -293,6 +330,21 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
                         />
+
+                        {/* Render links for this block section */}
+                        <SectionLinks
+                          links={links}
+                          modules={modules}
+                          sectionType="block"
+                          sectionName="rescue"
+                          parentId={task.id}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
+                        />
                       </Box>
                     )}
 
@@ -352,6 +404,21 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockTheme={getBlockTheme}
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
+                        />
+
+                        {/* Render links for this block section */}
+                        <SectionLinks
+                          links={links}
+                          modules={modules}
+                          sectionType="block"
+                          sectionName="always"
+                          parentId={task.id}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
                         />
                       </Box>
                     )}

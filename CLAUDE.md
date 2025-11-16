@@ -877,6 +877,218 @@ const getModulePlaySection = (module: ModuleBlock): 'variables' | 'pre_tasks' | 
 - **Gère les sous-blocks:** Un sous-block dans un block dans une section PLAY voit ses liens cachés quand la section PLAY se ferme
 - **N'affecte pas le canvas:** Les modules sans `parentId` (sur le canvas) ne sont pas impactés
 
+### Architecture de Rendu des Liens (Section-Scoped SVG)
+
+**Principe fondamental:** Chaque section (PLAY ou block) possède son propre SVG pour rendre ses liens, avec positionnement relatif à la section.
+
+#### Ancienne Architecture (Obsolète)
+
+L'ancienne approche utilisait un SVG global unique avec calcul de coordonnées absolues via `getBoundingClientRect()`:
+
+```typescript
+// ❌ OBSOLÈTE - Ne plus utiliser
+const getModuleAbsolutePosition = (module: ModuleBlock) => {
+  // Complexe: récupération des positions DOM avec getBoundingClientRect()
+  // Problèmes: scroll tracking, coordonnées écran, ~400 lignes de logique
+}
+
+// SVG global unique
+<svg style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
+  {/* Tous les liens de toutes les sections */}
+</svg>
+```
+
+**Problèmes de l'ancienne approche:**
+- ❌ Dépendance aux coordonnées écran (`getBoundingClientRect()`)
+- ❌ Nécessitait un scroll tracking avec event listeners
+- ❌ Calculs complexes de positions absolues (~400 lignes)
+- ❌ Liens ne suivaient pas le scroll correctement
+- ❌ Difficult à maintenir et débugger
+
+#### Nouvelle Architecture (Actuelle)
+
+**Composant SectionLinks** (`frontend/src/components/common/SectionLinks.tsx`)
+
+Un composant réutilisable qui rend un SVG positionné relativement dans sa section parente:
+
+```typescript
+interface SectionLinksProps {
+  links: Link[]
+  modules: ModuleBlock[]
+  sectionType: 'play' | 'block'
+  sectionName: PlaySectionName | BlockSectionName
+  parentId?: string  // Pour sections de blocks uniquement
+  getLinkStyle: (type: string) => { stroke: string; ... }
+  deleteLink: (linkId: string) => void
+  hoveredLinkId: string | null
+  setHoveredLinkId: (linkId: string | null) => void
+  getModuleOrVirtual: (id: string) => ModuleBlock | undefined
+  getModuleDimensions: (module: ModuleBlock) => { width: number; height: number }
+}
+```
+
+**Fonctionnalités:**
+- Filtre automatiquement les liens pour ne garder que ceux de la section courante
+- Calcule les points de connexion en coordonnées relatives (`module.x`, `module.y`)
+- SVG positionné en `position: absolute; top: 0; left: 0` dans la section
+- Clipping naturel via `overflow: auto` de la section parente
+
+**Intégration dans les sections PLAY:**
+
+```typescript
+// Dans WorkZone.tsx pour chaque section PLAY
+<Box ref={tasksSectionRef} sx={{ position: 'relative', overflow: 'auto', p: 2 }}>
+  {/* Contenu de la section */}
+
+  {/* SVG des liens pour cette section */}
+  <SectionLinks
+    links={links}
+    modules={modules}
+    sectionType="play"
+    sectionName="tasks"
+    getLinkStyle={getLinkStyle}
+    deleteLink={deleteLink}
+    hoveredLinkId={hoveredLinkId}
+    setHoveredLinkId={setHoveredLinkId}
+    getModuleOrVirtual={getModuleOrVirtual}
+    getModuleDimensions={getModuleDimensions}
+  />
+</Box>
+```
+
+**Intégration dans les sections de blocks:**
+
+```typescript
+// Dans PlaySectionContent.tsx pour chaque section de block
+<Box sx={{ position: 'relative', overflow: 'auto', p: 0.5 }}>
+  {/* Contenu de la section */}
+
+  {/* SVG des liens pour cette section */}
+  <SectionLinks
+    links={links}
+    modules={modules}
+    sectionType="block"
+    sectionName="normal"
+    parentId={task.id}
+    getLinkStyle={getLinkStyle}
+    deleteLink={deleteLink}
+    hoveredLinkId={hoveredLinkId}
+    setHoveredLinkId={setHoveredLinkId}
+    getModuleOrVirtual={getModuleOrVirtual}
+    getModuleDimensions={getModuleDimensions}
+  />
+</Box>
+```
+
+#### Calcul des Points de Connexion
+
+**Coordonnées relatives directes:**
+
+```typescript
+// Dans SectionLinks.tsx
+const getConnectionPoint = (module: ModuleBlock, toModule: ModuleBlock) => {
+  const fromDims = getModuleDimensions(module)
+  const toDims = getModuleDimensions(toModule)
+
+  // Utiliser directement module.x et module.y (coordonnées relatives)
+  const fromCenterX = module.x + fromDims.width / 2
+  const fromCenterY = module.y + fromDims.height / 2
+  const toCenterX = toModule.x + toDims.width / 2
+  const toCenterY = toModule.y + toDims.height / 2
+
+  // Calculer l'angle et déterminer les bords à utiliser
+  // ...
+
+  return { from: { x: fromX, y: fromY }, to: { x: toX, y: toY } }
+}
+```
+
+**Helper getModuleDimensions:**
+
+```typescript
+// Dans WorkZone.tsx
+const getModuleDimensions = (module: ModuleBlock): { width: number; height: number } => {
+  if (module.isBlock) {
+    return getBlockDimensions(module)  // Tient compte du collapse
+  }
+  // Module virtuel (mini START task) - 60x40px
+  if (module.collection === 'virtual') {
+    return { width: 60, height: 40 }
+  }
+  // Tâche START (PLAY START - isPlay=true) - 60x40px
+  if (module.isPlay) {
+    return { width: 60, height: 40 }
+  }
+  // Tâche normale - 140x60px
+  return { width: 140, height: 60 }
+}
+```
+
+**Modules virtuels simplifiés:**
+
+```typescript
+// Dans WorkZone.tsx - getModuleOrVirtual simplifié
+const getModuleOrVirtual = (moduleId: string): ModuleBlock | undefined => {
+  const module = modules.find(m => m.id === moduleId)
+  if (module) return module
+
+  if (moduleId.endsWith('-start')) {
+    // Parser l'ID pour extraire blockId et section
+    // ...
+
+    // Retourner un module virtuel avec coordonnées RELATIVES
+    return {
+      id: moduleId,
+      collection: 'virtual',
+      name: 'mini-start',
+      description: 'Mini START task',
+      taskName: 'START',
+      x: 20,  // Position relative dans la section
+      y: 10,  // Position relative dans la section
+      isBlock: false,
+      isPlay: false,
+      parentId: blockId,
+      parentSection: section,
+    }
+  }
+  return undefined
+}
+```
+
+#### Avantages de la Nouvelle Architecture
+
+1. **Simplicité:** Utilise directement `module.x` et `module.y` (pas de calculs complexes)
+2. **Performance:** Pas de scroll event listeners, pas de `getBoundingClientRect()` pour les liens
+3. **Clipping naturel:** Les liens sont automatiquement clippés par `overflow: auto` de la section
+4. **Maintenabilité:** ~400 lignes de logique complexe supprimées
+5. **Fiabilité:** Pas de décalages liés au timing de mise à jour du DOM
+6. **Modularité:** Chaque section gère ses propres liens de manière indépendante
+
+#### Fichiers Modifiés
+
+**Créé:**
+- `frontend/src/components/common/SectionLinks.tsx` (320 lignes) - Composant réutilisable
+
+**Modifié:**
+- `frontend/src/components/zones/WorkZone.tsx`:
+  - Supprimé: `linkRefreshKey`, scroll event listener, `getModuleAbsolutePosition`, `getModuleConnectionPoint`, SVG global (~400 lignes)
+  - Ajouté: `getModuleDimensions` helper, intégration SectionLinks dans les 4 sections PLAY
+  - Simplifié: `getModuleOrVirtual` retourne maintenant des coordonnées relatives
+
+- `frontend/src/components/zones/PlaySectionContent.tsx`:
+  - Ajouté: 6 nouvelles props pour SectionLinks
+  - Intégration de SectionLinks dans les 3 sections de blocks (normal, rescue, always)
+
+**Code net:** ~80 lignes ajoutées, ~400 lignes supprimées = **~320 lignes économisées**
+
+#### Règles Importantes
+
+1. **Position relative:** Tous les SVG utilisent `position: absolute; top: 0; left: 0` relatif à leur section
+2. **Coordonnées relatives:** Toujours utiliser `module.x` et `module.y` directement
+3. **Filtrage de section:** `isModuleInCurrentSection()` garantit que seuls les liens de la section sont rendus
+4. **Dimensions correctes:** `getModuleDimensions()` doit retourner les bonnes dimensions pour tous les types (blocks, START, tâches normales)
+5. **Pas de padding supplémentaire:** Les coordonnées `module.x/y` sont déjà relatives au bord intérieur de la section
+
 ---
 
 ## 🎨 Décisions Architecturales Importantes
@@ -1254,15 +1466,39 @@ kubectl apply -f k8s/frontend/
 
 ### Frontend
 
+**`frontend/src/components/common/SectionLinks.tsx`**
+- Composant réutilisable pour le rendu des liens SVG dans une section
+- Architecture section-scoped : chaque section possède son propre SVG
+- **Fonctionnalités clés:**
+  - Filtre automatique des liens pour ne garder que ceux de la section courante
+  - Calcul des points de connexion en coordonnées relatives (module.x, module.y)
+  - SVG positionné en `position: absolute; top: 0; left: 0` dans la section
+  - Clipping naturel via `overflow: auto` de la section parente
+  - Support des sections PLAY (pre_tasks, tasks, post_tasks, handlers) via `sectionType: 'play'`
+  - Support des sections de blocks (normal, rescue, always) via `sectionType: 'block'`
+- **Props principales:**
+  - `sectionType`: 'play' | 'block'
+  - `sectionName`: PlaySectionName | BlockSectionName
+  - `parentId?`: ID du block parent (pour sections de blocks)
+  - `getModuleDimensions`: fonction pour obtenir les dimensions de n'importe quel module
+  - `getModuleOrVirtual`: fonction pour obtenir les modules réels ou virtuels (mini START)
+- **Lignes importantes:**
+  - ~97-105: `isModuleInCurrentSection()` - filtre les modules selon la section
+  - ~111-176: `getConnectionPoint()` - calcul des points de connexion en coordonnées relatives
+  - ~181-189: Filtrage des liens pour ne garder que ceux de la section courante
+  - ~197-206: SVG avec position absolue et zIndex approprié
+- **Impact:** Élimine ~400 lignes de logique complexe de calcul de positions absolues
+
 **`frontend/src/components/zones/WorkZone.tsx`**
 - Composant principal de la zone de travail
 - Gère le canvas, drag & drop, liens
 - Rendu des blocks et sections PLAY via composant réutilisable
+- **Architecture de liens:** Utilise SectionLinks (section-scoped SVG) au lieu d'un SVG global
 - **Lignes importantes:**
   - ~77-83: Refs DOM pour sections PLAY (playSectionsContainerRef, variablesSectionRef, etc.)
   - ~86-98: État initial des PLAYs avec onglets
-  - ~189: État `linkRefreshKey` pour forcer le re-render des liens
   - ~197-292: `getBlockDimensions()` - calcul hybride (manuel + automatique) avec récursion pour blocks imbriqués
+  - ~252-266: `getModuleDimensions()` - helper pour obtenir dimensions de tous types de modules (blocks, START 60x40px, tâches 140x60px)
   - ~139-350: `handleDrop()` canvas - gestion des drops
   - ~391-409: `handleModuleDragStart()` - début du drag
   - ~527-554: `toggleBlockSection()` - comportement accordion blocks
@@ -1277,16 +1513,10 @@ kubectl apply -f k8s/frontend/
   - ~1142-1158: `getModulePlaySection()` - helper récursif pour trouver la section PLAY d'un module en remontant la hiérarchie
   - ~1179-1310: `handlePlaySectionDrop()` - gestion des drops dans sections PLAY avec nettoyage des blockSections (résout bug de duplication)
   - ~1275-1304: Nettoyage atomique des tâches sortant de sections de blocks (retire de blockSections avant déplacement)
-  - ~1377-1383: useEffect pour rafraîchissement automatique des liens après changement de section PLAY
-  - ~1418-1605: `getModuleAbsolutePosition()` - calcul positions absolues avec approche récursive
-  - ~1422-1473: Calcul position tâches dans sections de blocks avec récursion + padding compensé
-  - ~1474-1515: Calcul position tâches dans sections PLAY avec état React + getBoundingClientRect
-  - ~1543-1605: `getModuleOrVirtual()` - création de modules virtuels pour mini START avec approche récursive
-  - ~1615-1700: Rendu des liens SVG avec visibilité conditionnelle (blocks + PLAY sections)
+  - ~1353-1385: `getModuleOrVirtual()` - création de modules virtuels pour mini START avec coordonnées RELATIVES (simplifié)
   - ~1790-2240: Rendu des sections PLAY via composant PlaySectionContent (refactorisé)
-  - ~1904-1905: Utilisation de `getModuleOrVirtual()` dans le rendu des liens
-  - ~2035: SVG des liens avec `key={linkRefreshKey}` pour forcer le re-render
-  - ~2070-2116: Vérifications de visibilité des liens avec approche hiérarchique pour sections PLAY
+  - ~2394-2408, ~2511-2525, ~2628-2642, ~2745-2759: Intégration de SectionLinks dans les 4 sections PLAY
+  - **Supprimé:** `linkRefreshKey`, scroll event listener, `getModuleAbsolutePosition()`, `getModuleConnectionPoint()`, SVG global (~400 lignes)
 
 **`frontend/src/types/playbook.ts`**
 - Fichier centralisé pour tous les types partagés
@@ -1313,17 +1543,24 @@ kubectl apply -f k8s/frontend/
 - Gère le rendu des tâches simples et des blocks avec leurs 3 sections (Tasks, Rescue, Always)
 - Élimine la duplication de code entre les 4 sections PLAY (pre_tasks, tasks, post_tasks, handlers)
 - **Utilise TaskAttributeIcons:** Ligne ~681 pour les tâches
+- **Utilise SectionLinks:** Intégration dans les 3 sections de blocks (normal, rescue, always)
 - **Fonctionnalités:**
   - Rendu conditionnel: blocks avec 3 sections vs tâches simples
   - Drag & drop handlers pour tâches et blocks
   - Attribut `data-task-id` sur chaque Paper pour calcul des liens
   - Gestion du collapse/expand des blocks et sections
   - Couleurs distinctes par section avec numbering
+  - Rendu des liens SVG via SectionLinks pour chaque section de block
 - **Props principales:**
   - `sectionName`: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
   - `modules`: array des modules à afficher
   - `collapsedBlocks`, `collapsedBlockSections`: Sets pour état collapse
+  - `links`, `getLinkStyle`, `deleteLink`, `hoveredLinkId`, `setHoveredLinkId`: Props pour SectionLinks
+  - `getModuleOrVirtual`, `getModuleDimensions`: Helpers pour SectionLinks
   - Handlers: toggleBlockCollapse, toggleBlockSection, handleModuleDragStart, etc.
+- **Lignes importantes:**
+  - ~80-92: Nouvelles props pour SectionLinks (ajoutées pour architecture section-scoped)
+  - ~252-266, ~353-367, ~454-468: Intégration de SectionLinks dans les 3 sections de blocks
 - **Réduction de code:** ~1,200 lignes de duplication éliminées, net: ~800 lignes
 
 **`frontend/src/components/zones/BlockSectionContent.tsx`**
@@ -1398,6 +1635,13 @@ kubectl apply -f k8s/frontend/
 - [x] Refactoring: Composant réutilisable TaskAttributeIcons (~240 lignes économisées)
 - [x] Refactoring: Élimination de la duplication des icônes d'attributs (10+ occurrences)
 - [x] Refactoring: Import des types partagés dans WorkZone, PlaySectionContent, BlockSectionContent
+- [x] Architecture section-scoped pour le rendu des liens (un SVG par section au lieu d'un SVG global)
+- [x] Composant réutilisable SectionLinks pour rendu des liens avec coordonnées relatives
+- [x] Suppression de l'ancien système de liens avec SVG global (~400 lignes supprimées)
+- [x] Suppression du scroll tracking et des event listeners pour les liens
+- [x] Simplification de getModuleOrVirtual pour retourner des coordonnées relatives
+- [x] Helper getModuleDimensions pour obtenir les dimensions de tous types de modules (blocks, START 60x40px, tâches 140x60px)
+- [x] Clipping naturel des liens via overflow: auto des sections (pas de gestion manuelle)
 
 ---
 
