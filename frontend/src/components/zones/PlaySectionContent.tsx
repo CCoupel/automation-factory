@@ -254,6 +254,13 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockTheme={getBlockTheme}
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
+                          links={links}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
                         />
 
                         {/* Render links for this block section */}
@@ -329,6 +336,13 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockTheme={getBlockTheme}
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
+                          links={links}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
                         />
 
                         {/* Render links for this block section */}
@@ -404,6 +418,13 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           getBlockTheme={getBlockTheme}
                           getBlockDimensions={getBlockDimensions}
                           getSectionColor={getSectionColor}
+                          links={links}
+                          getLinkStyle={getLinkStyle}
+                          deleteLink={deleteLink}
+                          hoveredLinkId={hoveredLinkId}
+                          setHoveredLinkId={setHoveredLinkId}
+                          getModuleOrVirtual={getModuleOrVirtual}
+                          getModuleDimensions={getModuleDimensions}
                         />
 
                         {/* Render links for this block section */}

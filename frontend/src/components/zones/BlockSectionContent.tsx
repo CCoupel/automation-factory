@@ -5,7 +5,8 @@ import RepeatIcon from '@mui/icons-material/Repeat'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
-import { ModuleBlock } from '../../types/playbook'
+import SectionLinks from '../common/SectionLinks'
+import { ModuleBlock, Link } from '../../types/playbook'
 
 interface BlockSectionContentProps {
   blockId: string
@@ -29,6 +30,19 @@ interface BlockSectionContentProps {
   getBlockTheme: (id: string) => { borderColor: string; bgColor: string; iconColor: string }
   getBlockDimensions: (blockId: string) => { height: number }
   getSectionColor: (section: 'normal' | 'rescue' | 'always') => string
+  // Props pour SectionLinks
+  links: Link[]
+  getLinkStyle: (type: string) => {
+    stroke: string
+    strokeWidth?: string
+    strokeDasharray?: string
+    label?: string
+  }
+  deleteLink: (linkId: string) => void
+  hoveredLinkId: string | null
+  setHoveredLinkId: (linkId: string | null) => void
+  getModuleOrVirtual: (id: string) => ModuleBlock | undefined
+  getModuleDimensions: (module: ModuleBlock) => { width: number; height: number }
 }
 
 const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
@@ -53,6 +67,14 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   getBlockTheme,
   getBlockDimensions,
   getSectionColor,
+  // Props pour SectionLinks
+  links,
+  getLinkStyle,
+  deleteLink,
+  hoveredLinkId,
+  setHoveredLinkId,
+  getModuleOrVirtual,
+  getModuleDimensions,
 }) => {
   // Trouver le block parent
   const parentBlock = modules.find(m => m.id === blockId)
@@ -136,6 +158,21 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
         >
           Drop tasks or blocks here
         </Box>
+
+        {/* Render links for this section */}
+        <SectionLinks
+          links={links}
+          modules={modules}
+          sectionType="block"
+          sectionName={section}
+          parentId={blockId}
+          getLinkStyle={getLinkStyle}
+          deleteLink={deleteLink}
+          hoveredLinkId={hoveredLinkId}
+          setHoveredLinkId={setHoveredLinkId}
+          getModuleOrVirtual={getModuleOrVirtual}
+          getModuleDimensions={getModuleDimensions}
+        />
       </>
     )
   }
@@ -363,6 +400,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
+                        links={links}
+                        getLinkStyle={getLinkStyle}
+                        deleteLink={deleteLink}
+                        hoveredLinkId={hoveredLinkId}
+                        setHoveredLinkId={setHoveredLinkId}
+                        getModuleOrVirtual={getModuleOrVirtual}
+                        getModuleDimensions={getModuleDimensions}
                       />
                     </Box>
                   )}
@@ -420,6 +464,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
+                        links={links}
+                        getLinkStyle={getLinkStyle}
+                        deleteLink={deleteLink}
+                        hoveredLinkId={hoveredLinkId}
+                        setHoveredLinkId={setHoveredLinkId}
+                        getModuleOrVirtual={getModuleOrVirtual}
+                        getModuleDimensions={getModuleDimensions}
                       />
                     </Box>
                   )}
@@ -477,6 +528,13 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         getBlockTheme={getBlockTheme}
                         getBlockDimensions={getBlockDimensions}
                         getSectionColor={getSectionColor}
+                        links={links}
+                        getLinkStyle={getLinkStyle}
+                        deleteLink={deleteLink}
+                        hoveredLinkId={hoveredLinkId}
+                        setHoveredLinkId={setHoveredLinkId}
+                        getModuleOrVirtual={getModuleOrVirtual}
+                        getModuleDimensions={getModuleDimensions}
                       />
                     </Box>
                   )}
@@ -760,6 +818,21 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
           </Paper>
         )
       })}
+
+      {/* Render links for this section */}
+      <SectionLinks
+        links={links}
+        modules={modules}
+        sectionType="block"
+        sectionName={section}
+        parentId={blockId}
+        getLinkStyle={getLinkStyle}
+        deleteLink={deleteLink}
+        hoveredLinkId={hoveredLinkId}
+        setHoveredLinkId={setHoveredLinkId}
+        getModuleOrVirtual={getModuleOrVirtual}
+        getModuleDimensions={getModuleDimensions}
+      />
     </>
   )
 }
