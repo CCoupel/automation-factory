@@ -50,17 +50,24 @@ L'interface se compose de plusieurs parties:
 - organisé sous forme d'onglets par PLAY
 
 **Zone interne (Zone de Play):**
-- Représente le playbook 
+- Représente le playbook
 - organisé sous forme d'onglets par PLAY
 - se presente sous la forme d'un accordeon de
   - Variables:
-    - liste les variables du Playsous la forme de blocks en drag & drop depuis la zone modules
-    - peux etre refermé et redimmentionné
+    - liste les variables du Play sous la forme de Chips
+    - peut être refermée et redimensionnée
+    - fonctionne indépendamment des autres sections (pas d'accordion)
+  - Roles:
+    - liste les roles Ansible du Play sous la forme de Chips draggables
+    - peut être refermée et redimensionnée
+    - fonctionne indépendamment des autres sections (pas d'accordion)
+    - permet d'ajouter, supprimer et réorganiser les roles par drag & drop
+    - icône ExtensionIcon (vert #4caf50) affichée dans les onglets PLAY
   - Pre-tasks, Tasks, Post-tasks et Handlers
-    - 1 seul section ouverte a la fois
-    - occupe tout l'esapce de travail
-    - chaque section peux recevoir les taches et les blocks
-    - une tache speciale (START) est toujours presentesans pouvoir etre deplacée ni supprimée.
+    - 1 seul section ouverte a la fois (comportement accordion)
+    - occupe tout l'espace de travail
+    - chaque section peut recevoir les taches et les blocks
+    - une tache speciale (START) est toujours présente sans pouvoir être déplacée ni supprimée
 
 
 **Zone droite (Zone de Configuration):**
@@ -1642,6 +1649,14 @@ kubectl apply -f k8s/frontend/
 - [x] Simplification de getModuleOrVirtual pour retourner des coordonnées relatives
 - [x] Helper getModuleDimensions pour obtenir les dimensions de tous types de modules (blocks, START 60x40px, tâches 140x60px)
 - [x] Clipping naturel des liens via overflow: auto des sections (pas de gestion manuelle)
+- [x] Section Roles dans les PLAYs pour gérer les roles Ansible
+- [x] Type PlaySectionName étendu pour inclure 'roles' (variables | roles | pre_tasks | tasks | post_tasks | handlers)
+- [x] Comportement collapse/expand indépendant pour Roles (comme Variables, pas d'accordion)
+- [x] Ajout, suppression et réorganisation des roles par drag & drop
+- [x] Icône ExtensionIcon (vert #4caf50) pour indiquer les roles configurés dans les onglets PLAY
+- [x] Interface utilisateur cohérente avec la gestion des Variables (Chips draggables)
+- [x] Fonction togglePlaySection mise à jour pour supporter 'roles'
+- [x] Initialisation de l'attribut roles dans PlayAttributes (roles?: string[])
 
 ---
 

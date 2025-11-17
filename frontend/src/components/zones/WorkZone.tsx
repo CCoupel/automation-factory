@@ -13,17 +13,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
+import PlayAttributeIcons from '../common/PlayAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
-import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play, PlayAttributes } from '../../types/playbook'
 
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
   onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) => void
+  onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -92,11 +94,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         { key: 'ansible_user', value: 'root' },
         { key: 'ansible_port', value: '22' },
       ],
-      sectionAttributes: {
-        pre_tasks: {},
-        tasks: {},
-        post_tasks: {},
-        handlers: {},
+      attributes: {
+        hosts: 'all',
+        remoteUser: undefined,
+        gatherFacts: true,
+        become: false,
+        connection: 'ssh',
+        roles: [],
       },
     },
   ])
@@ -1130,14 +1134,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return null // Pas dans une section PLAY
   }
 
-  const togglePlaySection = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+  const togglePlaySection = (playId: string, section: PlaySectionName) => {
     setCollapsedPlaySections(prev => {
       const newSet = new Set(prev)
       const key = `${playId}:${section}`
       const wildcardKey = `*:${section}`
 
-      // La section Variables fonctionne indépendamment (pas d'accordion)
-      if (section === 'variables') {
+      // Variables et Roles fonctionnent indépendamment (pas d'accordion)
+      if (section === 'variables' || section === 'roles') {
         newSet.delete(wildcardKey)
         if (newSet.has(key)) {
           newSet.delete(key)
@@ -1151,7 +1155,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
 
       if (isCurrentlyCollapsed) {
-        // Fermer toutes les sections de tâches de ce PLAY (pas Variables)
+        // Fermer toutes les sections de tâches de ce PLAY (pas Variables ni Roles)
         const taskSections: Array<'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['pre_tasks', 'tasks', 'post_tasks', 'handlers']
         taskSections.forEach(s => {
           newSet.delete(`*:${s}`)
@@ -1376,63 +1380,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
-    // Si c'est une section PLAY (ID commence par "section-")
-    if (id.startsWith('section-')) {
-      const sectionName = id.replace('section-', '') as 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
-
-      setPlays(prevPlays => {
-        const updatedPlays = [...prevPlays]
-        const currentAttributes = updatedPlays[activePlayIndex].sectionAttributes || {
-          pre_tasks: {},
-          tasks: {},
-          post_tasks: {},
-          handlers: {},
-        }
-
-        updatedPlays[activePlayIndex] = {
-          ...updatedPlays[activePlayIndex],
-          sectionAttributes: {
-            ...currentAttributes,
-            [sectionName]: {
-              ...currentAttributes[sectionName],
-              ...updates
-            }
-          }
-        }
-
-        return updatedPlays
-      })
-
-      // Mettre à jour aussi la sélection si c'est celle-ci
-      if (selectedModuleId === id) {
-        const sectionNames = {
-          'pre_tasks': 'Pre-Tasks Section',
-          'tasks': 'Tasks Section',
-          'post_tasks': 'Post-Tasks Section',
-          'handlers': 'Handlers Section'
-        }
-
-        const currentSectionAttrs = currentPlay.sectionAttributes?.[sectionName] || {}
-
-        onSelectModule({
-          id,
-          name: sectionNames[sectionName],
-          collection: 'section',
-          taskName: `${sectionNames[sectionName]} Configuration`,
-          when: updates.when !== undefined ? updates.when : currentSectionAttrs.when,
-          ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : currentSectionAttrs.ignoreErrors,
-          become: updates.become !== undefined ? updates.become : currentSectionAttrs.become,
-          loop: updates.loop !== undefined ? updates.loop : currentSectionAttrs.loop,
-          delegateTo: updates.delegateTo !== undefined ? updates.delegateTo : currentSectionAttrs.delegateTo,
-          isBlock: false,
-          isPlay: false,
-        })
-      }
-
-      return
-    }
-
-    // Sinon, c'est un module normal
+    // Gérer les modules normaux
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
     if (!module) return
@@ -1469,6 +1417,33 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       onUpdateModule(handleUpdateModuleAttributes)
     }
   }, [handleUpdateModuleAttributes, onUpdateModule])
+
+  // Fonction pour obtenir les attributs du PLAY courant
+  const getPlayAttributes = useCallback((): PlayAttributes => {
+    return currentPlay.attributes || {}
+  }, [currentPlay])
+
+  // Fonction pour mettre à jour les attributs du PLAY courant
+  const updatePlayAttributes = useCallback((updates: Partial<PlayAttributes>) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        attributes: {
+          ...updatedPlays[activePlayIndex].attributes,
+          ...updates
+        }
+      }
+      return updatedPlays
+    })
+  }, [activePlayIndex, setPlays])
+
+  // Exposer les fonctions PLAY attributes au parent via callback
+  useEffect(() => {
+    if (onPlayAttributes) {
+      onPlayAttributes(getPlayAttributes, updatePlayAttributes)
+    }
+  }, [getPlayAttributes, updatePlayAttributes, onPlayAttributes])
 
   // Obtenir le style du lien selon son type
   const getLinkStyle = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
@@ -1680,11 +1655,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       ],
       links: [],
       variables: [],
-      sectionAttributes: {
-        pre_tasks: {},
-        tasks: {},
-        post_tasks: {},
-        handlers: {},
+      attributes: {
+        hosts: 'all',
+        remoteUser: undefined,
+        gatherFacts: true,
+        become: false,
+        connection: 'ssh',
+        roles: [],
       },
     }
     setPlays([...plays, newPlay])
@@ -1723,6 +1700,82 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     })
   }
 
+  // Gestion des roles
+  const [newRole, setNewRole] = useState('')
+  const [draggedRoleIndex, setDraggedRoleIndex] = useState<number | null>(null)
+
+  const addRole = () => {
+    if (!newRole.trim()) return
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        attributes: {
+          ...updatedPlays[activePlayIndex].attributes,
+          roles: [...currentRoles, newRole.trim()]
+        }
+      }
+      return updatedPlays
+    })
+    setNewRole('')
+  }
+
+  const deleteRole = (index: number) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        attributes: {
+          ...updatedPlays[activePlayIndex].attributes,
+          roles: currentRoles.filter((_, i) => i !== index)
+        }
+      }
+      return updatedPlays
+    })
+  }
+
+  const handleRoleDragStart = (index: number, e: React.DragEvent) => {
+    setDraggedRoleIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleRoleDragOver = (index: number, e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleRoleDrop = (targetIndex: number, e: React.DragEvent) => {
+    e.preventDefault()
+
+    if (draggedRoleIndex === null || draggedRoleIndex === targetIndex) {
+      setDraggedRoleIndex(null)
+      return
+    }
+
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const currentRoles = [...(updatedPlays[activePlayIndex].attributes?.roles || [])]
+      const [draggedRole] = currentRoles.splice(draggedRoleIndex, 1)
+      currentRoles.splice(targetIndex, 0, draggedRole)
+
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        attributes: {
+          ...updatedPlays[activePlayIndex].attributes,
+          roles: currentRoles
+        }
+      }
+      return updatedPlays
+    })
+    setDraggedRoleIndex(null)
+  }
+
+  const handleRoleDragEnd = () => {
+    setDraggedRoleIndex(null)
+  }
+
   // Mettre à jour le nom du PLAY et synchroniser avec la tâche PLAY
   const updatePlayName = (index: number, newName: string) => {
     setPlays(prevPlays => {
@@ -1742,6 +1795,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // Calculer quelles sections sont ouvertes
   const playModule = modules.find(m => m.isPlay)
   const isVariablesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'variables') : false
+  const isRolesOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'roles') : false
   const isPreTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'pre_tasks') : false
   const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
   const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
@@ -1761,7 +1815,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
           <Tabs
             value={activePlayIndex}
-            onChange={(_, newValue) => setActivePlayIndex(newValue)}
+            onChange={(_, newValue) => {
+              setActivePlayIndex(newValue)
+              onSelectModule(null) // Clear selected module to show PLAY config
+            }}
             variant="scrollable"
             scrollButtons="auto"
           >
@@ -1769,53 +1826,60 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Tab
                 key={play.id}
                 label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <PlayArrowIcon sx={{ fontSize: 16 }} />
-                    {editingTabIndex === index ? (
-                      <TextField
-                        autoFocus
-                        variant="standard"
-                        value={play.name}
-                        onChange={(e) => updatePlayName(index, e.target.value)}
-                        onBlur={() => setEditingTabIndex(null)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setEditingTabIndex(null)
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        sx={{
-                          '& .MuiInput-input': {
-                            fontSize: '0.875rem',
-                            padding: '2px 4px',
-                            minWidth: '80px',
-                          },
-                        }}
-                      />
-                    ) : (
-                      <Typography
-                        variant="body2"
-                        onDoubleClick={(e) => {
-                          e.stopPropagation()
-                          setEditingTabIndex(index)
-                        }}
-                        sx={{ cursor: 'text', userSelect: 'none' }}
-                      >
-                        {play.name}
-                      </Typography>
-                    )}
-                    {plays.length > 1 && (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deletePlay(index)
-                        }}
-                        sx={{ ml: 0.5, p: 0.25 }}
-                      >
-                        <CloseIcon sx={{ fontSize: 14 }} />
-                      </IconButton>
-                    )}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5, py: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <PlayArrowIcon sx={{ fontSize: 16 }} />
+                      {editingTabIndex === index ? (
+                        <TextField
+                          autoFocus
+                          variant="standard"
+                          value={play.name}
+                          onChange={(e) => updatePlayName(index, e.target.value)}
+                          onBlur={() => setEditingTabIndex(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setEditingTabIndex(null)
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontSize: '0.875rem',
+                              padding: '2px 4px',
+                              minWidth: '80px',
+                            },
+                          }}
+                        />
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          onDoubleClick={(e) => {
+                            e.stopPropagation()
+                            setEditingTabIndex(index)
+                          }}
+                          sx={{ cursor: 'text', userSelect: 'none' }}
+                        >
+                          {play.name}
+                        </Typography>
+                      )}
+                      {plays.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deletePlay(index)
+                          }}
+                          sx={{ ml: 0.5, p: 0.25 }}
+                        >
+                          <CloseIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      )}
+                    </Box>
+                    {/* Icônes d'attributs PLAY */}
+                    <PlayAttributeIcons
+                      attributes={play.attributes || {}}
+                      size="small"
+                    />
                   </Box>
                 }
               />
@@ -1892,6 +1956,92 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           )}
         </Box>
 
+        {/* Section 1.5: Roles */}
+        <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+          <Box
+            onClick={() => {
+              const playModule = modules.find(m => m.isPlay)
+              if (playModule) {
+                togglePlaySection(playModule.id, 'roles')
+              }
+            }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2,
+              py: 1,
+              bgcolor: '#4caf5015',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: '#4caf5025' },
+              position: 'relative',
+              zIndex: 3
+            }}
+          >
+            {(() => {
+              const playModule = modules.find(m => m.isPlay)
+              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'roles') : false
+              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
+            })()}
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
+              Roles ({currentPlay.attributes?.roles?.length || 0})
+            </Typography>
+          </Box>
+          {isRolesOpen && (
+            <Box sx={{ px: 3, py: 1.5, bgcolor: '#4caf5008' }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+                {(currentPlay.attributes?.roles || []).map((role, index) => (
+                  <Chip
+                    key={`${role}-${index}`}
+                    label={role}
+                    size="small"
+                    onDelete={() => deleteRole(index)}
+                    color="success"
+                    variant="outlined"
+                    draggable
+                    onDragStart={(e) => handleRoleDragStart(index, e)}
+                    onDragOver={(e) => handleRoleDragOver(index, e)}
+                    onDrop={(e) => handleRoleDrop(index, e)}
+                    onDragEnd={handleRoleDragEnd}
+                    sx={{
+                      cursor: 'move',
+                      opacity: draggedRoleIndex === index ? 0.5 : 1,
+                      transition: 'opacity 0.2s',
+                      '&:hover': {
+                        boxShadow: 2,
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Role name"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addRole()
+                    }
+                  }}
+                  sx={{ flex: 1, maxWidth: 300 }}
+                />
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  variant="outlined"
+                  color="success"
+                  onClick={addRole}
+                  disabled={!newRole.trim()}
+                >
+                  Add Role
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </Box>
+
         {/* Section 2: Pre-Tasks */}
         <Box sx={{
           borderBottom: '1px solid #ddd',
@@ -1930,43 +2080,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('pre_tasks') }}>
                 Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
               </Typography>
-            </Box>
-
-            {/* Icônes d'attributs de la section */}
-            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <TaskAttributeIcons
-                attributes={currentPlay.sectionAttributes?.pre_tasks || {}}
-                size="medium"
-              />
-
-              {/* Bouton de configuration */}
-              <Tooltip title="Configure section attributes">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectModule({
-                      id: `section-pre_tasks`,
-                      name: 'Pre-Tasks Section',
-                      collection: 'section',
-                      taskName: 'Pre-Tasks Configuration',
-                      when: currentPlay.sectionAttributes?.pre_tasks?.when,
-                      ignoreErrors: currentPlay.sectionAttributes?.pre_tasks?.ignoreErrors,
-                      become: currentPlay.sectionAttributes?.pre_tasks?.become,
-                      loop: currentPlay.sectionAttributes?.pre_tasks?.loop,
-                      delegateTo: currentPlay.sectionAttributes?.pre_tasks?.delegateTo,
-                      isBlock: false,
-                      isPlay: false,
-                    })
-                  }}
-                  sx={{
-                    p: 0.5,
-                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
-                  }}
-                >
-                  <SettingsIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
             </Box>
           </Box>
           {isPreTasksOpen && (
@@ -2071,43 +2184,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
               </Typography>
             </Box>
-
-            {/* Icônes d'attributs de la section */}
-            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <TaskAttributeIcons
-                attributes={currentPlay.sectionAttributes?.tasks || {}}
-                size="medium"
-              />
-
-              {/* Bouton de configuration */}
-              <Tooltip title="Configure section attributes">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectModule({
-                      id: `section-tasks`,
-                      name: 'Tasks Section',
-                      collection: 'section',
-                      taskName: 'Tasks Configuration',
-                      when: currentPlay.sectionAttributes?.tasks?.when,
-                      ignoreErrors: currentPlay.sectionAttributes?.tasks?.ignoreErrors,
-                      become: currentPlay.sectionAttributes?.tasks?.become,
-                      loop: currentPlay.sectionAttributes?.tasks?.loop,
-                      delegateTo: currentPlay.sectionAttributes?.tasks?.delegateTo,
-                      isBlock: false,
-                      isPlay: false,
-                    })
-                  }}
-                  sx={{
-                    p: 0.5,
-                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
-                  }}
-                >
-                  <SettingsIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
           </Box>
           {isTasksOpen && (
               <Box
@@ -2211,43 +2287,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
               </Typography>
             </Box>
-
-            {/* Icônes d'attributs de la section */}
-            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <TaskAttributeIcons
-                attributes={currentPlay.sectionAttributes?.post_tasks || {}}
-                size="medium"
-              />
-
-              {/* Bouton de configuration */}
-              <Tooltip title="Configure section attributes">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectModule({
-                      id: `section-post_tasks`,
-                      name: 'Post-Tasks Section',
-                      collection: 'section',
-                      taskName: 'Post-Tasks Configuration',
-                      when: currentPlay.sectionAttributes?.post_tasks?.when,
-                      ignoreErrors: currentPlay.sectionAttributes?.post_tasks?.ignoreErrors,
-                      become: currentPlay.sectionAttributes?.post_tasks?.become,
-                      loop: currentPlay.sectionAttributes?.post_tasks?.loop,
-                      delegateTo: currentPlay.sectionAttributes?.post_tasks?.delegateTo,
-                      isBlock: false,
-                      isPlay: false,
-                    })
-                  }}
-                  sx={{
-                    p: 0.5,
-                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
-                  }}
-                >
-                  <SettingsIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            </Box>
           </Box>
           {isPostTasksOpen && (
               <Box
@@ -2350,43 +2389,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('handlers') }}>
                 Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
               </Typography>
-            </Box>
-
-            {/* Icônes d'attributs de la section */}
-            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-              <TaskAttributeIcons
-                attributes={currentPlay.sectionAttributes?.handlers || {}}
-                size="medium"
-              />
-
-              {/* Bouton de configuration */}
-              <Tooltip title="Configure section attributes">
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onSelectModule({
-                      id: `section-handlers`,
-                      name: 'Handlers Section',
-                      collection: 'section',
-                      taskName: 'Handlers Configuration',
-                      when: currentPlay.sectionAttributes?.handlers?.when,
-                      ignoreErrors: currentPlay.sectionAttributes?.handlers?.ignoreErrors,
-                      become: currentPlay.sectionAttributes?.handlers?.become,
-                      loop: currentPlay.sectionAttributes?.handlers?.loop,
-                      delegateTo: currentPlay.sectionAttributes?.handlers?.delegateTo,
-                      isBlock: false,
-                      isPlay: false,
-                    })
-                  }}
-                  sx={{
-                    p: 0.5,
-                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' }
-                  }}
-                >
-                  <SettingsIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
             </Box>
           </Box>
           {isHandlersOpen && (

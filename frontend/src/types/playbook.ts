@@ -69,14 +69,15 @@ export interface PlayVariable {
 }
 
 /**
- * Attributes that can be applied to an entire PLAY section
+ * Attributes that can be applied to an entire PLAY
  */
-export interface PlaySectionAttributes {
-  when?: string
-  ignoreErrors?: boolean
-  become?: boolean
-  loop?: string
-  delegateTo?: string
+export interface PlayAttributes {
+  hosts?: string          // Target hosts pattern (e.g., "all", "webservers")
+  remoteUser?: string     // SSH user for connection
+  gatherFacts?: boolean   // Whether to gather facts (default: true)
+  become?: boolean        // Privilege escalation
+  connection?: string     // Connection type (ssh, local, etc.)
+  roles?: string[]        // List of roles to apply
 }
 
 /**
@@ -88,12 +89,8 @@ export interface Play {
   modules: ModuleBlock[]
   links: Link[]
   variables: PlayVariable[]
-  sectionAttributes?: {
-    pre_tasks?: PlaySectionAttributes
-    tasks?: PlaySectionAttributes
-    post_tasks?: PlaySectionAttributes
-    handlers?: PlaySectionAttributes
-  }
+  // PLAY-level attributes
+  attributes?: PlayAttributes
 }
 
 /**
@@ -120,7 +117,7 @@ export function isTask(module: ModuleBlock): boolean {
 /**
  * Section name type for PLAY sections
  */
-export type PlaySectionName = 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+export type PlaySectionName = 'variables' | 'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
 
 /**
  * Section name type for block sections

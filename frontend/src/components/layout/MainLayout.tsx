@@ -10,6 +10,7 @@ import ModulesZone from '../zones/ModulesZone'
 import WorkZone from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
+import { PlayAttributes } from '../../types/playbook'
 
 interface SelectedModule {
   id: string
@@ -39,6 +40,8 @@ const MainLayout = () => {
   const [isVarsCollapsed, setIsVarsCollapsed] = useState(true) // Collapsed by default since Variables are in PLAY sections now
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
   const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) | null>(null)
+  const getPlayAttributesCallbackRef = useRef<(() => PlayAttributes) | null>(null)
+  const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -279,6 +282,10 @@ const MainLayout = () => {
             selectedModuleId={selectedModule?.id || null}
             onDeleteModule={(callback) => { deleteModuleCallbackRef.current = callback }}
             onUpdateModule={(callback) => { updateModuleCallbackRef.current = callback }}
+            onPlayAttributes={(getCallback, updateCallback) => {
+              getPlayAttributesCallbackRef.current = getCallback
+              updatePlayAttributesCallbackRef.current = updateCallback
+            }}
           />
         </Box>
 
@@ -329,6 +336,8 @@ const MainLayout = () => {
               onCollapse={() => setIsConfigCollapsed(true)}
               onDelete={(id) => deleteModuleCallbackRef.current?.(id)}
               onUpdateModule={(id, updates) => updateModuleCallbackRef.current?.(id, updates)}
+              playAttributes={getPlayAttributesCallbackRef.current?.() || {}}
+              onUpdatePlay={(updates) => updatePlayAttributesCallbackRef.current?.(updates)}
             />
           </Box>
         )}

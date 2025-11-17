@@ -1,10 +1,14 @@
-import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button } from '@mui/material'
+import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DeleteIcon from '@mui/icons-material/Delete'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import AddIcon from '@mui/icons-material/Add'
+import { PlayAttributes } from '../../types/playbook'
+import { useState } from 'react'
 
 interface ConfigZoneProps {
   selectedModule?: {
@@ -29,6 +33,8 @@ interface ConfigZoneProps {
     loop?: string
     delegateTo?: string
   }>) => void
+  playAttributes?: PlayAttributes
+  onUpdatePlay?: (updates: Partial<PlayAttributes>) => void
 }
 
 // Configuration des modules (à déplacer vers un fichier de config plus tard)
@@ -55,7 +61,7 @@ const moduleConfigs: Record<string, Array<{ name: string; type: string; required
   ],
 }
 
-const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: ConfigZoneProps) => {
+const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay }: ConfigZoneProps) => {
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
 
   return (
@@ -78,7 +84,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
           )}
         </Box>
         <Typography variant="caption" color="text.secondary">
-          {selectedModule ? 'Configure the selected task' : 'Select a module to configure'}
+          {selectedModule ? 'Configure the selected task' : 'Configure the current PLAY'}
         </Typography>
 
         {/* Bouton de suppression - pas pour les tâches START */}
@@ -101,11 +107,83 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule }: Co
       {/* Config Form */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         {!selectedModule ? (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Click on a module in the workspace to configure it
-            </Typography>
-          </Box>
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PlayArrowIcon color="primary" fontSize="small" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  PLAY Configuration
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="hosts"
+                  fullWidth
+                  size="small"
+                  placeholder="all"
+                  helperText="Target hosts pattern (e.g., all, webservers, db*)"
+                  value={playAttributes?.hosts || ''}
+                  onChange={(e) => onUpdatePlay?.({ hosts: e.target.value || undefined })}
+                />
+
+                <TextField
+                  label="remote_user"
+                  fullWidth
+                  size="small"
+                  placeholder="root"
+                  helperText="SSH user for connection"
+                  value={playAttributes?.remoteUser || ''}
+                  onChange={(e) => onUpdatePlay?.({ remoteUser: e.target.value || undefined })}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={playAttributes?.gatherFacts !== false}
+                      onChange={(e) => onUpdatePlay?.({ gatherFacts: e.target.checked })}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">gather_facts</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Collect system facts before executing tasks
+                      </Typography>
+                    </Box>
+                  }
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={playAttributes?.become || false}
+                      onChange={(e) => onUpdatePlay?.({ become: e.target.checked })}
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">become</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Privilege escalation (sudo)
+                      </Typography>
+                    </Box>
+                  }
+                />
+
+                <TextField
+                  label="connection"
+                  fullWidth
+                  size="small"
+                  placeholder="ssh"
+                  helperText="Connection type (ssh, local, docker, etc.)"
+                  value={playAttributes?.connection || ''}
+                  onChange={(e) => onUpdatePlay?.({ connection: e.target.value || undefined })}
+                />
+              </Box>
+            </AccordionDetails>
+          </Accordion>
         ) : (
           <>
             {/* Section 1: Attributs de la Tâche */}
