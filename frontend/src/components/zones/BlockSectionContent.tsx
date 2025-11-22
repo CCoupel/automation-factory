@@ -1,11 +1,12 @@
 import React from 'react'
-import { Box, Paper, TextField, Typography, IconButton, Tooltip } from '@mui/material'
+import { Box, Paper, TextField, Typography, IconButton, Tooltip, Badge } from '@mui/material'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import RepeatIcon from '@mui/icons-material/Repeat'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
+import StartTaskWithBadge from '../common/StartTaskWithBadge'
 import { ModuleBlock, Link } from '../../types/playbook'
 
 interface BlockSectionContentProps {
@@ -17,6 +18,7 @@ interface BlockSectionContentProps {
   collapsedBlocks: Set<string>
   collapsedBlockSections: Set<string>
   resizingBlock: { id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null
+  getStartChainCount: (startId: string) => number
   onSelectModule: (module: any) => void
   updateTaskName: (id: string, name: string) => void
   toggleBlockCollapse: (id: string) => void
@@ -54,6 +56,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   collapsedBlocks,
   collapsedBlockSections,
   resizingBlock,
+  getStartChainCount,
   onSelectModule,
   updateTaskName,
   toggleBlockCollapse,
@@ -100,10 +103,12 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
     return (
       <>
         {/* Mini START task - always visible */}
-        <Paper
-          data-task-id={`${blockId}-${section}-start`}
-          elevation={2}
-          draggable={true}
+        <StartTaskWithBadge
+          startId={`${blockId}-${section}-start`}
+          position={{ x: 20, y: 10 }}
+          color={getSectionColor(section)}
+          badgeCount={getStartChainCount(`${blockId}-${section}-start`)}
+          isDragged={false}
           onDragStart={(e) => handleModuleDragStart(`${blockId}-${section}-start`, e)}
           onDragOver={(e) => {
             e.preventDefault()
@@ -116,30 +121,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
               handleModuleDropOnModule(`${blockId}-${section}-start`, e)
             }
           }}
-          sx={{
-            position: 'absolute',
-            left: 20,
-            top: 10,
-            width: 60,
-            height: 40,
-            p: 0.5,
-            cursor: 'move',
-            border: `2px solid ${getSectionColor(section)}`,
-            borderRadius: '0 50% 50% 0',
-            bgcolor: `${getSectionColor(section)}15`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1,
-            '&:hover': {
-              boxShadow: 4,
-            },
-          }}
-        >
-          <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(section), fontSize: '0.6rem' }}>
-            START
-          </Typography>
-        </Paper>
+        />
 
         {/* Empty message */}
         <Box
@@ -180,10 +162,12 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   return (
     <>
       {/* Mini START task - always visible */}
-      <Paper
-        data-task-id={`${blockId}-${section}-start`}
-        elevation={2}
-        draggable={true}
+      <StartTaskWithBadge
+        startId={`${blockId}-${section}-start`}
+        position={{ x: 20, y: 10 }}
+        color={getSectionColor(section)}
+        badgeCount={getStartChainCount(`${blockId}-${section}-start`)}
+        isDragged={false}
         onDragStart={(e) => handleModuleDragStart(`${blockId}-${section}-start`, e)}
         onDragOver={(e) => {
           e.preventDefault()
@@ -196,30 +180,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
             handleModuleDropOnModule(`${blockId}-${section}-start`, e)
           }
         }}
-        sx={{
-          position: 'absolute',
-          left: 20,
-          top: 10,
-          width: 60,
-          height: 40,
-          p: 0.5,
-          cursor: 'move',
-          border: `2px solid ${getSectionColor(section)}`,
-          borderRadius: '0 50% 50% 0',
-          bgcolor: `${getSectionColor(section)}15`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1,
-          '&:hover': {
-            boxShadow: 4,
-          },
-        }}
-      >
-        <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(section), fontSize: '0.6rem' }}>
-          START
-        </Typography>
-      </Paper>
+      />
 
       {/* Existing tasks */}
       {taskIds.map(taskId => {
@@ -387,6 +348,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
                         resizingBlock={resizingBlock}
+                        getStartChainCount={getStartChainCount}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}
@@ -451,6 +413,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
                         resizingBlock={resizingBlock}
+                        getStartChainCount={getStartChainCount}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}
@@ -515,6 +478,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         collapsedBlocks={collapsedBlocks}
                         collapsedBlockSections={collapsedBlockSections}
                         resizingBlock={resizingBlock}
+                        getStartChainCount={getStartChainCount}
                         onSelectModule={onSelectModule}
                         updateTaskName={updateTaskName}
                         toggleBlockCollapse={toggleBlockCollapse}

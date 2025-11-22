@@ -1284,6 +1284,56 @@ interface TaskAttributeIconsProps {
 - BlockSectionContent.tsx (lignes ~297, ~749) - Tâches dans blocks
 - WorkZone.tsx (lignes ~2344, ~2461, ~2578, ~2695) - Headers de sections PLAY
 
+#### **Architecture des Badges Unifiés**
+
+Le système de badges a été unifié pour éliminer la duplication de code (~85+ lignes économisées) en créant une hiérarchie de composants à 3 niveaux.
+
+**Composants créés:**
+
+1. **CountBadge** (`frontend/src/components/common/CountBadge.tsx`) - Composant de base
+   - Props: `count`, `color`, `isActive`, `children`, `sx`
+   - Styling unifié: 18×18px, 0.7rem font, bold, white text
+   - Gestion automatique de l'opacité: `isActive ? color : color + 'b3'` (70% opacity)
+   - Utilisé comme base pour tous les badges de l'application
+
+2. **TabIconBadge** (`frontend/src/components/common/TabIconBadge.tsx`) - Wrapper pour onglets
+   - Props: `icon`, `count`, `color`, `isActive`
+   - Wraps CountBadge pour afficher des badges sur les onglets PLAY
+   - Utilisé pour: Roles, Pre-Tasks, Tasks, Post-Tasks, Handlers tabs
+   - Réduit de ~18 lignes à ~8 lignes via l'utilisation de CountBadge
+
+3. **StartTaskWithBadge** (`frontend/src/components/common/StartTaskWithBadge.tsx`) - Wrapper pour START tasks
+   - Props: `startId`, `position`, `color`, `badgeCount`, `isDragged`, handlers
+   - Wraps CountBadge avec positioning spécifique pour les tâches START
+   - Badge positionné à gauche (-10px), verticalement centré, parfaitement rond
+   - Utilisé pour: PLAY START tasks et mini START tasks des blocks
+
+**Architecture:**
+```
+CountBadge (base)
+    ├── TabIconBadge (tabs des sections PLAY)
+    └── StartTaskWithBadge (tâches START + mini START)
+```
+
+**Avant le refactoring:**
+- 5 badges dupliqués dans WorkZone.tsx (~70 lignes)
+- Badge logic dupliquée dans StartTaskWithBadge (~20 lignes)
+- Badge logic dupliquée dans TabIconBadge (~18 lignes)
+- Total: ~108 lignes de duplication
+
+**Après le refactoring:**
+- CountBadge: 76 lignes (base réutilisable)
+- TabIconBadge: 59 lignes (simplifié avec CountBadge)
+- StartTaskWithBadge: 127 lignes (simplifié avec CountBadge)
+- WorkZone.tsx: utilise TabIconBadge (~30 lignes au lieu de ~70)
+- **Gain net: ~85+ lignes éliminées**
+
+**Bénéfices:**
+- Single source of truth pour le styling des badges
+- Modifications globales en un seul endroit
+- Cohérence visuelle garantie
+- Code plus lisible et maintenable
+
 ### Types Partagés
 
 #### **frontend/src/types/playbook.ts**
@@ -1642,6 +1692,9 @@ kubectl apply -f k8s/frontend/
 - [x] Refactoring: Composant réutilisable TaskAttributeIcons (~240 lignes économisées)
 - [x] Refactoring: Élimination de la duplication des icônes d'attributs (10+ occurrences)
 - [x] Refactoring: Import des types partagés dans WorkZone, PlaySectionContent, BlockSectionContent
+- [x] Refactoring: Architecture unifiée des badges avec hiérarchie à 3 niveaux (~85+ lignes économisées)
+- [x] Refactoring: Composant de base CountBadge pour styling unifié (18×18px, bold, white text)
+- [x] Refactoring: TabIconBadge et StartTaskWithBadge refactorisés pour utiliser CountBadge
 - [x] Architecture section-scoped pour le rendu des liens (un SVG par section au lieu d'un SVG global)
 - [x] Composant réutilisable SectionLinks pour rendu des liens avec coordonnées relatives
 - [x] Suppression de l'ancien système de liens avec SVG global (~400 lignes supprimées)

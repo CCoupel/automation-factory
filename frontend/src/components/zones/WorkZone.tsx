@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Tabs, Tab, Button, Chip } from '@mui/material'
+import { Box, Typography, Paper, IconButton, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Tabs, Tab, Button, Chip, Badge } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import GridOffIcon from '@mui/icons-material/GridOff'
@@ -9,12 +9,18 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
 import SettingsIcon from '@mui/icons-material/Settings'
+import ExtensionIcon from '@mui/icons-material/Extension'
+import SkipPreviousIcon from '@mui/icons-material/SkipPrevious'
+import PlaylistPlayIcon from '@mui/icons-material/PlaylistPlay'
+import SkipNextIcon from '@mui/icons-material/SkipNext'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import PlayAttributeIcons from '../common/PlayAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
+import TabIconBadge from '../common/TabIconBadge'
 import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play, PlayAttributes } from '../../types/playbook'
 
 interface WorkZoneProps {
@@ -143,6 +149,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [collapsedBlockSections, setCollapsedBlockSections] = useState<Set<string>>(new Set(['*:rescue', '*:always'])) // Format: "blockId:section" - Tasks ouverte par défaut
   // Sections du PLAY - Format: "playId:section" - Variables et Tasks ouvertes par défaut
   const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:pre_tasks', '*:post_tasks', '*:handlers']))
+  // Onglet actif pour les sections PLAY (présentation en tabs) - Variables reste en accordéon
+  const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
 
   const GRID_SIZE = 50
@@ -1134,6 +1142,38 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return null // Pas dans une section PLAY
   }
 
+  // Fonction générale pour compter les tâches dans la chaîne partant d'un START (PLAY ou block)
+  const getStartChainCount = (startId: string): number => {
+    // Parcourir récursivement tous les liens depuis START (BFS)
+    const visited = new Set<string>()
+    const queue = [startId]
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!
+      if (visited.has(currentId)) continue
+      visited.add(currentId)
+
+      // Trouver tous les liens sortants depuis cette tâche
+      const outgoingLinks = links.filter(link => link.from === currentId)
+      for (const link of outgoingLinks) {
+        if (!visited.has(link.to)) {
+          queue.push(link.to)
+        }
+      }
+    }
+
+    // Retourner le nombre de tâches (moins START elle-même)
+    return Math.max(0, visited.size - 1)
+  }
+
+  // Fonction wrapper pour compter les tâches dans la chaîne partant de START d'une section PLAY
+  const getTaskChainCount = (sectionName: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'): number => {
+    // Trouver la tâche START de la section
+    const startTask = modules.find(m => m.isPlay && !m.parentId && m.parentSection === sectionName)
+    if (!startTask) return 0
+    return getStartChainCount(startTask.id)
+  }
+
   const togglePlaySection = (playId: string, section: PlaySectionName) => {
     setCollapsedPlaySections(prev => {
       const newSet = new Set(prev)
@@ -1899,7 +1939,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
       {/* PLAY Sections - Workspace Level */}
       <Box ref={playSectionsContainerRef} sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-        {/* Section 1: Variables */}
+        {/* Section 1: Variables (Accordion - always visible) */}
         <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
           <Box
             onClick={() => {
@@ -1956,503 +1996,490 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           )}
         </Box>
 
-        {/* Section 1.5: Roles */}
-        <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
-          <Box
-            onClick={() => {
-              const playModule = modules.find(m => m.isPlay)
-              if (playModule) {
-                togglePlaySection(playModule.id, 'roles')
+        {/* Tabs Navigation Bar for Roles and Task Sections */}
+        <Box sx={{ borderBottom: 2, borderColor: 'divider', bgcolor: '#fafafa' }}>
+          <Tabs
+            value={activeSectionTab}
+            onChange={(e, newValue) => setActiveSectionTab(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 56,
+              '& .MuiTabs-indicator': {
+                height: 3,
               }
             }}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 1,
-              bgcolor: '#4caf5015',
-              cursor: 'pointer',
-              '&:hover': { bgcolor: '#4caf5025' },
-              position: 'relative',
-              zIndex: 3
-            }}
           >
-            {(() => {
-              const playModule = modules.find(m => m.isPlay)
-              const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'roles') : false
-              return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-            })()}
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-              Roles ({currentPlay.attributes?.roles?.length || 0})
-            </Typography>
-          </Box>
-          {isRolesOpen && (
-            <Box sx={{ px: 3, py: 1.5, bgcolor: '#4caf5008' }}>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
-                {(currentPlay.attributes?.roles || []).map((role, index) => (
-                  <Chip
-                    key={`${role}-${index}`}
-                    label={role}
-                    size="small"
-                    onDelete={() => deleteRole(index)}
-                    color="success"
-                    variant="outlined"
-                    draggable
-                    onDragStart={(e) => handleRoleDragStart(index, e)}
-                    onDragOver={(e) => handleRoleDragOver(index, e)}
-                    onDrop={(e) => handleRoleDrop(index, e)}
-                    onDragEnd={handleRoleDragEnd}
-                    sx={{
-                      cursor: 'move',
-                      opacity: draggedRoleIndex === index ? 0.5 : 1,
-                      transition: 'opacity 0.2s',
-                      '&:hover': {
-                        boxShadow: 2,
-                      },
-                    }}
-                  />
-                ))}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  size="small"
-                  placeholder="Role name"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      addRole()
-                    }
-                  }}
-                  sx={{ flex: 1, maxWidth: 300 }}
+            {/* Roles Tab */}
+            <Tab
+              icon={
+                <TabIconBadge
+                  icon={<ExtensionIcon sx={{ fontSize: 20, color: activeSectionTab === 'roles' ? '#4caf50' : 'rgba(76, 175, 80, 0.65)' }} />}
+                  count={currentPlay.attributes?.roles?.length || 0}
+                  color="#4caf50"
+                  isActive={activeSectionTab === 'roles'}
                 />
-                <Button
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: activeSectionTab === 'roles' ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                  Roles
+                </Typography>
+              }
+              iconPosition="start"
+              value="roles"
+              sx={{
+                minHeight: 56,
+                textTransform: 'none',
+                px: 2.5,
+                color: activeSectionTab === 'roles' ? '#4caf50' : 'rgba(76, 175, 80, 0.65)',
+                bgcolor: activeSectionTab === 'roles' ? 'rgba(76, 175, 80, 0.12)' : 'transparent',
+                transition: 'all 0.3s ease',
+                borderBottom: activeSectionTab === 'roles' ? '3px solid #4caf50' : 'none',
+                '&:hover': {
+                  bgcolor: activeSectionTab === 'roles' ? 'rgba(76, 175, 80, 0.18)' : 'rgba(76, 175, 80, 0.08)',
+                  color: '#4caf50'
+                }
+              }}
+            />
+
+            {/* Pre-Tasks Tab */}
+            <Tab
+              icon={
+                <TabIconBadge
+                  icon={<SkipPreviousIcon sx={{ fontSize: 20, color: activeSectionTab === 'pre_tasks' ? getPlaySectionColor('pre_tasks') : `${getPlaySectionColor('pre_tasks')}a6` }} />}
+                  count={getTaskChainCount('pre_tasks')}
+                  color={getPlaySectionColor('pre_tasks')}
+                  isActive={activeSectionTab === 'pre_tasks'}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: activeSectionTab === 'pre_tasks' ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                  Pre-Tasks
+                </Typography>
+              }
+              iconPosition="start"
+              value="pre_tasks"
+              sx={{
+                minHeight: 56,
+                textTransform: 'none',
+                px: 2.5,
+                color: activeSectionTab === 'pre_tasks' ? getPlaySectionColor('pre_tasks') : `${getPlaySectionColor('pre_tasks')}a6`,
+                bgcolor: activeSectionTab === 'pre_tasks' ? `${getPlaySectionColor('pre_tasks')}15` : 'transparent',
+                transition: 'all 0.3s ease',
+                borderBottom: activeSectionTab === 'pre_tasks' ? `3px solid ${getPlaySectionColor('pre_tasks')}` : 'none',
+                '&:hover': {
+                  bgcolor: activeSectionTab === 'pre_tasks' ? `${getPlaySectionColor('pre_tasks')}20` : `${getPlaySectionColor('pre_tasks')}08`,
+                  color: getPlaySectionColor('pre_tasks')
+                }
+              }}
+            />
+
+            {/* Tasks Tab */}
+            <Tab
+              icon={
+                <TabIconBadge
+                  icon={<PlaylistPlayIcon sx={{ fontSize: 20, color: activeSectionTab === 'tasks' ? getPlaySectionColor('tasks') : `${getPlaySectionColor('tasks')}a6` }} />}
+                  count={getTaskChainCount('tasks')}
+                  color={getPlaySectionColor('tasks')}
+                  isActive={activeSectionTab === 'tasks'}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: activeSectionTab === 'tasks' ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                  Tasks
+                </Typography>
+              }
+              iconPosition="start"
+              value="tasks"
+              sx={{
+                minHeight: 56,
+                textTransform: 'none',
+                px: 2.5,
+                color: activeSectionTab === 'tasks' ? getPlaySectionColor('tasks') : `${getPlaySectionColor('tasks')}a6`,
+                bgcolor: activeSectionTab === 'tasks' ? `${getPlaySectionColor('tasks')}15` : 'transparent',
+                transition: 'all 0.3s ease',
+                borderBottom: activeSectionTab === 'tasks' ? `3px solid ${getPlaySectionColor('tasks')}` : 'none',
+                '&:hover': {
+                  bgcolor: activeSectionTab === 'tasks' ? `${getPlaySectionColor('tasks')}20` : `${getPlaySectionColor('tasks')}08`,
+                  color: getPlaySectionColor('tasks')
+                }
+              }}
+            />
+
+            {/* Post-Tasks Tab */}
+            <Tab
+              icon={
+                <TabIconBadge
+                  icon={<SkipNextIcon sx={{ fontSize: 20, color: activeSectionTab === 'post_tasks' ? getPlaySectionColor('post_tasks') : `${getPlaySectionColor('post_tasks')}a6` }} />}
+                  count={getTaskChainCount('post_tasks')}
+                  color={getPlaySectionColor('post_tasks')}
+                  isActive={activeSectionTab === 'post_tasks'}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: activeSectionTab === 'post_tasks' ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                  Post-Tasks
+                </Typography>
+              }
+              iconPosition="start"
+              value="post_tasks"
+              sx={{
+                minHeight: 56,
+                textTransform: 'none',
+                px: 2.5,
+                color: activeSectionTab === 'post_tasks' ? getPlaySectionColor('post_tasks') : `${getPlaySectionColor('post_tasks')}a6`,
+                bgcolor: activeSectionTab === 'post_tasks' ? `${getPlaySectionColor('post_tasks')}15` : 'transparent',
+                transition: 'all 0.3s ease',
+                borderBottom: activeSectionTab === 'post_tasks' ? `3px solid ${getPlaySectionColor('post_tasks')}` : 'none',
+                '&:hover': {
+                  bgcolor: activeSectionTab === 'post_tasks' ? `${getPlaySectionColor('post_tasks')}20` : `${getPlaySectionColor('post_tasks')}08`,
+                  color: getPlaySectionColor('post_tasks')
+                }
+              }}
+            />
+
+            {/* Handlers Tab */}
+            <Tab
+              icon={
+                <TabIconBadge
+                  icon={<NotificationsActiveIcon sx={{ fontSize: 20, color: activeSectionTab === 'handlers' ? getPlaySectionColor('handlers') : `${getPlaySectionColor('handlers')}a6` }} />}
+                  count={getTaskChainCount('handlers')}
+                  color={getPlaySectionColor('handlers')}
+                  isActive={activeSectionTab === 'handlers'}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ fontWeight: activeSectionTab === 'handlers' ? 'bold' : 'normal', fontSize: '0.85rem' }}>
+                  Handlers
+                </Typography>
+              }
+              iconPosition="start"
+              value="handlers"
+              sx={{
+                minHeight: 56,
+                textTransform: 'none',
+                px: 2.5,
+                color: activeSectionTab === 'handlers' ? getPlaySectionColor('handlers') : `${getPlaySectionColor('handlers')}a6`,
+                bgcolor: activeSectionTab === 'handlers' ? `${getPlaySectionColor('handlers')}15` : 'transparent',
+                transition: 'all 0.3s ease',
+                borderBottom: activeSectionTab === 'handlers' ? `3px solid ${getPlaySectionColor('handlers')}` : 'none',
+                '&:hover': {
+                  bgcolor: activeSectionTab === 'handlers' ? `${getPlaySectionColor('handlers')}20` : `${getPlaySectionColor('handlers')}08`,
+                  color: getPlaySectionColor('handlers')
+                }
+              }}
+            />
+          </Tabs>
+        </Box>
+
+        {/* Tab Content: Roles */}
+        {activeSectionTab === 'roles' && (
+          <Box sx={{ flex: 1, px: 3, py: 2, bgcolor: '#4caf5008', overflow: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+              {(currentPlay.attributes?.roles || []).map((role, index) => (
+                <Chip
+                  key={`${role}-${index}`}
+                  label={role}
                   size="small"
-                  startIcon={<AddIcon />}
-                  variant="outlined"
+                  onDelete={() => deleteRole(index)}
                   color="success"
-                  onClick={addRole}
-                  disabled={!newRole.trim()}
-                >
-                  Add Role
-                </Button>
-              </Box>
+                  variant="outlined"
+                  draggable
+                  onDragStart={(e) => handleRoleDragStart(index, e)}
+                  onDragOver={(e) => handleRoleDragOver(index, e)}
+                  onDrop={(e) => handleRoleDrop(index, e)}
+                  onDragEnd={handleRoleDragEnd}
+                  sx={{
+                    cursor: 'move',
+                    opacity: draggedRoleIndex === index ? 0.5 : 1,
+                    transition: 'opacity 0.2s',
+                    '&:hover': { boxShadow: 2 },
+                  }}
+                />
+              ))}
             </Box>
-          )}
-        </Box>
-
-        {/* Section 2: Pre-Tasks */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: isPreTasksOpen ? 1 : '0 0 auto',
-          minHeight: 0
-        }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 1,
-              bgcolor: `${getPlaySectionColor('pre_tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('pre_tasks')}25` },
-              position: 'relative',
-              zIndex: 3
-            }}
-          >
-            <Box
-              onClick={() => {
-                const playModule = modules.find(m => m.isPlay)
-                if (playModule) {
-                  togglePlaySection(playModule.id, 'pre_tasks')
-                }
-              }}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
-            >
-              {(() => {
-                const playModule = modules.find(m => m.isPlay)
-                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'pre_tasks') : true
-                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-              })()}
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('pre_tasks') }}>
-                Pre-Tasks ({modules.find(m => m.isPlay)?.playSections?.pre_tasks.length || 0})
-              </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                size="small"
+                placeholder="Role name"
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    addRole()
+                  }
+                }}
+                sx={{ flex: 1, maxWidth: 300 }}
+              />
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                variant="outlined"
+                color="success"
+                onClick={addRole}
+                disabled={!newRole.trim()}
+              >
+                Add Role
+              </Button>
             </Box>
           </Box>
-          {isPreTasksOpen && (
-              <Box
-                ref={preTasksSectionRef}
-                sx={{
-                  position: 'relative',
-                  flex: 1,
-                  minHeight: 0,
-                  bgcolor: `${getPlaySectionColor('pre_tasks')}08`,
-                  overflow: 'auto',
-                  p: 2
-                }}
-                onDrop={(e) => handlePlaySectionDrop('pre_tasks', e)}
-                onDragOver={handleDragOver}
-              >
-                {/* Render START task and other tasks/blocks in pre_tasks section */}
-                <PlaySectionContent
-                  sectionName="pre_tasks"
-                  modules={modules}
-                  selectedModuleId={selectedModuleId}
-                  draggedModuleId={draggedModuleId}
-                  collapsedBlocks={collapsedBlocks}
-                  collapsedBlockSections={collapsedBlockSections}
-                  resizingBlock={resizingBlock}
-                  onSelectModule={onSelectModule}
-                  updateTaskName={updateTaskName}
-                  toggleBlockCollapse={toggleBlockCollapse}
-                  toggleBlockSection={toggleBlockSection}
-                  isSectionCollapsed={isSectionCollapsed}
-                  handleModuleDragStart={handleModuleDragStart}
-                  handleModuleDragOver={handleModuleDragOver}
-                  handleModuleDropOnModule={handleModuleDropOnModule}
-                  handleBlockSectionDrop={handleBlockSectionDrop}
-                  handleResizeStart={handleResizeStart}
-                  getBlockTheme={getBlockTheme}
-                  getBlockDimensions={getBlockDimensions}
-                  getSectionColor={getSectionColor}
-                  getPlaySectionColor={getPlaySectionColor}
-                  links={links}
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
+        )}
 
-                {/* Render links for this section */}
-                <SectionLinks
-                  links={links}
-                  modules={modules}
-                  sectionType="play"
-                  sectionName="pre_tasks"
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
-              </Box>
-          )}
-        </Box>
-
-        {/* Section 3: Tasks (default open) */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: isTasksOpen ? 1 : '0 0 auto',
-          minHeight: 0
-        }}>
+        {/* Tab Content: Pre-Tasks */}
+        {activeSectionTab === 'pre_tasks' && (
           <Box
+            ref={preTasksSectionRef}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 1,
-              bgcolor: `${getPlaySectionColor('tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('tasks')}25` },
               position: 'relative',
-              zIndex: 3
+              flex: 1,
+              minHeight: 0,
+              bgcolor: `${getPlaySectionColor('pre_tasks')}08`,
+              overflow: 'auto',
+              p: 2
             }}
+            onDrop={(e) => handlePlaySectionDrop('pre_tasks', e)}
+            onDragOver={handleDragOver}
           >
-            <Box
-              onClick={() => {
-                const playModule = modules.find(m => m.isPlay)
-                if (playModule) {
-                  togglePlaySection(playModule.id, 'tasks')
-                }
-              }}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
-            >
-              {(() => {
-                const playModule = modules.find(m => m.isPlay)
-                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'tasks') : false
-                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-              })()}
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('tasks') }}>
-                Tasks ({modules.find(m => m.isPlay)?.playSections?.tasks.length || 0})
-              </Typography>
-            </Box>
+            {/* Render START task and other tasks/blocks in pre_tasks section */}
+            <PlaySectionContent
+              sectionName="pre_tasks"
+              modules={modules}
+              selectedModuleId={selectedModuleId}
+              draggedModuleId={draggedModuleId}
+              collapsedBlocks={collapsedBlocks}
+              collapsedBlockSections={collapsedBlockSections}
+              resizingBlock={resizingBlock}
+              getStartChainCount={getStartChainCount}
+              onSelectModule={onSelectModule}
+              updateTaskName={updateTaskName}
+              toggleBlockCollapse={toggleBlockCollapse}
+              toggleBlockSection={toggleBlockSection}
+              isSectionCollapsed={isSectionCollapsed}
+              handleModuleDragStart={handleModuleDragStart}
+              handleModuleDragOver={handleModuleDragOver}
+              handleModuleDropOnModule={handleModuleDropOnModule}
+              handleBlockSectionDrop={handleBlockSectionDrop}
+              handleResizeStart={handleResizeStart}
+              getBlockTheme={getBlockTheme}
+              getBlockDimensions={getBlockDimensions}
+              getSectionColor={getSectionColor}
+              getPlaySectionColor={getPlaySectionColor}
+              links={links}
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
+
+            {/* Render links for this section */}
+            <SectionLinks
+              links={links}
+              modules={modules}
+              sectionType="play"
+              sectionName="pre_tasks"
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
           </Box>
-          {isTasksOpen && (
-              <Box
-                ref={tasksSectionRef}
-                sx={{
-                  position: 'relative',
-                  flex: 1,
-                  minHeight: 0,
-                  bgcolor: `${getPlaySectionColor('tasks')}08`,
-                  overflow: 'auto',
-                  p: 2
-                }}
-                onDrop={(e) => handlePlaySectionDrop('tasks', e)}
-                onDragOver={handleDragOver}
-              >
-                {/* Render START task and other tasks/blocks in tasks section */}
-                <PlaySectionContent
-                  sectionName="tasks"
-                  modules={modules}
-                  selectedModuleId={selectedModuleId}
-                  draggedModuleId={draggedModuleId}
-                  collapsedBlocks={collapsedBlocks}
-                  collapsedBlockSections={collapsedBlockSections}
-                  resizingBlock={resizingBlock}
-                  onSelectModule={onSelectModule}
-                  updateTaskName={updateTaskName}
-                  toggleBlockCollapse={toggleBlockCollapse}
-                  toggleBlockSection={toggleBlockSection}
-                  isSectionCollapsed={isSectionCollapsed}
-                  handleModuleDragStart={handleModuleDragStart}
-                  handleModuleDragOver={handleModuleDragOver}
-                  handleModuleDropOnModule={handleModuleDropOnModule}
-                  handleBlockSectionDrop={handleBlockSectionDrop}
-                  handleResizeStart={handleResizeStart}
-                  getBlockTheme={getBlockTheme}
-                  getBlockDimensions={getBlockDimensions}
-                  getSectionColor={getSectionColor}
-                  getPlaySectionColor={getPlaySectionColor}
-                  links={links}
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
+        )}
 
-                {/* Render links for this section */}
-                <SectionLinks
-                  links={links}
-                  modules={modules}
-                  sectionType="play"
-                  sectionName="tasks"
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
-              </Box>
-          )}
-        </Box>
-
-        {/* Section 4: Post-Tasks */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: isPostTasksOpen ? 1 : '0 0 auto',
-          minHeight: 0
-        }}>
+        {/* Tab Content: Tasks */}
+        {activeSectionTab === 'tasks' && (
           <Box
+            ref={tasksSectionRef}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 1,
-              bgcolor: `${getPlaySectionColor('post_tasks')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('post_tasks')}25` },
               position: 'relative',
-              zIndex: 3
+              flex: 1,
+              minHeight: 0,
+              bgcolor: `${getPlaySectionColor('tasks')}08`,
+              overflow: 'auto',
+              p: 2
             }}
+            onDrop={(e) => handlePlaySectionDrop('tasks', e)}
+            onDragOver={handleDragOver}
           >
-            <Box
-              onClick={() => {
-                const playModule = modules.find(m => m.isPlay)
-                if (playModule) {
-                  togglePlaySection(playModule.id, 'post_tasks')
-                }
-              }}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
-            >
-              {(() => {
-                const playModule = modules.find(m => m.isPlay)
-                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'post_tasks') : true
-                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-              })()}
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('post_tasks') }}>
-                Post-Tasks ({modules.find(m => m.isPlay)?.playSections?.post_tasks.length || 0})
-              </Typography>
-            </Box>
+            {/* Render START task and other tasks/blocks in tasks section */}
+            <PlaySectionContent
+              sectionName="tasks"
+              modules={modules}
+              selectedModuleId={selectedModuleId}
+              draggedModuleId={draggedModuleId}
+              collapsedBlocks={collapsedBlocks}
+              collapsedBlockSections={collapsedBlockSections}
+              resizingBlock={resizingBlock}
+              getStartChainCount={getStartChainCount}
+              onSelectModule={onSelectModule}
+              updateTaskName={updateTaskName}
+              toggleBlockCollapse={toggleBlockCollapse}
+              toggleBlockSection={toggleBlockSection}
+              isSectionCollapsed={isSectionCollapsed}
+              handleModuleDragStart={handleModuleDragStart}
+              handleModuleDragOver={handleModuleDragOver}
+              handleModuleDropOnModule={handleModuleDropOnModule}
+              handleBlockSectionDrop={handleBlockSectionDrop}
+              handleResizeStart={handleResizeStart}
+              getBlockTheme={getBlockTheme}
+              getBlockDimensions={getBlockDimensions}
+              getSectionColor={getSectionColor}
+              getPlaySectionColor={getPlaySectionColor}
+              links={links}
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
+
+            {/* Render links for this section */}
+            <SectionLinks
+              links={links}
+              modules={modules}
+              sectionType="play"
+              sectionName="tasks"
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
           </Box>
-          {isPostTasksOpen && (
-              <Box
-                ref={postTasksSectionRef}
-                sx={{
-                  position: 'relative',
-                  flex: 1,
-                  minHeight: 0,
-                  bgcolor: `${getPlaySectionColor('post_tasks')}08`,
-                  overflow: 'auto',
-                  p: 2
-                }}
-                onDrop={(e) => handlePlaySectionDrop('post_tasks', e)}
-                onDragOver={handleDragOver}
-              >
-                {/* Render START task and other tasks in post_tasks section */}
-                <PlaySectionContent
-                  sectionName="post_tasks"
-                  modules={modules}
-                  selectedModuleId={selectedModuleId}
-                  draggedModuleId={draggedModuleId}
-                  collapsedBlocks={collapsedBlocks}
-                  collapsedBlockSections={collapsedBlockSections}
-                  resizingBlock={resizingBlock}
-                  onSelectModule={onSelectModule}
-                  updateTaskName={updateTaskName}
-                  toggleBlockCollapse={toggleBlockCollapse}
-                  toggleBlockSection={toggleBlockSection}
-                  isSectionCollapsed={isSectionCollapsed}
-                  handleModuleDragStart={handleModuleDragStart}
-                  handleModuleDragOver={handleModuleDragOver}
-                  handleModuleDropOnModule={handleModuleDropOnModule}
-                  handleBlockSectionDrop={handleBlockSectionDrop}
-                  handleResizeStart={handleResizeStart}
-                  getBlockTheme={getBlockTheme}
-                  getBlockDimensions={getBlockDimensions}
-                  getSectionColor={getSectionColor}
-                  getPlaySectionColor={getPlaySectionColor}
-                  links={links}
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
+        )}
 
-                {/* Render links for this section */}
-                <SectionLinks
-                  links={links}
-                  modules={modules}
-                  sectionType="play"
-                  sectionName="post_tasks"
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
-              </Box>
-          )}
-        </Box>
-
-        {/* Section 5: Handlers */}
-        <Box sx={{
-          borderBottom: '1px solid #ddd',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: isHandlersOpen ? 1 : '0 0 auto',
-          minHeight: 0
-        }}>
+        {/* Tab Content: Post-Tasks */}
+        {activeSectionTab === 'post_tasks' && (
           <Box
+            ref={postTasksSectionRef}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 2,
-              py: 1,
-              bgcolor: `${getPlaySectionColor('handlers')}15`,
-              '&:hover': { bgcolor: `${getPlaySectionColor('handlers')}25` },
               position: 'relative',
-              zIndex: 3
+              flex: 1,
+              minHeight: 0,
+              bgcolor: `${getPlaySectionColor('post_tasks')}08`,
+              overflow: 'auto',
+              p: 2
             }}
+            onDrop={(e) => handlePlaySectionDrop('post_tasks', e)}
+            onDragOver={handleDragOver}
           >
-            <Box
-              onClick={() => {
-                const playModule = modules.find(m => m.isPlay)
-                if (playModule) {
-                  togglePlaySection(playModule.id, 'handlers')
-                }
-              }}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, cursor: 'pointer' }}
-            >
-              {(() => {
-                const playModule = modules.find(m => m.isPlay)
-                const collapsed = playModule ? isPlaySectionCollapsed(playModule.id, 'handlers') : true
-                return collapsed ? <ExpandMoreIcon sx={{ fontSize: 18 }} /> : <ExpandLessIcon sx={{ fontSize: 18 }} />
-              })()}
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: getPlaySectionColor('handlers') }}>
-                Handlers ({modules.find(m => m.isPlay)?.playSections?.handlers.length || 0})
-              </Typography>
-            </Box>
-          </Box>
-          {isHandlersOpen && (
-              <Box
-                ref={handlersSectionRef}
-                sx={{
-                  position: 'relative',
-                  flex: 1,
-                  minHeight: 0,
-                  bgcolor: `${getPlaySectionColor('handlers')}08`,
-                  overflow: 'auto',
-                  p: 2
-                }}
-                onDrop={(e) => handlePlaySectionDrop('handlers', e)}
-                onDragOver={handleDragOver}
-              >
-                {/* Render START task and other tasks in handlers section */}
-                <PlaySectionContent
-                  sectionName="handlers"
-                  modules={modules}
-                  selectedModuleId={selectedModuleId}
-                  draggedModuleId={draggedModuleId}
-                  collapsedBlocks={collapsedBlocks}
-                  collapsedBlockSections={collapsedBlockSections}
-                  resizingBlock={resizingBlock}
-                  onSelectModule={onSelectModule}
-                  updateTaskName={updateTaskName}
-                  toggleBlockCollapse={toggleBlockCollapse}
-                  toggleBlockSection={toggleBlockSection}
-                  isSectionCollapsed={isSectionCollapsed}
-                  handleModuleDragStart={handleModuleDragStart}
-                  handleModuleDragOver={handleModuleDragOver}
-                  handleModuleDropOnModule={handleModuleDropOnModule}
-                  handleBlockSectionDrop={handleBlockSectionDrop}
-                  handleResizeStart={handleResizeStart}
-                  getBlockTheme={getBlockTheme}
-                  getBlockDimensions={getBlockDimensions}
-                  getSectionColor={getSectionColor}
-                  getPlaySectionColor={getPlaySectionColor}
-                  links={links}
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
+            {/* Render START task and other tasks in post_tasks section */}
+            <PlaySectionContent
+              sectionName="post_tasks"
+              modules={modules}
+              selectedModuleId={selectedModuleId}
+              draggedModuleId={draggedModuleId}
+              collapsedBlocks={collapsedBlocks}
+              collapsedBlockSections={collapsedBlockSections}
+              resizingBlock={resizingBlock}
+              getStartChainCount={getStartChainCount}
+              onSelectModule={onSelectModule}
+              updateTaskName={updateTaskName}
+              toggleBlockCollapse={toggleBlockCollapse}
+              toggleBlockSection={toggleBlockSection}
+              isSectionCollapsed={isSectionCollapsed}
+              handleModuleDragStart={handleModuleDragStart}
+              handleModuleDragOver={handleModuleDragOver}
+              handleModuleDropOnModule={handleModuleDropOnModule}
+              handleBlockSectionDrop={handleBlockSectionDrop}
+              handleResizeStart={handleResizeStart}
+              getBlockTheme={getBlockTheme}
+              getBlockDimensions={getBlockDimensions}
+              getSectionColor={getSectionColor}
+              getPlaySectionColor={getPlaySectionColor}
+              links={links}
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
 
-                {/* Render links for this section */}
-                <SectionLinks
-                  links={links}
-                  modules={modules}
-                  sectionType="play"
-                  sectionName="handlers"
-                  getLinkStyle={getLinkStyle}
-                  deleteLink={deleteLink}
-                  hoveredLinkId={hoveredLinkId}
-                  setHoveredLinkId={setHoveredLinkId}
-                  getModuleOrVirtual={getModuleOrVirtual}
-                  getModuleDimensions={getModuleDimensions}
-                />
-              </Box>
-          )}
-        </Box>
+            {/* Render links for this section */}
+            <SectionLinks
+              links={links}
+              modules={modules}
+              sectionType="play"
+              sectionName="post_tasks"
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
+          </Box>
+        )}
+
+        {/* Tab Content: Handlers */}
+        {activeSectionTab === 'handlers' && (
+          <Box
+            ref={handlersSectionRef}
+            sx={{
+              position: 'relative',
+              flex: 1,
+              minHeight: 0,
+              bgcolor: `${getPlaySectionColor('handlers')}08`,
+              overflow: 'auto',
+              p: 2
+            }}
+            onDrop={(e) => handlePlaySectionDrop('handlers', e)}
+            onDragOver={handleDragOver}
+          >
+            {/* Render START task and other tasks in handlers section */}
+            <PlaySectionContent
+              sectionName="handlers"
+              modules={modules}
+              selectedModuleId={selectedModuleId}
+              draggedModuleId={draggedModuleId}
+              collapsedBlocks={collapsedBlocks}
+              collapsedBlockSections={collapsedBlockSections}
+              resizingBlock={resizingBlock}
+              getStartChainCount={getStartChainCount}
+              onSelectModule={onSelectModule}
+              updateTaskName={updateTaskName}
+              toggleBlockCollapse={toggleBlockCollapse}
+              toggleBlockSection={toggleBlockSection}
+              isSectionCollapsed={isSectionCollapsed}
+              handleModuleDragStart={handleModuleDragStart}
+              handleModuleDragOver={handleModuleDragOver}
+              handleModuleDropOnModule={handleModuleDropOnModule}
+              handleBlockSectionDrop={handleBlockSectionDrop}
+              handleResizeStart={handleResizeStart}
+              getBlockTheme={getBlockTheme}
+              getBlockDimensions={getBlockDimensions}
+              getSectionColor={getSectionColor}
+              getPlaySectionColor={getPlaySectionColor}
+              links={links}
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
+
+            {/* Render links for this section */}
+            <SectionLinks
+              links={links}
+              modules={modules}
+              sectionType="play"
+              sectionName="handlers"
+              getLinkStyle={getLinkStyle}
+              deleteLink={deleteLink}
+              hoveredLinkId={hoveredLinkId}
+              setHoveredLinkId={setHoveredLinkId}
+              getModuleOrVirtual={getModuleOrVirtual}
+              getModuleDimensions={getModuleDimensions}
+            />
+          </Box>
+        )}
       </Box>
 
       {/* Drop Zone - Canvas libre */}

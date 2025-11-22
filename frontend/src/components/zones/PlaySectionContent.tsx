@@ -1,4 +1,4 @@
-import { Box, Paper, IconButton, TextField, Typography, Tooltip } from '@mui/material'
+import { Box, Paper, IconButton, TextField, Typography, Tooltip, Badge } from '@mui/material'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -6,6 +6,7 @@ import React from 'react'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
+import StartTaskWithBadge from '../common/StartTaskWithBadge'
 import { ModuleBlock, Link } from '../../types/playbook'
 
 interface PlaySectionContentProps {
@@ -16,6 +17,7 @@ interface PlaySectionContentProps {
   collapsedBlocks: Set<string>
   collapsedBlockSections: Set<string>
   resizingBlock: { id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null
+  getStartChainCount: (startId: string) => number
   onSelectModule: (module: {
     id: string
     name: string
@@ -70,6 +72,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
   collapsedBlocks,
   collapsedBlockSections,
   resizingBlock,
+  getStartChainCount,
   onSelectModule,
   updateTaskName,
   toggleBlockCollapse,
@@ -241,6 +244,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           collapsedBlocks={collapsedBlocks}
                           collapsedBlockSections={collapsedBlockSections}
                           resizingBlock={resizingBlock}
+                          getStartChainCount={getStartChainCount}
                           onSelectModule={onSelectModule}
                           updateTaskName={updateTaskName}
                           toggleBlockCollapse={toggleBlockCollapse}
@@ -323,6 +327,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           collapsedBlocks={collapsedBlocks}
                           collapsedBlockSections={collapsedBlockSections}
                           resizingBlock={resizingBlock}
+                          getStartChainCount={getStartChainCount}
                           onSelectModule={onSelectModule}
                           updateTaskName={updateTaskName}
                           toggleBlockCollapse={toggleBlockCollapse}
@@ -405,6 +410,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                           collapsedBlocks={collapsedBlocks}
                           collapsedBlockSections={collapsedBlockSections}
                           resizingBlock={resizingBlock}
+                          getStartChainCount={getStartChainCount}
                           onSelectModule={onSelectModule}
                           updateTaskName={updateTaskName}
                           toggleBlockCollapse={toggleBlockCollapse}
@@ -626,14 +632,16 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
             )
           }
 
-          // Si c'est une START task, rendre comme un mini START
+          // Si c'est une START task, rendre comme un mini START avec badge
           if (task.isPlay) {
             return (
-              <Paper
+              <StartTaskWithBadge
                 key={task.id}
-                data-task-id={task.id}
-                elevation={2}
-                draggable={true}
+                startId={task.id}
+                position={{ x: task.x, y: task.y }}
+                color={getPlaySectionColor(sectionName)}
+                badgeCount={getStartChainCount(task.id)}
+                isDragged={draggedModuleId === task.id}
                 onDragStart={(e) => handleModuleDragStart(task.id, e)}
                 onDragOver={(e) => {
                   e.preventDefault()
@@ -646,31 +654,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                     handleModuleDropOnModule(task.id, e)
                   }
                 }}
-                sx={{
-                  position: 'absolute',
-                  left: task.x,
-                  top: task.y,
-                  width: 60,
-                  height: 40,
-                  p: 0.5,
-                  cursor: 'move',
-                  border: `2px solid ${getPlaySectionColor(sectionName)}`,
-                  borderRadius: '0 50% 50% 0',
-                  bgcolor: `${getPlaySectionColor(sectionName)}15`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: draggedModuleId === task.id ? 10 : 1,
-                  opacity: draggedModuleId === task.id ? 0.7 : 1,
-                  '&:hover': {
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                <Typography variant="caption" sx={{ fontWeight: 'bold', color: getPlaySectionColor(sectionName), fontSize: '0.6rem' }}>
-                  START
-                </Typography>
-              </Paper>
+              />
             )
           }
 
