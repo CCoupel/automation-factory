@@ -10,12 +10,12 @@ Ce document contient toute la documentation technique backend du projet Ansible 
 
 **Backend:**
 - **Framework**: FastAPI (Python 3.11+)
-- **Base de données**: PostgreSQL (avec support JSONB pour structures flexibles)
-- **Cache/Queue**: Redis
-- **ORM**: SQLAlchemy (async)
-- **Migration**: Alembic
-- **Auth**: JWT + OAuth2
-- **Intégration Ansible**: ansible-runner, pyyaml
+- **Base de données**: SQLite (dev) ou PostgreSQL (prod) - configurable via DATABASE_TYPE
+- **ORM**: SQLAlchemy 2.0 (async avec asyncio)
+- **Drivers DB**: aiosqlite (SQLite), asyncpg (PostgreSQL)
+- **Auth**: JWT (python-jose) + BCrypt (passlib)
+- **Validation**: Pydantic v2
+- **Intégration Ansible**: ansible-runner, pyyaml (à implémenter)
 
 **Infrastructure:**
 - **Conteneurisation**: Docker
@@ -27,44 +27,59 @@ Ce document contient toute la documentation technique backend du projet Ansible 
 
 ## 📊 Architecture de Données
 
-### Modèles de Données (À Implémenter)
+### Modèles de Données (Implémentés)
 
 #### User
+**Fichier:** `app/models/user.py`
+
 ```python
 class User(Base):
     __tablename__ = "users"
 
-    id: UUID
+    id: str (UUID as string, primary key)
     email: str (unique, index)
-    hashed_password: str
-    is_active: bool
+    username: str (unique, index)
+    hashed_password: str (bcrypt)
+    is_active: bool (default: True)
+    is_admin: bool (default: False)
     created_at: datetime
     updated_at: datetime
 
     # Relations
-    playbooks: List[Playbook]
+    playbooks: relationship("Playbook", cascade="all, delete-orphan")
 ```
 
+**Méthodes:**
+- `to_dict(include_sensitive=False)` - Sérialisation en dict
+- `generate_uuid()` - Génération UUID string
+
 #### Playbook
+**Fichier:** `app/models/playbook.py`
+
 ```python
 class Playbook(Base):
     __tablename__ = "playbooks"
 
-    id: UUID
-    user_id: UUID (FK -> users.id)
+    id: str (UUID as string, primary key)
     name: str
-    description: Optional[str]
-    version: str
+    description: str (optional)
+    content: JSON (structure complète du playbook)
+    owner_id: str (FK -> users.id, CASCADE DELETE)
     created_at: datetime
     updated_at: datetime
 
-    # Structure du playbook en JSONB
-    plays: JSONB  # Array de Play objects
-    modules: JSONB  # Array de ModuleBlock objects
-    links: JSONB  # Array de Link objects
-
     # Relations
-    user: User
+    owner: relationship("User")
+```
+
+**Structure content (JSON):**
+```json
+{
+  "plays": [...],
+  "modules": [...],
+  "links": [...],
+  "variables": {...}
+}
 ```
 
 #### Collection
@@ -104,57 +119,114 @@ class Module(Base):
 
 ---
 
-## 🔌 API Endpoints (À Implémenter)
+## 🔌 API Endpoints
 
-### Authentication
+### Authentication (Implémenté)
+**Fichier:** `app/api/endpoints/auth.py`
 
 **POST /api/auth/register**
 - Créer un nouveau compte utilisateur
-- Body: `{ email, password }`
-- Response: `{ user, access_token }`
+- Body: `{ email: str, username: str, password: str }`
+- Validation: Email unique, username unique, password min 6 caractères
+- Response `201`: `{ user: {...}, token: "jwt..." }`
+- Response `400`: Email ou username déjà pris
 
 **POST /api/auth/login**
 - Connexion utilisateur
-- Body: `{ email, password }`
-- Response: `{ access_token, token_type }`
+- Body: `{ email: str, password: str }`
+- Validation: Credentials valides, compte actif
+- Response `200`: `{ user: {...}, token: "jwt..." }`
+- Response `401`: Email ou mot de passe incorrect
+- Response `403`: Compte désactivé
 
-**POST /api/auth/refresh**
-- Rafraîchir le token JWT
+**GET /api/auth/verify**
+- Vérifier le token JWT et retourner l'utilisateur actuel
 - Headers: `Authorization: Bearer <token>`
-- Response: `{ access_token }`
+- Response `200`: `UserResponse`
+- Response `401`: Token invalide
 
-### Playbooks
+**POST /api/auth/logout**
+- Déconnexion (suppression côté client)
+- Response `200`: `{ message: "Successfully logged out" }`
+
+### Playbooks (Implémenté)
+**Fichier:** `app/api/endpoints/playbooks.py`
 
 **GET /api/playbooks**
-- Lister les playbooks de l'utilisateur
-- Query params: `?page=1&limit=20&search=...`
-- Response: `{ playbooks: [...], total, page, limit }`
+- Lister les playbooks de l'utilisateur authentifié
+- Headers: `Authorization: Bearer <token>`
+- Response `200`: `List[PlaybookResponse]` (sans content)
+- Tri: Par `updated_at` décroissant
 
 **POST /api/playbooks**
 - Créer un nouveau playbook
-- Body: `{ name, description?, version?, plays?, modules?, links? }`
-- Response: `{ playbook }`
+- Headers: `Authorization: Bearer <token>`
+- Body: `{ name: str, description?: str, content: dict }`
+- Response `201`: `PlaybookDetailResponse` (avec content)
 
-**GET /api/playbooks/{id}**
-- Récupérer un playbook par ID
-- Response: `{ playbook }`
+**GET /api/playbooks/{playbook_id}**
+- Récupérer un playbook avec contenu complet
+- Headers: `Authorization: Bearer <token>`
+- Validation: Ownership (seulement le propriétaire)
+- Response `200`: `PlaybookDetailResponse`
+- Response `404`: Playbook introuvable
+- Response `403`: Pas le propriétaire
 
-**PUT /api/playbooks/{id}**
+**PUT /api/playbooks/{playbook_id}**
 - Mettre à jour un playbook
-- Body: `{ name?, description?, version?, plays?, modules?, links? }`
-- Response: `{ playbook }`
+- Headers: `Authorization: Bearer <token>`
+- Body: `{ name?: str, description?: str, content?: dict }`
+- Validation: Ownership
+- Response `200`: `PlaybookDetailResponse`
+- Response `404`: Playbook introuvable
+- Response `403`: Pas le propriétaire
 
-**DELETE /api/playbooks/{id}**
+**DELETE /api/playbooks/{playbook_id}**
 - Supprimer un playbook
-- Response: `{ success: true }`
+- Headers: `Authorization: Bearer <token>`
+- Validation: Ownership
+- Response `204`: No content
+- Response `404`: Playbook introuvable
+- Response `403`: Pas le propriétaire
 
-**POST /api/playbooks/{id}/compile**
-- Compiler un playbook en YAML Ansible
-- Response: `{ yaml: "..." }`
+### Admin (Implémenté)
+**Fichier:** `app/api/endpoints/admin.py`
 
-**POST /api/playbooks/{id}/download**
-- Télécharger le playbook compilé
-- Response: File (application/x-yaml)
+**GET /api/admin/users**
+- Lister tous les utilisateurs (admin uniquement)
+- Headers: `Authorization: Bearer <token>` (admin)
+- Response `200`: `List[UserResponse]`
+- Response `403`: Pas admin
+
+**PUT /api/admin/users/{user_id}/password**
+- Changer le mot de passe d'un utilisateur (admin uniquement)
+- Headers: `Authorization: Bearer <token>` (admin)
+- Body: `{ new_password: str }`
+- Response `200`: `{ message: "Password updated..." }`
+- Response `404`: Utilisateur introuvable
+
+**PATCH /api/admin/users/{user_id}**
+- Activer/désactiver un utilisateur ou modifier privilèges admin
+- Headers: `Authorization: Bearer <token>` (admin)
+- Body: `{ is_active?: bool, is_admin?: bool }`
+- Sécurité: Impossible de se désactiver soi-même ou retirer ses propres privilèges
+- Response `200`: `UserResponse`
+- Response `400`: Action interdite sur soi-même
+- Response `404`: Utilisateur introuvable
+
+**DELETE /api/admin/users/{user_id}/playbooks**
+- Purger tous les playbooks d'un utilisateur (admin uniquement)
+- Headers: `Authorization: Bearer <token>` (admin)
+- Response `200`: `{ message: "Purged X playbook(s)...", deleted_count: X }`
+- Response `404`: Utilisateur introuvable
+
+**DELETE /api/admin/users/{user_id}**
+- Supprimer un utilisateur et ses playbooks (admin uniquement)
+- Headers: `Authorization: Bearer <token>` (admin)
+- Sécurité: Impossible de se supprimer soi-même
+- Response `204`: No content
+- Response `400`: Impossible de se supprimer
+- Response `404`: Utilisateur introuvable
 
 ### Collections & Modules
 
@@ -292,20 +364,57 @@ class AuthService:
 
 ## 🚀 Déploiement
 
+### Configuration
+
+**1. Créer le fichier `.env`:**
+```bash
+cd backend
+cp .env.example .env
+# Éditer .env et configurer les variables
+```
+
+**Variables clés:**
+- `DATABASE_TYPE`: `sqlite` (dev) ou `postgresql` (prod)
+- `SECRET_KEY`: Clé secrète pour JWT (à changer en prod!)
+- `SQLITE_DB_PATH`: Chemin vers la base SQLite (si DATABASE_TYPE=sqlite)
+- `POSTGRES_*`: Configuration PostgreSQL (si DATABASE_TYPE=postgresql)
+
 ### Développement Local
 
+**1. Installation des dépendances:**
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Lancer le serveur de développement
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# API accessible sur http://localhost:8000
-# Documentation auto sur http://localhost:8000/docs
 ```
+
+**2. Initialiser la base de données:**
+```bash
+# Avec les valeurs par défaut (admin / admin@ansible-builder.local / admin123)
+python init_db.py
+
+# Ou avec des valeurs personnalisées
+python init_db.py --email admin@example.com --username superadmin --password StrongP@ssw0rd
+```
+
+**3. Lancer le serveur de développement:**
+```bash
+# Avec uvicorn directement
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Ou avec le script main.py
+python main.py
+```
+
+**4. Accès:**
+- API: http://localhost:8000
+- Documentation interactive (Swagger): http://localhost:8000/docs
+- Documentation alternative (ReDoc): http://localhost:8000/redoc
+
+**Endpoints utiles:**
+- `GET /` - Info de l'API
+- `GET /health` - Health check
 
 ### Production (Kubernetes)
 
@@ -369,14 +478,17 @@ spec:
 ## 🔮 Prochaines Étapes
 
 ### Backend
-- [ ] Implémenter les modèles de données (User, Playbook, Module, Collection)
-- [ ] Créer les endpoints CRUD pour playbooks
+- [x] Implémenter les modèles de données User et Playbook
+- [x] Créer les endpoints CRUD pour playbooks
+- [x] Authentification JWT avec BCrypt
+- [x] Gestion des utilisateurs admin
+- [x] Script d'initialisation de base de données
+- [x] Support SQLite et PostgreSQL
+- [ ] Implémenter modèles Collection et Module
 - [ ] Service de collecte des modules Ansible Galaxy
 - [ ] Service de compilation YAML (transformer les blocks 3 sections)
-- [ ] Authentification JWT
-- [ ] Gestion des erreurs et validation Pydantic
 - [ ] Tests unitaires et d'intégration (pytest)
-- [ ] Documentation OpenAPI complète
+- [ ] Documentation OpenAPI complète avec exemples
 
 ### DevOps
 - [ ] CI/CD pipeline (GitHub Actions ou GitLab CI)
@@ -393,38 +505,42 @@ spec:
 ```
 backend/
 ├── app/
-│   ├── main.py                 # Point d'entrée FastAPI
-│   ├── config.py               # Configuration (env vars)
-│   ├── database.py             # SQLAlchemy setup
+│   ├── core/                   # Configuration et utilitaires
+│   │   ├── config.py           # Settings (Pydantic BaseSettings)
+│   │   ├── database.py         # SQLAlchemy async setup
+│   │   ├── security.py         # JWT + BCrypt
+│   │   └── dependencies.py     # FastAPI dependencies (auth)
 │   ├── models/                 # Modèles SQLAlchemy
-│   │   ├── user.py
-│   │   ├── playbook.py
-│   │   ├── collection.py
-│   │   └── module.py
+│   │   ├── __init__.py
+│   │   ├── user.py             # ✅ Implémenté
+│   │   ├── playbook.py         # ✅ Implémenté
+│   │   ├── collection.py       # ⏳ À implémenter
+│   │   └── module.py           # ⏳ À implémenter
 │   ├── schemas/                # Pydantic schemas
-│   │   ├── user.py
-│   │   ├── playbook.py
-│   │   ├── collection.py
-│   │   └── module.py
-│   ├── routers/                # API endpoints
-│   │   ├── auth.py
-│   │   ├── playbooks.py
-│   │   ├── collections.py
-│   │   └── modules.py
-│   ├── services/               # Business logic
-│   │   ├── auth_service.py
-│   │   ├── ansible_collector.py
-│   │   └── yaml_compiler.py
-│   └── dependencies.py         # FastAPI dependencies
-├── alembic/                    # Migrations
-│   └── versions/
-├── tests/                      # Tests pytest
-│   ├── test_auth.py
-│   ├── test_playbooks.py
-│   └── test_compiler.py
-├── requirements.txt
-├── Dockerfile
-└── README.md
+│   │   ├── __init__.py
+│   │   ├── user.py             # ✅ Implémenté
+│   │   ├── playbook.py         # ✅ Implémenté
+│   │   ├── collection.py       # ⏳ À implémenter
+│   │   └── module.py           # ⏳ À implémenter
+│   ├── api/                    # API endpoints
+│   │   ├── endpoints/
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py         # ✅ Implémenté (register, login, verify, logout)
+│   │   │   ├── playbooks.py    # ✅ Implémenté (CRUD complet)
+│   │   │   ├── admin.py        # ✅ Implémenté (gestion users)
+│   │   │   ├── collections.py  # ⏳ À implémenter
+│   │   │   └── modules.py      # ⏳ À implémenter
+│   │   └── router.py           # ✅ Agrégation des routers
+│   └── services/               # Business logic
+│       ├── ansible_collector.py # ⏳ À implémenter
+│       └── yaml_compiler.py     # ⏳ À implémenter
+├── main.py                     # ✅ Point d'entrée FastAPI
+├── init_db.py                  # ✅ Script d'initialisation DB + admin
+├── .env.example                # ✅ Configuration template
+├── .env                        # Configuration locale (git ignored)
+├── requirements.txt            # ✅ Dépendances Python
+├── CLAUDE_BACKEND.md           # ✅ Documentation backend
+└── README.md                   # ⏳ À créer
 ```
 
 ---

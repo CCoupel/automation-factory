@@ -4,7 +4,8 @@ uvicorn[standard]==0.30.6
 
 # Database
 sqlalchemy==2.0.35
-asyncpg==0.29.0
+asyncpg==0.29.0         # PostgreSQL async driver
+aiosqlite==0.20.0       # SQLite async driver
 alembic==1.13.3
 
 # Redis
