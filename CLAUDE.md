@@ -1334,6 +1334,93 @@ CountBadge (base)
 - Cohérence visuelle garantie
 - Code plus lisible et maintenable
 
+#### **Architecture des ResizeHandles Unifiées**
+
+Le système de poignées de redimensionnement a été unifié pour éliminer une duplication massive (~495 lignes) en créant un composant réutilisable unique.
+
+**Problème initial:**
+- 8 Box components dupliqués dans PlaySectionContent.tsx (172 lignes)
+- 8 Box components dupliqués dans BlockSectionContent.tsx (174 lignes)
+- 8 Box components dupliqués dans WorkZone.tsx (174 lignes)
+- Total: ~520 lignes de code quasi-identique
+
+**Composant créé:**
+
+**ResizeHandles** (`frontend/src/components/common/ResizeHandles.tsx`) - 206 lignes
+
+Composant réutilisable pour les poignées de redimensionnement 8 directions:
+
+- **4 corner handles** (nw, ne, sw, se) - 16×16px, round (borderRadius: '50%')
+- **4 edge handles** (n, s, w, e) - 40×12px ou 12×40px, rectangular (borderRadius: 2)
+
+**Props:**
+```typescript
+interface ResizeHandlesProps {
+  blockId: string
+  color: string
+  resizingBlock: {
+    id: string
+    direction: string
+  } | null
+  onResizeStart: (blockId: string, direction: string, e: React.MouseEvent) => void
+}
+```
+
+**Approche par configuration:**
+- Array de 8 configurations de handles (HandleConfig[])
+- `.map()` pour générer les handles dynamiquement
+- Styling et comportement centralisés
+
+**Usage:**
+```typescript
+// Dans PlaySectionContent.tsx
+{!collapsedBlocks.has(task.id) && (
+  <ResizeHandles
+    blockId={task.id}
+    color={getPlaySectionColor(sectionName)}
+    resizingBlock={resizingBlock}
+    onResizeStart={handleResizeStart}
+  />
+)}
+
+// Dans BlockSectionContent.tsx
+{!collapsedBlocks.has(task.id) && (
+  <ResizeHandles
+    blockId={task.id}
+    color={getSectionColor(section)}
+    resizingBlock={resizingBlock}
+    onResizeStart={handleResizeStart}
+  />
+)}
+
+// Dans WorkZone.tsx
+{!module.isPlay && !collapsedBlocks.has(module.id) && (
+  <ResizeHandles
+    blockId={module.id}
+    color="#1976d2"
+    resizingBlock={resizingBlock}
+    onResizeStart={handleResizeStart}
+  />
+)}
+```
+
+**Utilisé dans:**
+- PlaySectionContent.tsx - Blocks dans sections PLAY
+- BlockSectionContent.tsx - Blocks dans sections de blocks
+- WorkZone.tsx - Blocks sur le canvas
+
+**Gain net:**
+- Code supprimé: ~495 lignes (165 × 3 fichiers)
+- Code ajouté: 206 lignes (ResizeHandles.tsx)
+- **Gain net: ~289 lignes (58% de réduction)**
+
+**Bénéfices:**
+- Single source of truth pour les poignées de redimensionnement
+- Modifications globales en un seul endroit (taille, curseur, animation)
+- Type safety avec HandleConfig interface
+- Réduction significative de la taille du bundle
+- Code plus maintenable et testable
+
 ### Types Partagés
 
 #### **frontend/src/types/playbook.ts**
@@ -1695,6 +1782,9 @@ kubectl apply -f k8s/frontend/
 - [x] Refactoring: Architecture unifiée des badges avec hiérarchie à 3 niveaux (~85+ lignes économisées)
 - [x] Refactoring: Composant de base CountBadge pour styling unifié (18×18px, bold, white text)
 - [x] Refactoring: TabIconBadge et StartTaskWithBadge refactorisés pour utiliser CountBadge
+- [x] Refactoring: Architecture unifiée des ResizeHandles avec composant réutilisable (~289 lignes économisées)
+- [x] Refactoring: Composant ResizeHandles pour poignées de redimensionnement 8 directions (16×16px corners, 40×12px edges)
+- [x] Refactoring: Approche par configuration pour gérer les handles (HandleConfig array + .map())
 - [x] Architecture section-scoped pour le rendu des liens (un SVG par section au lieu d'un SVG global)
 - [x] Composant réutilisable SectionLinks pour rendu des liens avec coordonnées relatives
 - [x] Suppression de l'ancien système de liens avec SVG global (~400 lignes supprimées)

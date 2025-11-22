@@ -21,6 +21,7 @@ import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import PlayAttributeIcons from '../common/PlayAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
+import ResizeHandles from '../common/ResizeHandles'
 import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play, PlayAttributes } from '../../types/playbook'
 
 interface WorkZoneProps {
@@ -3280,179 +3281,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                     {/* Poignées de redimensionnement - 8 directions - seulement pour les blocks non collapsed */}
                     {!module.isPlay && !collapsedBlocks.has(module.id) && (
-                      <>
-                        {/* Coin Nord-Ouest */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'nw', e)}
-                          sx={{
-                            position: 'absolute',
-                            top: -6,
-                            left: -6,
-                            width: 16,
-                            height: 16,
-                            cursor: 'nwse-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'nw' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: '50%',
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Coin Nord-Est */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'ne', e)}
-                          sx={{
-                            position: 'absolute',
-                            top: -6,
-                            right: -6,
-                            width: 16,
-                            height: 16,
-                            cursor: 'nesw-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'ne' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: '50%',
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Coin Sud-Ouest */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'sw', e)}
-                          sx={{
-                            position: 'absolute',
-                            bottom: -6,
-                            left: -6,
-                            width: 16,
-                            height: 16,
-                            cursor: 'nesw-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'sw' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: '50%',
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Coin Sud-Est */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'se', e)}
-                          sx={{
-                            position: 'absolute',
-                            bottom: -6,
-                            right: -6,
-                            width: 16,
-                            height: 16,
-                            cursor: 'nwse-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'se' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: '50%',
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.3)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Bord Nord */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'n', e)}
-                          sx={{
-                            position: 'absolute',
-                            top: -6,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 40,
-                            height: 12,
-                            cursor: 'ns-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'n' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: 2,
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Bord Sud */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 's', e)}
-                          sx={{
-                            position: 'absolute',
-                            bottom: -6,
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: 40,
-                            height: 12,
-                            cursor: 'ns-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 's' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: 2,
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateX(-50%) scaleY(1.4)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Bord Ouest */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'w', e)}
-                          sx={{
-                            position: 'absolute',
-                            left: -6,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            width: 12,
-                            height: 40,
-                            cursor: 'ew-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'w' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: 2,
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-
-                        {/* Bord Est */}
-                        <Box
-                          onMouseDown={(e) => handleResizeStart(module.id, 'e', e)}
-                          sx={{
-                            position: 'absolute',
-                            right: -6,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            width: 12,
-                            height: 40,
-                            cursor: 'ew-resize',
-                            bgcolor: resizingBlock?.id === module.id && resizingBlock?.direction === 'e' ? 'primary.dark' : 'primary.main',
-                            border: `2px solid white`,
-                            borderRadius: 2,
-                            opacity: 1,
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                            '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scaleX(1.4)' },
-                            transition: 'all 0.2s',
-                            zIndex: 20,
-                          }}
-                        />
-                      </>
+                      <ResizeHandles
+                        blockId={module.id}
+                        color="#1976d2"
+                        resizingBlock={resizingBlock}
+                        onResizeStart={handleResizeStart}
+                      />
                     )}
                   </Paper>
                 )

@@ -7,6 +7,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
 import StartTaskWithBadge from '../common/StartTaskWithBadge'
+import ResizeHandles from '../common/ResizeHandles'
 import { ModuleBlock, Link } from '../../types/playbook'
 
 interface BlockSectionContentProps {
@@ -507,179 +508,12 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
 
               {/* Poignées de redimensionnement - 8 directions - seulement pour les blocks non collapsed */}
               {!collapsedBlocks.has(task.id) && (
-                <>
-                  {/* Coin Nord-Ouest */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'nw', e)}
-                    sx={{
-                      position: 'absolute',
-                      top: -6,
-                      left: -6,
-                      width: 16,
-                      height: 16,
-                      cursor: 'nwse-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'nw' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: '50%',
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'scale(1.3)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Coin Nord-Est */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'ne', e)}
-                    sx={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -6,
-                      width: 16,
-                      height: 16,
-                      cursor: 'nesw-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'ne' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: '50%',
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'scale(1.3)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Coin Sud-Ouest */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'sw', e)}
-                    sx={{
-                      position: 'absolute',
-                      bottom: -6,
-                      left: -6,
-                      width: 16,
-                      height: 16,
-                      cursor: 'nesw-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'sw' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: '50%',
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'scale(1.3)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Coin Sud-Est */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'se', e)}
-                    sx={{
-                      position: 'absolute',
-                      bottom: -6,
-                      right: -6,
-                      width: 16,
-                      height: 16,
-                      cursor: 'nwse-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'se' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: '50%',
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'scale(1.3)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Bord Nord */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'n', e)}
-                    sx={{
-                      position: 'absolute',
-                      top: -6,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 40,
-                      height: 12,
-                      cursor: 'ns-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'n' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: 2,
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'translateX(-50%) scaleY(1.4)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Bord Sud */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 's', e)}
-                    sx={{
-                      position: 'absolute',
-                      bottom: -6,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: 40,
-                      height: 12,
-                      cursor: 'ns-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 's' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: 2,
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'translateX(-50%) scaleY(1.4)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Bord Ouest */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'w', e)}
-                    sx={{
-                      position: 'absolute',
-                      left: -6,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: 12,
-                      height: 40,
-                      cursor: 'ew-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'w' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: 2,
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'translateY(-50%) scaleX(1.4)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-
-                  {/* Bord Est */}
-                  <Box
-                    onMouseDown={(e) => handleResizeStart(task.id, 'e', e)}
-                    sx={{
-                      position: 'absolute',
-                      right: -6,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: 12,
-                      height: 40,
-                      cursor: 'ew-resize',
-                      bgcolor: resizingBlock?.id === task.id && resizingBlock?.direction === 'e' ? getSectionColor(section) : `${getSectionColor(section)}CC`,
-                      border: `2px solid white`,
-                      borderRadius: 2,
-                      opacity: 1,
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                      '&:hover': { bgcolor: getSectionColor(section), transform: 'translateY(-50%) scaleX(1.4)' },
-                      transition: 'all 0.2s',
-                      zIndex: 20,
-                    }}
-                  />
-                </>
+                <ResizeHandles
+                  blockId={task.id}
+                  color={getSectionColor(section)}
+                  resizingBlock={resizingBlock}
+                  onResizeStart={handleResizeStart}
+                />
               )}
             </Paper>
           )
