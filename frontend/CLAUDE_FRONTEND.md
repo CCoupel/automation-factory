@@ -4,6 +4,199 @@ Ce document contient toute la documentation technique frontend du projet Ansible
 
 ---
 
+## 🔐 Système d'Authentification
+
+### Vue d'ensemble
+
+Le frontend implémente un système d'authentification complet permettant de sauvegarder les sessions utilisateurs et de persister les playbooks créés.
+
+**Fonctionnalités:**
+- Page de login/register avec validation
+- Gestion de session avec JWT tokens
+- Persistance dans localStorage
+- Protection des routes (PrivateRoute)
+- Header avec informations utilisateur et bouton de déconnexion
+
+### Architecture
+
+**Composants clés:**
+1. **AuthContext** (`src/contexts/AuthContext.tsx`) - Context React pour gérer l'état d'authentification
+2. **LoginPage** (`src/pages/LoginPage.tsx`) - Page de connexion/inscription
+3. **PrivateRoute** (`src/components/auth/PrivateRoute.tsx`) - HOC pour protéger les routes
+4. **AppHeader** (`src/components/layout/AppHeader.tsx`) - Header avec bouton de déconnexion
+5. **authService** (`src/services/authService.ts`) - Service API pour l'authentification
+
+### AuthContext
+
+**Interface User:**
+```typescript
+interface User {
+  id: string
+  email: string
+  username: string
+  createdAt?: string
+}
+```
+
+**Interface AuthContextType:**
+```typescript
+interface AuthContextType {
+  user: User | null
+  token: string | null
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<boolean>
+  register: (email: string, username: string, password: string) => Promise<boolean>
+  logout: () => void
+  isAuthenticated: boolean
+}
+```
+
+**Hook d'utilisation:**
+```typescript
+const { user, token, isAuthenticated, login, logout } = useAuth()
+```
+
+**Persistance:**
+- Token JWT stocké dans `localStorage.authToken`
+- Données utilisateur stockées dans `localStorage.authUser`
+- Chargement automatique au montage de l'application
+
+### LoginPage
+
+**Fonctionnalités:**
+- Onglets Login / Register (Material-UI Tabs avec `variant="fullWidth"`)
+- Formulaires de connexion et d'inscription
+- Validation des champs (email, longueur mot de passe, correspondance)
+- États de chargement avec CircularProgress
+- Messages d'erreur avec Alert
+- Design cohérent avec gradient violet/bleu
+
+**Validation:**
+- Email: regex `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+- Mot de passe: minimum 6 caractères
+- Confirmation mot de passe: correspondance exacte
+
+**Redirection:**
+- Après login/register réussi → route `/` (WorkZone)
+- Échec → Message d'erreur affiché
+
+### PrivateRoute
+
+**Fonctionnement:**
+```typescript
+<Route
+  path="/*"
+  element={
+    <PrivateRoute>
+      <App />
+    </PrivateRoute>
+  }
+/>
+```
+
+**Comportement:**
+- Si `isLoading`: Affiche spinner de chargement
+- Si `!isAuthenticated`: Redirige vers `/login` avec `<Navigate>`
+- Si authentifié: Rend le composant enfant
+
+### AppHeader
+
+**Apparence:**
+- AppBar Material-UI avec gradient violet/bleu
+- Logo et titre "Ansible Builder" à gauche
+- Informations utilisateur à droite:
+  - Avatar avec initiale du username
+  - Username et email affichés
+  - Bouton "Déconnexion" avec icône
+
+**Fonctionnalités:**
+- Logout et redirection vers `/login` au clic
+- Design cohérent avec LoginPage
+- Responsive et moderne
+
+### Routing
+
+**Structure dans main.tsx:**
+```typescript
+<BrowserRouter>
+  <AuthProvider>
+    <Routes>
+      {/* Public route */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Private route */}
+      <Route
+        path="/*"
+        element={
+          <PrivateRoute>
+            <App />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Redirect */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  </AuthProvider>
+</BrowserRouter>
+```
+
+### Service API (authService.ts)
+
+**Méthodes:**
+- `login(email, password)` - Connexion utilisateur
+- `register(email, username, password)` - Inscription
+- `logout(token)` - Déconnexion
+- `verifyToken(token)` - Vérification du token
+
+**État actuel:**
+- Implémentation **mock** pour développement
+- TODO: Intégrer avec le backend FastAPI une fois implémenté
+- Intercepteurs Axios préparés (commentés) pour JWT automatique
+
+**Migration vers backend réel:**
+1. Décommenter les appels axios dans authService.ts
+2. Configurer `VITE_API_URL` dans .env
+3. Implémenter les endpoints backend:
+   - POST `/api/auth/login`
+   - POST `/api/auth/register`
+   - POST `/api/auth/logout`
+   - GET `/api/auth/verify`
+4. Décommenter les intercepteurs Axios pour gestion automatique du token
+
+### Flux d'authentification
+
+**Première visite:**
+1. App charge → AuthContext lit localStorage
+2. Pas de token → `isAuthenticated = false`
+3. PrivateRoute redirige vers `/login`
+4. Utilisateur se connecte/inscrit
+5. Token et user stockés dans state + localStorage
+6. Redirection vers `/` (WorkZone protégée)
+
+**Visite suivante:**
+1. AuthContext charge token et user depuis localStorage
+2. `isAuthenticated = true`
+3. PrivateRoute laisse passer → affiche App
+4. Header affiche les infos utilisateur
+
+**Déconnexion:**
+1. Click sur bouton "Déconnexion"
+2. `logout()` vide state et localStorage
+3. Navigation vers `/login`
+
+### Gestion des erreurs
+
+**Token expiré (futur):**
+- Intercepteur Axios détecte 401
+- Clear localStorage et redirection vers `/login`
+
+**Erreurs de connexion:**
+- Affichage d'un Alert Material-UI avec message d'erreur
+- Pas de blocage de l'interface (l'utilisateur peut réessayer)
+
+---
+
 ## 🧱 Architecture des Blocks (3 Sections)
 
 ### Structure des Blocks

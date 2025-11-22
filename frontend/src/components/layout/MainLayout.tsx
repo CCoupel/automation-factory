@@ -4,6 +4,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef } from 'react'
+import AppHeader from './AppHeader'
 import PlaybookZone from '../zones/PlaybookZone'
 import VarsZone from '../zones/VarsZone'
 import ModulesZone from '../zones/ModulesZone'
@@ -104,6 +105,9 @@ const MainLayout = () => {
         overflow: 'hidden',
       }}
     >
+      {/* App Header - User info and Logout */}
+      <AppHeader />
+
       {/* Zone Playbook - Barre haute 1 */}
       <Box
         sx={{
