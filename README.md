@@ -183,8 +183,12 @@ ansible-builder/
 │   ├── postgresql/
 │   └── redis/
 ├── docker-compose.yml
-├── CLAUDE.md            # Documentation pour Claude AI
-└── README.md
+├── CLAUDE.md            # Documentation globale (vue d'ensemble)
+├── frontend/
+│   ├── CLAUDE_FRONTEND.md  # Documentation frontend détaillée
+│   └── docs/            # Analyses et guides d'optimisation
+└── backend/
+    └── CLAUDE_BACKEND.md   # Documentation backend détaillée
 ```
 
 ## Tests
@@ -216,9 +220,43 @@ cd frontend
 npm run lint
 ```
 
+## 📚 Documentation
+
+La documentation du projet est organisée en plusieurs fichiers pour faciliter la navigation :
+
+### 🌐 [CLAUDE.md](./CLAUDE.md) - Vue d'ensemble globale (321 lignes)
+- Description du projet et architecture de l'interface
+- Décisions architecturales et stack technique
+- State management et déploiement
+- Résumé des refactorings réalisés (~1,854 lignes économisées)
+
+### 💻 [frontend/CLAUDE_FRONTEND.md](./frontend/CLAUDE_FRONTEND.md) - Documentation frontend (1,619 lignes)
+- Architecture des Blocks (3 sections: Tasks, Rescue, Always)
+- Système de Drag & Drop et Liens
+- Patterns à respecter et pièges à éviter
+- Guide de refactoring et composants réutilisables
+- Liste complète des fonctionnalités implémentées
+
+### 🖥️ [backend/CLAUDE_BACKEND.md](./backend/CLAUDE_BACKEND.md) - Documentation backend (524 lignes)
+- Stack technique et architecture de données
+- API Endpoints et services
+- Sécurité, performance et tests
+- Guide de déploiement
+
+### 📊 [frontend/docs/](./frontend/docs/) - Analyses d'optimisation (698 lignes)
+- [README_OPTIMISATION.md](./frontend/docs/README_OPTIMISATION.md) - Point d'entrée
+- [ANALYSE_OPTIMISATION_CODE.md](./frontend/docs/ANALYSE_OPTIMISATION_CODE.md) - Analyse détaillée
+- [EXEMPLES_REFACTORING.txt](./frontend/docs/EXEMPLES_REFACTORING.txt) - Exemples de code
+- [CHECKLIST_REFACTORING.txt](./frontend/docs/CHECKLIST_REFACTORING.txt) - Guide d'implémentation
+
+---
+
 ## Contribution
 
-Consulter [CLAUDE.md](CLAUDE.md) pour les décisions architecturales, patterns à respecter et pièges à éviter.
+Consulter la documentation appropriée selon le domaine :
+- **Frontend :** [frontend/CLAUDE_FRONTEND.md](./frontend/CLAUDE_FRONTEND.md)
+- **Backend :** [backend/CLAUDE_BACKEND.md](./backend/CLAUDE_BACKEND.md)
+- **Vue d'ensemble :** [CLAUDE.md](./CLAUDE.md)
 
 ## Licence
 
