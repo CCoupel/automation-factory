@@ -52,6 +52,7 @@ L'interface se compose de plusieurs parties:
 **Zone interne (Zone de Play):**
 - Représente le playbook
 - organisé sous forme d'onglets par PLAY
+- **Barre de navigation des onglets** : Les onglets des sections (Roles, Pre-Tasks, Tasks, Post-Tasks, Handlers) utilisent `variant="fullWidth"` pour se répartir équitablement sur toute la largeur disponible
 - se presente sous la forme d'un accordeon de
   - Variables:
     - liste les variables du Play sous la forme de Chips
@@ -1775,6 +1776,7 @@ kubectl apply -f k8s/frontend/
 - [x] Interface PlaySectionAttributes pour typage des attributs de sections
 - [x] Initialisation automatique des sectionAttributes dans les nouveaux PLAYs
 - [x] Indicateurs visuels (icônes colorées/grises) selon l'état des attributs de section
+- [x] Barre de navigation des onglets PLAY avec répartition équitable sur toute la largeur (variant="fullWidth")
 - [x] Refactoring: Types partagés centralisés dans types/playbook.ts (~120 lignes économisées)
 - [x] Refactoring: Composant réutilisable TaskAttributeIcons (~240 lignes économisées)
 - [x] Refactoring: Élimination de la duplication des icônes d'attributs (10+ occurrences)

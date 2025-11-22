@@ -2002,8 +2002,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           <Tabs
             value={activeSectionTab}
             onChange={(e, newValue) => setActiveSectionTab(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
+            variant="fullWidth"
             sx={{
               minHeight: 56,
               '& .MuiTabs-indicator': {
