@@ -109,6 +109,41 @@ npm install
 npm run dev
 ```
 
+## Authentification
+
+### Initialisation de la Base de Données
+
+Avant la première utilisation, initialisez la base de données et créez le compte administrateur par défaut :
+
+```bash
+cd backend
+python init_db.py
+```
+
+Cette commande crée :
+- Les tables de la base de données
+- Un compte administrateur par défaut
+
+### Identifiants par Défaut
+
+**⚠️ IMPORTANT:** Changez ces identifiants en production !
+
+- **Email:** `admin@example.com`
+- **Username:** `admin`
+- **Password:** `admin123`
+
+### Personnalisation du Compte Admin
+
+Vous pouvez créer un compte admin avec des identifiants personnalisés :
+
+```bash
+python init_db.py --email votre.email@exemple.com --username votre_username --password votre_mot_de_passe
+```
+
+### Note Importante sur les Emails
+
+Le système utilise une validation stricte des adresses email. Les domaines spéciaux comme `.local`, `.test`, `.invalid` sont rejetés. Utilisez toujours des domaines valides (`.com`, `.org`, `.net`, etc.) même en développement.
+
 ## Déploiement Kubernetes
 
 ### Prérequis

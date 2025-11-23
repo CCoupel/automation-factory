@@ -7,7 +7,7 @@ Usage:
     python init_db.py [--email ADMIN_EMAIL] [--username ADMIN_USERNAME] [--password ADMIN_PASSWORD]
 
 If credentials are not provided, defaults will be used:
-    - Email: admin@ansible-builder.local
+    - Email: admin@example.com
     - Username: admin
     - Password: admin123 (CHANGE THIS IN PRODUCTION!)
 """
@@ -36,7 +36,7 @@ async def create_admin_user(email: str, username: str, password: str):
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
-            print(f"⚠️  User with email '{email}' already exists")
+            print(f"[WARNING] User with email '{email}' already exists")
             print(f"   Username: {existing_user.username}")
             print(f"   Is Admin: {existing_user.is_admin}")
             return
@@ -54,11 +54,11 @@ async def create_admin_user(email: str, username: str, password: str):
         await db.commit()
         await db.refresh(admin)
 
-        print(f"✅ Admin user created successfully!")
+        print(f"[SUCCESS] Admin user created successfully!")
         print(f"   Email: {admin.email}")
         print(f"   Username: {admin.username}")
         print(f"   ID: {admin.id}")
-        print(f"\n⚠️  IMPORTANT: Please change the default password immediately!")
+        print(f"\n[IMPORTANT] Please change the default password immediately!")
 
 
 async def main():
@@ -69,8 +69,8 @@ async def main():
     parser.add_argument(
         "--email",
         type=str,
-        default="admin@ansible-builder.local",
-        help="Admin email (default: admin@ansible-builder.local)"
+        default="admin@example.com",
+        help="Admin email (default: admin@example.com)"
     )
     parser.add_argument(
         "--username",
@@ -87,16 +87,16 @@ async def main():
 
     args = parser.parse_args()
 
-    print("🚀 Initializing Ansible Builder database...")
+    print("[INIT] Initializing Ansible Builder database...")
 
     # Initialize database tables
     await init_db()
-    print("✅ Database tables created")
+    print("[SUCCESS] Database tables created")
 
     # Create admin user
     await create_admin_user(args.email, args.username, args.password)
 
-    print("\n🎉 Database initialization complete!")
+    print("\n[COMPLETE] Database initialization complete!")
 
 
 if __name__ == "__main__":

@@ -29,17 +29,17 @@ async def lifespan(app: FastAPI):
         - Clean up resources
     """
     # Startup
-    print("🚀 Starting Ansible Builder API...")
-    print(f"📊 Database: {settings.DATABASE_TYPE.upper()}")
+    print("[STARTUP] Starting Ansible Builder API...")
+    print(f"[DATABASE] Using {settings.DATABASE_TYPE.upper()}")
 
     # Initialize database
     await init_db()
-    print("✅ Database initialized")
+    print("[SUCCESS] Database initialized")
 
     yield
 
     # Shutdown
-    print("👋 Shutting down Ansible Builder API...")
+    print("[SHUTDOWN] Shutting down Ansible Builder API...")
 
 
 # Create FastAPI application
@@ -50,13 +50,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS - Must be added before routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Include API router

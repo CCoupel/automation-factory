@@ -5,9 +5,16 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Ansible Builder"
     DEBUG: bool = True
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
 
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000"
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Parse CORS_ORIGINS string into a list"""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     # Database Configuration
     # Choose database type: "sqlite" or "postgresql"
