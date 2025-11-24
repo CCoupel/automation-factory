@@ -16,6 +16,9 @@ definitions:
           - echo "Chart version detected:$CHART_VERSION"
           - echo "📦 Updating Helm dependencies..."
           - helm dependency update
+          - echo "📦 Checking downloaded dependencies..."
+          - ls -lha charts/ || echo "charts/ directory not found"
+          - cat Chart.lock || echo "Chart.lock not found"
           - echo "📦 Packaging Helm chart..."
           - helm package . --destination ../../charts/
           - ls -lh ../../charts/
