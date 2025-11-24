@@ -1,44 +1,65 @@
 # Guide de Publication du Helm Chart
 
-Ce document explique comment publier le Helm chart Ansible Builder sur GitHub Container Registry (GHCR).
+Ce document explique comment publier le Helm chart Ansible Builder sur GitHub Container Registry (GHCR) depuis Bitbucket.
 
 ## 🚀 Méthodes de Publication
 
-### Méthode 1: GitHub Actions (Recommandé) ⭐
+### Méthode 1: Bitbucket Pipelines (Recommandé) ⭐
 
-**Configuration automatique via CI/CD**
+**Configuration automatique via CI/CD Bitbucket**
 
-Le workflow GitHub Actions publiera automatiquement le chart sur GHCR lors de:
+Le pipeline Bitbucket publiera automatiquement le chart sur GHCR lors de:
 - Push d'un tag version (ex: `v1.1.0`)
-- Push vers la branche `master`
-- Déclenchement manuel via l'interface GitHub
+- Déclenchement manuel via l'interface Bitbucket
 
-**Aucune configuration requise!** Le workflow utilise le token `GITHUB_TOKEN` automatiquement fourni par GitHub Actions.
+#### Configuration Initiale (une seule fois):
+
+1. **Activer Bitbucket Pipelines:**
+   - Aller sur https://bitbucket.org/ccoupel/ansible_builder/admin/addon/admin/pipelines/settings
+   - Activer "Enable Pipelines"
+
+2. **Configurer les variables d'environnement:**
+   - Aller sur https://bitbucket.org/ccoupel/ansible_builder/admin/addon/admin/pipelines/repository-variables
+   - Ajouter deux variables:
+     - Name: `GITHUB_USERNAME`, Value: `ccoupel` (non sécurisée)
+     - Name: `GITHUB_TOKEN`, Value: `ghp_your_token_here` (✅ **Secured**)
+
+3. **Obtenir un GitHub Personal Access Token:**
+   - Aller sur https://github.com/settings/tokens
+   - Cliquer "Generate new token" > "Generate new token (classic)"
+   - Nom: "Helm Chart Publisher - Bitbucket"
+   - Scope requis: ✅ `write:packages`
+   - Copier le token et le mettre dans la variable `GITHUB_TOKEN`
 
 #### Publier une nouvelle version:
 
 ```bash
 # 1. Mettre à jour la version dans Chart.yaml
-# helm/ansible-builder/Chart.yaml: version: 1.2.0
+vim helm/ansible-builder/Chart.yaml
+# Changer: version: 1.2.0
 
-# 2. Commit et push
+# 2. Commit les changements
 git add helm/ansible-builder/Chart.yaml
 git commit -m "chore: bump chart version to 1.2.0"
-git push
+git push origin master
 
 # 3. Créer et pousser un tag
 git tag v1.2.0
 git push origin v1.2.0
 ```
 
-Le workflow GitHub Actions s'exécutera automatiquement et publiera sur GHCR! ✅
+Le pipeline Bitbucket s'exécutera **automatiquement** et publiera sur GHCR! ✅
 
-#### Publier manuellement via GitHub Actions:
+**Suivi de l'exécution:**
+- https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
 
-1. Aller sur https://github.com/ccoupel/ansible_builder/actions
-2. Sélectionner "Publish Helm Chart to GHCR"
-3. Cliquer "Run workflow"
-4. Sélectionner la branche et cliquer "Run workflow"
+#### Publier manuellement via Bitbucket Pipelines:
+
+1. Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+2. Cliquer "Run pipeline" (en haut à droite)
+3. Branch: `master`
+4. Pipeline: Sélectionner "Custom: publish-chart"
+5. Cliquer "Run"
 
 ---
 
@@ -98,26 +119,33 @@ cd charts
 
 ## 🔐 Obtenir un GitHub Personal Access Token
 
-### Pour publication manuelle (Méthodes 2 et 3):
+### Pour Bitbucket Pipelines (Méthode 1):
 
 1. Aller sur https://github.com/settings/tokens
 2. Cliquer "Generate new token" > "Generate new token (classic)"
-3. Donner un nom: "Helm Chart Publisher"
+3. Nom: "Helm Chart Publisher - Bitbucket Pipelines"
 4. Sélectionner les scopes:
    - ✅ `write:packages` (Upload packages to GitHub Package Registry)
    - ✅ `read:packages` (Download packages from GitHub Package Registry)
 5. Cliquer "Generate token"
-6. **Copier le token immédiatement** (il ne sera plus visible après)
+6. **Copier le token immédiatement** (format: `ghp_...`)
+7. Le configurer dans les variables Bitbucket (voir Configuration Initiale)
 
-### Pour GitHub Actions (Méthode 1):
+### Pour publication manuelle (Méthodes 2 et 3):
 
-**Aucun token nécessaire!** GitHub Actions utilise automatiquement `GITHUB_TOKEN`.
+Même processus, mais stocker le token localement dans les variables d'environnement.
 
 ---
 
 ## 📊 Vérifier la Publication
 
-### Via GitHub:
+### Via Bitbucket Pipelines:
+
+1. Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+2. Vérifier que le pipeline s'est exécuté avec succès (✅ vert)
+3. Consulter les logs pour voir la confirmation de publication
+
+### Via GitHub Packages:
 
 1. Aller sur https://github.com/ccoupel?tab=packages
 2. Chercher "ansible-builder"
@@ -128,6 +156,9 @@ cd charts
 ```bash
 # Voir les métadonnées du chart
 helm show chart oci://ghcr.io/ccoupel/ansible-builder
+
+# Voir toutes les infos
+helm show all oci://ghcr.io/ccoupel/ansible-builder
 
 # Tester l'installation
 helm install test-ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
@@ -154,25 +185,25 @@ vim CHANGELOG.md
 git add helm/ansible-builder/Chart.yaml CHANGELOG.md
 git commit -m "chore: release helm chart v1.2.0"
 
-# 4. Créer un tag
-git tag -a v1.2.0 -m "Release v1.2.0"
+# 4. Créer un tag annoté
+git tag -a v1.2.0 -m "Release Helm chart v1.2.0"
 
-# 5. Push vers Bitbucket (code source)
+# 5. Push vers Bitbucket (déclenchera automatiquement le pipeline)
 git push origin master
 git push origin v1.2.0
-
-# 6. Push vers GitHub (déclenchera le workflow de publication)
-git push github master
-git push github v1.2.0
 ```
 
-Le workflow GitHub Actions publiera automatiquement sur GHCR! 🚀
+Le pipeline Bitbucket publiera automatiquement sur GHCR! 🚀
+
+**Vérifier:**
+- Pipeline: https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+- Package: https://github.com/ccoupel?tab=packages
 
 ---
 
 ## 🛠️ Troubleshooting
 
-### Erreur: "helm: command not found"
+### Erreur: "helm: command not found" (local)
 
 **Solution:** Installer Helm
 - Windows: `choco install kubernetes-helm`
@@ -196,12 +227,45 @@ helm registry login ghcr.io -u ccoupel
 
 **Solution:** Vérifier le nom sur https://github.com/ccoupel?tab=packages
 
-### GitHub Actions Workflow échoue
+### Bitbucket Pipeline échoue
 
-**Vérifier:**
-1. Les permissions du workflow (Settings > Actions > General > Workflow permissions)
-2. Doit être "Read and write permissions"
-3. Le token `GITHUB_TOKEN` doit avoir le scope `packages: write`
+**Étape 1: Vérifier les logs**
+- Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+- Cliquer sur le pipeline qui a échoué
+- Consulter les logs détaillés
+
+**Étape 2: Vérifier la configuration**
+
+1. **Pipelines activées?**
+   - Settings > Pipelines > Settings
+   - "Enable Pipelines" doit être ON
+
+2. **Variables configurées?**
+   - Settings > Pipelines > Repository variables
+   - `GITHUB_USERNAME` existe (non sécurisée)
+   - `GITHUB_TOKEN` existe (✅ **Secured**)
+
+3. **Token valide?**
+   - Le token GitHub doit avoir le scope `write:packages`
+   - Le token ne doit pas être expiré
+   - Format: `ghp_...` (classic token)
+
+4. **Erreurs courantes:**
+   - `401 Unauthorized`: Token invalide ou scope manquant
+   - `403 Forbidden`: Token n'a pas les permissions nécessaires
+   - `404 Not Found`: Première publication (normal)
+
+**Étape 3: Réexécuter le pipeline**
+- Corriger la configuration
+- Cliquer "Rerun" sur le pipeline échoué
+
+### Package visible uniquement par moi sur GitHub
+
+**Solution:** Rendre le package public
+1. Aller sur https://github.com/users/ccoupel/packages/container/ansible-builder
+2. Settings > Change visibility
+3. Sélectionner "Public"
+4. Confirmer
 
 ---
 
@@ -209,15 +273,39 @@ helm registry login ghcr.io -u ccoupel
 
 - [Helm OCI Support](https://helm.sh/docs/topics/registries/)
 - [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
-- [GitHub Actions](https://docs.github.com/en/actions)
+- [Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/)
 - [Helm Documentation](https://helm.sh/docs/)
 
 ---
 
 ## 💡 Conseils
 
-1. **Utilisez GitHub Actions (Méthode 1)** pour publication automatique et zéro configuration
+1. **Utilisez Bitbucket Pipelines (Méthode 1)** pour publication automatique depuis votre repository
 2. **Versionnez avec semver**: `v1.0.0`, `v1.1.0`, `v2.0.0`
 3. **Testez localement** avant de publier: `helm install --dry-run`
 4. **Documentez les changements** dans CHANGELOG.md
 5. **Gardez le repository Git et le registry synchronisés**
+6. **Rendez le package public** sur GitHub pour que tout le monde puisse l'installer
+
+---
+
+## 🎯 Résumé Rapide
+
+**Pour publier une nouvelle version:**
+
+```bash
+# Méthode rapide (3 commandes)
+git tag v1.2.0
+git push origin v1.2.0
+# → Le pipeline s'occupe du reste automatiquement!
+```
+
+**Pour installer le chart:**
+
+```bash
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --namespace ansible-builder \
+  --create-namespace
+```
+
+**C'est tout!** 🎉

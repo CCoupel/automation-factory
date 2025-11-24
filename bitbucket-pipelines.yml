@@ -1,0 +1,62 @@
+image: alpine/helm:3.13.0
+
+definitions:
+  steps:
+    - step: &publish-helm-chart
+        name: Package and Push Helm Chart to GHCR
+        caches:
+          - docker
+        script:
+          # Installer les dépendances nécessaires
+          - apk add --no-cache git findutils
+
+          # Afficher les informations
+          - echo "📦 Building Helm chart for Ansible Builder"
+          - helm version
+
+          # Obtenir la version depuis Chart.yaml
+          - cd helm/ansible-builder
+          - export CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          - echo "Chart version detected: $CHART_VERSION"
+
+          # Mettre à jour les dépendances Helm
+          - echo "📦 Updating Helm dependencies..."
+          - helm dependency update
+
+          # Packager le chart
+          - echo "📦 Packaging Helm chart..."
+          - helm package . --destination ../../charts/
+          - ls -lh ../../charts/
+
+          # Se connecter à GitHub Container Registry
+          - echo "🔐 Logging in to GitHub Container Registry..."
+          - echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
+
+          # Pousser le chart vers GHCR
+          - echo "🚀 Pushing chart to ghcr.io/$GITHUB_USERNAME..."
+          - helm push "../../charts/ansible-builder-${CHART_VERSION}.tgz" "oci://ghcr.io/$GITHUB_USERNAME"
+
+          # Afficher les instructions d'installation
+          - echo "✅ Chart published successfully!"
+          - echo ""
+          - echo "📍 Location: oci://ghcr.io/$GITHUB_USERNAME/ansible-builder"
+          - echo "📦 Version: $CHART_VERSION"
+          - echo ""
+          - echo "Users can install with:"
+          - echo "  helm install ansible-builder oci://ghcr.io/$GITHUB_USERNAME/ansible-builder --version $CHART_VERSION"
+
+pipelines:
+  # Déclenché automatiquement sur les tags version (v1.0.0, v1.1.0, etc.)
+  tags:
+    'v*.*.*':
+      - step: *publish-helm-chart
+
+  # Déclenché manuellement via l'interface Bitbucket (optionnel)
+  custom:
+    publish-chart:
+      - step: *publish-helm-chart
+
+  # Optionnel: déclenché sur push vers master (commenté par défaut)
+  # branches:
+  #   master:
+  #     - step: *publish-helm-chart
