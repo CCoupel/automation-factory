@@ -5,12 +5,12 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef } from 'react'
 import AppHeader from './AppHeader'
-import PlaybookZone from '../zones/PlaybookZone'
 import VarsZone from '../zones/VarsZone'
 import ModulesZone from '../zones/ModulesZone'
 import WorkZone from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
+import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 import { PlayAttributes } from '../../types/playbook'
 
 interface SelectedModule {
@@ -43,6 +43,16 @@ const MainLayout = () => {
   const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) | null>(null)
   const getPlayAttributesCallbackRef = useRef<(() => PlayAttributes) | null>(null)
   const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
+  const savePlaybookCallbackRef = useRef<(() => Promise<void>) | null>(null)
+  const loadPlaybookCallbackRef = useRef<((playbookId: string) => Promise<void>) | null>(null)
+
+  // Playbook save status
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [playbookName, setPlaybookName] = useState<string>('Untitled Playbook')
+  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(null)
+
+  // Playbook manager dialog
+  const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -106,20 +116,13 @@ const MainLayout = () => {
       }}
     >
       {/* App Header - User info and Logout */}
-      <AppHeader />
+      <AppHeader
+        saveStatus={saveStatus}
+        playbookName={playbookName}
+        onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
+      />
 
-      {/* Zone Playbook - Barre haute 1 */}
-      <Box
-        sx={{
-          height: '80px',
-          borderBottom: '1px solid #ddd',
-          flexShrink: 0,
-        }}
-      >
-        <PlaybookZone />
-      </Box>
-
-      {/* Zone Vars - Barre haute 2 */}
+      {/* Zone Vars - Barre haute 1 */}
       {!isVarsCollapsed ? (
         <Box
           sx={{
@@ -290,6 +293,12 @@ const MainLayout = () => {
               getPlayAttributesCallbackRef.current = getCallback
               updatePlayAttributesCallbackRef.current = updateCallback
             }}
+            onSaveStatusChange={(status, name) => {
+              setSaveStatus(status)
+              setPlaybookName(name)
+            }}
+            onSavePlaybook={(callback) => { savePlaybookCallbackRef.current = callback }}
+            onLoadPlaybook={(callback) => { loadPlaybookCallbackRef.current = callback }}
           />
         </Box>
 
@@ -431,6 +440,19 @@ const MainLayout = () => {
           </Tooltip>
         </Box>
       )}
+
+      {/* Playbook Manager Dialog */}
+      <PlaybookManagerDialog
+        open={playbookManagerOpen}
+        onClose={() => setPlaybookManagerOpen(false)}
+        onSelectPlaybook={async (playbookId) => {
+          if (loadPlaybookCallbackRef.current) {
+            await loadPlaybookCallbackRef.current(playbookId)
+            setCurrentPlaybookId(playbookId)
+          }
+        }}
+        currentPlaybookId={currentPlaybookId}
+      />
     </Box>
   )
 }

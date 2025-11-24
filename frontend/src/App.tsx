@@ -1,28 +1,23 @@
-import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { CssBaseline } from '@mui/material'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-})
+import AccountsManagementPage from './pages/AccountsManagementPage'
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <>
       <CssBaseline />
-      <MainLayout />
-    </ThemeProvider>
+      <Routes>
+        {/* Main workspace */}
+        <Route path="/" element={<MainLayout />} />
+
+        {/* Admin pages */}
+        <Route path="/admin/accounts" element={<AccountsManagementPage />} />
+
+        {/* Redirect unknown routes to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
 

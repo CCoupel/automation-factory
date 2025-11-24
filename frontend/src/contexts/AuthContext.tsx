@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import axios from 'axios'
 
 /**
  * User interface representing authenticated user data
@@ -7,6 +8,7 @@ export interface User {
   id: string
   email: string
   username: string
+  role?: 'user' | 'admin'
   createdAt?: string
 }
 
@@ -127,37 +129,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // For now, use mock authentication
+      const response = await axios.post('http://localhost:8000/api/auth/login', {
+        email,
+        password
+      })
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const { user: userData, token: userToken } = response.data
 
-      // Mock successful login
-      if (email && password) {
-        const mockUser: User = {
-          id: '1',
-          email: email,
-          username: email.split('@')[0],
-          createdAt: new Date().toISOString()
-        }
-
-        const mockToken = 'mock-jwt-token-' + Date.now()
-
-        // Store in state
-        setUser(mockUser)
-        setToken(mockToken)
-
-        // Persist to localStorage
-        localStorage.setItem('authToken', mockToken)
-        localStorage.setItem('authUser', JSON.stringify(mockUser))
-
-        return true
+      // Map is_admin to role
+      const mappedUser: User = {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        role: userData.is_admin ? 'admin' : 'user',
+        createdAt: userData.created_at
       }
 
-      return false
-    } catch (error) {
-      console.error('Login error:', error)
+      // Store in state
+      setUser(mappedUser)
+      setToken(userToken)
+
+      // Persist to localStorage
+      localStorage.setItem('authToken', userToken)
+      localStorage.setItem('authUser', JSON.stringify(mappedUser))
+
+      return true
+    } catch (error: any) {
+      console.error('Login error:', error.response?.data || error.message)
       return false
     } finally {
       setIsLoading(false)
@@ -170,37 +168,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (email: string, username: string, password: string): Promise<boolean> => {
     setIsLoading(true)
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // For now, use mock registration
+      const response = await axios.post('http://localhost:8000/api/auth/register', {
+        email,
+        username,
+        password
+      })
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const { user: userData, token: userToken } = response.data
 
-      // Mock successful registration
-      if (email && username && password) {
-        const mockUser: User = {
-          id: Date.now().toString(),
-          email: email,
-          username: username,
-          createdAt: new Date().toISOString()
-        }
-
-        const mockToken = 'mock-jwt-token-' + Date.now()
-
-        // Store in state
-        setUser(mockUser)
-        setToken(mockToken)
-
-        // Persist to localStorage
-        localStorage.setItem('authToken', mockToken)
-        localStorage.setItem('authUser', JSON.stringify(mockUser))
-
-        return true
+      // Map is_admin to role
+      const mappedUser: User = {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        role: userData.is_admin ? 'admin' : 'user',
+        createdAt: userData.created_at
       }
 
-      return false
-    } catch (error) {
-      console.error('Registration error:', error)
+      // Store in state
+      setUser(mappedUser)
+      setToken(userToken)
+
+      // Persist to localStorage
+      localStorage.setItem('authToken', userToken)
+      localStorage.setItem('authUser', JSON.stringify(mappedUser))
+
+      return true
+    } catch (error: any) {
+      console.error('Registration error:', error.response?.data || error.message)
       return false
     } finally {
       setIsLoading(false)

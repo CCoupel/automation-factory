@@ -59,27 +59,16 @@ export const authService = {
    */
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-      //   email,
-      //   password
-      // })
-      // return response.data
-
-      // Mock response for now
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      return {
-        user: {
-          id: '1',
-          email: email,
-          username: email.split('@')[0],
-          createdAt: new Date().toISOString()
-        },
-        token: 'mock-jwt-token-' + Date.now()
-      }
-    } catch (error) {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email,
+        password
+      })
+      return response.data
+    } catch (error: any) {
       console.error('Login API error:', error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
       throw new Error('Login failed')
     }
   },
@@ -99,28 +88,17 @@ export const authService = {
    */
   async register(email: string, username: string, password: string): Promise<RegisterResponse> {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await axios.post(`${API_BASE_URL}/auth/register`, {
-      //   email,
-      //   username,
-      //   password
-      // })
-      // return response.data
-
-      // Mock response for now
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      return {
-        user: {
-          id: Date.now().toString(),
-          email: email,
-          username: username,
-          createdAt: new Date().toISOString()
-        },
-        token: 'mock-jwt-token-' + Date.now()
-      }
-    } catch (error) {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+        email,
+        username,
+        password
+      })
+      return response.data
+    } catch (error: any) {
       console.error('Register API error:', error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
       throw new Error('Registration failed')
     }
   },
@@ -136,19 +114,15 @@ export const authService = {
    */
   async logout(token: string): Promise<void> {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // await axios.post(
-      //   `${API_BASE_URL}/auth/logout`,
-      //   {},
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${token}`
-      //     }
-      //   }
-      // )
-
-      // Mock - no API call needed for now
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await axios.post(
+        `${API_BASE_URL}/auth/logout`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
     } catch (error) {
       console.error('Logout API error:', error)
       // Don't throw error on logout - always clear local session
@@ -168,25 +142,13 @@ export const authService = {
    */
   async verifyToken(token: string): Promise<User> {
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`
-      //   }
-      // })
-      // return response.data.user
-
-      // Mock response for now
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Return mock user based on stored data
-      const storedUser = localStorage.getItem('authUser')
-      if (storedUser) {
-        return JSON.parse(storedUser)
-      }
-
-      throw new Error('Invalid token')
-    } catch (error) {
+      const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      return response.data
+    } catch (error: any) {
       console.error('Token verification error:', error)
       throw new Error('Token verification failed')
     }

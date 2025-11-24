@@ -23,7 +23,15 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(powershell -Command \"Stop-Process -Id 8404 -Force; Stop-Process -Id 12116 -Force\")",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(pip --version:*)",
+      "Bash(pip install:*)",
+      "Bash(python init_db.py:*)",
+      "Bash(python:*)",
+      "Bash(nul)",
+      "Bash(del ansible_builder.db)",
+      "Bash(del nul)",
+      "Bash(del backendnul)"
     ],
     "deny": [],
     "ask": []

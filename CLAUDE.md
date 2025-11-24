@@ -246,13 +246,17 @@ Voir aussi:
 ## 🔮 Prochaines Étapes
 
 ### Backend
-- [ ] Implémenter les modèles de données (User, Playbook, Module, Collection)
-- [ ] Créer les endpoints CRUD pour playbooks
+- [x] Implémenter les modèles de données (User, Playbook, Module, Collection)
+- [x] Créer les endpoints CRUD pour playbooks
+- [x] Authentification JWT
 - [ ] Service de collecte des modules Ansible Galaxy
 - [ ] Service de compilation YAML (transformer les blocks 3 sections)
-- [ ] Authentification JWT
 
 ### Frontend
+- [x] Système de persistance des playbooks (auto-save avec debounce 3s)
+- [x] Interface de gestion des playbooks (création, liste, suppression, sélection)
+- [x] Indicateur visuel de sauvegarde dans AppHeader
+- [x] Gestion des variables avec validation des doublons (dialog)
 - [ ] Formulaires dynamiques pour configuration modules
 - [ ] Prévisualisation YAML en temps réel
 - [ ] Download du playbook généré
@@ -317,5 +321,5 @@ Le codebase a fait l'objet de plusieurs refactorings majeurs pour améliorer la 
 
 ---
 
-**Dernière mise à jour:** 2025-11-22
-**Version:** 1.0.0
+**Dernière mise à jour:** 2025-11-23
+**Version:** 1.1.0

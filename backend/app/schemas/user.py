@@ -35,6 +35,12 @@ class UserPasswordChange(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=100)
 
 
+class UserSelfPasswordChange(BaseModel):
+    """Schema for user changing their own password"""
+    current_password: str
+    new_password: str = Field(..., min_length=6, max_length=100)
+
+
 class UserResponse(UserBase):
     """Schema for user response"""
     id: str

@@ -12,7 +12,7 @@ from app.core.security import verify_password, get_password_hash, create_access_
 from app.core.dependencies import get_current_user
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, UserSelfPasswordChange
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -104,3 +104,38 @@ async def verify_token(current_user: User = Depends(get_current_user)):
 async def logout():
     """Logout (client-side token deletion)"""
     return {"message": "Successfully logged out"}
+
+
+@router.put("/change-password")
+async def change_password(
+    password_data: UserSelfPasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Change current user's password
+
+    Requires:
+        - Valid JWT token
+        - Correct current password
+        - New password meeting requirements
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException 401: Incorrect current password
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect current password"
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+
+    await db.commit()
+
+    return {"message": "Password successfully changed"}

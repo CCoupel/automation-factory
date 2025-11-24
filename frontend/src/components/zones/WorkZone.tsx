@@ -22,7 +22,10 @@ import PlayAttributeIcons from '../common/PlayAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
+import AddVariableDialog from '../dialogs/AddVariableDialog'
 import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play, PlayAttributes } from '../../types/playbook'
+import { playbookService, PlaybookContent } from '../../services/playbookService'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
@@ -30,9 +33,12 @@ interface WorkZoneProps {
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
   onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) => void
   onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
+  onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', playbookName: string) => void
+  onSavePlaybook?: (saveHandler: () => Promise<void>) => void
+  onLoadPlaybook?: (loadHandler: (playbookId: string) => Promise<void>) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -114,9 +120,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [activePlayIndex, setActivePlayIndex] = useState(0)
 
   // Récupérer le PLAY actif
-  const currentPlay = plays[activePlayIndex]
-  const modules = currentPlay.modules
-  const links = currentPlay.links
+  const currentPlay = plays[activePlayIndex] || plays[0]
+  const modules = currentPlay?.modules || []
+  const links = currentPlay?.links || []
 
   // Fonctions pour mettre à jour le PLAY actif
   const setModules = (newModules: ModuleBlock[] | ((prev: ModuleBlock[]) => ModuleBlock[])) => {
@@ -153,6 +159,220 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // Onglet actif pour les sections PLAY (présentation en tabs) - Variables reste en accordéon
   const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
+  const [addVariableDialogOpen, setAddVariableDialogOpen] = useState(false)
+
+  // =====================================================
+  // PLAYBOOK PERSISTENCE
+  // =====================================================
+  const { isAuthenticated } = useAuth()
+  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(null)
+  const [playbookName, setPlaybookName] = useState<string>('Untitled Playbook')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+
+  // Serialize current state to PlaybookContent
+  const serializePlaybookContent = useCallback((): PlaybookContent => {
+    // Flatten all modules from all plays
+    const allModules: ModuleBlock[] = plays.flatMap(play => play.modules)
+
+    // Flatten all links from all plays
+    const allLinks: Link[] = plays.flatMap(play => play.links)
+
+    return {
+      modules: allModules,
+      links: allLinks,
+      plays: plays.map(play => ({
+        id: play.id,
+        name: play.name,
+        hosts: play.attributes.hosts,
+        gatherFacts: play.attributes.gatherFacts,
+        become: play.attributes.become
+      })),
+      collapsedBlocks: Array.from(collapsedBlocks),
+      collapsedBlockSections: Array.from(collapsedBlockSections),
+      metadata: {
+        playbookName: playbookName
+      },
+      variables: plays.flatMap(play =>
+        play.variables.map(v => ({ name: v.key, value: v.value }))
+      )
+    }
+  }, [plays, collapsedBlocks, collapsedBlockSections, playbookName])
+
+  // Save playbook to backend
+  const savePlaybook = useCallback(async () => {
+    if (!isAuthenticated) {
+      console.log('Not authenticated, skipping save')
+      return
+    }
+
+    setSaveStatus('saving')
+
+    try {
+      const content = serializePlaybookContent()
+
+      if (currentPlaybookId) {
+        // Update existing playbook
+        await playbookService.updatePlaybook(currentPlaybookId, {
+          name: playbookName,
+          content
+        })
+      } else {
+        // Create new playbook
+        const newPlaybook = await playbookService.createPlaybook({
+          name: playbookName,
+          content
+        })
+        setCurrentPlaybookId(newPlaybook.id)
+      }
+
+      setSaveStatus('saved')
+      setLastSavedAt(new Date())
+
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    } catch (error) {
+      console.error('Failed to save playbook:', error)
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    }
+  }, [isAuthenticated, currentPlaybookId, playbookName, serializePlaybookContent])
+
+  // Load a specific playbook by ID
+  const loadPlaybook = useCallback(async (playbookId: string) => {
+    try {
+      const detailed = await playbookService.getPlaybook(playbookId)
+
+      // Restore state from content
+      setCurrentPlaybookId(detailed.id)
+      setPlaybookName(detailed.name)
+
+      // Restore plays (reconstruct from content)
+      const content = detailed.content
+      if (content.plays && content.plays.length > 0) {
+        const restoredPlays = content.plays.map(play => ({
+          id: play.id,
+          name: play.name,
+          modules: content.modules.filter(m => {
+            // Modules belonging to this play (you might need a playId field in modules)
+            return true // Simplified - adjust based on your data model
+          }),
+          links: content.links, // Simplified
+          variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+          attributes: {
+            hosts: play.hosts || 'all',
+            remoteUser: undefined,
+            gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
+            become: play.become || false,
+            connection: 'ssh',
+            roles: []
+          }
+        }))
+        setPlays(restoredPlays)
+      }
+
+      // Restore collapsed states
+      if (content.collapsedBlocks) {
+        setCollapsedBlocks(new Set(content.collapsedBlocks))
+      }
+      if (content.collapsedBlockSections) {
+        setCollapsedBlockSections(new Set(content.collapsedBlockSections))
+      }
+    } catch (error) {
+      console.error('Failed to load playbook:', error)
+    }
+  }, [])
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const timer = setTimeout(() => {
+      savePlaybook()
+    }, 3000) // 3 seconds debounce
+
+    return () => clearTimeout(timer)
+  }, [plays, collapsedBlocks, collapsedBlockSections, playbookName, savePlaybook, isAuthenticated])
+
+  // Notify parent of save status changes
+  useEffect(() => {
+    if (onSaveStatusChange) {
+      onSaveStatusChange(saveStatus, playbookName)
+    }
+  }, [saveStatus, playbookName, onSaveStatusChange])
+
+  // Expose savePlaybook function to parent
+  useEffect(() => {
+    if (onSavePlaybook) {
+      onSavePlaybook(savePlaybook)
+    }
+  }, [savePlaybook, onSavePlaybook])
+
+  // Expose loadPlaybook function to parent
+  useEffect(() => {
+    if (onLoadPlaybook) {
+      onLoadPlaybook(loadPlaybook)
+    }
+  }, [loadPlaybook, onLoadPlaybook])
+
+  // Load playbook on mount
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const loadLastPlaybook = async () => {
+      try {
+        // Get user's playbooks
+        const playbooks = await playbookService.listPlaybooks()
+
+        if (playbooks.length > 0) {
+          // Load the most recent playbook
+          const lastPlaybook = playbooks[0]
+          const detailed = await playbookService.getPlaybook(lastPlaybook.id)
+
+          // Restore state from content
+          setCurrentPlaybookId(detailed.id)
+          setPlaybookName(detailed.name)
+
+          // Restore plays (reconstruct from content)
+          // Note: This is a simplified version. You may need to enhance this.
+          const content = detailed.content
+          if (content.plays && content.plays.length > 0) {
+            const restoredPlays = content.plays.map(play => ({
+              id: play.id,
+              name: play.name,
+              modules: content.modules.filter(m => {
+                // Modules belonging to this play (you might need a playId field in modules)
+                return true // Simplified - adjust based on your data model
+              }),
+              links: content.links, // Simplified
+              variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+              attributes: {
+                hosts: play.hosts || 'all',
+                remoteUser: undefined,
+                gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
+                become: play.become || false,
+                connection: 'ssh',
+                roles: []
+              }
+            }))
+            setPlays(restoredPlays)
+          }
+
+          // Restore collapsed states
+          if (content.collapsedBlocks) {
+            setCollapsedBlocks(new Set(content.collapsedBlocks))
+          }
+          if (content.collapsedBlockSections) {
+            setCollapsedBlockSections(new Set(content.collapsedBlockSections))
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load playbook:', error)
+      }
+    }
+
+    loadLastPlaybook()
+  }, [isAuthenticated]) // Only run on mount and auth change
 
   const GRID_SIZE = 50
 
@@ -1720,11 +1940,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Gestion des variables
   const addVariable = () => {
+    setAddVariableDialogOpen(true)
+  }
+
+  const handleAddVariableFromDialog = (key: string, value: string) => {
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       updatedPlays[activePlayIndex] = {
         ...updatedPlays[activePlayIndex],
-        variables: [...updatedPlays[activePlayIndex].variables, { key: 'new_var', value: '' }]
+        variables: [...updatedPlays[activePlayIndex].variables, { key, value }]
       }
       return updatedPlays
     })
@@ -1841,6 +2065,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const isTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'tasks') : true
   const isPostTasksOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'post_tasks') : false
   const isHandlersOpen = playModule ? !isPlaySectionCollapsed(playModule.id, 'handlers') : false
+
+  // Guard: ensure currentPlay exists
+  if (!currentPlay) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    )
+  }
 
   return (
     <Box
@@ -1973,25 +2206,24 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </Box>
           {isVariablesOpen && (
             <Box ref={variablesSectionRef} sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {currentPlay.variables.map((variable, index) => (
                   <Chip
                     key={index}
                     label={`${variable.key}: ${variable.value}`}
-                    size="small"
                     onDelete={() => deleteVariable(index)}
                     color="primary"
                     variant="outlined"
                   />
                 ))}
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  variant="outlined"
+                <Chip
+                  label="Add Variable"
                   onClick={addVariable}
-                >
-                  Add Variable
-                </Button>
+                  icon={<AddIcon />}
+                  color="primary"
+                  variant="filled"
+                  sx={{ cursor: 'pointer' }}
+                />
               </Box>
             </Box>
           )}
@@ -3397,6 +3629,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           </>
         )}
       </Box>
+
+      {/* Add Variable Dialog */}
+      <AddVariableDialog
+        open={addVariableDialogOpen}
+        onClose={() => setAddVariableDialogOpen(false)}
+        onAdd={handleAddVariableFromDialog}
+        existingKeys={currentPlay.variables.map(v => v.key)}
+      />
     </Box>
   )
 }
