@@ -1,41 +1,53 @@
 # Guide de Déploiement Helm
 
-Ce document explique comment utiliser le Helm chart Ansible Builder depuis le repository Bitbucket.
+Ce document explique comment utiliser le Helm chart Ansible Builder depuis un OCI registry.
 
 ## 🚀 Installation Rapide
 
-### 1. Ajouter le Chart Repository
+### 1. Prérequis
 
 ```bash
-# Ajouter le repository Ansible Builder depuis Bitbucket
-helm repo add ansible-builder https://bitbucket.org/ccoupel/ansible_builder/raw/master/charts/
+# Vérifier que Helm 3.8+ est installé (support OCI)
+helm version
 
-# Ajouter Bitnami pour les dépendances (PostgreSQL, Redis)
-helm repo add bitnami https://charts.bitnami.com/bitnami
-
-# Mettre à jour les repositories
-helm repo update
-
-# Vérifier que le chart est disponible
-helm search repo ansible-builder
+# Si besoin, mettre à jour Helm
+# Voir: https://helm.sh/docs/intro/install/
 ```
 
 ### 2. Installer l'Application
 
+**Installation depuis GitHub Container Registry (Recommandé):**
+
 ```bash
 # Installation avec valeurs par défaut
-helm install ansible-builder ansible-builder/ansible-builder \
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
   --namespace ansible-builder \
   --create-namespace
 
 # Installation avec configuration personnalisée
-helm install ansible-builder ansible-builder/ansible-builder \
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
   --namespace ansible-builder \
   --create-namespace \
   --set ingress.hosts[0].host=ansible-builder.yourdomain.com \
   --set backend.env.JWT_SECRET_KEY=$(openssl rand -base64 32) \
   --set postgresql.auth.password=$(openssl rand -base64 24) \
   --set redis.auth.password=$(openssl rand -base64 24)
+```
+
+**Installation depuis Docker Hub:**
+
+```bash
+helm install ansible-builder oci://docker.io/ccoupel/ansible-builder \
+  --namespace ansible-builder \
+  --create-namespace
+```
+
+**Installation depuis GitLab Registry:**
+
+```bash
+helm install ansible-builder oci://registry.gitlab.com/ccoupel/ansible-builder \
+  --namespace ansible-builder \
+  --create-namespace
 ```
 
 ### 3. Vérifier le Déploiement
@@ -139,21 +151,18 @@ helm install ansible-builder ansible-builder/ansible-builder \
 ## 🔄 Mise à Jour
 
 ```bash
-# Mettre à jour le repository
-helm repo update
-
-# Voir les nouvelles versions
-helm search repo ansible-builder/ansible-builder --versions
+# Voir les informations de version disponible
+helm show chart oci://ghcr.io/ccoupel/ansible-builder
 
 # Mettre à jour vers la dernière version
-helm upgrade ansible-builder ansible-builder/ansible-builder \
+helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
   --namespace ansible-builder \
   --values my-values.yaml
 
 # Mettre à jour vers une version spécifique
-helm upgrade ansible-builder ansible-builder/ansible-builder \
+helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
   --namespace ansible-builder \
-  --version 1.1.0 \
+  --version 1.2.0 \
   --values my-values.yaml
 ```
 
@@ -173,7 +182,7 @@ kubectl delete namespace ansible-builder
 
 ```bash
 # Valeurs par défaut du chart
-helm show values ansible-builder/ansible-builder
+helm show values oci://ghcr.io/ccoupel/ansible-builder
 
 # Valeurs actuelles de votre installation
 helm get values ansible-builder -n ansible-builder
@@ -183,7 +192,7 @@ helm get values ansible-builder -n ansible-builder
 
 ```bash
 # Vérifier ce qui sera créé
-helm install ansible-builder ansible-builder/ansible-builder \
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
   --namespace ansible-builder \
   --dry-run \
   --debug \
@@ -205,33 +214,72 @@ helm rollback ansible-builder 1 -n ansible-builder
 
 ## 📦 Pour les Développeurs
 
-### Packager une nouvelle version
+### Publier une nouvelle version sur OCI Registry
 
 Si vous avez modifié le chart localement:
 
 ```bash
-# 1. Mettre à jour la version dans Chart.yaml
-# 2. Exécuter le script de packaging
-cd charts
-./package.sh
+# 1. Mettre à jour la version dans helm/ansible-builder/Chart.yaml
 
-# 3. Commit et push
-git add .
+# 2. Se connecter au registry (une seule fois)
+echo $GITHUB_TOKEN | helm registry login ghcr.io -u $GITHUB_USERNAME --password-stdin
+
+# 3. Packager et pousser avec le script
+cd charts
+./package-oci.sh ghcr.io/ccoupel
+
+# 4. Commit et push dans Git (optionnel)
+cd ..
+git add helm/ansible-builder/Chart.yaml
 git commit -m "chore: release helm chart v1.2.0"
 git push
 ```
 
-### Tester localement
+### Configuration du Token GitHub
+
+Pour publier sur GitHub Container Registry (GHCR):
+
+1. Créer un Personal Access Token (PAT):
+   - Aller sur https://github.com/settings/tokens
+   - Créer un nouveau token avec scope `write:packages`
+
+2. Configurer les variables d'environnement:
+   ```bash
+   export GITHUB_USERNAME="votre-username"
+   export GITHUB_TOKEN="ghp_votre_token_ici"
+   ```
+
+3. Se connecter au registry:
+   ```bash
+   echo $GITHUB_TOKEN | helm registry login ghcr.io -u $GITHUB_USERNAME --password-stdin
+   ```
+
+### Tester localement (sans publier)
 
 ```bash
 # Installer depuis le chart local (non packagé)
 helm install test-ansible-builder ./helm/ansible-builder \
   --namespace test \
-  --create-namespace
+  --create-namespace \
+  --dependency-update
 
 # Nettoyer après test
 helm uninstall test-ansible-builder -n test
 kubectl delete namespace test
+```
+
+### Publier sur d'autres Registries
+
+**Docker Hub:**
+```bash
+echo $DOCKER_TOKEN | helm registry login docker.io -u $DOCKER_USERNAME --password-stdin
+./package-oci.sh docker.io/ccoupel
+```
+
+**GitLab Registry:**
+```bash
+echo $GITLAB_TOKEN | helm registry login registry.gitlab.com -u $GITLAB_USERNAME --password-stdin
+./package-oci.sh registry.gitlab.com/ccoupel
 ```
 
 ## 🔐 Bonnes Pratiques de Sécurité

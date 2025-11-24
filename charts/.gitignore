@@ -1,7 +1,9 @@
-# Ignore chart dependencies
+# Helm chart packages (will be pushed to OCI registry)
 *.tgz
 
-# Keep only the index and scripts
-!index.yaml
-!README.md
-!package.sh
+# Helm dependency charts
+charts/
+
+# Temporary files
+*.tmp
+*.bak
