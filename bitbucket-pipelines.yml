@@ -4,8 +4,6 @@ definitions:
   steps:
     - step: &publish-helm-chart
         name: Package and Push Helm Chart to GHCR
-        caches:
-          - docker
         script:
           - apk add --no-cache git findutils
           - echo "📦 Building Helm chart for Ansible Builder"
