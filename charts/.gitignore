@@ -1,0 +1,7 @@
+# Ignore chart dependencies
+*.tgz
+
+# Keep only the index and scripts
+!index.yaml
+!README.md
+!package.sh

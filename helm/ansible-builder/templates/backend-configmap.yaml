@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ansible-builder.fullname" . }}-backend
+  labels:
+    {{- include "ansible-builder.backend.labels" . | nindent 4 }}
+data:
+  cors-origins: {{ .Values.backend.env.CORS_ORIGINS | quote }}

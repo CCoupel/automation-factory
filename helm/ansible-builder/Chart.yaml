@@ -1,0 +1,24 @@
+apiVersion: v2
+name: ansible-builder
+description: A Helm chart for Ansible Builder - Visual Ansible Playbook Builder
+type: application
+version: 1.1.0
+appVersion: "1.1.0"
+keywords:
+  - ansible
+  - playbook
+  - automation
+  - builder
+home: https://bitbucket.org/ccoupel/ansible_builder
+maintainers:
+  - name: Ansible Builder Team
+    email: support@example.com
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

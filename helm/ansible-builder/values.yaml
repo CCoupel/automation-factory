@@ -1,0 +1,273 @@
+# Default values for ansible-builder
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  # Image registry
+  imageRegistry: ""
+  # Image pull secrets
+  imagePullSecrets: []
+  # Storage class for persistent volumes
+  storageClass: ""
+
+# Namespace configuration
+namespace: ansible-builder
+
+# Backend configuration
+backend:
+  replicaCount: 2
+
+  image:
+    repository: ansible-builder-backend
+    pullPolicy: IfNotPresent
+    tag: "1.1.0"
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  env:
+    # Database configuration
+    DATABASE_TYPE: "postgresql"
+
+    # JWT configuration
+    JWT_SECRET_KEY: "changeme-in-production"
+    JWT_ALGORITHM: "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+
+    # CORS configuration
+    CORS_ORIGINS: "http://localhost:5173,http://localhost:5174,http://localhost:5175"
+
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Frontend configuration
+frontend:
+  replicaCount: 2
+
+  image:
+    repository: ansible-builder-frontend
+    pullPolicy: IfNotPresent
+    tag: "1.1.0"
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+
+  env:
+    VITE_API_URL: "http://backend-service:8000/api"
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: ansible-builder.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: backend
+  tls:
+    - secretName: ansible-builder-tls
+      hosts:
+        - ansible-builder.example.com
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    username: ansible
+    password: changeme-in-production
+    database: ansible_builder
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+  # External PostgreSQL (if postgresql.enabled = false)
+  external:
+    host: "external-postgres.example.com"
+    port: 5432
+    username: ansible
+    password: ""
+    database: ansible_builder
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: changeme-in-production
+    existingSecret: ""
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+  # External Redis (if redis.enabled = false)
+  external:
+    host: "external-redis.example.com"
+    port: 6379
+    password: ""
+    database: 0
+
+# ServiceAccount configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "ansible-builder"
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ansible-builder
+          topologyKey: kubernetes.io/hostname
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+  egress:
+    - to:
+      - namespaceSelector: {}
+    - to:
+      - podSelector:
+          matchLabels:
+            app: postgresql
+    - to:
+      - podSelector:
+          matchLabels:
+            app: redis
