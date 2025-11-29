@@ -15,11 +15,11 @@ maintainers:
     email: support@example.com
 dependencies:
   - name: cloudnative-pg
-    version: 0.18.x
+    version: ">=0.18.0"
     repository: https://cloudnative-pg.github.io/charts
     condition: postgresql.enabled
     alias: postgresql
   - name: redis
-    version: 18.x.x
+    version: ">=1.0.0"
     repository: https://charts.pascaliske.dev
     condition: redis.enabled
