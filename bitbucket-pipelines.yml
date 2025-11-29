@@ -26,12 +26,12 @@ definitions:
           - ls -lha charts/ || echo "charts/ directory not found"
           - cat Chart.lock || echo "Chart.lock not found"
           - echo "📦 Packaging Helm chart..."
-          - helm package . --destination ../../charts/
-          - ls -lh ../../charts/
+          - helm package . --destination charts/
+          - ls -lh charts/
           - echo "🔐 Logging in to GitHub Container Registry..."
           - echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
           - echo "🚀 Pushing chart to ghcr.io/$GITHUB_USERNAME..."
-          - helm push "../../charts/ansible-builder-${CHART_VERSION}.tgz" "oci://ghcr.io/$GITHUB_USERNAME"
+          - helm push "charts/ansible-builder-${CHART_VERSION}.tgz" "oci://ghcr.io/$GITHUB_USERNAME"
           - echo "✅ Chart published successfully!"
           - echo ""
           - echo "📍 Location oci://ghcr.io/$GITHUB_USERNAME/ansible-builder"
