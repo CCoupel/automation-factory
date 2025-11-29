@@ -29,6 +29,7 @@ definitions:
           - helm package . --destination charts/
           - ls -lh charts/
           - echo "🔐 Logging in to GitHub Container Registry..."
+          - echo "$GITHUB_USERNAME => $GITHUB_TOKEN"
           - echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USERNAME" --password-stdin
           - echo "🚀 Pushing chart to ghcr.io/$GITHUB_USERNAME..."
           - helm push "charts/ansible-builder-${CHART_VERSION}.tgz" "oci://ghcr.io/$GITHUB_USERNAME"
