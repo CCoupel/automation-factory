@@ -12,9 +12,14 @@ definitions:
           - helm repo add cloudnative-pg https://cloudnative-pg.github.io/charts
           - helm repo add pascaliske https://charts.pascaliske.dev
           - helm repo update
+          - echo "📦 Searching available charts in repositories..."
+          - helm search repo cloudnative-pg
+          - helm search repo pascaliske
           - cd helm/ansible-builder
           - export CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
           - echo "Chart version detected:$CHART_VERSION"
+          - echo "📦 Creating charts directory..."
+          - mkdir -p charts
           - echo "📦 Updating Helm dependencies..."
           - helm dependency update
           - echo "📦 Checking downloaded dependencies..."
