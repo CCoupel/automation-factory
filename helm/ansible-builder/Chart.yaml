@@ -16,9 +16,9 @@ maintainers:
 dependencies:
   - name: postgresql
     version: 12.x.x
-    repository: https://charts.bitnami.com/bitnami
+    repository: oci://registry-1.docker.io/bitnamicharts
     condition: postgresql.enabled
   - name: redis
     version: 17.x.x
-    repository: https://charts.bitnami.com/bitnami
+    repository: oci://registry-1.docker.io/bitnamicharts
     condition: redis.enabled
