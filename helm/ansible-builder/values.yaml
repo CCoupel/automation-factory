@@ -147,34 +147,12 @@ ingress:
       hosts:
         - ansible-builder.example.com
 
-# PostgreSQL configuration
-postgresql:
+# CloudNativePG configuration
+cloudnative-pg:
   enabled: true
-  auth:
-    username: ansible
-    password: changeme-in-production
-    database: ansible_builder
-    existingSecret: ""
-  primary:
-    persistence:
-      enabled: true
-      size: 10Gi
-      storageClass: ""
-    resources:
-      limits:
-        cpu: 1000m
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
-
-  # External PostgreSQL (if postgresql.enabled = false)
-  external:
-    host: "external-postgres.example.com"
-    port: 5432
-    username: ansible
-    password: ""
-    database: ansible_builder
+  # CloudNativePG operator configuration
+  # The operator will be installed if enabled
+  # For cluster configuration, see templates/postgresql-cluster.yaml
 
 # Redis configuration
 redis:

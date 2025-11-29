@@ -17,8 +17,7 @@ dependencies:
   - name: cloudnative-pg
     version: ">=0.18.0"
     repository: https://cloudnative-pg.github.io/charts
-    condition: postgresql.enabled
-    alias: postgresql
+    condition: cloudnative-pg.enabled
   - name: redis
     version: ">=1.0.0"
     repository: https://charts.pascaliske.dev
