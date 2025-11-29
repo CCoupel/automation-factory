@@ -8,6 +8,10 @@ definitions:
           - apk add --no-cache git findutils
           - echo "📦 Building Helm chart for Ansible Builder"
           - helm version
+          - echo "📦 Adding Helm repositories..."
+          - helm repo add cloudnative-pg https://cloudnative-pg.github.io/charts
+          - helm repo add pascaliske https://charts.pascaliske.dev
+          - helm repo update
           - cd helm/ansible-builder
           - export CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
           - echo "Chart version detected:$CHART_VERSION"

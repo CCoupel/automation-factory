@@ -14,11 +14,12 @@ maintainers:
   - name: Ansible Builder Team
     email: support@example.com
 dependencies:
-  - name: postgresql
-    version: 12.x.x
-    repository: oci://registry-1.docker.io/bitnamicharts
+  - name: cloudnative-pg
+    version: 0.18.x
+    repository: https://cloudnative-pg.github.io/charts
     condition: postgresql.enabled
+    alias: postgresql
   - name: redis
-    version: 17.x.x
-    repository: oci://registry-1.docker.io/bitnamicharts
+    version: 18.x.x
+    repository: https://charts.pascaliske.dev
     condition: redis.enabled
