@@ -31,7 +31,7 @@ interface BlockSectionContentProps {
   handleBlockSectionDrop: (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => void
   handleResizeStart: (blockId: string, direction: string, e: React.MouseEvent) => void
   getBlockTheme: (id: string) => { borderColor: string; bgColor: string; iconColor: string }
-  getBlockDimensions: (blockId: string) => { height: number }
+  getBlockDimensions: (block: ModuleBlock) => { width: number; height: number }
   getSectionColor: (section: 'normal' | 'rescue' | 'always') => string
   // Props pour SectionLinks
   links: Link[]

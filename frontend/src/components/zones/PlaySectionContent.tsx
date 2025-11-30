@@ -42,9 +42,8 @@ interface PlaySectionContentProps {
   handleBlockSectionDrop: (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => void
   handleResizeStart: (blockId: string, direction: string, e: React.MouseEvent) => void
   getBlockTheme: (blockId: string) => {
-    backgroundColor: string
     borderColor: string
-    borderColorSelected: string
+    bgColor: string
     iconColor: string
   }
   getBlockDimensions: (block: ModuleBlock) => { width: number; height: number }

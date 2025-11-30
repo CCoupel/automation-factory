@@ -23,7 +23,7 @@ import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
-import { ModuleBlock, Link, PlayVariable, PlaySectionAttributes, Play, PlayAttributes } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes } from '../../types/playbook'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -1339,7 +1339,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     return collapsedBlockSections.has(key) || collapsedBlockSections.has(wildcardKey)
   }
 
-  const isPlaySectionCollapsed = (playId: string, section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+  const isPlaySectionCollapsed = (playId: string, section: PlaySectionName) => {
     const key = `${playId}:${section}`
     const wildcardKey = `*:${section}`
     return collapsedPlaySections.has(key) || collapsedPlaySections.has(wildcardKey)
@@ -1560,10 +1560,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }
 
-  const getPlaySectionColor = (section: 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
+  const getPlaySectionColor = (section: PlaySectionName) => {
     switch (section) {
       case 'variables':
         return '#673ab7' // Violet profond
+      case 'roles':
+        return '#4caf50' // Vert
       case 'pre_tasks':
         return '#9c27b0' // Violet
       case 'tasks':
@@ -1628,16 +1630,6 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       onDeleteModule(handleDelete)
     }
   }, [handleDelete, onDeleteModule])
-
-  // Forcer un re-calcul des positions des liens après changement de section PLAY
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLinkRefreshKey(prev => prev + 1)
-    }, 100) // Délai pour laisser le DOM se mettre à jour après le changement d'accordéon
-
-    return () => clearTimeout(timer)
-  }, [collapsedPlaySections])
-
 
   // Fonction pour mettre à jour un module
   const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
@@ -1755,9 +1747,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       // Thème gris pour les orphelins
       return {
         borderColor: '#757575',
-        backgroundColor: 'rgba(117, 117, 117, 0.05)',
-        iconColor: '#757575',
-        borderColorSelected: '#424242'
+        bgColor: 'rgba(117, 117, 117, 0.05)',
+        iconColor: '#757575'
       }
     }
 
@@ -1765,9 +1756,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       // Pas de lien entrant mais pas orphelin (ne devrait pas arriver avec la logique actuelle)
       return {
         borderColor: '#9c27b0',
-        backgroundColor: 'rgba(156, 39, 176, 0.05)',
-        iconColor: '#9c27b0',
-        borderColorSelected: '#4caf50'
+        bgColor: 'rgba(156, 39, 176, 0.05)',
+        iconColor: '#9c27b0'
       }
     }
 
@@ -1775,23 +1765,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       case 'rescue':
         return {
           borderColor: '#ff9800',
-          backgroundColor: 'rgba(255, 152, 0, 0.05)',
-          iconColor: '#ff9800',
-          borderColorSelected: '#ff6f00'
+          bgColor: 'rgba(255, 152, 0, 0.05)',
+          iconColor: '#ff9800'
         }
       case 'always':
         return {
           borderColor: '#4caf50',
-          backgroundColor: 'rgba(76, 175, 80, 0.05)',
-          iconColor: '#4caf50',
-          borderColorSelected: '#2e7d32'
+          bgColor: 'rgba(76, 175, 80, 0.05)',
+          iconColor: '#4caf50'
         }
       default: // 'normal'
         return {
           borderColor: '#1976d2',
-          backgroundColor: 'rgba(25, 118, 210, 0.05)',
-          iconColor: '#1976d2',
-          borderColorSelected: '#0d47a1'
+          bgColor: 'rgba(25, 118, 210, 0.05)',
+          iconColor: '#1976d2'
         }
     }
   }
