@@ -3,13 +3,13 @@
 Chart Helm officiel pour déployer Ansible Builder sur Kubernetes.
 
 [![Published on GHCR](https://img.shields.io/badge/GHCR-published-blue)](https://ghcr.io/ccoupel/ansible-builder)
-[![Version](https://img.shields.io/badge/version-1.1.0-green)](https://github.com/ccoupel/ansible-builder/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1-green)](https://github.com/ccoupel/ansible-builder/releases)
 
 ## TL;DR
 
 ```bash
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace
 ```
@@ -39,7 +39,7 @@ L'application complète inclut:
 
 ```bash
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace
 ```
@@ -53,7 +53,7 @@ REDIS_PASSWORD=$(openssl rand -base64 24)
 
 # Installer
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace \
   --set ingress.hosts[0].host=ansible.mydomain.com \
@@ -96,7 +96,7 @@ Puis installez:
 
 ```bash
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace \
   --values my-values.yaml

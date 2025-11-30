@@ -154,6 +154,38 @@ cloudnative-pg:
   # The operator will be installed if enabled
   # For cluster configuration, see templates/postgresql-cluster.yaml
 
+# PostgreSQL configuration
+postgresql:
+  # Use internal CloudNativePG cluster (true) or external PostgreSQL (false)
+  enabled: true
+
+  # Internal PostgreSQL configuration (when enabled = true)
+  auth:
+    database: ansible_builder
+    username: ansible
+    password: changeme-in-production
+
+  # PostgreSQL cluster settings
+  instances: 3
+  storage:
+    size: 10Gi
+    storageClass: ""
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+  # External PostgreSQL (when enabled = false)
+  external:
+    host: "external-postgres.example.com"
+    port: 5432
+    database: ansible_builder
+    username: ansible
+    password: ""
+
 # Redis configuration
 redis:
   enabled: true

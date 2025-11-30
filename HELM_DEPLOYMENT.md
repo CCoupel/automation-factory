@@ -6,7 +6,7 @@ Ce document explique comment déployer Ansible Builder sur Kubernetes en utilisa
 
 - **Registry**: GitHub Container Registry (GHCR)
 - **URL**: `oci://ghcr.io/ccoupel/ansible-builder`
-- **Version actuelle**: `1.1.0`
+- **Version actuelle**: `1.1.1`
 - **Source**: https://bitbucket.org/ccoupel/ansible_builder
 
 ## 🚀 Installation Rapide
@@ -31,7 +31,7 @@ kubectl get nodes
 
 ```bash
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace
 ```
@@ -45,7 +45,7 @@ REDIS_PASSWORD=$(openssl rand -base64 24)
 
 # Installer avec configuration
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace ansible-builder \
   --create-namespace \
   --set ingress.enabled=true \
