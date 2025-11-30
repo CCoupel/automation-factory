@@ -3,7 +3,7 @@ image: atlassian/default-image:3
 definitions:
   services:
     docker:
-      memory: 4096
+      memory: 2048
 
   steps:
     - step: &build-backend
