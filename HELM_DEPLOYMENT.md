@@ -1,53 +1,57 @@
-# Guide de Déploiement Helm
+# Guide de Déploiement Helm - Ansible Builder
 
-Ce document explique comment utiliser le Helm chart Ansible Builder depuis un OCI registry.
+Ce document explique comment déployer Ansible Builder sur Kubernetes en utilisant le Helm chart depuis GitHub Container Registry (GHCR).
+
+## 📦 Chart Information
+
+- **Registry**: GitHub Container Registry (GHCR)
+- **URL**: `oci://ghcr.io/ccoupel/ansible-builder`
+- **Version actuelle**: `1.1.0`
+- **Source**: https://bitbucket.org/ccoupel/ansible_builder
 
 ## 🚀 Installation Rapide
 
 ### 1. Prérequis
 
 ```bash
-# Vérifier que Helm 3.8+ est installé (support OCI)
+# Vérifier que Helm 3.8+ est installé (support OCI requis)
 helm version
+
+# Vérifier l'accès au cluster Kubernetes
+kubectl cluster-info
+kubectl get nodes
 
 # Si besoin, mettre à jour Helm
 # Voir: https://helm.sh/docs/intro/install/
 ```
 
-### 2. Installer l'Application
+### 2. Installation Standard
 
-**Installation depuis GitHub Container Registry (Recommandé):**
+**Installation avec valeurs par défaut:**
 
 ```bash
-# Installation avec valeurs par défaut
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
   --namespace ansible-builder \
   --create-namespace
+```
 
-# Installation avec configuration personnalisée
+**Installation avec configuration personnalisée:**
+
+```bash
+# Générer des secrets sécurisés
+JWT_SECRET=$(openssl rand -base64 32)
+REDIS_PASSWORD=$(openssl rand -base64 24)
+
+# Installer avec configuration
 helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
   --namespace ansible-builder \
   --create-namespace \
+  --set ingress.enabled=true \
   --set ingress.hosts[0].host=ansible-builder.yourdomain.com \
-  --set backend.env.JWT_SECRET_KEY=$(openssl rand -base64 32) \
-  --set postgresql.auth.password=$(openssl rand -base64 24) \
-  --set redis.auth.password=$(openssl rand -base64 24)
-```
-
-**Installation depuis Docker Hub:**
-
-```bash
-helm install ansible-builder oci://docker.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
-  --create-namespace
-```
-
-**Installation depuis GitLab Registry:**
-
-```bash
-helm install ansible-builder oci://registry.gitlab.com/ccoupel/ansible-builder \
-  --namespace ansible-builder \
-  --create-namespace
+  --set backend.env.JWT_SECRET_KEY="$JWT_SECRET" \
+  --set redis.auth.password="$REDIS_PASSWORD"
 ```
 
 ### 3. Vérifier le Déploiement

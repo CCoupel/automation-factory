@@ -1,81 +1,75 @@
 # Ansible Builder Helm Chart
 
-Ce Helm chart déploie l'application Ansible Builder dans un cluster Kubernetes.
+Chart Helm officiel pour déployer Ansible Builder sur Kubernetes.
+
+[![Published on GHCR](https://img.shields.io/badge/GHCR-published-blue)](https://ghcr.io/ccoupel/ansible-builder)
+[![Version](https://img.shields.io/badge/version-1.1.0-green)](https://github.com/ccoupel/ansible-builder/releases)
+
+## TL;DR
+
+```bash
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
+  --namespace ansible-builder \
+  --create-namespace
+```
 
 ## Prérequis
 
-- Kubernetes 1.23+
-- Helm 3.8+
+- Kubernetes 1.19+
+- Helm 3.8+ (support OCI requis)
 - kubectl configuré pour accéder à votre cluster
-- Cert-Manager (pour les certificats TLS automatiques)
+- Cert-Manager (optionnel, pour TLS automatique)
 - Ingress Controller (nginx recommandé)
 
 ## Architecture
 
-L'application est composée de:
-- **Frontend**: Application React/Vite servie par Nginx
-- **Backend**: API FastAPI (Python)
-- **PostgreSQL**: Base de données (chart Bitnami)
-- **Redis**: Cache (chart Bitnami)
+L'application complète inclut:
+- **Frontend**: Interface web React/Vite servie par Nginx
+- **Backend**: API FastAPI (Python 3.11+)
+- **PostgreSQL**: Base de données via CloudNativePG operator
+- **Redis**: Cache et sessions
+- **Ingress**: Routing HTTP/HTTPS (optionnel)
 
 ## Installation
 
-### 1. Ajouter les dépendances Helm
+### Méthode 1: Depuis GHCR (Recommandé)
+
+**Installation simple:**
 
 ```bash
-# Ajouter le repository Bitnami
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
+  --namespace ansible-builder \
+  --create-namespace
 ```
 
-### 2. Construire les images Docker
+**Installation avec configuration personnalisée:**
 
 ```bash
-# Backend
-cd backend
-docker build -t ansible-builder-backend:1.1.0 .
+# Générer des secrets sécurisés
+JWT_SECRET=$(openssl rand -base64 32)
+REDIS_PASSWORD=$(openssl rand -base64 24)
 
-# Frontend
-cd ../frontend
-docker build -t ansible-builder-frontend:1.1.0 .
-
-# Pousser vers votre registry
-docker tag ansible-builder-backend:1.1.0 your-registry/ansible-builder-backend:1.1.0
-docker push your-registry/ansible-builder-backend:1.1.0
-
-docker tag ansible-builder-frontend:1.1.0 your-registry/ansible-builder-frontend:1.1.0
-docker push your-registry/ansible-builder-frontend:1.1.0
+# Installer
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
+  --namespace ansible-builder \
+  --create-namespace \
+  --set ingress.hosts[0].host=ansible.mydomain.com \
+  --set backend.env.JWT_SECRET_KEY="$JWT_SECRET" \
+  --set redis.auth.password="$REDIS_PASSWORD"
 ```
 
-### 3. Créer un fichier de values personnalisés
+**Installation avec fichier values:**
 
-Créez `values-production.yaml`:
+Créez `my-values.yaml`:
 
 ```yaml
-global:
-  imageRegistry: "your-registry/"
-
-backend:
-  image:
-    repository: ansible-builder-backend
-    tag: "1.1.0"
-
-  env:
-    JWT_SECRET_KEY: "your-super-secret-key-here"
-    CORS_ORIGINS: "https://ansible-builder.yourdomain.com"
-
-frontend:
-  image:
-    repository: ansible-builder-frontend
-    tag: "1.1.0"
-
-  env:
-    VITE_API_URL: "https://ansible-builder.yourdomain.com/api"
-
 ingress:
   enabled: true
   hosts:
-    - host: ansible-builder.yourdomain.com
+    - host: ansible.mydomain.com
       paths:
         - path: /
           pathType: Prefix
@@ -83,36 +77,44 @@ ingress:
         - path: /api
           pathType: Prefix
           service: backend
-  tls:
-    - secretName: ansible-builder-tls
-      hosts:
-        - ansible-builder.yourdomain.com
 
-postgresql:
-  auth:
-    password: "change-me-in-production"
-  primary:
-    persistence:
-      size: 20Gi
+backend:
+  replicaCount: 3
+  env:
+    JWT_SECRET_KEY: "your-secure-secret-here"
+    CORS_ORIGINS: "https://ansible.mydomain.com"
 
 redis:
   auth:
-    password: "change-me-in-production"
+    password: "your-redis-password"
+
+cloudnative-pg:
+  enabled: true
 ```
 
-### 4. Installer le chart
+Puis installez:
 
 ```bash
-cd helm/ansible-builder
-
-# Update dependencies
-helm dependency update
-
-# Install
-helm install ansible-builder . \
+helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+  --version 1.1.0 \
   --namespace ansible-builder \
   --create-namespace \
-  --values values-production.yaml
+  --values my-values.yaml
+```
+
+### Méthode 2: Depuis le code source (Développement)
+
+```bash
+git clone https://bitbucket.org/ccoupel/ansible_builder
+cd ansible_builder/helm/ansible-builder
+
+# Télécharger les dépendances
+helm dependency update
+
+# Installer
+helm install ansible-builder . \
+  --namespace ansible-builder \
+  --create-namespace
 ```
 
 ## Configuration
