@@ -2775,9 +2775,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       height: dimensions.height,
                       p: 1,
                       cursor: 'move',
-                      border: selectedModuleId === module.id ? `2px solid ${blockTheme.borderColorSelected}` : `2px solid ${blockTheme.borderColor}`,
+                      border: `2px solid ${blockTheme.borderColor}`,
                       borderRadius: module.isPlay ? '0 50% 50% 0' : 2,
-                      bgcolor: blockTheme.backgroundColor,
+                      bgcolor: blockTheme.bgColor,
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
                       overflow: 'visible',
@@ -3078,6 +3078,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
                                 resizingBlock={resizingBlock}
+                                getStartChainCount={getStartChainCount}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -3086,10 +3087,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleBlockSectionDrop={handleBlockSectionDrop}
                                 handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
+                                links={links}
+                                getLinkStyle={getLinkStyle}
+                                deleteLink={deleteLink}
+                                hoveredLinkId={hoveredLinkId}
+                                setHoveredLinkId={setHoveredLinkId}
+                                getModuleOrVirtual={getModuleOrVirtual}
+                                getModuleDimensions={getModuleDimensions}
                               />
                             </Box>
                           </Box>
@@ -3278,6 +3287,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
                                 resizingBlock={resizingBlock}
+                                getStartChainCount={getStartChainCount}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -3286,10 +3296,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleBlockSectionDrop={handleBlockSectionDrop}
                                 handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
+                                links={links}
+                                getLinkStyle={getLinkStyle}
+                                deleteLink={deleteLink}
+                                hoveredLinkId={hoveredLinkId}
+                                setHoveredLinkId={setHoveredLinkId}
+                                getModuleOrVirtual={getModuleOrVirtual}
+                                getModuleDimensions={getModuleDimensions}
                               />
                             </Box>
                           </Box>
@@ -3478,6 +3496,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 collapsedBlocks={collapsedBlocks}
                                 collapsedBlockSections={collapsedBlockSections}
                                 resizingBlock={resizingBlock}
+                                getStartChainCount={getStartChainCount}
                                 onSelectModule={onSelectModule}
                                 updateTaskName={updateTaskName}
                                 toggleBlockCollapse={toggleBlockCollapse}
@@ -3486,10 +3505,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                 handleModuleDragStart={handleModuleDragStart}
                                 handleModuleDragOver={handleModuleDragOver}
                                 handleModuleDropOnModule={handleModuleDropOnModule}
+                                handleBlockSectionDrop={handleBlockSectionDrop}
                                 handleResizeStart={handleResizeStart}
                                 getBlockTheme={getBlockTheme}
                                 getBlockDimensions={getBlockDimensions}
                                 getSectionColor={getSectionColor}
+                                links={links}
+                                getLinkStyle={getLinkStyle}
+                                deleteLink={deleteLink}
+                                hoveredLinkId={hoveredLinkId}
+                                setHoveredLinkId={setHoveredLinkId}
+                                getModuleOrVirtual={getModuleOrVirtual}
+                                getModuleDimensions={getModuleDimensions}
                               />
                             </Box>
                           </Box>
