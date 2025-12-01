@@ -502,9 +502,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const getPlayTheme = () => {
     return {
       borderColor: '#2e7d32',
-      backgroundColor: 'rgba(46, 125, 50, 0.08)',
-      iconColor: '#2e7d32',
-      borderColorSelected: '#1b5e20'
+      bgColor: 'rgba(46, 125, 50, 0.08)',
+      iconColor: '#2e7d32'
     }
   }
 
