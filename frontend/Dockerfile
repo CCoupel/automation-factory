@@ -12,6 +12,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Accept base path as build argument (default to empty for root path)
+ARG VITE_BASE_PATH=""
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
+
 # Build the application
 RUN npm run build
 

@@ -125,14 +125,26 @@ frontend:
     failureThreshold: 3
 
 # Ingress configuration
+# Customize the URL to access your application
+# Examples:
+#   - Default: https://ansible-builder.example.com/
+#   - Custom: https://coupel.net/ansible-builder
 ingress:
   enabled: true
   className: "nginx"
+  # Base path/prefix for the application
+  # Examples:
+  #   - "" (empty)              -> https://your-host/
+  #   - "/ansible-builder"      -> https://your-host/ansible-builder
+  #   - "/tools/ansible"        -> https://your-host/tools/ansible
+  basePath: ""
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Rewrite rules to strip base path when proxying
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
   hosts:
     - host: ansible-builder.example.com
       paths:

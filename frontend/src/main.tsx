@@ -10,9 +10,12 @@ import App from './App.tsx'
 import './index.css'
 import './styles/responsive.css'
 
+// Get base path from environment variable (e.g., "/ansible-builder" or "")
+const basePath = import.meta.env.VITE_BASE_PATH || ''
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <ThemeProvider>
         <ZoomProvider>
           <AuthProvider>
