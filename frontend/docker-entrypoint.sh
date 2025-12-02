@@ -31,9 +31,13 @@ if [ -n "$BASE_PATH" ]; then
 
   # Move the restructured content back
   echo "   Replacing root content..."
+  # Change ownership to root to allow deletion
+  chown -R root:root "$HTML_ROOT"
   rm -rf "$HTML_ROOT"/*
   mv "$TEMP_DIR"/* "$HTML_ROOT/"
   rm -rf "$TEMP_DIR"
+  # Restore ownership for nginx
+  chown -R 1000:1000 "$HTML_ROOT"
 
   # Update the INDEX_FILE path
   INDEX_FILE="$HTML_ROOT/$BASE_PATH/index.html"
