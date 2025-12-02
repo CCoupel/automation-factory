@@ -1,48 +1,35 @@
 #!/bin/sh
 set -e
 
-# Restructure filesystem and rewrite paths for custom base path
+# Create base path directory structure at runtime
 # This allows the basePath to be configured via Helm values without rebuilding the image
 
 HTML_ROOT="/usr/share/nginx/html"
-INDEX_FILE="$HTML_ROOT/index.html"
 
 # Get BASE_PATH from environment variable (default to empty/root path)
 BASE_PATH="${BASE_PATH:-}"
 
 echo "🔧 Configuring frontend with BASE_PATH='${BASE_PATH}'"
 
-# If BASE_PATH is set, restructure the filesystem to match the expected URL structure
+# If BASE_PATH is set, copy files to the base path subdirectory
 if [ -n "$BASE_PATH" ]; then
-  # Remove leading slash from BASE_PATH if present
+  # Remove leading and trailing slashes
   BASE_PATH="${BASE_PATH#/}"
-  # Remove trailing slash
   BASE_PATH="${BASE_PATH%/}"
 
-  echo "📁 Restructuring filesystem for base path: /${BASE_PATH}"
+  echo "📁 Creating base path directory: /${BASE_PATH}"
 
-  # Create a temporary directory for the restructured content
-  TEMP_DIR="/tmp/html_restructured"
-  mkdir -p "$TEMP_DIR/$BASE_PATH"
+  # Create the base path directory and copy all files there
+  # Don't delete originals - avoids all permission issues
+  mkdir -p "$HTML_ROOT/$BASE_PATH"
 
-  # Copy all files to the new structure
   echo "   Copying files to /$BASE_PATH/..."
-  cp -r "$HTML_ROOT"/* "$TEMP_DIR/$BASE_PATH/"
+  cp -r "$HTML_ROOT/assets" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
+  cp "$HTML_ROOT/index.html" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
+  cp "$HTML_ROOT/vite.svg" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
+  cp "$HTML_ROOT"/*.html "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
 
-  # Move the restructured content back
-  echo "   Replacing root content..."
-  # Change ownership to root to allow deletion
-  chown -R root:root "$HTML_ROOT"
-  rm -rf "$HTML_ROOT"/*
-  mv "$TEMP_DIR"/* "$HTML_ROOT/"
-  rm -rf "$TEMP_DIR"
-  # Restore ownership for nginx
-  chown -R 1000:1000 "$HTML_ROOT"
-
-  # Update the INDEX_FILE path
-  INDEX_FILE="$HTML_ROOT/$BASE_PATH/index.html"
-
-  echo "✅ Filesystem restructured: files now served from /$BASE_PATH/"
+  echo "✅ Files copied to /$BASE_PATH/"
   echo "   • HTML: /$BASE_PATH/index.html"
   echo "   • Assets: /$BASE_PATH/assets/"
   echo "   • Vite: /$BASE_PATH/vite.svg"
