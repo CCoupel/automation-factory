@@ -30,10 +30,8 @@ spec:
         paths:
           {{- range .paths }}
           {{- $fullPath := .path }}
-          {{- if ne $.Values.ingress.basePath "" }}
-            {{- $fullPath = printf "%s%s(/|$)(.*)" $.Values.ingress.basePath .path }}
-          {{- else }}
-            {{- $fullPath = printf "%s(/|$)(.*)" .path }}
+          {{- if and (ne $.Values.ingress.basePath "") (eq .service "frontend") }}
+            {{- $fullPath = printf "%s%s" $.Values.ingress.basePath .path }}
           {{- end }}
           - path: {{ $fullPath }}
             pathType: {{ .pathType }}
