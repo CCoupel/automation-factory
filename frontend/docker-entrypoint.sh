@@ -1,37 +1,53 @@
 #!/bin/sh
 set -e
 
-# Rewrite asset paths in index.html at runtime
+# Restructure filesystem and rewrite paths for custom base path
 # This allows the basePath to be configured via Helm values without rebuilding the image
 
-INDEX_FILE="/usr/share/nginx/html/index.html"
+HTML_ROOT="/usr/share/nginx/html"
+INDEX_FILE="$HTML_ROOT/index.html"
 
 # Get BASE_PATH from environment variable (default to empty/root path)
 BASE_PATH="${BASE_PATH:-}"
 
 echo "🔧 Configuring frontend with BASE_PATH='${BASE_PATH}'"
 
-# If BASE_PATH is set, rewrite all absolute paths in index.html
+# If BASE_PATH is set, restructure the filesystem to match the expected URL structure
 if [ -n "$BASE_PATH" ]; then
-  # Remove trailing slash from BASE_PATH if present (we'll add it back in patterns)
+  # Remove leading slash from BASE_PATH if present
+  BASE_PATH="${BASE_PATH#/}"
+  # Remove trailing slash
   BASE_PATH="${BASE_PATH%/}"
 
-  echo "📝 Rewriting asset paths in index.html:"
-  echo "   /assets/ → ${BASE_PATH}/assets/"
-  echo "   /vite.svg → ${BASE_PATH}/vite.svg"
+  echo "📁 Restructuring filesystem for base path: /${BASE_PATH}"
 
-  # Rewrite all absolute paths to include BASE_PATH
-  # 1. Rewrite /assets/ paths (JS and CSS)
-  sed -i "s|src=\"/assets/|src=\"${BASE_PATH}/assets/|g" "$INDEX_FILE"
-  sed -i "s|href=\"/assets/|href=\"${BASE_PATH}/assets/|g" "$INDEX_FILE"
+  # Create a temporary directory for the restructured content
+  TEMP_DIR="/tmp/html_restructured"
+  mkdir -p "$TEMP_DIR/$BASE_PATH"
 
-  # 2. Rewrite /vite.svg and other root-level assets
-  sed -i "s|href=\"/vite.svg\"|href=\"${BASE_PATH}/vite.svg\"|g" "$INDEX_FILE"
+  # Copy all files to the new structure
+  echo "   Copying files to /$BASE_PATH/..."
+  cp -r "$HTML_ROOT"/* "$TEMP_DIR/$BASE_PATH/"
 
-  # 3. Inject <base> tag for good measure (helps with other relative paths)
-  sed -i "s|<head>|<head>\n    <base href=\"${BASE_PATH}/\">|" "$INDEX_FILE"
+  # Move the restructured content back
+  echo "   Replacing root content..."
+  rm -rf "$HTML_ROOT"/*
+  mv "$TEMP_DIR"/* "$HTML_ROOT/"
+  rm -rf "$TEMP_DIR"
 
-  echo "✅ Path rewriting complete"
+  # Update the INDEX_FILE path
+  INDEX_FILE="$HTML_ROOT/$BASE_PATH/index.html"
+
+  echo "✅ Filesystem restructured: files now served from /$BASE_PATH/"
+  echo "   • HTML: /$BASE_PATH/index.html"
+  echo "   • Assets: /$BASE_PATH/assets/"
+  echo "   • Vite: /$BASE_PATH/vite.svg"
+
+  # Update nginx config to use the correct index.html for SPA routing
+  echo "⚙️  Updating nginx configuration for SPA routing..."
+  NGINX_CONF="/etc/nginx/conf.d/default.conf"
+  sed -i "s|try_files \$uri \$uri/ /index.html;|try_files \$uri \$uri/ /${BASE_PATH}/index.html;|g" "$NGINX_CONF"
+  echo "   • Fallback: /$BASE_PATH/index.html"
 else
   echo "📝 No BASE_PATH configured, using root path /"
 fi
