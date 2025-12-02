@@ -21,7 +21,7 @@ backend:
   image:
     repository: ghcr.io/ccoupel/ansible-builder-backend
     pullPolicy: IfNotPresent
-    tag: "1.1.4"
+    tag: "1.1.7"
 
   service:
     type: ClusterIP
@@ -81,7 +81,7 @@ frontend:
   image:
     repository: ghcr.io/ccoupel/ansible-builder-frontend
     pullPolicy: IfNotPresent
-    tag: "1.1.6"
+    tag: "1.1.7"
 
   service:
     type: ClusterIP
