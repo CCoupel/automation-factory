@@ -23,7 +23,8 @@ RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
     /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp \
     /var/cache/nginx/scgi_temp /var/run \
     && chown -R 1000:1000 /var/cache/nginx /var/run /etc/nginx /usr/share/nginx/html \
-    && chmod -R 755 /var/cache/nginx
+    && chmod -R 755 /var/cache/nginx \
+    && chmod -R 777 /var/run
 
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
