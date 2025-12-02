@@ -33,16 +33,7 @@ if [ -n "$BASE_PATH" ]; then
   echo "   • HTML: /$BASE_PATH/index.html"
   echo "   • Assets: /$BASE_PATH/assets/"
   echo "   • Vite: /$BASE_PATH/vite.svg"
-
-  # Rewrite absolute paths in the copied HTML files
-  echo "🔧 Rewriting asset paths in HTML files..."
-  INDEX_FILE="$HTML_ROOT/$BASE_PATH/index.html"
-  if [ -f "$INDEX_FILE" ]; then
-    sed -i "s|src=\"/assets/|src=\"/${BASE_PATH}/assets/|g" "$INDEX_FILE"
-    sed -i "s|href=\"/assets/|href=\"/${BASE_PATH}/assets/|g" "$INDEX_FILE"
-    sed -i "s|href=\"/vite.svg\"|href=\"/${BASE_PATH}/vite.svg\"|g" "$INDEX_FILE"
-    echo "   • Paths rewritten: /assets/ → /${BASE_PATH}/assets/"
-  fi
+  echo "   • Using relative paths (no rewriting needed)"
 
   # Update nginx config to use the correct index.html for SPA routing
   echo "⚙️  Updating nginx configuration for SPA routing..."

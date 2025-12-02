@@ -2,8 +2,8 @@ apiVersion: v2
 name: ansible-builder
 description: A Helm chart for Ansible Builder - Visual Ansible Playbook Builder
 type: application
-version: 1.2.5
-appVersion: "1.2.5"
+version: 1.2.6
+appVersion: "1.2.6"
 keywords:
   - ansible
   - playbook
