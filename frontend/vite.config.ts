@@ -4,8 +4,8 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Base public path when served in production
-  base: process.env.VITE_BASE_PATH || '/',
+  // Always build with root path - the base path is injected at runtime via <base> tag
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {

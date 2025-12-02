@@ -41,6 +41,8 @@ spec:
             configMapKeyRef:
               name: {{ include "ansible-builder.fullname" . }}-frontend
               key: api-url
+        - name: BASE_PATH
+          value: {{ .Values.ingress.basePath | quote }}
         livenessProbe:
           {{- toYaml .Values.frontend.livenessProbe | nindent 12 }}
         readinessProbe:

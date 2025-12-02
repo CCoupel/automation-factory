@@ -12,11 +12,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Accept base path as build argument (default to empty for root path)
-ARG VITE_BASE_PATH=""
-ENV VITE_BASE_PATH=${VITE_BASE_PATH}
-
-# Build the application
+# Build the application with root path
+# The actual base path will be injected at runtime via the entrypoint script
 RUN npm run build
 
 # Production stage
@@ -36,9 +33,14 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Run as non-root user
-USER 1000
+# Copy and setup entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Switch to root temporarily to allow sed in entrypoint, then back to non-root
+USER root
 
 EXPOSE 80
 
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
