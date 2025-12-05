@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import axios from 'axios'
+import { getHttpClient } from '../utils/httpClient'
 
 /**
  * User interface representing authenticated user data
@@ -129,7 +129,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/login', {
+      const http = getHttpClient()
+      const response = await http.post('/auth/login', {
         email,
         password
       })
@@ -168,7 +169,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (email: string, username: string, password: string): Promise<boolean> => {
     setIsLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/register', {
+      const http = getHttpClient()
+      const response = await http.post('/auth/register', {
         email,
         username,
         password

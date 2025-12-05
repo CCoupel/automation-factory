@@ -3,7 +3,28 @@
 Ce document est destiné aux futures instances de Claude travaillant sur ce projet. Il contient la vue d'ensemble, l'architecture globale et les liens vers la documentation détaillée.
 
 ---
+Tu build les images via le docker disponnible au 192.168.1.217. Tu ne build que l'image frontend ou backend si son code a ete modifié
+tu deploie les images buildées sur le serveur docker sur le cluster kubernetes
+Tu verifie les logs de demarage des containers
+Tu test tous les appel d'api a chaque deploiement de nouvelle version du backend
 
+tu push les images vers ghcr.io/ccoupel uniquement lorsque je te le valide en faisant le commit et tu augmente le tag de version 
+
+
+Les versions dans le repository externe sont de la forme X.Y.Z. 
+  X correspond a un etat de la structure de la base, il est augmenté si le schema de la base evolue
+  Y correspond a un etat de fonctionnalité, il est augmenté lors de l'implementation d'un nouvelle fonctionnalité
+  Z correspond a un version de bugfix
+
+ces X,Y et Z ne sont pas limités a etre entre 0 à 10 mais sont sans limites
+
+Les versions dans le repository interne sont de la forme X.Y.Z_n
+  X correspond a un etat de la structure de la base, il est augmenté si le schema de la base evolue
+  Y correspond a un etat de fonctionnalité, il est augmenté lors de l'implementation d'un nouvelle fonctionnalité
+  Z correspond a un version de bugfix
+  n correspond a un increment de build, c'est le seul qui sera incrementé au cours du developpement.
+les valeurs de X,Y et Z ne sont modifiée que suite a un push vers le repository externe
+ces X,Y et Z ne sont pas limités a etre entre 0 à 10 mais sont sans limites
 ## 📋 Vue d'Ensemble du Projet
 
 ### Description
@@ -248,7 +269,8 @@ Voir aussi:
 ### Backend
 - [x] Implémenter les modèles de données (User, Playbook, Module, Collection)
 - [x] Créer les endpoints CRUD pour playbooks
-- [x] Authentification JWT
+- [x] Authentification JWT avec bcrypt fix
+- [x] Support SQLite pour développement
 - [ ] Service de collecte des modules Ansible Galaxy
 - [ ] Service de compilation YAML (transformer les blocks 3 sections)
 
@@ -257,6 +279,7 @@ Voir aussi:
 - [x] Interface de gestion des playbooks (création, liste, suppression, sélection)
 - [x] Indicateur visuel de sauvegarde dans AppHeader
 - [x] Gestion des variables avec validation des doublons (dialog)
+- [x] URLs relatives pour reverse proxy
 - [ ] Formulaires dynamiques pour configuration modules
 - [ ] Prévisualisation YAML en temps réel
 - [ ] Download du playbook généré
@@ -264,6 +287,8 @@ Voir aussi:
 - [ ] Undo/Redo pour les opérations
 
 ### DevOps
+- [x] Configuration SQLite pour déploiement single-pod
+- [x] Désactivation autoscaling incompatible avec SQLite
 - [ ] CI/CD pipeline (GitHub Actions ou GitLab CI)
 - [ ] Tests automatisés (pytest backend, vitest frontend)
 - [ ] Monitoring (Prometheus + Grafana)
@@ -321,5 +346,154 @@ Le codebase a fait l'objet de plusieurs refactorings majeurs pour améliorer la 
 
 ---
 
-**Dernière mise à jour:** 2025-11-23
-**Version:** 1.1.0
+---
+
+## 📋 **Procédure de Développement**
+
+**Voir :** [TOOLING/PROCEDURE_DEVELOPPEMENT.md](TOOLING/PROCEDURE_DEVELOPPEMENT.md)
+
+### Résumé des Règles de Versioning :
+- **Développement :** X.Y.Z_n (ex: 1.3.8_1, 1.3.8_2...)
+- **Production :** X.Y.Z (push vers ghcr.io uniquement sur validation)
+- **X** : Schema DB | **Y** : Fonctionnalité | **Z** : Bugfix | **n** : Build
+
+### Actions Obligatoires :
+1. **Builder** seulement les images modifiées (backend et/ou frontend)
+2. **Déployer** sur Kubernetes avec versions _n
+3. **Vérifier** les logs de démarrage
+4. **Tester** TOUTES les APIs à chaque déploiement backend
+5. **Push ghcr.io** uniquement sur validation explicite avec commit
+
+---
+
+## 🔄 **Changelog - Session 2025-12-05**
+
+### 🎯 **Problème Résolu : URLs localhost:8000**
+
+**Issue :** Le frontend appelait des URLs hardcodées `http://localhost:8000/api/auth/login` au lieu d'URLs relatives.
+
+**Fix Principal :** 
+- **Fichier :** `frontend/src/contexts/AuthContext.tsx`
+- **Changement :** Remplacé `axios.post('http://localhost:8000/api/auth/login')` par `getHttpClient().post('/auth/login')`
+- **Impact :** Plus d'erreurs de connexion, utilise maintenant les URLs relatives correctes
+
+### 🗄️ **Ajout Support SQLite Complet**
+
+**Backend v1.3.8 :** Ajout support SQLite avec initialisation automatique
+- **Fichier :** `backend/app/main.py`
+- **Nouveautés :**
+  - Cycle de vie FastAPI avec initialisation DB automatique
+  - Création automatique utilisateur admin (`admin@example.com` / `admin`)
+  - Support SQLite et PostgreSQL via variables d'environnement
+  - Logs détaillés de démarrage avec émojis
+
+```python
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print(f"🚀 Starting Ansible Builder API v1.3.8")
+    await init_db()
+    await create_default_user()
+    yield
+```
+
+### 📦 **Images Déployées**
+
+**Backend :** `ghcr.io/ccoupel/ansible-builder-backend:1.3.9-dev2`
+- Support SQLite avec initialisation auto
+- Utilisateur admin par défaut créé au démarrage (`admin@example.com` / `admin123`)
+- Fix bcrypt avec `bcrypt==4.0.1` explicite
+- Configuration via variables d'environnement
+
+**Frontend :** `ghcr.io/ccoupel/ansible-builder-frontend:1.5.1`
+- AuthContext.tsx corrigé (plus de localhost:8000)
+- Support URLs relatives complètes
+- Base path `/ansible-builder` supporté
+
+### ⚙️ **Configuration Déploiement**
+
+**Helm Configuration :**
+```yaml
+backend:
+  replicaCount: 1
+  image:
+    tag: "1.3.9-dev2"
+    pullPolicy: Always
+  env:
+    DATABASE_TYPE: "sqlite"
+    SQLITE_DB_PATH: "/tmp/ansible_builder.db"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    
+frontend:
+  image:
+    tag: "1.5.1"
+    pullPolicy: Always
+```
+
+**PostgreSQL :** Supprimé des dépendances Helm (SQLite par défaut)
+
+### 🚀 **Build & Deploy Process**
+
+**Docker Host :** Utilisé Docker distant `192.168.1.217:2375`
+**Registry :** GitHub Container Registry (`ghcr.io`)
+**Déploiement :** Helm upgrade réussi (révision 40)
+
+### ✅ **Status Final (v1.3.9_2)**
+
+- **URLs :** ✅ Plus d'erreur localhost:8000
+- **Frontend :** ✅ v1.5.1 déployé avec fix AuthContext
+- **Backend :** ✅ v1.3.9-dev2 déployé avec SQLite
+- **API Endpoints :** ✅ `/version` et `/api/version` accessibles
+- **Authentication :** ✅ Fonctionnelle (admin@example.com / admin123)
+- **Autoscaling :** ✅ Désactivé (compatible SQLite single-pod)
+- **Bcrypt :** ✅ Fix appliqué avec bcrypt==4.0.1
+
+### 📁 **Scripts Créés**
+
+- `TOOLING/build-and-deploy-backend-sqlite.ps1`
+- `TOOLING/deploy-with-docker-alternatives.ps1` 
+- `TOOLING/simple-deploy.ps1`
+
+---
+
+## 🔧 Correctifs de Session (v1.3.9_2)
+
+### Issues Résolues
+1. **bcrypt/passlib AttributeError**
+   - ❌ **Erreur :** `module 'bcrypt' has no attribute '__about__'`
+   - ✅ **Fix :** Ajout `bcrypt==4.0.1` dans requirements.txt
+   - ✅ **Test :** Mot de passe admin changé en "admin123"
+
+2. **SQLite Multi-pods Incompatibility** 
+   - ❌ **Problème :** 2+ pods backend avec bases SQLite séparées
+   - ✅ **Fix :** `replicaCount: 1` + `autoscaling.enabled: false`
+   - ✅ **Résultat :** 1 seul pod backend stable
+
+3. **URLs Relatives Reverse Proxy**
+   - ❌ **Problème :** Hardcoded `localhost:8000` dans AuthContext
+   - ✅ **Fix :** Utilisation `getHttpClient()` pour URLs relatives
+   - ✅ **Test :** Compatible https://coupel.net/ansible-builder
+
+### Configuration Finale Validée
+```yaml
+backend:
+  replicaCount: 1
+  image:
+    tag: "1.3.9-dev2"
+  env:
+    DATABASE_TYPE: "sqlite"
+    SQLITE_DB_PATH: "/tmp/ansible_builder.db"
+  autoscaling:
+    enabled: false
+```
+
+### Authentification Opérationnelle
+- 🌐 **URL :** https://coupel.net/ansible-builder
+- 👤 **Credentials :** admin@example.com / admin123  
+- 🔒 **Hashing :** bcrypt fonctionnel
+- 💾 **Database :** SQLite initialisée automatiquement
+
+**Dernière mise à jour :** 2025-12-05  
+**Version courante :** 1.3.9_2
