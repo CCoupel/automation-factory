@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Paper,
@@ -9,11 +9,14 @@ import {
   CircularProgress,
   Tab,
   Tabs,
-  Container
+  Container,
+  Chip
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import axios from 'axios'
+import packageJson from '../../package.json'
 
 /**
  * Login/Register Page Component
@@ -51,6 +54,28 @@ const LoginPage: React.FC = () => {
 
   // Error state
   const [error, setError] = useState<string | null>(null)
+
+  // Version state
+  const [backendVersion, setBackendVersion] = useState<string>('...')
+  const frontendVersion = packageJson.version
+
+  /**
+   * Fetch backend version on component mount
+   */
+  useEffect(() => {
+    const fetchBackendVersion = async () => {
+      try {
+        const apiUrl = (window as any).__API_URL__ || '/api'
+        const response = await axios.get(`${apiUrl}/version`)
+        setBackendVersion(response.data.version)
+      } catch (err) {
+        console.error('Failed to fetch backend version:', err)
+        setBackendVersion('N/A')
+      }
+    }
+
+    fetchBackendVersion()
+  }, [])
 
   /**
    * Handle login form submission
@@ -292,6 +317,29 @@ const LoginPage: React.FC = () => {
           >
             Mode SaaS - Vos playbooks sont sauvegardés sur le cloud
           </Typography>
+
+          {/* Version Information */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 1,
+              mt: 2
+            }}
+          >
+            <Chip
+              label={`Frontend: ${frontendVersion}`}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+            <Chip
+              label={`Backend: ${backendVersion}`}
+              size="small"
+              color="secondary"
+              variant="outlined"
+            />
+          </Box>
         </Paper>
       </Container>
     </Box>

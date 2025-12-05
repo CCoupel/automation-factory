@@ -7,12 +7,19 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import PrivateRoute from './components/auth/PrivateRoute'
 import LoginPage from './pages/LoginPage'
 import App from './App.tsx'
+import { logApiConfig } from './utils/apiConfig'
 import './index.css'
 import './styles/responsive.css'
 
+// Get base path from window config (injected by docker-entrypoint.sh)
+const basePath = (window as any).__BASE_PATH__ || ''
+
+// Log API configuration for debugging
+logApiConfig()
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <ThemeProvider>
         <ZoomProvider>
           <AuthProvider>

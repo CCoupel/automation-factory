@@ -9,11 +9,11 @@ Ce document contient toute la documentation technique backend du projet Ansible 
 ### Framework et Outils
 
 **Backend:**
-- **Framework**: FastAPI (Python 3.11+)
-- **Base de données**: SQLite (dev) ou PostgreSQL (prod) - configurable via DATABASE_TYPE
+- **Framework**: FastAPI (Python 3.11+) - v1.3.8 avec initialisation automatique
+- **Base de données**: SQLite (par défaut) ou PostgreSQL (prod) - configurable via DATABASE_TYPE
 - **ORM**: SQLAlchemy 2.0 (async avec asyncio)
 - **Drivers DB**: aiosqlite (SQLite), asyncpg (PostgreSQL)
-- **Auth**: JWT (python-jose) + BCrypt (passlib)
+- **Auth**: JWT (python-jose) + BCrypt (passlib) + utilisateur admin auto-créé
 - **Validation**: Pydantic v2
 - **Intégration Ansible**: ansible-runner, pyyaml (à implémenter)
 
@@ -120,9 +120,30 @@ class Module(Base):
 ---
 
 ## 🔌 API Endpoints
-
-### Authentication (Implémenté)
+a chaque mise a jour de l'image du backend, tu verifie la bonne reponse des differentes API
+### Authentication (Implémenté avec Auto-Setup v1.3.8+)
 **Fichier:** `app/api/endpoints/auth.py`
+
+**🚀 Initialisation Automatique (v1.3.8+) :**
+- **Database:** Création automatique des tables au démarrage
+- **Logs de démarrage avec émojis** pour diagnostic
+- **Utilisateur admin par défaut** créé si n'existe pas
+
+**🔑 Utilisateur Admin Par Défaut :**
+- **Email:** `admin@example.com`
+- **Password:** `admin`
+- **Créé automatiquement** au démarrage de l'application
+- **Type:** Admin (`is_admin: true`)
+- **Status:** Actif (`is_active: true`)
+
+**📊 Logs de Démarrage :**
+```
+🚀 Starting Ansible Builder API v1.3.8
+📄 Database type: sqlite
+🔗 Database URL: sqlite+aiosqlite:///./ansible_builder.db
+✅ Database initialized successfully
+👤 Created default admin user: admin@example.com / admin
+```
 
 **POST /api/auth/register**
 - Créer un nouveau compte utilisateur

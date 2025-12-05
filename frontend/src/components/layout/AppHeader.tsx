@@ -37,7 +37,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import SaveIcon from '@mui/icons-material/Save'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
-import axios from 'axios'
+import { getHttpClient } from '../../utils/httpClient'
 
 interface AppHeaderProps {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
@@ -128,16 +128,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
 
     try {
       const token = localStorage.getItem('authToken')
-      await axios.put(
-        'http://localhost:8000/api/auth/change-password',
-        {
-          current_password: currentPassword,
-          new_password: newPassword
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+      const http = getHttpClient()
+      await http.put('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
 
       setPasswordSuccess(true)
 

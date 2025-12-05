@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_TYPE: str = "sqlite"
 
     # SQLite Configuration (used when DATABASE_TYPE="sqlite")
-    SQLITE_DB_PATH: str = "./ansible_builder.db"
+    SQLITE_DB_PATH: str = "/tmp/ansible_builder.db"
 
     # PostgreSQL Configuration (used when DATABASE_TYPE="postgresql")
     POSTGRES_USER: str = "ansible"

@@ -1,0 +1,22 @@
+apiVersion: v1
+data:
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Ansible Builder</title>
+        <script type="module" crossorigin src="./assets/index-Bj1S5ilV.js"></script>
+        <link rel="stylesheet" crossorigin href="./assets/index-Bt2ydkxn.css">
+      </head>
+      <body>
+        <div id="root"></div>
+      </body>
+    </html>
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: ansible-builder-frontend-dist
+  namespace: ansible-builder

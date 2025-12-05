@@ -16,12 +16,12 @@ namespace: ansible-builder
 
 # Backend configuration
 backend:
-  replicaCount: 2
+  replicaCount: 1
 
   image:
     repository: ghcr.io/ccoupel/ansible-builder-backend
     pullPolicy: IfNotPresent
-    tag: "1.2.6"
+    tag: "1.3.8"
 
   service:
     type: ClusterIP
@@ -38,8 +38,8 @@ backend:
       memory: 512Mi
 
   autoscaling:
-    enabled: true
-    minReplicas: 2
+    enabled: false
+    minReplicas: 1
     maxReplicas: 10
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
@@ -76,12 +76,12 @@ backend:
 
 # Frontend configuration
 frontend:
-  replicaCount: 2
+  replicaCount: 1
 
   image:
     repository: ghcr.io/ccoupel/ansible-builder-frontend
     pullPolicy: IfNotPresent
-    tag: "1.2.6"
+    tag: "1.5.1"
 
   service:
     type: ClusterIP
@@ -98,8 +98,8 @@ frontend:
       memory: 256Mi
 
   autoscaling:
-    enabled: true
-    minReplicas: 2
+    enabled: false
+    minReplicas: 1
     maxReplicas: 5
     targetCPUUtilizationPercentage: 80
 
@@ -125,19 +125,9 @@ frontend:
     failureThreshold: 3
 
 # Ingress configuration
-# Customize the URL to access your application
-# Examples:
-#   - Default: https://ansible-builder.example.com/
-#   - Custom: https://coupel.net/ansible-builder
 ingress:
   enabled: true
-  className: "nginx"
-  # Base path/prefix for the application
-  # Examples:
-  #   - "" (empty)              -> https://your-host/
-  #   - "/ansible-builder"      -> https://your-host/ansible-builder
-  #   - "/tools/ansible"        -> https://your-host/tools/ansible
-  basePath: ""
+  className: "traefik"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -157,44 +147,34 @@ ingress:
       hosts:
         - ansible-builder.example.com
 
-# CloudNativePG configuration
-cloudnative-pg:
-  enabled: true
-  # CloudNativePG operator configuration
-  # The operator will be installed if enabled
-  # For cluster configuration, see templates/postgresql-cluster.yaml
-
 # PostgreSQL configuration
 postgresql:
-  # Use internal CloudNativePG cluster (true) or external PostgreSQL (false)
   enabled: true
-
-  # Internal PostgreSQL configuration (when enabled = true)
   auth:
-    database: ansible_builder
     username: ansible
     password: changeme-in-production
+    database: ansible_builder
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
 
-  # PostgreSQL cluster settings
-  instances: 3
-  storage:
-    size: 10Gi
-    storageClass: ""
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 500m
-      memory: 512Mi
-
-  # External PostgreSQL (when enabled = false)
+  # External PostgreSQL (if postgresql.enabled = false)
   external:
     host: "external-postgres.example.com"
     port: 5432
-    database: ansible_builder
     username: ansible
     password: ""
+    database: ansible_builder
 
 # Redis configuration
 redis:
@@ -281,13 +261,31 @@ networkPolicy:
           matchLabels:
             name: ingress-nginx
   egress:
+    # Allow traffic to other namespaces
     - to:
       - namespaceSelector: {}
+    # Allow traffic to PostgreSQL pods
     - to:
       - podSelector:
           matchLabels:
             app: postgresql
+    # Allow traffic to Redis pods
     - to:
       - podSelector:
           matchLabels:
             app: redis
+    # Allow HTTPS traffic to external APIs (Galaxy, Ansible Docs)
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 443
+    # Allow HTTP traffic (for fallback)
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 80
+    # Allow DNS resolution
+    - to: []
+      ports:
+      - protocol: UDP
+        port: 53

@@ -10,10 +10,15 @@ Ce document contient toute la documentation technique frontend du projet Ansible
 
 Le frontend implémente un système d'authentification complet permettant de sauvegarder les sessions utilisateurs et de persister les playbooks créés.
 
+**🛠️ Fix v1.5.1 : URLs Relatives**
+- **Problème résolu :** Elimination des URLs hardcodées `localhost:8000`
+- **Solution :** Utilisation systématique de `getHttpClient()` 
+- **Impact :** Compatibilité reverse proxy et base path `/ansible-builder`
+
 **Fonctionnalités:**
 - Page de login/register avec validation
-- Gestion de session avec JWT tokens
-- Persistance dans localStorage
+- Gestion de session avec JWT tokens (URLs relatives)
+- Persistance dans le backend
 - Protection des routes (PrivateRoute)
 - Header avec informations utilisateur et bouton de déconnexion
 

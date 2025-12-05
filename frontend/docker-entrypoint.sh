@@ -24,10 +24,8 @@ if [ -n "$BASE_PATH" ]; then
   mkdir -p "$HTML_ROOT/$BASE_PATH"
 
   echo "   Copying files to /$BASE_PATH/..."
-  cp -r "$HTML_ROOT/assets" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
-  cp "$HTML_ROOT/index.html" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
-  cp "$HTML_ROOT/vite.svg" "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
-  cp "$HTML_ROOT"/*.html "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
+  # Copy all files and directories recursively (assets, html files, svg, etc.)
+  cp -r "$HTML_ROOT"/* "$HTML_ROOT/$BASE_PATH/" 2>/dev/null || true
 
   echo "✅ Files copied to /$BASE_PATH/"
   echo "   • HTML: /$BASE_PATH/index.html"
@@ -35,13 +33,41 @@ if [ -n "$BASE_PATH" ]; then
   echo "   • Vite: /$BASE_PATH/vite.svg"
   echo "   • Using relative paths (no rewriting needed)"
 
-  # Update nginx config to use the correct index.html for SPA routing
-  echo "⚙️  Updating nginx configuration for SPA routing..."
+  # Inject BASE_PATH and API_URL into index.html
+  echo "🔧 Injecting BASE_PATH and API_URL into index.html for React Router..."
+  sed -i "s|<head>|<head><script>window.__BASE_PATH__ = '/${BASE_PATH}'; window.__API_URL__ = '/${BASE_PATH}/api';</script>|g" "$HTML_ROOT/$BASE_PATH/index.html"
+  # Fix vite.svg path to work with BASE_PATH
+  sed -i "s|href=\"./vite.svg\"|href=\"/${BASE_PATH}/vite.svg\"|g" "$HTML_ROOT/$BASE_PATH/index.html"
+  echo "   • window.__BASE_PATH__ = '/${BASE_PATH}'"
+  echo "   • window.__API_URL__ = '/${BASE_PATH}/api'"
+  echo "   • Fixed vite.svg path to /${BASE_PATH}/vite.svg"
+
+  # Update nginx config to use the correct index.html for SPA routing and endpoints
+  echo "⚙️  Updating nginx configuration for SPA routing and endpoints..."
   NGINX_CONF="/etc/nginx/conf.d/default.conf"
   sed -i "s|try_files \$uri \$uri/ /index.html;|try_files \$uri \$uri/ /${BASE_PATH}/index.html;|g" "$NGINX_CONF"
+  # Also update static assets to look in BASE_PATH
+  sed -i "s|try_files \$uri =404;|try_files \$uri /${BASE_PATH}\$uri =404;|g" "$NGINX_CONF"
+  
+  # Update endpoints to be relative to BASE_PATH
+  sed -i "s|location = /health|location = /${BASE_PATH}/health|g" "$NGINX_CONF"
+  sed -i "s|location = /version|location = /${BASE_PATH}/version|g" "$NGINX_CONF"
+  sed -i "s|location /api|location /${BASE_PATH}/api|g" "$NGINX_CONF"
+  # Add rewrite rule to strip BASE_PATH before proxying to backend
+  sed -i "s|proxy_pass http://ansible-builder-backend:8000;|rewrite ^/${BASE_PATH}/api/(.*) /api/\$1 break; proxy_pass http://ansible-builder-backend:8000;|g" "$NGINX_CONF"
+  
   echo "   • Fallback: /$BASE_PATH/index.html"
+  echo "   • Static assets: tries /$BASE_PATH/\$uri fallback"
+  echo "   • Health endpoint: /$BASE_PATH/health"
+  echo "   • Version endpoint: /$BASE_PATH/version"
+  echo "   • API proxy: /$BASE_PATH/api"
 else
   echo "📝 No BASE_PATH configured, using root path /"
+  # Inject empty BASE_PATH and root API_URL into index.html
+  echo "🔧 Injecting empty BASE_PATH and API_URL into index.html..."
+  sed -i "s|<head>|<head><script>window.__BASE_PATH__ = ''; window.__API_URL__ = '/api';</script>|g" "$HTML_ROOT/index.html"
+  echo "   • window.__BASE_PATH__ = ''"
+  echo "   • window.__API_URL__ = '/api'"
 fi
 
 echo "🚀 Starting nginx..."

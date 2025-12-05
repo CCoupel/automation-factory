@@ -37,6 +37,9 @@ dist/
 .env.local
 .env.*.local
 
+# GitHub credentials (never commit)
+github_token.txt
+
 # IDE
 .vscode/
 .idea/

@@ -1,9 +1,5 @@
 import axios from 'axios'
-
-/**
- * API base URL
- */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+import { getApiBaseUrl } from '../utils/apiConfig'
 
 /**
  * Playbook content structure
@@ -133,7 +129,7 @@ export const playbookService = {
    */
   async listPlaybooks(): Promise<Playbook[]> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/playbooks`, {
+      const response = await axios.get(`${getApiBaseUrl()}/playbooks`, {
         headers: getAuthHeader()
       })
       return response.data
@@ -154,7 +150,7 @@ export const playbookService = {
    */
   async getPlaybook(playbookId: string): Promise<PlaybookDetail> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/playbooks/${playbookId}`, {
+      const response = await axios.get(`${getApiBaseUrl()}/playbooks/${playbookId}`, {
         headers: getAuthHeader()
       })
       return response.data
@@ -176,7 +172,7 @@ export const playbookService = {
   async createPlaybook(playbook: PlaybookCreate): Promise<PlaybookDetail> {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/playbooks`,
+        `${getApiBaseUrl()}/playbooks`,
         playbook,
         {
           headers: getAuthHeader()
@@ -202,7 +198,7 @@ export const playbookService = {
   async updatePlaybook(playbookId: string, updates: PlaybookUpdate): Promise<PlaybookDetail> {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/playbooks/${playbookId}`,
+        `${getApiBaseUrl()}/playbooks/${playbookId}`,
         updates,
         {
           headers: getAuthHeader()
@@ -226,7 +222,7 @@ export const playbookService = {
    */
   async deletePlaybook(playbookId: string): Promise<void> {
     try {
-      await axios.delete(`${API_BASE_URL}/playbooks/${playbookId}`, {
+      await axios.delete(`${getApiBaseUrl()}/playbooks/${playbookId}`, {
         headers: getAuthHeader()
       })
     } catch (error: any) {

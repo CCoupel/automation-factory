@@ -1,10 +1,4 @@
-import axios from 'axios'
-
-/**
- * API base URL
- * TODO: Replace with actual backend URL from environment variables
- */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+import { getHttpClient } from '../utils/httpClient'
 
 /**
  * User interface for API responses
@@ -59,7 +53,8 @@ export const authService = {
    */
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      const http = getHttpClient()
+      const response = await http.post('/auth/login', {
         email,
         password
       })
@@ -88,7 +83,8 @@ export const authService = {
    */
   async register(email: string, username: string, password: string): Promise<RegisterResponse> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+      const http = getHttpClient()
+      const response = await http.post('/auth/register', {
         email,
         username,
         password
@@ -114,15 +110,12 @@ export const authService = {
    */
   async logout(token: string): Promise<void> {
     try {
-      await axios.post(
-        `${API_BASE_URL}/auth/logout`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+      const http = getHttpClient()
+      await http.post('/auth/logout', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      )
+      })
     } catch (error) {
       console.error('Logout API error:', error)
       // Don't throw error on logout - always clear local session
@@ -142,7 +135,8 @@ export const authService = {
    */
   async verifyToken(token: string): Promise<User> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
+      const http = getHttpClient()
+      const response = await http.get('/auth/verify', {
         headers: {
           Authorization: `Bearer ${token}`
         }

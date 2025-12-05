@@ -36,11 +36,6 @@ spec:
           containerPort: {{ .Values.frontend.service.targetPort }}
           protocol: TCP
         env:
-        - name: VITE_API_URL
-          valueFrom:
-            configMapKeyRef:
-              name: {{ include "ansible-builder.fullname" . }}-frontend
-              key: api-url
         - name: BASE_PATH
           value: {{ .Values.ingress.basePath | quote }}
         livenessProbe:
