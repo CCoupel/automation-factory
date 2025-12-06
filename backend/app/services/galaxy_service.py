@@ -6,6 +6,7 @@ import asyncio
 import httpx
 from typing import List, Dict, Any, Optional
 import logging
+from .cache_service import cache, cached_galaxy_request
 
 logger = logging.getLogger(__name__)
 
@@ -16,88 +17,101 @@ class GalaxyService:
     def __init__(self):
         self.galaxy_base_url = "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index"
         
+    @cached_galaxy_request("namespaces", ttl_seconds=1800)  # 30 minutes cache
     async def get_namespaces(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Get list of all namespaces with collection counts
+        Get list of all namespaces with accurate collection counts
         """
         try:
+            logger.info("Fetching namespaces from Galaxy API (cache miss)")
             namespaces = {}
-            offset = 0
             
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-                # First, try to get just the first page to see if API is accessible
-                url = f"{self.galaxy_base_url}/?limit=50&offset=0"
-                logger.info(f"Testing Galaxy API connection to: {url}")
-                
-                response = await client.get(url)
-                response.raise_for_status()
-                
-                data = response.json()
-                batch = data.get("data", [])
-                
-                if not batch:
-                    logger.warning("No data returned from Galaxy API")
-                    return {"namespaces": [], "total_namespaces": 0, "error": "No data from Galaxy API"}
-                
-                logger.info(f"Successfully retrieved first batch: {len(batch)} collections")
-                
-                # Process first batch
-                for item in batch:
-                    namespace = item.get("namespace", "")
-                    if namespace:
-                        if namespace not in namespaces:
-                            namespaces[namespace] = {
-                                "name": namespace,
-                                "collection_count": 0,
-                                "total_downloads": 0
-                            }
-                        namespaces[namespace]["collection_count"] += 1
-                        namespaces[namespace]["total_downloads"] += item.get("download_count", 0)
-                
-                # For efficiency, only scan first few pages to get main namespaces
-                offset = 50
-                max_collections = 500  # Reduced from 1000
-                
-                while offset < max_collections:
+            # First, get a sample to identify main namespaces quickly
+            sample_size = 500  # Increased sample for better namespace discovery
+            batch_size = 50
+            
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                # Phase 1: Sample collections to discover namespaces
+                logger.info("Phase 1: Discovering namespaces from sample...")
+                for offset in range(0, sample_size, batch_size):
                     try:
-                        url = f"{self.galaxy_base_url}/?limit=50&offset={offset}"
+                        url = f"{self.galaxy_base_url}/?limit={batch_size}&offset={offset}"
                         response = await client.get(url)
                         response.raise_for_status()
                         
                         data = response.json()
                         batch = data.get("data", [])
                         
-                        if not batch or len(batch) < 50:
-                            logger.info(f"Reached end of data or small batch at offset {offset}")
+                        if not batch:
                             break
                         
+                        # Collect unique namespaces
                         for item in batch:
                             namespace = item.get("namespace", "")
-                            if namespace:
-                                if namespace not in namespaces:
-                                    namespaces[namespace] = {
-                                        "name": namespace,
-                                        "collection_count": 0,
-                                        "total_downloads": 0
-                                    }
-                                namespaces[namespace]["collection_count"] += 1
-                                namespaces[namespace]["total_downloads"] += item.get("download_count", 0)
+                            if namespace and namespace not in namespaces:
+                                namespaces[namespace] = {
+                                    "name": namespace,
+                                    "collection_count": 0,
+                                    "total_downloads": 0
+                                }
                         
-                        offset += 50
+                        if len(batch) < batch_size:
+                            break
+                            
+                    except Exception as e:
+                        logger.warning(f"Error in phase 1 at offset {offset}: {e}")
+                        continue
+                
+                logger.info(f"Phase 1 complete: discovered {len(namespaces)} namespaces")
+                
+                # Phase 2: Get accurate counts for discovered namespaces
+                logger.info("Phase 2: Getting accurate counts for namespaces...")
+                for namespace_name in list(namespaces.keys())[:limit]:  # Limit to requested namespaces
+                    try:
+                        # Use the correct collections endpoint with namespace parameter
+                        collections_url = f"{self.galaxy_base_url}/?namespace={namespace_name}&limit=1"
+                        response = await client.get(collections_url)
+                        response.raise_for_status()
                         
-                        # Add a small delay between requests to be respectful
-                        await asyncio.sleep(0.1)
+                        collections_data = response.json()
+                        meta = collections_data.get("meta", {})
+                        actual_count = meta.get("count", 0)
+                        
+                        # Update with accurate count
+                        namespaces[namespace_name]["collection_count"] = actual_count
+                        
+                        # Get total downloads by sampling a few collections
+                        if actual_count > 0:
+                            sample_limit = min(10, actual_count)  # Sample up to 10 collections
+                            sample_url = f"{self.galaxy_base_url}/?namespace={namespace_name}&limit={sample_limit}"
+                            sample_response = await client.get(sample_url)
+                            sample_response.raise_for_status()
+                            
+                            sample_data = sample_response.json()
+                            sample_collections = sample_data.get("data", [])
+                            total_downloads = sum(item.get("download_count", 0) for item in sample_collections)
+                            
+                            # Estimate total downloads proportionally
+                            if len(sample_collections) > 0:
+                                estimated_total = int(total_downloads * (actual_count / len(sample_collections)))
+                                namespaces[namespace_name]["total_downloads"] = estimated_total
+                        
+                        # Small delay to be respectful to the API
+                        await asyncio.sleep(0.05)
                         
                     except Exception as e:
-                        logger.warning(f"Error fetching batch at offset {offset}: {e}")
-                        break
+                        logger.warning(f"Error getting accurate count for {namespace_name}: {e}")
+                        # Fallback: keep the namespace with count from phase 1
+                        continue
             
-            # Sort by collection count
+            # Sort by collection count and limit
             sorted_namespaces = sorted(
                 namespaces.values(),
                 key=lambda x: x["collection_count"],
                 reverse=True
-            )
+            )[:limit]
+            
+            logger.info(f"Returning {len(sorted_namespaces)} namespaces with accurate counts")
             
             return {
                 "namespaces": sorted_namespaces,

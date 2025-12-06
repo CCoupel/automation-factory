@@ -271,7 +271,8 @@ Voir aussi:
 - [x] Créer les endpoints CRUD pour playbooks
 - [x] Authentification JWT avec bcrypt fix
 - [x] Support SQLite pour développement
-- [ ] Service de collecte des modules Ansible Galaxy
+- [x] Service Galaxy API (4 endpoints: namespaces, collections, versions, modules)
+- [x] Optimisations performance API Galaxy (cache 2 niveaux, algorithme 2 phases)
 - [ ] Service de compilation YAML (transformer les blocks 3 sections)
 
 ### Frontend
@@ -280,6 +281,7 @@ Voir aussi:
 - [x] Indicateur visuel de sauvegarde dans AppHeader
 - [x] Gestion des variables avec validation des doublons (dialog)
 - [x] URLs relatives pour reverse proxy
+- [x] Zone Modules intégrée avec Galaxy API (navigation 4 niveaux, tooltips, clic droit)
 - [ ] Formulaires dynamiques pour configuration modules
 - [ ] Prévisualisation YAML en temps réel
 - [ ] Download du playbook généré
@@ -495,5 +497,105 @@ backend:
 - 🔒 **Hashing :** bcrypt fonctionnel
 - 💾 **Database :** SQLite initialisée automatiquement
 
-**Dernière mise à jour :** 2025-12-05  
-**Version courante :** 1.3.9_2
+---
+
+## 🌌 **Galaxy API Integration (v1.4.0_5)**
+
+### 🎯 **Nouvelle Fonctionnalité Major**
+
+**API Galaxy :** Intégration complète de l'API Ansible Galaxy pour récupérer les modules réels
+- **4 endpoints :** `/namespaces`, `/collections`, `/versions`, `/modules`
+- **Navigation hiérarchique :** Namespaces → Collections → Versions → Modules
+- **Performance optimisée :** Algorithme 2 phases + cache double niveau
+
+### 📊 **Architecture Performance**
+
+**Problème Initial :** Temps de chargement des namespaces > 12 secondes
+**Solution Implémentée :**
+
+1. **Cache Frontend** (`galaxyService.ts`)
+   - In-memory avec TTL de 15 minutes
+   - Évite les requêtes répétées côté client
+
+2. **Cache Backend** (`cache_service.py`)
+   - Decorator pattern avec TTL de 30 minutes 
+   - Réduit les appels Galaxy API externes
+
+3. **Algorithme 2 Phases** (`galaxy_service.py`)
+   ```python
+   # Phase 1: Découverte rapide des namespaces (échantillon 500 collections)
+   # Phase 2: Comptage précis par namespace (requêtes individuelles)
+   ```
+
+**Résultat :** 12.2s → 1.8s (85% amélioration)
+
+### 🐛 **Fix Critique Comptage Collections**
+
+**Issue v1.4.0_4 :** Tous les compteurs affichaient 0 collections
+**Cause :** URLs Galaxy API incorrectes dans Phase 2
+- ❌ **Ancien :** `/index/{namespace}/?limit=1` (404 Not Found)
+- ✅ **Nouveau :** `/?namespace={namespace}&limit=1` (Correct)
+
+**Résultats Validés :**
+- **community** : 52 collections ✅
+- **ansible** : 18 collections ✅
+- **bvollmerhaus** : 2 collections ✅
+
+### 🎨 **UI/UX Zone Modules**
+
+**Composant :** `frontend/src/components/zones/ModulesZone.tsx`
+
+**Fonctionnalités Implementées :**
+1. **Navigation breadcrumb** : "namespace.collection (version)"
+2. **Tooltips riches** : Infos détaillées sur hover
+3. **Clic droit** : Accès direct dernière version collection
+4. **Skip version unique** : Navigation automatique si 1 seule version
+5. **Tri alphabétique** : Tous les niveaux de navigation
+6. **Indicateurs visuels** : Compteurs, téléchargements, dates
+
+**Intégration Drag & Drop :** Modules Galaxy → Playbook canvas
+
+### 🔧 **Configuration Kubernetes**
+
+**NetworkPolicy :** Ajout règles egress pour API externe
+```yaml
+egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS Galaxy API
+```
+
+### 📦 **Versions Déployées**
+
+**Backend :** `ghcr.io/ccoupel/ansible-builder-backend:1.4.0_5`
+- Galaxy service avec algorithme 2 phases
+- Cache service avec decorator pattern  
+- URLs Galaxy API corrigées
+- Performance optimisée
+
+**Frontend :** `ghcr.io/ccoupel/ansible-builder-frontend:1.6.5`
+- ModulesZone refactorisée complètement
+- galaxyService.ts avec cache TTL
+- Navigation 4 niveaux opérationnelle
+- Tooltips et interactions avancées
+
+### 🧪 **Tests de Validation**
+
+```bash
+# Test API namespaces (5 premiers)
+curl "https://coupel.net/ansible-builder/api/galaxy/namespaces?limit=5"
+
+# Résultat attendu :
+{
+  "namespaces": [
+    {"name": "community", "collection_count": 52, "total_downloads": 185625429},
+    {"name": "ansible", "collection_count": 18, "total_downloads": 3766323},
+    {"name": "bvollmerhaus", "collection_count": 2, "total_downloads": 2650}
+  ],
+  "total_namespaces": 5
+}
+```
+
+**Dernière mise à jour :** 2025-12-06  
+**Version courante :** 1.4.0_5

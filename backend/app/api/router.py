@@ -13,7 +13,7 @@ api_router = APIRouter()
 async def version():
     """Version endpoint - Returns API version"""
     return {
-        "version": "1.4.0_1", 
+        "version": "1.4.0_5", 
         "name": "Ansible Builder API"
     }
 
