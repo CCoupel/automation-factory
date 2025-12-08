@@ -38,11 +38,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SortIcon from '@mui/icons-material/Sort'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import StarIcon from '@mui/icons-material/Star'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 import { useState, useEffect } from 'react'
 import { galaxyService, Namespace, Collection, Module } from '../../services/galaxyService'
 import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
 import { useGalaxy } from '../../contexts/GalaxyContext'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
+import { userPreferencesService } from '../../services/userPreferencesService'
 
 interface ModulesZoneProps {
   onCollapse?: () => void
@@ -93,6 +96,10 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   const [selectedNamespaceZone, setSelectedNamespaceZone] = useState<number>(0)
   const [sortOption, setSortOption] = useState<SortOption>('name')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  
+  // User favorites state
+  const [favoriteNamespaces, setFavoriteNamespaces] = useState<string[]>([])
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
 
   // Éléments génériques (blocks, handlers, etc.)
   // Note: 'play' n'est pas inclus car il y a un PLAY unique et obligatoire par espace de travail
@@ -101,6 +108,24 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
   ]
+  
+  // Load user favorites on component mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        setFavoritesLoading(true)
+        const favorites = await userPreferencesService.getFavoriteNamespaces()
+        setFavoriteNamespaces(favorites)
+      } catch (error) {
+        console.warn('Failed to load favorite namespaces:', error)
+        setFavoriteNamespaces([])
+      } finally {
+        setFavoritesLoading(false)
+      }
+    }
+    
+    loadFavorites()
+  }, [])
   
   // No need to load namespaces here, they are loaded by GalaxyContext on app startup
   
@@ -236,6 +261,28 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   // Toggle sort order
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+  }
+  
+  // Toggle favorite namespace
+  const toggleFavoriteNamespace = async (namespace: string) => {
+    try {
+      setFavoritesLoading(true)
+      
+      const isFavorite = favoriteNamespaces.includes(namespace)
+      
+      if (isFavorite) {
+        await userPreferencesService.removeFavoriteNamespace(namespace)
+        setFavoriteNamespaces(prev => prev.filter(ns => ns !== namespace))
+      } else {
+        await userPreferencesService.addFavoriteNamespace(namespace)
+        setFavoriteNamespaces(prev => [...prev, namespace])
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite namespace:', error)
+      setError(`Failed to ${favoriteNamespaces.includes(namespace) ? 'remove' : 'add'} favorite: ${error}`)
+    } finally {
+      setFavoritesLoading(false)
+    }
   }
 
   // Force refresh is now handled by the context
@@ -388,7 +435,21 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   }
 
   // Component for namespace list item
-  const NamespaceListItem = ({ namespace, onNavigate }: { namespace: Namespace, onNavigate: (name: string) => void }) => (
+  const NamespaceListItem = ({ 
+    namespace, 
+    onNavigate, 
+    isFavorite = false, 
+    onToggleFavorite, 
+    favoritesLoading = false,
+    showFavoriteButton = false 
+  }: { 
+    namespace: Namespace;
+    onNavigate: (name: string) => void;
+    isFavorite?: boolean;
+    onToggleFavorite?: (namespace: string) => void;
+    favoritesLoading?: boolean;
+    showFavoriteButton?: boolean;
+  }) => (
     <Tooltip
       title={
         <Box>
@@ -407,6 +468,11 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
           <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
             Click to browse collections
           </Typography>
+          {showFavoriteButton && (
+            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic', color: 'primary.main' }}>
+              ⭐ Click star to {isFavorite ? 'remove from' : 'add to'} favorites
+            </Typography>
+          )}
         </Box>
       }
       placement="right"
@@ -433,6 +499,30 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
               variant: 'caption',
             }}
           />
+          {showFavoriteButton && onToggleFavorite && (
+            <Tooltip title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleFavorite(namespace.name)
+                }}
+                disabled={favoritesLoading}
+                sx={{ 
+                  mr: 1,
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                {isFavorite ? (
+                  <StarIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+                ) : (
+                  <StarBorderIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
           <ChevronRightIcon />
         </ListItemButton>
       </ListItem>
@@ -638,7 +728,7 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
                         <Tab 
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2">Popular</Typography>
+                              <Typography variant="body2">Favorites</Typography>
                               <Chip 
                                 label={popularNamespaces.length} 
                                 size="small" 
@@ -694,13 +784,21 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
                       </Tooltip>
                     </Box>
 
-                    {/* Popular Namespaces Zone */}
+                    {/* Favorites Namespaces Zone */}
                     {selectedNamespaceZone === 0 && (
                       <Box>
                         <List dense>
                           {sortNamespaces(filterItems(popularNamespaces))
                             .map((namespace) => (
-                              <NamespaceListItem key={namespace.name} namespace={namespace} onNavigate={navigateToCollections} />
+                              <NamespaceListItem 
+                                key={namespace.name} 
+                                namespace={namespace} 
+                                onNavigate={navigateToCollections}
+                                isFavorite={favoriteNamespaces.includes(namespace.name)}
+                                onToggleFavorite={toggleFavoriteNamespace}
+                                favoritesLoading={favoritesLoading}
+                                showFavoriteButton={true}
+                              />
                           ))}
                         </List>
                       </Box>
@@ -743,7 +841,15 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
                         <List dense>
                           {sortNamespaces(filterItems(allNamespaces))
                             .map((namespace) => (
-                              <NamespaceListItem key={namespace.name} namespace={namespace} onNavigate={navigateToCollections} />
+                              <NamespaceListItem 
+                                key={namespace.name} 
+                                namespace={namespace} 
+                                onNavigate={navigateToCollections}
+                                isFavorite={favoriteNamespaces.includes(namespace.name)}
+                                onToggleFavorite={toggleFavoriteNamespace}
+                                favoritesLoading={favoritesLoading}
+                                showFavoriteButton={true}
+                              />
                           ))}
                         </List>
                       </Box>

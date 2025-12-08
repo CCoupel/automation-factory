@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { galaxyService, Namespace } from '../services/galaxyService'
+import { userPreferencesService } from '../services/userPreferencesService'
 
 interface GalaxyContextType {
   // Namespaces
@@ -61,15 +62,74 @@ export const GalaxyProvider: React.FC<GalaxyProviderProps> = ({ children }) => {
       // First: Get popular namespaces instantly
       console.log('📥 Loading popular namespaces...')
       const popularResult = await galaxyService.getNamespaces()
-      setPopularNamespaces(popularResult.namespaces || [])
-      console.log(`✅ Loaded ${popularResult.namespaces?.length || 0} popular namespaces`)
+      
+      // Load user favorites and merge with system defaults
+      try {
+        const userFavorites = await userPreferencesService.getFavoriteNamespaces()
+        console.log(`📥 Loaded ${userFavorites.length} user favorite namespaces`)
+        
+        // Combine system popular + user favorites (remove duplicates)
+        const systemPopular = popularResult.namespaces || []
+        const allFavoriteNames = new Set([
+          ...systemPopular.map(ns => ns.name),
+          ...userFavorites
+        ])
+        
+        // Create namespace objects for user favorites not in system popular
+        const userFavoriteNamespaces = userFavorites
+          .filter(name => !systemPopular.some(ns => ns.name === name))
+          .map(name => ({
+            name,
+            collection_count: 0, // Will be updated when ALL data loads
+            total_downloads: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }))
+        
+        // Merge system popular + user favorites
+        const mergedPopular = [...systemPopular, ...userFavoriteNamespaces]
+        setPopularNamespaces(mergedPopular)
+        console.log(`✅ Loaded ${mergedPopular.length} popular namespaces (${systemPopular.length} system + ${userFavoriteNamespaces.length} user favorites)`)
+      } catch (error) {
+        // Fallback to system popular only if user preferences fail
+        console.warn('⚠️ Failed to load user favorites, using system popular only:', error)
+        setPopularNamespaces(popularResult.namespaces || [])
+        console.log(`✅ Loaded ${popularResult.namespaces?.length || 0} popular namespaces (system only)`)
+      }
       
       // Then: Start progressive discovery
       console.log('🔍 Starting progressive discovery...')
       await galaxyService.streamNamespacesEnhanced(
-        // onNamespaces: Update all namespaces
-        (namespacesUpdate) => {
+        // onNamespaces: Update all namespaces and refresh popular with user favorites
+        async (namespacesUpdate) => {
           setAllNamespaces(namespacesUpdate)
+          
+          // Update popular namespaces with real stats for user favorites
+          try {
+            const userFavorites = await userPreferencesService.getFavoriteNamespaces()
+            const systemPopular = popularResult.namespaces || []
+            
+            // Update user favorite namespaces with real data from ALL discovery
+            const updatedUserFavorites = userFavorites
+              .filter(name => !systemPopular.some(ns => ns.name === name))
+              .map(name => {
+                const realData = namespacesUpdate.find(ns => ns.name === name)
+                return realData || {
+                  name,
+                  collection_count: 0,
+                  total_downloads: 0,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              })
+            
+            // Merge again with updated data
+            const refreshedPopular = [...systemPopular, ...updatedUserFavorites]
+            setPopularNamespaces(refreshedPopular)
+            
+          } catch (error) {
+            console.warn('⚠️ Failed to update user favorites with real data:', error)
+          }
         },
         // onStatus: Update status messages
         (status) => {

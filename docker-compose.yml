@@ -1,22 +1,21 @@
-version: '3.8'
-
 services:
-  postgresql:
-    image: postgres:16-alpine
-    container_name: ansible-builder-db
-    environment:
-      POSTGRES_USER: ansible
-      POSTGRES_PASSWORD: ansible
-      POSTGRES_DB: ansible_builder
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ansible"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+# PostgreSQL désactivé pour développement local (utilise SQLite)
+  # postgresql:
+  #   image: postgres:16-alpine
+  #   container_name: ansible-builder-db
+  #   environment:
+  #     POSTGRES_USER: ansible
+  #     POSTGRES_PASSWORD: ansible
+  #     POSTGRES_DB: ansible_builder
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ansible"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
 
   redis:
     image: redis:7-alpine
@@ -32,40 +31,57 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ansible-builder-backend:dev
     container_name: ansible-builder-backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://ansible:ansible@postgresql:5432/ansible_builder
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_PATH=/tmp/ansible_builder_dev.db
       - DEBUG=True
-    volumes:
-      - ./backend:/app
     depends_on:
-      postgresql:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: build
+    image: ansible-builder-frontend:dev
     container_name: ansible-builder-frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
-    command: npm run dev -- --host 0.0.0.0
+      - BASE_PATH=
     depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: ansible-builder-nginx
+    ports:
+      - "80:80"
+      - "5173:5173"
+    command: |
+      sh -c '
+        echo "# Nginx configuration for development environment" > /etc/nginx/conf.d/default.conf
+        echo "upstream frontend_upstream { server ansible-builder-frontend:80; }" >> /etc/nginx/conf.d/default.conf
+        echo "upstream backend_upstream { server ansible-builder-backend:8000; }" >> /etc/nginx/conf.d/default.conf
+        echo "server {" >> /etc/nginx/conf.d/default.conf
+        echo "  listen 80;" >> /etc/nginx/conf.d/default.conf
+        echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-proxy\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://backend_upstream/api/versions; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "}" >> /etc/nginx/conf.d/default.conf
+        echo "server {" >> /etc/nginx/conf.d/default.conf
+        echo "  listen 5173;" >> /etc/nginx/conf.d/default.conf
+        echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-direct\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://backend_upstream/api/versions; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "}" >> /etc/nginx/conf.d/default.conf
+        nginx -g "daemon off;"
+      '
+    depends_on:
+      - frontend
       - backend
 
 volumes:

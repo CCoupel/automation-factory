@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   AppBar,
   Toolbar,
@@ -67,6 +67,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const { darkMode, toggleDarkMode } = useTheme()
   const { ansibleVersion, setAnsibleVersion } = useAnsibleVersion()
 
+  // Version state
+  const [versions, setVersions] = useState<{
+    frontend: { version: string; name: string }
+    backend: { version: string; name: string }
+    environment: string
+  } | null>(null)
+
   // Playbook fields state (local for other fields)
   const [playbookVersion, setPlaybookVersion] = useState('1.0.0')
   const [inventory, setInventory] = useState('hosts')
@@ -82,6 +89,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+
+  /**
+   * Fetch versions on component mount
+   */
+  useEffect(() => {
+    const fetchVersions = async () => {
+      try {
+        const http = getHttpClient()
+        const response = await http.get('/version')
+        setVersions(response.data)
+      } catch (error) {
+        console.error('Failed to fetch versions:', error)
+      }
+    }
+
+    fetchVersions()
+  }, [])
 
   /**
    * Handle user menu open
@@ -384,6 +408,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
         {/* Right side - User info and Menu */}
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs, 4px)' }}>
+            {/* Version info */}
+            {versions?.frontend?.version && versions?.backend?.version && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', mr: 2 }}>
+                <Typography variant="caption" sx={{ fontSize: 'var(--font-xs, 12px)', opacity: 0.9, lineHeight: 1 }}>
+                  Frontend: {versions.frontend.version}
+                </Typography>
+                <Typography variant="caption" sx={{ fontSize: 'var(--font-xs, 12px)', opacity: 0.9, lineHeight: 1 }}>
+                  Backend: {versions.backend.version}
+                </Typography>
+              </Box>
+            )}
+
             {/* User info */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <Typography variant="body2" sx={{ fontSize: 'var(--font-sm, 13px)', lineHeight: 1.2 }}>

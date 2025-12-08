@@ -157,7 +157,8 @@
       "Bash(./TOOLING/final-deploy.ps1)",
       "Bash(chmod:*)",
       "Bash(./deploy-final.sh)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(touch:*)"
     ],
     "deny": [],
     "ask": []

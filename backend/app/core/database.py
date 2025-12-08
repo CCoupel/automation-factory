@@ -58,6 +58,7 @@ async def init_db():
     async with engine.begin() as conn:
         # Import all models here to ensure they are registered
         from app.models.user import User
+        from app.models.user_preferences import UserPreferences
         from app.models.playbook import Playbook
 
         # Create all tables

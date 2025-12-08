@@ -13,10 +13,11 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 - **URL :** https://coupel.net/ansible-builder
 - **Status :** ✅ Opérationnel
 
-**Développement (Local) :**
-- **Backend :** `1.5.0_3` (buildé, non testé localement)
-- **Frontend :** `1.7.0_1` (buildé avec enrichissement on-demand)
-- **Status :** ⚠️ Non déployé localement
+**Développement (Docker-Compose) :**
+- **Backend :** `1.8.0_2` (ansible-builder-backend:dev)
+- **Frontend :** `1.8.0_2` (ansible-builder-frontend:dev)
+- **URL :** http://192.168.1.217:80
+- **Status :** ✅ Opérationnel avec gestion versions et favoris
 
 ---
 
@@ -31,6 +32,21 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
   - ✅ Niveau 2 : Tâche de fond background
   - ✅ Niveau 3 : On-demand à la sélection
 - **Frontend intégré :** `galaxySmartService.ts` + `ModulesZoneCached.tsx`
+
+### ✅ **Gestion Favoris Namespaces (v1.8.0)**
+- **API Backend :** `/api/favorites` avec stockage fichier JSON
+- **UI Frontend :** Boutons étoiles dans onglet Favorites (ex-Popular)
+- **Fonctionnalités :**
+  - Sélection/désélection namespaces favoris
+  - Persistance côté serveur (favorites.json)
+  - Interface unifiée avec Galaxy API
+- **Status :** ✅ Interface implémentée, logique favoris à finaliser
+
+### ✅ **Gestion Versions (v1.8.0)**
+- **Endpoint unifié :** `/version` retourne frontend + backend
+- **Affichage AppHeader :** Versions en temps réel coin supérieur droit
+- **Déploiement :** Docker-compose avec images :dev
+- **Procédure :** Phases 1 (dev _n) et 2 (prod) respectées
 
 ### ✅ **Optimisations Performance**
 - **Réduction API calls :** 100+ → 11 appels (-90%)
@@ -48,20 +64,20 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ## 🛠️ **En Cours de Développement**
 
-### ⚠️ **Testing Local Required**
+### 🎯 **Finalisation Gestion Favoris (v1.8.0)**
 **Priorité :** Haute  
-**Description :** Versions buildées non testées en local  
+**Description :** Interface favoris implémentée, logique métier à compléter  
 **Actions :**
-1. Déployer `1.7.0_1` frontend sur 192.168.1.217:5173
-2. Tester enrichissement on-demand fonctionnel
-3. Valider intégration complète Galaxy SMART
-4. Rapport de tests Phase 1
+1. Finaliser intégration favoris avec Galaxy API
+2. Tester sélection/désélection UI → persistance backend
+3. Valider synchronisation favoris utilisateur
+4. Tests complets fonctionnalité favoris
 
 ### 📋 **Next Steps Session**
-1. **Tests locaux :** Validation enrichissement on-demand
-2. **Documentation :** Finalisation découpage docs
-3. **Cleanup :** Suppression anciens fichiers temporaires
-4. **Phase 2 :** Si validation OK → build prod + déploiement K8s
+1. **Favoris complets :** Finalisation logique métier
+2. **Documentation :** Mise à jour avec features v1.8.0
+3. **Validation utilisateur :** Tests interface favoris
+4. **Commit & Push :** Version 1.8.0_2 complète
 
 ---
 

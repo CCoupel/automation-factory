@@ -2,5 +2,5 @@
 Application version information
 """
 
-__version__ = "1.9.0_4"
-__description__ = "Ansible Builder API with 3-component architecture and adaptive configuration"
+__version__ = "1.8.0_2"
+__description__ = "Ansible Builder API with user preferences and favorite namespaces"
