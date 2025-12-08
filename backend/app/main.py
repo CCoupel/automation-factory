@@ -59,11 +59,21 @@ async def lifespan(app: FastAPI):
         # Create default admin user for testing
         await create_default_user()
         
-        # Start Galaxy data synchronization in background (DISABLED to avoid API rate limits)
-        # print("Starting Galaxy cache synchronization...")
-        # import asyncio
-        # asyncio.create_task(galaxy_cache_service.startup_full_sync())
-        print("Galaxy cache synchronization DISABLED to avoid rate limits")
+        # Start SMART Galaxy data synchronization
+        print("Starting SMART Galaxy sync (API directe optimisée)...")
+        import asyncio
+        from app.services.galaxy_service_smart import smart_galaxy_service
+        
+        # Démarrer le sync principal
+        sync_task = asyncio.create_task(smart_galaxy_service.startup_sync_smart())
+        
+        # Démarrer l'enrichissement en arrière-plan après le sync
+        async def start_background_enrichment():
+            await sync_task  # Attendre la fin du sync principal
+            print("Starting background namespace enrichment...")
+            await smart_galaxy_service.background_enrich_all_namespaces()
+        
+        asyncio.create_task(start_background_enrichment())
         
     except Exception as e:
         print(f"Database initialization failed: {e}")

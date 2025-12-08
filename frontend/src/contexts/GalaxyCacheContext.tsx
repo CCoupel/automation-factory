@@ -18,6 +18,7 @@ interface GalaxyCacheContextType {
   
   // Actions
   refreshCache: () => Promise<void>
+  enrichNamespaceOnDemand: (namespace: string) => Promise<any | null>
   getCollections: (namespace: string) => Promise<any[] | null>
   getModules: (namespace: string, collection: string, version: string) => Promise<any[] | null>
 }
@@ -140,6 +141,28 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       setIsLoading(false)
     }
   }
+
+  const enrichNamespaceOnDemand = async (namespace: string) => {
+    try {
+      console.log(`🔄 Enriching namespace on-demand: ${namespace}`)
+      
+      const enrichedNamespace = await galaxySmartService.enrichNamespaceOnDemand(namespace)
+      if (enrichedNamespace) {
+        // Mettre à jour les données en cache avec le namespace enrichi
+        setAllNamespaces(prev => 
+          prev.map(ns => ns.name === namespace ? enrichedNamespace : ns)
+        )
+        console.log(`✅ Namespace ${namespace} enriched and updated`)
+        return enrichedNamespace
+      } else {
+        console.warn(`⚠️ Failed to enrich namespace ${namespace}`)
+        return null
+      }
+    } catch (error) {
+      console.error(`❌ Error enriching namespace ${namespace}:`, error)
+      return null
+    }
+  }
   
   const getCollections = async (namespace: string): Promise<any[] | null> => {
     try {
@@ -252,6 +275,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     
     // Actions
     refreshCache,
+    enrichNamespaceOnDemand,
     getCollections,
     getModules,
   }

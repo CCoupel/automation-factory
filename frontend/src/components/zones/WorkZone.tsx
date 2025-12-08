@@ -254,9 +254,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           id: play.id,
           name: play.name,
           modules: content.modules.filter(m => {
-            // Only include modules that don't have a playId (they belong to the main play)
-            // TODO: When multiple plays are supported, filter by m.playId === play.id
-            return !m.playId || m.playId === play.id
+            // Include all modules for now (single play mode)
+            // TODO: When multiple plays are supported, filter by play association
+            return true
           }),
           links: content.links, // Simplified
           variables: content.variables.map(v => ({ key: v.name, value: v.value })),
@@ -342,9 +342,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               id: play.id,
               name: play.name,
               modules: content.modules.filter(m => {
-                // Only include modules that don't have a playId (they belong to the main play)
-                // TODO: When multiple plays are supported, filter by m.playId === play.id
-                return !m.playId || m.playId === play.id
+                // Include all modules for now (single play mode)
+                // TODO: When multiple plays are supported, filter by play association
+                return true
               }),
               links: content.links, // Simplified
               variables: content.variables.map(v => ({ key: v.name, value: v.value })),

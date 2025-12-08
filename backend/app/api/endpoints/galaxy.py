@@ -107,14 +107,64 @@ async def trigger_smart_resync() -> Dict[str, Any]:
         logger.info("Manual SMART resync triggered")
         result = await smart_galaxy_service.startup_sync_smart()
         
+        # Démarrer l'enrichissement en arrière-plan après le sync
+        asyncio.create_task(smart_galaxy_service.background_enrich_all_namespaces())
+        
         return {
-            "message": "SMART resync completed",
+            "message": "SMART resync completed, background enrichment started",
             "result": result
         }
         
     except Exception as e:
         logger.error(f"Error during smart resync: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to resync: {str(e)}")
+
+
+@router.post("/namespaces/{namespace}/enrich")
+async def enrich_namespace_on_demand(
+    namespace: str = Path(..., description="Namespace name to enrich")
+) -> Dict[str, Any]:
+    """
+    Enrichir un namespace spécifique à la demande
+    Utilisé quand l'utilisateur sélectionne un namespace sans stats
+    """
+    try:
+        from app.services.galaxy_service_smart import smart_galaxy_service
+        
+        logger.info(f"On-demand enrichment requested for: {namespace}")
+        enriched_namespace = await smart_galaxy_service.enrich_namespace_on_demand(namespace)
+        
+        return {
+            "message": f"Namespace {namespace} enriched successfully",
+            "namespace": enriched_namespace
+        }
+        
+    except Exception as e:
+        logger.error(f"Error enriching namespace {namespace}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to enrich namespace {namespace}: {str(e)}")
+
+
+@router.post("/background-enrich")
+async def trigger_background_enrichment() -> Dict[str, Any]:
+    """
+    Déclencher l'enrichissement en arrière-plan de tous les namespaces
+    """
+    try:
+        from app.services.galaxy_service_smart import smart_galaxy_service
+        
+        logger.info("Background enrichment triggered manually")
+        
+        # Démarrer la tâche en arrière-plan
+        asyncio.create_task(smart_galaxy_service.background_enrich_all_namespaces())
+        
+        return {
+            "message": "Background enrichment started",
+            "status": "running"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting background enrichment: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start background enrichment: {str(e)}")
 
 
 @router.get("/namespaces/{namespace}/collections")

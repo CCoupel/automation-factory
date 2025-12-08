@@ -186,7 +186,7 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     setVersions([])
     setModules([])
     // Reset to popular zone by default
-    setSelectedNamespaceZone('popular')
+    setSelectedNamespaceZone(0)
   }
   
   const navigateToCollections = (namespace: string) => {

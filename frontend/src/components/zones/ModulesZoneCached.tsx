@@ -78,6 +78,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     syncStatus,
     lastSync,
     refreshCache,
+    enrichNamespaceOnDemand,
     getCollections,
     getModules
   } = useGalaxyCache()
@@ -212,7 +213,20 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     setSelectedNamespaceZone('popular')
   }
   
-  const navigateToCollections = (namespace: string) => {
+  const navigateToCollections = async (namespace: string) => {
+    // Vérifier si le namespace a besoin d'enrichissement
+    const selectedNamespace = [...popularNamespaces, ...allNamespaces].find(ns => ns.name === namespace)
+    
+    if (selectedNamespace && (selectedNamespace.collection_count === 0 || selectedNamespace.total_downloads === 0)) {
+      console.log(`🔄 Namespace ${namespace} needs enrichment - triggering on-demand enrichment`)
+      
+      // Enrichir le namespace avant la navigation
+      const enrichedNamespace = await enrichNamespaceOnDemand(namespace)
+      if (enrichedNamespace) {
+        console.log(`✅ Namespace ${namespace} enriched successfully before navigation`)
+      }
+    }
+    
     setNavigationState({ level: 'collections', namespace })
     setVersions([])
     setModules([])

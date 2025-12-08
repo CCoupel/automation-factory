@@ -25,10 +25,10 @@ class SmartGalaxyService:
         # Pas d'endpoint namespaces direct - utilise extraction depuis collections
         self.collections_url = self.galaxy_base_url
         
-        # Performance settings
-        self.max_concurrent = 3  # Conservative pour éviter rate limits
+        # Performance settings - plus conservateur pour pagination complète
+        self.max_concurrent = 2  # Très conservateur pour éviter rate limits
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
-        self.request_delay = 0.2  # 200ms entre requêtes
+        self.request_delay = 0.3  # 300ms entre requêtes
         
         # Stats tracking
         self.last_sync_time: Optional[datetime] = None
@@ -108,19 +108,49 @@ class SmartGalaxyService:
     
     async def _extract_namespaces_from_collections(self, client: httpx.AsyncClient) -> List[Dict]:
         """
-        Extraction optimisée des namespaces depuis collections
-        Utilise l'URL et paramètres qui fonctionnent (basés sur galaxy_service.py)
+        Extraction complète des namespaces depuis TOUTES les collections
+        Pagination pour récupérer l'ensemble du catalogue Galaxy
         """
         try:
-            # URL correcte avec / final requis par Galaxy API
-            url = f"{self.collections_url}/?limit=300"
-            logger.info(f"Fetching collections from: {url}")
-            response = await client.get(url)
-            response.raise_for_status()
-            self.sync_stats["api_calls"] += 1
+            all_collections = []
+            page_size = 500  # Optimisé pour performance
+            offset = 0
+            max_collections = 5000  # Limite sécurité pour éviter surcharge
             
-            data = response.json()
-            collections = data.get("data", [])
+            logger.info(f"📥 Starting complete namespace discovery from Galaxy collections...")
+            
+            while len(all_collections) < max_collections:
+                # URL avec pagination
+                url = f"{self.collections_url}/?limit={page_size}&offset={offset}"
+                logger.info(f"Fetching page: offset={offset}, limit={page_size}")
+                
+                response = await client.get(url)
+                response.raise_for_status()
+                self.sync_stats["api_calls"] += 1
+                
+                data = response.json()
+                collections_page = data.get("data", [])
+                total_count = data.get("meta", {}).get("count", 0)
+                
+                # Si pas de données, on a fini
+                if not collections_page:
+                    logger.info(f"📄 No more collections, stopping at {len(all_collections)} total")
+                    break
+                
+                all_collections.extend(collections_page)
+                offset += len(collections_page)
+                
+                logger.info(f"📊 Fetched {len(collections_page)} collections (total: {len(all_collections)}/{total_count})")
+                
+                # Si on a récupéré toutes les collections disponibles
+                if len(all_collections) >= total_count:
+                    logger.info(f"✅ Fetched all {len(all_collections)} collections from Galaxy")
+                    break
+                
+                # Délai entre requêtes pour éviter rate limiting
+                await asyncio.sleep(0.1)
+            
+            collections = all_collections
             
             # Extraire namespaces uniques avec métadonnées
             namespaces_dict = {}
@@ -159,14 +189,14 @@ class SmartGalaxyService:
     async def _enrich_top_namespaces(self, namespaces: List[Dict]) -> List[Dict]:
         """
         Phase 2: Enrichir les top namespaces avec leurs collections
-        Maximum 10 API calls pour les namespaces les plus importants
+        Maximum 10 API calls pour démarrage rapide (enrichissement arrière-plan séparé)
         """
         logger.info("📚 Phase 2: Enriching top namespaces with collections...")
         
-        # Sélectionner top namespaces (priorité par popularité estimée)
+        # Sélectionner top 10 namespaces prioritaires pour démarrage rapide
         PRIORITY_NAMESPACES = [
-            "community", "ansible", "cisco", "redhat", "amazon",
-            "microsoft", "google", "vmware", "f5networks", "fortinet"
+            "community", "ansible", "cisco", "amazon", "microsoft", 
+            "google", "vmware", "f5networks", "fortinet", "kubernetes"
         ]
         
         # Mixer prioritaires + découverts
@@ -288,8 +318,8 @@ class SmartGalaxyService:
             # Cache namespaces complet
             cache.set("galaxy_smart:all_namespaces", namespaces, ttl_namespaces)
             
-            # Cache popular namespaces (top 10) - prendre les 10 premiers même si non-enriched
-            popular_ns = namespaces[:10]  # Prendre top 10 indépendamment de l'enrichment
+            # Cache popular namespaces (top 10) - prendre les 10 premiers enrichis
+            popular_ns = namespaces[:10]  # Prendre top 10 pour interface populaire
             cache.set("galaxy_smart:popular_namespaces", popular_ns, ttl_namespaces)
             
             # Cache collections par namespace enrichi
@@ -336,6 +366,129 @@ class SmartGalaxyService:
             "method": "smart_api_direct",
             "cache_status": "no_metadata"
         }
+
+    async def enrich_namespace_on_demand(self, namespace_name: str) -> Dict[str, Any]:
+        """
+        Enrichir un namespace spécifique à la demande
+        Utilisé quand l'utilisateur sélectionne un namespace sans stats
+        """
+        try:
+            logger.info(f"🔄 On-demand enrichment for namespace: {namespace_name}")
+            
+            # Vérifier si déjà enrichi en cache
+            cached_namespaces = self.get_cached_namespaces(popular_only=False)
+            for ns in cached_namespaces:
+                if ns["name"] == namespace_name and ns.get("enriched"):
+                    logger.info(f"✅ {namespace_name} already enriched in cache")
+                    return ns
+
+            # Créer un namespace temporaire pour enrichissement
+            temp_namespace = {
+                "name": namespace_name,
+                "collection_count": 0,
+                "total_downloads": 0,
+                "discovered_from": "on_demand"
+            }
+
+            # Enrichir le namespace
+            enriched_ns = await self._enrich_namespace_collections(temp_namespace)
+
+            # Mettre à jour le cache
+            await self._update_cache_with_enriched_namespace(enriched_ns)
+
+            logger.info(f"✅ On-demand enrichment completed for {namespace_name}")
+            return enriched_ns
+
+        except Exception as e:
+            logger.error(f"❌ Failed on-demand enrichment for {namespace_name}: {e}")
+            return {
+                "name": namespace_name,
+                "collection_count": 0,
+                "total_downloads": 0,
+                "error": str(e)
+            }
+
+    async def _update_cache_with_enriched_namespace(self, enriched_namespace: Dict):
+        """
+        Mettre à jour le cache avec un namespace enrichi
+        """
+        try:
+            # Récupérer tous les namespaces du cache
+            all_namespaces = self.get_cached_namespaces(popular_only=False)
+            
+            # Trouver et remplacer le namespace enrichi
+            updated = False
+            for i, ns in enumerate(all_namespaces):
+                if ns["name"] == enriched_namespace["name"]:
+                    all_namespaces[i] = enriched_namespace
+                    updated = True
+                    break
+            
+            # Si pas trouvé, ajouter
+            if not updated:
+                all_namespaces.append(enriched_namespace)
+            
+            # Remettre en cache
+            ttl_namespaces = 6 * 3600  # 6h
+            cache.set("galaxy_smart:all_namespaces", all_namespaces, ttl_namespaces)
+            
+            # Mettre à jour cache des collections
+            if enriched_namespace.get("top_collections"):
+                cache_key = f"galaxy_smart:collections:{enriched_namespace['name']}"
+                ttl_collections = 2 * 3600  # 2h
+                cache.set(cache_key, enriched_namespace["top_collections"], ttl_collections)
+            
+            logger.info(f"✅ Cache updated with enriched namespace: {enriched_namespace['name']}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update cache with enriched namespace: {e}")
+
+    async def background_enrich_all_namespaces(self):
+        """
+        Tâche de fond pour enrichir progressivement tous les namespaces
+        """
+        try:
+            logger.info("🔄 Starting background enrichment of all namespaces...")
+            
+            all_namespaces = self.get_cached_namespaces(popular_only=False)
+            unenriched_namespaces = [ns for ns in all_namespaces if not ns.get("enriched")]
+            
+            logger.info(f"📊 Found {len(unenriched_namespaces)} namespaces to enrich in background")
+            
+            # Enrichir par lots de 5 avec délais
+            batch_size = 5
+            enriched_count = 0
+            
+            for i in range(0, len(unenriched_namespaces), batch_size):
+                batch = unenriched_namespaces[i:i + batch_size]
+                
+                # Enrichir le lot en parallèle
+                enrichment_tasks = []
+                for ns in batch:
+                    task = self._enrich_namespace_collections(ns)
+                    enrichment_tasks.append(task)
+                
+                # Exécuter avec gestion d'erreurs
+                batch_results = await asyncio.gather(*enrichment_tasks, return_exceptions=True)
+                
+                # Traiter les résultats
+                for j, result in enumerate(batch_results):
+                    if isinstance(result, dict):
+                        await self._update_cache_with_enriched_namespace(result)
+                        enriched_count += 1
+                    else:
+                        logger.warning(f"❌ Background enrichment failed for {batch[j]['name']}: {result}")
+                
+                logger.info(f"📈 Background enrichment progress: {enriched_count}/{len(unenriched_namespaces)}")
+                
+                # Délai entre lots pour éviter surcharge
+                if i + batch_size < len(unenriched_namespaces):
+                    await asyncio.sleep(5)  # 5 secondes entre lots
+            
+            logger.info(f"✅ Background enrichment completed: {enriched_count} namespaces enriched")
+            
+        except Exception as e:
+            logger.error(f"❌ Background enrichment failed: {e}")
 
 
 # Singleton instance

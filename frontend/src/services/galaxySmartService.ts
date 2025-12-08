@@ -158,6 +158,36 @@ export class GalaxySmartService {
   }
 
   /**
+   * Enrichir un namespace à la demande si pas de stats
+   */
+  async enrichNamespaceOnDemand(namespace: string): Promise<any | null> {
+    try {
+      console.log(`🔄 Requesting on-demand enrichment for namespace: ${namespace}`)
+      const response = await this.httpClient.post(`${this.baseUrl}/namespaces/${namespace}/enrich`)
+      console.log(`✅ On-demand enrichment completed for ${namespace}:`, response.data)
+      return response.data.namespace
+    } catch (error) {
+      console.error(`❌ Failed to enrich namespace ${namespace}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Déclencher l'enrichissement en arrière-plan
+   */
+  async triggerBackgroundEnrichment(): Promise<boolean> {
+    try {
+      console.log('🔄 Triggering background enrichment...')
+      const response = await this.httpClient.post(`${this.baseUrl}/background-enrich`)
+      console.log('✅ Background enrichment started:', response.data)
+      return true
+    } catch (error) {
+      console.error('❌ Failed to trigger background enrichment:', error)
+      return false
+    }
+  }
+
+  /**
    * Récupérer les modules pour une collection (utilise API standard)
    */
   async getModules(namespace: string, collection: string, version: string): Promise<any[] | null> {
