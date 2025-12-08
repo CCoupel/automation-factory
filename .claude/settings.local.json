@@ -156,7 +156,8 @@
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker logs ansible-builder-backend --tail=15)",
       "Bash(./TOOLING/final-deploy.ps1)",
       "Bash(chmod:*)",
-      "Bash(./deploy-final.sh)"
+      "Bash(./deploy-final.sh)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []
