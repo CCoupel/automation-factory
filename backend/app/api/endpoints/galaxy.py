@@ -19,45 +19,102 @@ router = APIRouter(prefix="/galaxy", tags=["galaxy"])
 @router.get("/namespaces")
 async def get_namespaces(
     limit: Optional[int] = Query(None, description="Limit number of namespaces returned"),
-    use_cache: bool = Query(True, description="Use cached data if available"),
-    discover_all: bool = Query(False, description="Trigger full discovery of all namespaces")
+    popular_only: bool = Query(False, description="Return only popular namespaces"),
+    use_cache: bool = Query(True, description="Use cached data if available")
 ) -> Dict[str, Any]:
     """
     Get list of Ansible namespaces with collection counts
-    TEMPORAIREMENT DÉSACTIVÉ pour éviter les appels Galaxy API
+    RÉACTIVÉ avec service SMART optimisé
     """
     try:
-        logger.warning("Namespaces endpoint called but returning mock data to avoid Galaxy API calls")
+        from app.services.galaxy_service_smart import smart_galaxy_service
         
-        # Retourner des données mockées pour éviter les appels Galaxy API
-        mock_namespaces = [
-            {"name": "community", "collection_count": 52, "total_downloads": 185625429},
-            {"name": "ansible", "collection_count": 18, "total_downloads": 3766323},
-            {"name": "cisco", "collection_count": 15, "total_downloads": 1250000},
-            {"name": "redhat", "collection_count": 8, "total_downloads": 500000},
-            {"name": "microsoft", "collection_count": 12, "total_downloads": 800000}
-        ]
+        logger.info(f"Fetching namespaces (popular_only={popular_only}, limit={limit})")
+        
+        # Récupérer depuis cache smart
+        cached_namespaces = smart_galaxy_service.get_cached_namespaces(popular_only=popular_only)
+        
+        # Si pas de cache, retourner tableau vide (évite les données fallback qui causent les doublons)
+        if not cached_namespaces:
+            logger.warning("No cached namespaces found, returning empty list")
+            cached_namespaces = []
         
         # Apply limit if requested
         if limit and limit > 0:
-            limited_namespaces = mock_namespaces[:limit]
+            limited_namespaces = cached_namespaces[:limit]
         else:
-            limited_namespaces = mock_namespaces
+            limited_namespaces = cached_namespaces
+        
+        # Get sync status
+        sync_status = smart_galaxy_service.get_sync_status()
         
         result = {
             "namespaces": limited_namespaces,
-            "total_namespaces": len(limited_namespaces),
+            "total_namespaces": len(cached_namespaces),
             "returned_count": len(limited_namespaces),
-            "status": "disabled-mock",
-            "message": "Galaxy sync disabled to avoid rate limits"
+            "status": "smart-cached",
+            "sync_info": {
+                "last_sync": sync_status.get("last_sync"),
+                "method": sync_status.get("method"),
+                "api_calls": sync_status.get("stats", {}).get("api_calls", 0)
+            }
         }
         
-        logger.info(f"Returned {len(limited_namespaces)} mock namespaces")
+        logger.info(f"Returned {len(limited_namespaces)} namespaces from SMART cache")
         return result
         
     except Exception as e:
         logger.error(f"Error in get_namespaces: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch namespaces: {str(e)}")
+
+
+@router.get("/smart/status")
+async def get_smart_sync_status() -> Dict[str, Any]:
+    """
+    Get SMART Galaxy sync status and statistics
+    """
+    try:
+        from app.services.galaxy_service_smart import smart_galaxy_service
+        
+        sync_status = smart_galaxy_service.get_sync_status()
+        cached_popular = smart_galaxy_service.get_cached_namespaces(popular_only=True)
+        cached_all = smart_galaxy_service.get_cached_namespaces(popular_only=False)
+        
+        return {
+            "sync_status": sync_status,
+            "cache_info": {
+                "popular_namespaces": len(cached_popular),
+                "all_namespaces": len(cached_all),
+                "has_data": len(cached_all) > 0
+            },
+            "service": "galaxy_service_smart",
+            "api_approach": "direct_namespaces_api"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting smart status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
+
+
+@router.post("/smart/resync")
+async def trigger_smart_resync() -> Dict[str, Any]:
+    """
+    Trigger a fresh SMART sync manually
+    """
+    try:
+        from app.services.galaxy_service_smart import smart_galaxy_service
+        
+        logger.info("Manual SMART resync triggered")
+        result = await smart_galaxy_service.startup_sync_smart()
+        
+        return {
+            "message": "SMART resync completed",
+            "result": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during smart resync: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to resync: {str(e)}")
 
 
 @router.get("/namespaces/{namespace}/collections")

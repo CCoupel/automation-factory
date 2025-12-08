@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { galaxyCacheService, AllCachedData } from '../services/galaxyCacheService'
+import { galaxySmartService } from '../services/galaxySmartService'
 import { notificationService, CacheNotification } from '../services/notificationService'
 import { Namespace } from '../services/galaxyService'
 
@@ -72,8 +72,8 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       setIsLoading(true)
       setError(null)
       
-      // Get all cached data in one request
-      const cachedData = await galaxyCacheService.getAllCachedData()
+      // Get all cached data from SMART service
+      const cachedData = await galaxySmartService.getAllCachedData()
       
       if (cachedData) {
         // Update state with cached data
@@ -90,11 +90,12 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
         setLastSync(cachedData.cache_info?.last_sync || null)
         setIsReady(true)
         
-        console.log('✅ Galaxy cached data loaded successfully:', {
+        console.log('✅ Galaxy SMART data loaded successfully:', {
           popular: cachedData.popular_namespaces?.length || 0,
           all: cachedData.all_namespaces?.length || 0,
           collections_sample: Object.keys(cachedData.collections_sample || {}).length,
-          sync_status: cachedData.cache_info?.sync_status
+          sync_status: cachedData.cache_info?.sync_status,
+          service: 'galaxy_smart'
         })
       } else {
         // No cached data available
@@ -118,8 +119,8 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       setIsLoading(true)
       setError(null)
       
-      // Request backend to refresh its cache
-      const success = await galaxyCacheService.refreshCache()
+      // Request backend to refresh its cache via SMART service
+      const success = await galaxySmartService.triggerResync()
       
       if (success) {
         // Wait a bit for sync to start, then reload data
@@ -148,19 +149,19 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
         return collectionsCache[namespace]
       }
       
-      // Fetch from backend cache
-      console.log(`📥 Fetching collections for ${namespace} from backend cache...`)
-      const result = await galaxyCacheService.getCachedCollections(namespace)
+      // Fetch from backend via SMART service
+      console.log(`📥 Fetching collections for ${namespace} from SMART service...`)
+      const collections = await galaxySmartService.getCollections(namespace)
       
-      if (result && result.collections) {
+      if (collections) {
         // Cache the result
         setCollectionsCache(prev => ({
           ...prev,
-          [namespace]: result.collections
+          [namespace]: collections
         }))
         
-        console.log(`✅ Loaded ${result.collections.length} collections for ${namespace}`)
-        return result.collections
+        console.log(`✅ Loaded ${collections.length} collections for ${namespace}`)
+        return collections
       }
       
       console.warn(`⚠️ No cached collections found for ${namespace}`)
@@ -174,15 +175,13 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
   
   const getModules = async (namespace: string, collection: string, version: string): Promise<any[] | null> => {
     try {
-      console.log(`📥 Fetching modules for ${namespace}.${collection}:${version} from backend cache...`)
+      console.log(`📥 Fetching modules for ${namespace}.${collection}:${version} from SMART service...`)
       
-      const result = await galaxyCacheService.getCachedModules(namespace, collection, version)
+      const modules = await galaxySmartService.getModules(namespace, collection, version)
       
-      if (result) {
-        // Combine modules and plugins
-        const allModules = [...(result.modules || []), ...(result.plugins || [])]
-        console.log(`✅ Loaded ${allModules.length} modules for ${namespace}.${collection}:${version}`)
-        return allModules
+      if (modules) {
+        console.log(`✅ Loaded ${modules.length} modules for ${namespace}.${collection}:${version}`)
+        return modules
       }
       
       console.warn(`⚠️ No cached modules found for ${namespace}.${collection}:${version}`)

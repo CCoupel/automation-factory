@@ -293,15 +293,26 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     }
   }
   
+  // Handle home icon click behavior
+  const handleHomeClick = (event: React.MouseEvent) => {
+    if (event.ctrlKey) {
+      // Ctrl+Click: Refresh cache from backend
+      refreshCache()
+    } else {
+      // Normal click: Navigate to namespaces list
+      navigateToNamespaces()
+    }
+  }
+
   // Breadcrumb navigation
   const renderBreadcrumbs = () => {
     if (!navigationState.namespace) {
       return (
         <Box sx={{ mb: 1 }}>
-          <Tooltip title="Home (Click to refresh cache)">
+          <Tooltip title="Home (Ctrl+Click to refresh cache)">
             <IconButton 
               size="small" 
-              onClick={refreshCache}
+              onClick={handleHomeClick}
               sx={{ p: 0.5 }}
             >
               <HomeIcon fontSize="small" />
@@ -323,10 +334,10 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Tooltip title="Home (Click to refresh cache)">
+        <Tooltip title="Home (Click to navigate home, Ctrl+Click to refresh cache)">
           <IconButton 
             size="small" 
-            onClick={refreshCache}
+            onClick={handleHomeClick}
             sx={{ p: 0.5 }}
           >
             <HomeIcon fontSize="small" />
@@ -623,7 +634,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                               value={1} 
                               label={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="body2">All (FIXED v16)</Typography>
+                                  <Typography variant="body2">All</Typography>
                                     <Chip 
                                       label={allNamespaces.length} 
                                       size="small" 
