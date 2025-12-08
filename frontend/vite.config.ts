@@ -15,9 +15,11 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    strictPort: false, // Allow automatic port selection if 5173 is busy
+    allowedHosts: 'all', // Allow connections from nginx proxy
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://ansible-builder-backend:8000',
         changeOrigin: true,
       },
     },

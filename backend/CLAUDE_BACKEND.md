@@ -659,3 +659,120 @@ def test_playbook():
     """Playbook de test avec blocks 3 sections"""
     pass
 ```
+
+---
+
+## 🔄 **Changelog Backend - Session 2025-12-07**
+
+### 🎯 **Version 1.9.0_2 - Stabilisation Production**
+
+**Problèmes Corrigés :**
+
+#### 1. Galaxy API Rate Limiting
+**Issue :** Synchronisation automatique au démarrage saturait l'API Galaxy
+- ❌ **Symptôme :** `🚨 Rate limits hit (56 times), reducing to 2`
+- ❌ **Impact :** 404 errors + 429 rate limiting bloquait l'application  
+- ✅ **Fix :** Désactivé `galaxy_cache_service.startup_full_sync()` dans `main.py:65`
+
+**Code Modifié :**
+```python
+# backend/app/main.py:62-66
+# AVANT 
+asyncio.create_task(galaxy_cache_service.startup_full_sync())
+
+# APRÈS
+# asyncio.create_task(galaxy_cache_service.startup_full_sync())
+print("Galaxy cache synchronization DISABLED to avoid rate limits")
+```
+
+#### 2. Base SQLite Persistence
+**Issue :** Container sans répertoire de données persistant
+- ❌ **Symptôme :** `sqlite3.OperationalError: unable to open database file`
+- ❌ **Cause :** Répertoire `/app/data/` manquant dans container
+- ✅ **Fix :** Volume Docker + création répertoire automatique
+
+**Configuration Docker :**
+```yaml
+# docker-compose.remote.yml
+environment:
+  - SQLITE_DB_PATH=/app/data/ansible_builder.db
+volumes:
+  - backend_data:/app/data
+```
+
+#### 3. Authentification Robuste
+**Améliorations :**
+- ✅ **Utilisateur admin auto-créé** : `admin@example.com` / `admin123`
+- ✅ **BCrypt fix** : `bcrypt==4.0.1` explicite (compatibilité passlib)
+- ✅ **Gestion erreurs** : Try/catch pour hash password au démarrage
+
+#### 4. Architecture Docker Remote
+**Nouveau Déploiement :** Support Docker distant TCP sans Kubernetes
+- ✅ **Docker Host** : `192.168.1.217:2375`
+- ✅ **Stack 3-composants** : backend + frontend + nginx proxy
+- ✅ **Réseau unifié** : Tous containers sur même réseau Docker
+- ✅ **DNS interne** : `backend:8000`, `frontend:5173`
+
+### 📦 **Déploiement Production-Ready**
+
+**Images Buildées :**
+```bash
+# Backend v1.9.0_2
+docker build -f backend/Dockerfile.dev -t ansible-builder-backend:1.9.0_2 backend/
+
+# Déploiement remote
+docker -H tcp://192.168.1.217:2375 compose -f docker-compose.remote.yml up -d
+```
+
+**Configuration Finale :**
+```yaml
+# docker-compose.remote.yml
+services:
+  backend:
+    image: ansible-builder-backend:1.9.0_2
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_PATH=/app/data/ansible_builder.db
+    volumes:
+      - backend_data:/app/data
+```
+
+### 🧪 **Tests de Validation**
+
+**Endpoints Testés :**
+```bash
+# Health Check
+curl http://192.168.1.217/health
+> "healthy"
+
+# Version API 
+curl http://192.168.1.217/api/version
+> {"version":"1.9.0_2","name":"Ansible Builder API"}
+
+# Auth (Swagger)
+http://192.168.1.217/docs
+> admin@example.com / admin123
+```
+
+### ⚠️ **Limitations Temporaires**
+
+1. **Galaxy API :** Synchronisation manuelle uniquement
+   - **Raison :** Éviter rate limits lors du développement
+   - **Solution future :** Implement rate limiting + retry logic
+
+2. **SQLite Single Pod :** Non-scalable horizontalement
+   - **Scope :** Phase développement uniquement
+   - **Migration prod :** PostgreSQL + réplication recommandée
+
+### 🎯 **Prochaines Étapes Techniques**
+
+**Phase 2 (Version 1.10.0) :**
+- [ ] Galaxy API avec rate limiting intelligent
+- [ ] Service compilation YAML (blocks 3-sections)
+- [ ] Tests automatisés (pytest + fixtures)
+- [ ] Migration PostgreSQL pour production
+
+**Architecture Future :**
+- [ ] Redis cache pour Galaxy data
+- [ ] WebSocket pour real-time sync frontend
+- [ ] Monitoring logs centralisé (structuré JSON)

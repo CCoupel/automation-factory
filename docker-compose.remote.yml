@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    image: ansible-builder-backend:1.9.0_4
+    container_name: ansible-builder-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_PATH=/app/data/ansible_builder.db
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - backend_data:/app/data
+    restart: unless-stopped
+    networks:
+      - ansible-dev
+
+  # Frontend Vite
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    image: ansible-builder-frontend:1.16.2
+    container_name: ansible-builder-frontend
+    ports:
+      - "5180:5173"  # Port 5180 comme spécifié dans la procédure
+    environment:
+      - NODE_ENV=development
+      - VITE_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - ansible-dev
+    depends_on:
+      - backend
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ansible-builder-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - /tmp/nginx-remote.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    networks:
+      - ansible-dev
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  backend_data:
+    driver: local
+
+networks:
+  ansible-dev:
+    driver: bridge

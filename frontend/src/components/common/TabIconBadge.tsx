@@ -1,5 +1,5 @@
 import React from 'react'
-import CountBadge from './CountBadge'
+import { Box } from '@mui/material'
 
 /**
  * Props for TabIconBadge component
@@ -28,6 +28,10 @@ interface TabIconBadgeProps {
 
 /**
  * Reusable component for tab badges with icons
+ * 
+ * Note: Uses a simple div-based badge instead of Material-UI Badge
+ * to avoid DOM nesting issues when used inside Tab components
+ * (Tab renders as button, Badge can contain interactive elements)
  *
  * Used for:
  * - PLAY section tabs (Roles, Pre-Tasks, Tasks, Post-Tasks, Handlers)
@@ -45,13 +49,36 @@ const TabIconBadge: React.FC<TabIconBadgeProps> = ({
   isActive
 }) => {
   return (
-    <CountBadge
-      count={count}
-      color={color}
-      isActive={isActive}
+    <Box 
+      sx={{ 
+        position: 'relative', 
+        display: 'inline-flex', 
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
     >
       {icon}
-    </CountBadge>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: -8,
+          right: -8,
+          minWidth: 18,
+          height: 18,
+          borderRadius: '50%',
+          backgroundColor: isActive ? color : `${color}b3`,
+          color: '#fff',
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 4px'
+        }}
+      >
+        {count}
+      </Box>
+    </Box>
   )
 }
 

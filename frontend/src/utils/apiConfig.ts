@@ -16,7 +16,23 @@ export function getApiBaseUrl(): string {
     return apiUrl
   }
   
-  // Fallback to relative URL for development or when no injection
+  // Fallback for development - check if we're in local dev mode
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '192.168.1.84') {
+    // Check if we're behind nginx proxy (port 80) or direct Vite (port 5173+)
+    const isNginxProxy = window.location.port === '' || window.location.port === '80'
+    
+    if (isNginxProxy) {
+      // 3-component architecture: nginx reverse proxy
+      console.log('Using 3-component architecture (nginx proxy): /api')
+      return '/api'
+    } else {
+      // Direct Vite dev server (fallback)
+      console.log('Using direct backend API (no proxy): http://localhost:8000/api')
+      return 'http://localhost:8000/api'
+    }
+  }
+  
+  // Fallback to relative URL for production
   console.log('Using fallback relative API URL: ./api')
   return './api'
 }

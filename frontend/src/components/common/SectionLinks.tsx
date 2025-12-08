@@ -223,7 +223,7 @@ const SectionLinks: React.FC<SectionLinksProps> = ({
         const style = getLinkStyle(link.type)
 
         return (
-          <g key={link.id} style={{ pointerEvents: 'all' }}>
+          <g key={`${sectionName}-${parentId || 'root'}-${link.id}`} style={{ pointerEvents: 'all' }}>
             {/* Point de connexion source */}
             <circle
               cx={x1}

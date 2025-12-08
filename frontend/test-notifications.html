@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Galaxy Cache Notifications Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .notification { 
+            padding: 10px; 
+            margin: 5px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .notification.error { border-color: #dc3545; background-color: #f8d7da; }
+        .notification.success { border-color: #28a745; background-color: #d4edda; }
+        .notification.warning { border-color: #ffc107; background-color: #fff3cd; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        #status { font-weight: bold; }
+        button { padding: 8px 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Galaxy Cache Notifications Test</h1>
+    <div id="status">Disconnected</div>
+    
+    <div>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="testRefresh()">Test Refresh Cache</button>
+        <button onclick="clearNotifications()">Clear Notifications</button>
+    </div>
+    
+    <h3>Live Notifications:</h3>
+    <div id="notifications"></div>
+    
+    <script>
+        let eventSource = null;
+        let notificationCount = 0;
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+        }
+        
+        function addNotification(notification) {
+            notificationCount++;
+            const notificationsDiv = document.getElementById('notifications');
+            
+            let cssClass = 'notification';
+            if (notification.type === 'cache_error') cssClass += ' error';
+            else if (notification.type === 'cache_sync_completed') cssClass += ' success';
+            else if (notification.type === 'cache_sync_started') cssClass += ' warning';
+            
+            const notificationElement = document.createElement('div');
+            notificationElement.className = cssClass;
+            notificationElement.innerHTML = `
+                <strong>#${notificationCount} ${notification.type}</strong> - ${notification.message}<br>
+                <small>Time: ${new Date(notification.timestamp).toLocaleTimeString()}</small>
+                ${notification.data ? '<pre>' + JSON.stringify(notification.data, null, 2) + '</pre>' : ''}
+            `;
+            
+            notificationsDiv.insertBefore(notificationElement, notificationsDiv.firstChild);
+            
+            // Keep only last 20 notifications
+            while (notificationsDiv.children.length > 20) {
+                notificationsDiv.removeChild(notificationsDiv.lastChild);
+            }
+        }
+        
+        function connect() {
+            if (eventSource) {
+                console.log('Already connected');
+                return;
+            }
+            
+            updateStatus('Connecting...', 'warning');
+            
+            eventSource = new EventSource('/api/galaxy/cache/notifications');
+            
+            eventSource.onopen = function() {
+                updateStatus('Connected to notifications', 'success');
+                console.log('SSE connected');
+            };
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const notification = JSON.parse(event.data);
+                    console.log('Received notification:', notification);
+                    addNotification(notification);
+                } catch (error) {
+                    console.error('Failed to parse notification:', error);
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                updateStatus('Connection error', 'error');
+                console.error('SSE error:', error);
+            };
+        }
+        
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                updateStatus('Disconnected', 'info');
+                console.log('SSE disconnected');
+            }
+        }
+        
+        async function testRefresh() {
+            try {
+                updateStatus('Requesting cache refresh...', 'warning');
+                const response = await fetch('/api/galaxy/cache/refresh', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                console.log('Refresh response:', result);
+                updateStatus('Cache refresh requested', 'success');
+            } catch (error) {
+                console.error('Refresh failed:', error);
+                updateStatus('Refresh failed: ' + error.message, 'error');
+            }
+        }
+        
+        function clearNotifications() {
+            document.getElementById('notifications').innerHTML = '';
+            notificationCount = 0;
+        }
+        
+        // Auto-connect on page load
+        connect();
+    </script>
+</body>
+</html>

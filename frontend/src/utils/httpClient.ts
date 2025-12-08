@@ -23,14 +23,21 @@ const createHttpClient = (): AxiosInstance => {
     }
   })
 
-  // Add request interceptor
+  // Add request interceptor for authentication
   client.interceptors.request.use(
     (config) => {
+      // Auto-inject JWT token if available
+      const token = localStorage.getItem('authToken')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+
       console.log('🚀 HTTP REQUEST:', {
         method: config.method?.toUpperCase(),
         url: config.url,
         baseURL: config.baseURL,
-        fullUrl: `${config.baseURL}${config.url}`
+        fullUrl: `${config.baseURL}${config.url}`,
+        hasAuth: !!token
       })
       return config
     },
@@ -40,7 +47,7 @@ const createHttpClient = (): AxiosInstance => {
     }
   )
 
-  // Add response interceptor
+  // Add response interceptor for auth error handling
   client.interceptors.response.use(
     (response) => {
       console.log('✅ HTTP RESPONSE:', {
@@ -58,6 +65,17 @@ const createHttpClient = (): AxiosInstance => {
         data: error.response?.data,
         fullUrl: error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown'
       })
+
+      // Handle 401 Unauthorized - token expired or invalid
+      if (error.response?.status === 401) {
+        console.warn('🔒 AUTHENTICATION LOST: Token expired or invalid')
+        
+        // Notify auth context of lost authentication
+        window.dispatchEvent(new CustomEvent('authLost', { 
+          detail: { reason: 'token_expired', url: error.config?.url } 
+        }))
+      }
+
       return Promise.reject(error)
     }
   )

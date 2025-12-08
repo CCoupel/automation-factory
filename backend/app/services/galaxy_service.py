@@ -122,69 +122,170 @@ class GalaxyService:
             logger.error(f"Error fetching namespaces: {e}")
             return {"namespaces": [], "total_namespaces": 0, "error": str(e)}
     
-    async def get_collections(self, namespace: str, limit: int = 50) -> Dict[str, Any]:
+    async def get_collections(self, namespace: str, limit: int = None) -> Dict[str, Any]:
         """
-        Get collections for a specific namespace
+        Get ALL collections for a specific namespace using pagination
         """
         try:
-            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-                url = f"{self.galaxy_base_url}/?namespace={namespace}&limit={limit}"
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                logger.info(f"Fetching ALL collections for namespace: {namespace}")
+                all_collections = []
+                
+                # First request to get total count
+                url = f"{self.galaxy_base_url}/?namespace={namespace}&limit=1"
                 response = await client.get(url)
                 response.raise_for_status()
-                
                 data = response.json()
-                collections = []
+                total_count = data.get("meta", {}).get("count", 0)
                 
-                for item in data.get("data", []):
-                    version_data = item.get("highest_version", {})
-                    collections.append({
-                        "name": item.get("name", ""),
-                        "namespace": item.get("namespace", ""),
-                        "description": item.get("description", ""),
-                        "latest_version": version_data.get("version", "") if version_data else "",
-                        "download_count": item.get("download_count", 0),
-                        "created_at": item.get("created_at", ""),
-                        "updated_at": item.get("updated_at", ""),
-                        "deprecated": item.get("deprecated", False)
-                    })
+                logger.info(f"Namespace {namespace} has {total_count} collections total")
+                
+                # If no collections, return early
+                if total_count == 0:
+                    return {
+                        "namespace": namespace,
+                        "collections": [],
+                        "total_count": 0
+                    }
+                
+                # Use optimal batch size for pagination
+                batch_size = 100  # Larger batches for efficiency
+                
+                # Fetch all collections with pagination
+                for offset in range(0, total_count, batch_size):
+                    try:
+                        batch_url = f"{self.galaxy_base_url}/?namespace={namespace}&limit={batch_size}&offset={offset}"
+                        logger.info(f"Fetching collections batch {offset}-{offset + batch_size} for {namespace}")
+                        
+                        batch_response = await client.get(batch_url)
+                        batch_response.raise_for_status()
+                        batch_data = batch_response.json()
+                        
+                        batch_items = batch_data.get("data", [])
+                        if not batch_items:
+                            break
+                        
+                        # Process each collection in the batch
+                        for item in batch_items:
+                            version_data = item.get("highest_version", {})
+                            
+                            # Get requires_ansible from latest version if available
+                            requires_ansible = None
+                            if version_data and version_data.get("href"):
+                                try:
+                                    # Get detailed version info
+                                    version_url = f"https://galaxy.ansible.com{version_data['href']}"
+                                    version_response = await client.get(version_url)
+                                    version_response.raise_for_status()
+                                    version_detail = version_response.json()
+                                    requires_ansible = version_detail.get("requires_ansible")
+                                    
+                                    # Small delay to be respectful
+                                    await asyncio.sleep(0.01)  # Reduced delay for efficiency
+                                except Exception as e:
+                                    logger.debug(f"Could not fetch requires_ansible for {item.get('name')}: {e}")
+                            
+                            all_collections.append({
+                                "name": item.get("name", ""),
+                                "namespace": item.get("namespace", ""),
+                                "description": item.get("description", ""),
+                                "latest_version": version_data.get("version", "") if version_data else "",
+                                "requires_ansible": requires_ansible,
+                                "download_count": item.get("download_count", 0),
+                                "created_at": item.get("created_at", ""),
+                                "updated_at": item.get("updated_at", ""),
+                                "deprecated": item.get("deprecated", False)
+                            })
+                        
+                        # Break if we got less than batch_size (last batch)
+                        if len(batch_items) < batch_size:
+                            break
+                            
+                    except Exception as e:
+                        logger.warning(f"Error fetching batch at offset {offset} for {namespace}: {e}")
+                        continue
+                
+                logger.info(f"Successfully fetched {len(all_collections)} collections for namespace {namespace}")
                 
                 return {
                     "namespace": namespace,
-                    "collections": collections,
-                    "total_count": data.get("meta", {}).get("count", len(collections))
+                    "collections": all_collections,
+                    "total_count": len(all_collections)
                 }
                 
         except Exception as e:
             logger.error(f"Error fetching collections for namespace {namespace}: {e}")
             return {"namespace": namespace, "collections": [], "total_count": 0, "error": str(e)}
     
-    async def get_versions(self, namespace: str, collection: str, limit: int = 50) -> Dict[str, Any]:
+    async def get_versions(self, namespace: str, collection: str, limit: int = None) -> Dict[str, Any]:
         """
-        Get versions for a specific collection
+        Get ALL versions for a specific collection using pagination
         """
         try:
-            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-                url = f"{self.galaxy_base_url}/{namespace}/{collection}/versions/?limit={limit}"
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                logger.info(f"Fetching ALL versions for {namespace}.{collection}")
+                all_versions = []
+                
+                # First request to get total count
+                url = f"{self.galaxy_base_url}/{namespace}/{collection}/versions/?limit=1"
                 response = await client.get(url)
                 response.raise_for_status()
-                
                 data = response.json()
-                versions = []
+                total_count = data.get("meta", {}).get("count", 0)
                 
-                for item in data.get("data", []):
-                    versions.append({
-                        "version": item.get("version", ""),
-                        "requires_ansible": item.get("requires_ansible", ""),
-                        "created_at": item.get("created_at", ""),
-                        "updated_at": item.get("updated_at", ""),
-                        "href": item.get("href", "")
-                    })
+                logger.info(f"Collection {namespace}.{collection} has {total_count} versions total")
+                
+                # If no versions, return early
+                if total_count == 0:
+                    return {
+                        "namespace": namespace,
+                        "collection": collection,
+                        "versions": [],
+                        "total_count": 0
+                    }
+                
+                # Use optimal batch size for pagination
+                batch_size = 100
+                
+                # Fetch all versions with pagination
+                for offset in range(0, total_count, batch_size):
+                    try:
+                        batch_url = f"{self.galaxy_base_url}/{namespace}/{collection}/versions/?limit={batch_size}&offset={offset}"
+                        logger.info(f"Fetching versions batch {offset}-{offset + batch_size} for {namespace}.{collection}")
+                        
+                        batch_response = await client.get(batch_url)
+                        batch_response.raise_for_status()
+                        batch_data = batch_response.json()
+                        
+                        batch_items = batch_data.get("data", [])
+                        if not batch_items:
+                            break
+                        
+                        # Process each version in the batch
+                        for item in batch_items:
+                            all_versions.append({
+                                "version": item.get("version", ""),
+                                "requires_ansible": item.get("requires_ansible", ""),
+                                "created_at": item.get("created_at", ""),
+                                "updated_at": item.get("updated_at", ""),
+                                "href": item.get("href", "")
+                            })
+                        
+                        # Break if we got less than batch_size (last batch)
+                        if len(batch_items) < batch_size:
+                            break
+                            
+                    except Exception as e:
+                        logger.warning(f"Error fetching versions batch at offset {offset} for {namespace}.{collection}: {e}")
+                        continue
+                
+                logger.info(f"Successfully fetched {len(all_versions)} versions for {namespace}.{collection}")
                 
                 return {
                     "namespace": namespace,
                     "collection": collection,
-                    "versions": versions,
-                    "total_count": data.get("meta", {}).get("count", len(versions))
+                    "versions": all_versions,
+                    "total_count": len(all_versions)
                 }
                 
         except Exception as e:

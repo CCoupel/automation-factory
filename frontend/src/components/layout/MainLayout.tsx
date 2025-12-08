@@ -6,7 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef } from 'react'
 import AppHeader from './AppHeader'
 import VarsZone from '../zones/VarsZone'
-import ModulesZone from '../zones/ModulesZone'
+import ModulesZoneCached from '../zones/ModulesZoneCached'
 import WorkZone from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
@@ -198,7 +198,7 @@ const MainLayout = () => {
               position: 'relative',
             }}
           >
-            <ModulesZone onCollapse={() => setIsModulesCollapsed(true)} />
+            <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} />
             {/* Poignée de redimensionnement */}
             <Box
               onMouseDown={handleModulesMouseDown}

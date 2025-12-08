@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getHttpClient } from '../utils/httpClient'
+import { galaxyService } from '../services/galaxyService'
 
 /**
  * User interface representing authenticated user data
@@ -32,6 +33,11 @@ interface AuthContextType {
   isLoading: boolean
 
   /**
+   * Authentication lost state (token expired/invalid)
+   */
+  authLost: boolean
+
+  /**
    * Login function
    * @param email - User email
    * @param password - User password
@@ -52,6 +58,11 @@ interface AuthContextType {
    * Logout function - clears user session
    */
   logout: () => void
+
+  /**
+   * Clear auth lost state (after re-login)
+   */
+  clearAuthLost: () => void
 
   /**
    * Check if user is authenticated
@@ -96,9 +107,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authLost, setAuthLost] = useState(false)
 
   /**
-   * Load user session from localStorage on mount
+   * Load user session from localStorage on mount and listen for auth events
    */
   useEffect(() => {
     const loadUserFromStorage = () => {
@@ -120,8 +132,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }
 
+    // Listen for authentication lost events from httpClient
+    const handleAuthLost = (event: CustomEvent) => {
+      console.warn('🔒 AUTH CONTEXT: Authentication lost detected', event.detail)
+      setAuthLost(true)
+    }
+
     loadUserFromStorage()
+    
+    // Add event listener for auth loss
+    window.addEventListener('authLost', handleAuthLost as EventListener)
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('authLost', handleAuthLost as EventListener)
+    }
   }, [])
+
+  /**
+   * Preload Galaxy data when user is authenticated
+   */
+  useEffect(() => {
+    if (user && token && !authLost) {
+      // Trigger preloading for faster subsequent access
+      galaxyService.preloadOnStartup().then(() => {
+        console.log('✅ Galaxy data preloaded successfully')
+      }).catch((error) => {
+        console.warn('⚠️ Galaxy data preload failed (non-blocking):', error)
+      })
+    }
+  }, [user, token, authLost])
 
   /**
    * Login user with email and password
@@ -149,6 +189,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Store in state
       setUser(mappedUser)
       setToken(userToken)
+
+      // Clear auth lost state on successful login
+      setAuthLost(false)
 
       // Persist to localStorage
       localStorage.setItem('authToken', userToken)
@@ -191,6 +234,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(mappedUser)
       setToken(userToken)
 
+      // Clear auth lost state on successful login
+      setAuthLost(false)
+
       // Persist to localStorage
       localStorage.setItem('authToken', userToken)
       localStorage.setItem('authUser', JSON.stringify(mappedUser))
@@ -211,19 +257,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Clear state
     setUser(null)
     setToken(null)
+    setAuthLost(false)
 
     // Clear localStorage
     localStorage.removeItem('authToken')
     localStorage.removeItem('authUser')
   }
 
+  /**
+   * Clear auth lost state (useful for manual refresh after re-login)
+   */
+  const clearAuthLost = () => {
+    setAuthLost(false)
+  }
+
   const value: AuthContextType = {
     user,
     token,
     isLoading,
+    authLost,
     login,
     register,
     logout,
+    clearAuthLost,
     isAuthenticated: !!user && !!token
   }
 

@@ -26,6 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DescriptionIcon from '@mui/icons-material/Description'
@@ -62,13 +63,13 @@ interface AppHeaderProps {
  */
 const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playbookNameProp, onOpenPlaybookManager }) => {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, logout, authLost } = useAuth()
   const { darkMode, toggleDarkMode } = useTheme()
+  const { ansibleVersion, setAnsibleVersion } = useAnsibleVersion()
 
   // Playbook fields state (local for other fields)
   const [playbookVersion, setPlaybookVersion] = useState('1.0.0')
   const [inventory, setInventory] = useState('hosts')
-  const [ansibleVersion, setAnsibleVersion] = useState('2.15')
 
   // User menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -409,14 +410,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
                 sx={{
                   width: 'var(--icon-xl, 32px)',
                   height: 'var(--icon-xl, 32px)',
-                  bgcolor: 'rgba(255, 255, 255, 0.3)',
+                  bgcolor: authLost ? 'rgba(244, 67, 54, 0.9)' : 'rgba(255, 255, 255, 0.3)',
                   fontSize: 'var(--font-sm, 13px)',
                   fontWeight: 'bold',
                   cursor: 'pointer',
+                  border: authLost ? '2px solid #f44336' : 'none',
+                  boxShadow: authLost ? '0 0 8px rgba(244, 67, 54, 0.6)' : 'none',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.4)'
+                    bgcolor: authLost ? 'rgba(244, 67, 54, 1)' : 'rgba(255, 255, 255, 0.4)'
                   }
                 }}
+                title={authLost ? '🔒 Authentication lost - Please re-login' : undefined}
               >
                 {getUserInitials()}
               </Avatar>

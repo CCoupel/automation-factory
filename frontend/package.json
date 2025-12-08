@@ -1,7 +1,7 @@
 {
   "name": "ansible-builder-frontend",
   "private": true,
-  "version": "1.5.1",
+  "version": "1.16.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,11 +21,13 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.2",
+    "react-window": "^1.8.10",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@types/react-window": "^1.8.8",
     "@typescript-eslint/eslint-plugin": "^8.8.1",
     "@typescript-eslint/parser": "^8.8.1",
     "@vitejs/plugin-react": "^4.3.2",
