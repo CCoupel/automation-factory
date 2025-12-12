@@ -33,11 +33,15 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ### 🚀 **Documentation Opérations**
 - **[Guide Déploiement](docs/operations/DEPLOYMENT_GUIDE.md)** - Docker, Kubernetes, environnements
+- **[Phase 1 - Développement](docs/operations/PHASE1_DEVELOPMENT.md)** - Procédures développement local
+- **[Phase 2 - Production](docs/operations/PHASE2_PRODUCTION.md)** - Procédures mise en production
 - **[Stratégie Tests](docs/operations/TESTING_STRATEGY.md)** - Tests unitaires et intégration
 - **[Dépannage](docs/operations/TROUBLESHOOTING.md)** - Guide de résolution des problèmes
 
 ### 📋 **Travail en Cours**
 - **[Session Actuelle](docs/work/CURRENT_WORK.md)** - Versions, features, bugs en cours
+- **[Backlog Projet](docs/work/BACKLOG.md)** - Roadmap et fonctionnalités prévues
+- **[Historique Réalisations](docs/work/DONE.md)** - Fonctionnalités implémentées par version
 - **[Métriques Performance](docs/work/PERFORMANCE_METRICS.md)** - Mesures et optimisations
 
 ---

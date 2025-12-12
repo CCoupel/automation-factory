@@ -61,88 +61,44 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 
 ## 🔧 **Phase 1 : Développement**
 
-### Objectifs
-- Développement et test en local
-- Validation technique de l'implémentation
-- Préparation pour validation utilisateur
+### Vue d'Ensemble
+La Phase 1 se concentre sur le développement local et la validation technique avant toute mise en production.
 
-### Procédures
+### Objectifs Clés
+- **Développement et test** sur environnement local  
+- **Validation technique** complète de l'implémentation
+- **Préparation pour validation utilisateur** avec version `X.Y.Z_n`
 
-#### Build et Test
-```bash
-# Incrémenter version _n automatiquement
-# Build sur Docker distant
-docker --host=tcp://192.168.1.217:2375 build ...
+### Procédures Détaillées
+> **📋 Voir guide complet :** [Phase 1 - Développement](../operations/PHASE1_DEVELOPMENT.md)
 
-# Test local accessible
-# Frontend: http://192.168.1.217:5173
-# Backend: http://192.168.1.217:8000
-```
-
-#### Validation Technique
-- Logs frontend et backend sans erreur
-- Tests unitaires passent
-- API endpoints répondent correctement
-- Page d'accueil charge sans erreur
-- Fonctionnalité implémentée opérationnelle
-
-#### Livrable Phase 1
-- Version `X.Y.Z_n` testée et validée
-- Rapport technique avec métriques
-- Documentation mise à jour
-- **Attente validation utilisateur avant Phase 2**
+#### Points Critiques Phase 1
+- Tests unitaires 100% passants
+- Validation utilisateur **obligatoire** avant Phase 2
+- Documentation technique mise à jour
+- Performance locale validée
 
 ---
 
-## 🚀 **Phase 2 : Intégration**
+## 🚀 **Phase 2 : Intégration et Production**
 
-### Objectifs
-- Documentation finale
-   - mise a jour du change log
-   - mise a jour de l'ensemble des documents  de travail
-- Déploiement en production
-- Tests complets environnement réel
-- attente de validation ou de demande de correction de l'utilisateur
-- aptres validation, intégré les dernieres informations dans la documentation
-- netoyer le CURRENT_WORK
-- attendre la prochaine demande d'implementation
+### Vue d'Ensemble  
+La Phase 2 couvre le déploiement en production et la finalisation complète du cycle de développement.
 
-### Procédures
+### Objectifs Clés
+- **Documentation finale** et changelog mis à jour
+- **Déploiement production** avec version stable `X.Y.Z`  
+- **Tests complets** environnement réel
+- **Validation utilisateur finale** et nettoyage documentation
 
-#### Build Production
-```bash
-# Utilisation Docker distant pour build
-docker --host=tcp://192.168.1.217:2375 build ...
+### Procédures Détaillées
+> **📋 Voir guide complet :** [Phase 2 - Production](../operations/PHASE2_PRODUCTION.md)
 
-# Build sélectif (frontend OU backend si modifié)
-# Tags production : suppression suffixe _n
-```
-
-#### Publication
-```bash
-# Push vers GitHub Container Registry
-# Authentification via github_token.txt
-docker push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
-docker push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
-```
-
-#### Déploiement Kubernetes
-```bash
-# Configuration kubeconfig.txt
-# Déploiement via custom-values.yaml
-helm upgrade ansible-builder ...
-```
-
-#### Tests Production
-- Vérification logs de démarrage containers
-- Test TOUS les appels API (pour nouveau backend)
-- Validation complète fonctionnalités
-- Tests de régression
-
-#### Finalisation
-- Mise à jour documentation implémentation
-- Commit et push vers repository
-- Version d'intégration = dernière version développement
+#### Points Critiques Phase 2
+- Suppression suffixe `_n` des versions
+- Tests production obligatoires (tous endpoints)
+- Rollback automatique si erreurs critiques
+- Commit final avec documentation complète
 
 ---
 

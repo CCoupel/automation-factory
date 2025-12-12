@@ -2,6 +2,8 @@
 
 Ce document contient la liste des fonctionnalités et améliorations prévues pour le projet Ansible Builder.
 
+> **📋 Historique des réalisations :** Voir [DONE.md](DONE.md) pour les fonctionnalités déjà implémentées.
+
 ---
 
 ## 🎯 **Priorités Actuelles**
@@ -23,8 +25,6 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 ## 🌟 **Fonctionnalités Galaxy & Collections**
 
 ### Galaxy Enhanced
-- [x] ✅ **Favoris utilisateur** (v1.8.0)
-- [x] ✅ **Cache SMART 3 niveaux** (v1.8.0) 
 - [ ] **Optimisation performances favoris**
   - [ ] Cache prioritaire pour namespaces favoris
   - [ ] Chargement préférentiel des favoris
