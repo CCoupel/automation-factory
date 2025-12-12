@@ -2,6 +2,13 @@
 
 Constructeur graphique de playbooks Ansible en mode SaaS.
 
+## 🆕 Version 1.8.0 - Nouvelles fonctionnalités
+
+- **Gestion des favoris** : Marquez vos namespaces préférés avec des étoiles ⭐
+- **Onglet FAVORITE** : Accédez rapidement à vos namespaces favoris et aux standards
+- **API Favoris** : Endpoints REST complets pour la gestion des favoris utilisateur
+- **Version séparée** : Frontend et backend servent maintenant leur propre version
+
 ## Description
 
 Ansible Builder est une application web qui permet de construire des playbooks Ansible de manière visuelle via un système de drag & drop. L'application collecte les modules disponibles depuis Ansible Galaxy et permet de les assembler graphiquement pour générer des playbooks YAML valides.
@@ -56,22 +63,22 @@ Ansible Builder est une application web qui permet de construire des playbooks A
 git clone <repo-url>
 cd ansible-builder
 
-# Copier les fichiers d'environnement
-cp backend/.env.example backend/.env
-
 # Démarrer tous les services
-docker-compose up -d
+docker-compose up -d --build
 
 # Vérifier que les services sont en ligne
 docker-compose ps
 ```
 
 **Services disponibles:**
-- Frontend: http://localhost:5173
+- Frontend: http://localhost
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
-- PostgreSQL: localhost:5432
 - Redis: localhost:6379
+
+**Compte par défaut (SQLite):**
+- Email: `admin@example.com`
+- Password: `admin123`
 
 ### Développement Local (sans Docker)
 

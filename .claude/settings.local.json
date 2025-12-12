@@ -158,7 +158,8 @@
       "Bash(chmod:*)",
       "Bash(./deploy-final.sh)",
       "Bash(mv:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": []

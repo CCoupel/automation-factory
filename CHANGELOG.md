@@ -7,10 +7,44 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
-## [Non publié]
+## [1.8.0] - 2025-12-12
 
-### En cours de développement
-- Finalisation logique métier gestion favoris namespaces
+### ✨ Nouvelles fonctionnalités
+- **Favoris utilisateur:** Système complet de gestion des namespaces favoris
+  - API REST `/api/user/favorites` pour GET/POST/DELETE
+  - Stockage persistant des favoris par utilisateur
+  - Interface avec étoiles cliquables pour marquer/démarquer
+- **Onglet FAVORITE:** Remplace l'ancien onglet "Popular"
+  - Combine namespaces standards + favoris utilisateur
+  - Compteur dynamique du nombre total de favoris
+  - Mise à jour en temps réel lors des modifications
+
+### 🔄 Changements
+- **UI/UX:** Renommage "Popular" → "FAVORITE" dans ModulesZoneCached
+- **Standards:** Réduction des namespaces standards à `['community']` uniquement
+  - Précédemment: community, ansible, redhat, kubernetes, google, amazon
+  - Maintenant: community seulement (extensible via future page admin)
+- **Version management:** Séparation complète frontend/backend
+  - Frontend sert sa propre version via `/version`
+  - Backend sert sa version via `/api/version`
+  - Injection automatique version depuis package.json dans nginx
+
+### 🛠️ Corrections
+- **Docker builds:** Ajout directives `build:` dans docker-compose.yml
+- **Version display:** Fix injection version frontend dans nginx.conf
+- **Cache issues:** Nettoyage complet et rebuild pour versions cohérentes
+- **Backend routing:** Inclusion correcte module user_favorites
+
+### 🔧 Améliorations
+- **Performance:** Chargement asynchrone des favoris au démarrage
+- **State management:** Gestion d'état optimisée pour favoris + cache
+- **Error handling:** Meilleure gestion des erreurs API favoris
+- **Developer experience:** Build directives explicites évitant les pull errors
+
+### 📚 Documentation
+- **Future features:** Page administration pour définir namespaces standards
+- **API documentation:** Endpoints favoris documentés
+- **Deployment:** Process phase 1 (dev) → phase 2 (prod) clarifié
 
 ---
 

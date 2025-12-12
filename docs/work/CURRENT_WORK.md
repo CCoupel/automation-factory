@@ -4,20 +4,20 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-08**
+## 🚀 **Status Actuel - 2025-12-12**
 
 ### Versions Déployées
 **Production (K8s) :**
-- **Backend :** `1.5.0_3` (ghcr.io/ccoupel/ansible-builder-backend)
-- **Frontend :** `1.6.5` (ghcr.io/ccoupel/ansible-builder-frontend)
+- **Backend :** `1.8.0` (ghcr.io/ccoupel/ansible-builder-backend) - 🚀 Déploiement en cours
+- **Frontend :** `1.8.0` (ghcr.io/ccoupel/ansible-builder-frontend) - 🚀 Déploiement en cours
 - **URL :** https://coupel.net/ansible-builder
-- **Status :** ✅ Opérationnel
+- **Status :** ⏳ Mise à jour en cours
 
 **Développement (Docker-Compose) :**
-- **Backend :** `1.8.0_2` (ansible-builder-backend:dev)
-- **Frontend :** `1.8.0_2` (ansible-builder-frontend:dev)
+- **Backend :** `1.8.0` (ansible-builder-backend:dev)
+- **Frontend :** `1.8.0` (ansible-builder-frontend:dev)
 - **URL :** http://192.168.1.217:80
-- **Status :** ✅ Opérationnel avec gestion versions et favoris
+- **Status :** ✅ Opérationnel avec favoris complets
 
 ---
 
@@ -34,18 +34,21 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 - **Frontend intégré :** `galaxySmartService.ts` + `ModulesZoneCached.tsx`
 
 ### ✅ **Gestion Favoris Namespaces (v1.8.0)**
-- **API Backend :** `/api/favorites` avec stockage fichier JSON
-- **UI Frontend :** Boutons étoiles dans onglet Favorites (ex-Popular)
+- **API Backend :** `/api/user/favorites` avec stockage fichier JSON
+- **UI Frontend :** Boutons étoiles + Onglet FAVORITE (ex-Popular)
 - **Fonctionnalités :**
-  - Sélection/désélection namespaces favoris
-  - Persistance côté serveur (favorites.json)
-  - Interface unifiée avec Galaxy API
-- **Status :** ✅ Interface implémentée, logique favoris à finaliser
+  - Sélection/désélection namespaces favoris avec étoiles ⭐
+  - Persistance côté serveur (/tmp/user_favorites.json)
+  - Onglet FAVORITE combinant namespaces standards + favoris utilisateur
+  - Namespaces standards réduits à ['community'] uniquement
+- **Status :** ✅ Complètement implémenté et testé
 
 ### ✅ **Gestion Versions (v1.8.0)**
-- **Endpoint unifié :** `/version` retourne frontend + backend
-- **Affichage AppHeader :** Versions en temps réel coin supérieur droit
-- **Déploiement :** Docker-compose avec images :dev
+- **Endpoints séparés :** 
+  - `/version` : Version frontend servie par nginx
+  - `/api/version` : Version backend servie par FastAPI
+- **Injection automatique :** Version frontend injectée depuis package.json dans nginx.conf
+- **Docker builds :** Directives `build:` ajoutées dans docker-compose.yml
 - **Procédure :** Phases 1 (dev _n) et 2 (prod) respectées
 
 ### ✅ **Optimisations Performance**
