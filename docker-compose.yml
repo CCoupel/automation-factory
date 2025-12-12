@@ -31,6 +31,7 @@ services:
       retries: 5
 
   backend:
+    build: ./backend
     image: ansible-builder-backend:dev
     container_name: ansible-builder-backend
     ports:
@@ -44,6 +45,7 @@ services:
         condition: service_healthy
 
   frontend:
+    build: ./frontend
     image: ansible-builder-frontend:dev
     container_name: ansible-builder-frontend
     environment:

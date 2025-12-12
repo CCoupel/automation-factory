@@ -114,6 +114,12 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   const [favorites, setFavorites] = useState<string[]>([])
   const [favoritesLoading, setFavoritesLoading] = useState(false)
   
+  // Standard namespaces that should always appear in FAVORITE tab
+  const standardNamespaces = ['community']
+  
+  // Combined favorite namespaces (standard + user favorites)
+  const [favoriteNamespaces, setFavoriteNamespaces] = useState<Namespace[]>([])
+  
   // Generic elements (blocks, handlers, etc.)
   const genericElements = [
     { name: 'block', description: 'Group tasks with error handling' },
@@ -137,6 +143,28 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     
     loadFavorites()
   }, [])
+  
+  // Update favorite namespaces when favorites or cache data changes
+  useEffect(() => {
+    if (cacheReady && (popularNamespaces.length > 0 || allNamespaces.length > 0)) {
+      // Combine standard namespaces + user favorites
+      const combinedFavoriteNames = [...standardNamespaces, ...favorites]
+      
+      // Find namespace objects from the cache
+      const foundNamespaces: Namespace[] = []
+      const allAvailableNamespaces = [...popularNamespaces, ...allNamespaces]
+      
+      combinedFavoriteNames.forEach(name => {
+        const namespace = allAvailableNamespaces.find(ns => ns.name === name)
+        if (namespace && !foundNamespaces.some(ns => ns.name === namespace.name)) {
+          foundNamespaces.push(namespace)
+        }
+      })
+      
+      setFavoriteNamespaces(foundNamespaces)
+      console.log(`🌟 Updated favorite namespaces: ${foundNamespaces.length} total (${standardNamespaces.length} standard + ${favorites.length} user favorites)`)
+    }
+  }, [favorites, popularNamespaces, allNamespaces, cacheReady])
   
   // Load data based on navigation state
   useEffect(() => {
@@ -707,9 +735,9 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                           value="popular" 
                           label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2">Popular</Typography>
+                              <Typography variant="body2">FAVORITE</Typography>
                               <Chip 
-                                label={popularNamespaces.length} 
+                                label={favoriteNamespaces.length} 
                                 size="small" 
                                 color="primary" 
                                 variant="outlined" 
@@ -783,11 +811,11 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                       </Tooltip>
                     </Box>
 
-                    {/* Popular Namespaces Zone */}
+                    {/* Favorite Namespaces Zone */}
                     {selectedNamespaceZone === 'popular' && (
                       <Box>
                         <List dense>
-                          {sortNamespaces(filterItems(popularNamespaces))
+                          {sortNamespaces(filterItems(favoriteNamespaces))
                             .map((namespace) => (
                               <NamespaceListItem key={namespace.name} namespace={namespace} onNavigate={navigateToCollections} />
                           ))}
