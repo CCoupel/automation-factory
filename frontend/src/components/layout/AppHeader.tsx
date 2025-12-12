@@ -97,8 +97,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
     const fetchVersions = async () => {
       try {
         const http = getHttpClient()
-        const response = await http.get('/version')
-        setVersions(response.data)
+        
+        // Fetch frontend version from frontend itself
+        const frontendResponse = await fetch('/version')
+        const frontendData = await frontendResponse.json()
+        
+        // Fetch backend version from API
+        const backendResponse = await http.get('/api/version')
+        const backendData = backendResponse.data
+        
+        // Combine both versions
+        setVersions({
+          frontend: {
+            version: frontendData.version,
+            name: frontendData.name
+          },
+          backend: {
+            version: backendData.version,
+            name: backendData.name
+          },
+          environment: frontendData.environment || "development"
+        })
       } catch (error) {
         console.error('Failed to fetch versions:', error)
       }

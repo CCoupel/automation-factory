@@ -30,11 +30,19 @@ import HomeIcon from '@mui/icons-material/Home'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import StarIcon from '@mui/icons-material/Star'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 import { useState, useEffect } from 'react'
 import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { Namespace } from '../../services/galaxyService'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
+import { 
+  getUserFavorites, 
+  addFavorite, 
+  removeFavorite, 
+  isFavorite
+} from '../../services/userPreferencesService'
 
 interface ModulesZoneCachedProps {
   onCollapse?: () => void
@@ -102,12 +110,33 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   const [sortOption, setSortOption] = useState<SortOption>('name')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   
+  // User favorites
+  const [favorites, setFavorites] = useState<string[]>([])
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
+  
   // Generic elements (blocks, handlers, etc.)
   const genericElements = [
     { name: 'block', description: 'Group tasks with error handling' },
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
   ]
+  
+  // Load user favorites on mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      setFavoritesLoading(true)
+      try {
+        const userFavorites = await getUserFavorites()
+        setFavorites(userFavorites || [])
+      } catch (error) {
+        console.error('Failed to load user favorites:', error)
+      } finally {
+        setFavoritesLoading(false)
+      }
+    }
+    
+    loadFavorites()
+  }, [])
   
   // Load data based on navigation state
   useEffect(() => {
@@ -307,6 +336,28 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     }
   }
   
+  // Handle favorite toggle
+  const handleToggleFavorite = async (namespace: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const wasFavorite = favorites.includes(namespace)
+    
+    try {
+      if (wasFavorite) {
+        await removeFavorite('namespace', namespace)
+        setFavorites(prev => prev.filter(fav => fav !== namespace))
+        console.log(`✅ Namespace ${namespace} removed from favorites`)
+      } else {
+        await addFavorite('namespace', namespace)
+        setFavorites(prev => [...prev, namespace])
+        console.log(`✅ Namespace ${namespace} added to favorites`)
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  }
+  
   // Handle home icon click behavior
   const handleHomeClick = (event: React.MouseEvent) => {
     if (event.ctrlKey) {
@@ -401,56 +452,81 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   }
   
   // Component for namespace list item
-  const NamespaceListItem = ({ namespace, onNavigate }: { namespace: Namespace, onNavigate: (name: string) => void }) => (
-    <Tooltip
-      title={
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            {namespace.name}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            Ansible namespace containing collections
-          </Typography>
-          <Typography variant="caption" display="block">
-            Collections: {namespace.collection_count}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Total downloads: {namespace.total_downloads.toLocaleString()}
-          </Typography>
-          <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-            Click to browse collections
-          </Typography>
-        </Box>
-      }
-      placement="right"
-      arrow
-    >
-      <ListItem disablePadding>
-        <ListItemButton
-          onClick={() => onNavigate(namespace.name)}
-          sx={{
-            '&:hover': {
-              bgcolor: 'action.hover',
-            },
-          }}
-        >
-          <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
-          <ListItemText
-            primary={namespace.name}
-            secondary={`${namespace.collection_count} collections • ${namespace.total_downloads.toLocaleString()} downloads`}
-            primaryTypographyProps={{
-              variant: 'body2',
-              fontWeight: 'medium',
+  const NamespaceListItem = ({ namespace, onNavigate, showFavoriteButton = true }: { 
+    namespace: Namespace, 
+    onNavigate: (name: string) => void,
+    showFavoriteButton?: boolean 
+  }) => {
+    const isFav = favorites.includes(namespace.name)
+    
+    return (
+      <Tooltip
+        title={
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              {namespace.name}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Ansible namespace containing collections
+            </Typography>
+            <Typography variant="caption" display="block">
+              Collections: {namespace.collection_count}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Total downloads: {namespace.total_downloads.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+              Click to browse collections
+            </Typography>
+          </Box>
+        }
+        placement="right"
+        arrow
+      >
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={() => onNavigate(namespace.name)}
+            sx={{
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
             }}
-            secondaryTypographyProps={{
-              variant: 'caption',
-            }}
-          />
-          <ChevronRightIcon />
-        </ListItemButton>
-      </ListItem>
-    </Tooltip>
-  )
+          >
+            <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <ListItemText
+              primary={namespace.name}
+              secondary={`${namespace.collection_count} collections • ${namespace.total_downloads.toLocaleString()} downloads`}
+              primaryTypographyProps={{
+                variant: 'body2',
+                fontWeight: 'medium',
+              }}
+              secondaryTypographyProps={{
+                variant: 'caption',
+              }}
+            />
+            {showFavoriteButton && (
+              <Tooltip title={isFav ? 'Remove from favorites' : 'Add to favorites'}>
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleToggleFavorite(namespace.name, e)}
+                  sx={{ 
+                    mr: 1,
+                    color: isFav ? 'warning.main' : 'text.secondary',
+                    '&:hover': {
+                      color: isFav ? 'warning.dark' : 'warning.light',
+                    }
+                  }}
+                >
+                  {isFav ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+            )}
+            <ChevronRightIcon />
+          </ListItemButton>
+        </ListItem>
+      </Tooltip>
+    )
+  }
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

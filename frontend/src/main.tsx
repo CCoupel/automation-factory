@@ -10,6 +10,7 @@ import { GalaxyCacheProvider } from './contexts/GalaxyCacheContext'
 import PrivateRoute from './components/auth/PrivateRoute'
 import LoginPage from './pages/LoginPage'
 import App from './App.tsx'
+import VersionEndpoint from './components/VersionEndpoint'
 import { logApiConfig } from './utils/apiConfig'
 import './index.css'
 import './styles/responsive.css'
@@ -30,6 +31,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <GalaxyProvider>
                 <GalaxyCacheProvider>
                   <Routes>
+                  {/* Public route - Version endpoint */}
+                  <Route path="/version" element={<VersionEndpoint />} />
+
                   {/* Public route - Login page */}
                   <Route path="/login" element={<LoginPage />} />
 

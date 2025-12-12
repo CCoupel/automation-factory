@@ -28,6 +28,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import SearchIcon from '@mui/icons-material/Search'
 import FolderIcon from '@mui/icons-material/Folder'
 import ExtensionIcon from '@mui/icons-material/Extension'
+import StarIcon from '@mui/icons-material/Star'
+import StarBorderIcon from '@mui/icons-material/StarBorder'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
@@ -38,8 +40,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SortIcon from '@mui/icons-material/Sort'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import StarIcon from '@mui/icons-material/Star'
-import StarBorderIcon from '@mui/icons-material/StarBorder'
 import { useState, useEffect } from 'react'
 import { galaxyService, Namespace, Collection, Module } from '../../services/galaxyService'
 import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
@@ -228,6 +228,109 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   const navigateToModules = (namespace: string, collection: string, version: string) => {
     setNavigationState({ level: 'modules', namespace, collection, version })
   }
+
+  // Favorites management functions
+  const handleToggleFavorite = async (namespace: string) => {
+    try {
+      setFavoritesLoading(true)
+      const isFavorite = favoriteNamespaces.includes(namespace)
+      
+      if (isFavorite) {
+        await userPreferencesService.removeFavoriteNamespace(namespace)
+        setFavoriteNamespaces(prev => prev.filter(name => name !== namespace))
+      } else {
+        await userPreferencesService.addFavoriteNamespace(namespace)
+        setFavoriteNamespaces(prev => [...prev, namespace])
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+      setError('Failed to update favorites')
+    } finally {
+      setFavoritesLoading(false)
+    }
+  }
+
+  const isFavoriteNamespace = (namespace: string): boolean => {
+    return favoriteNamespaces.includes(namespace)
+  }
+
+
+  // Namespace rendering component
+  const renderNamespace = (namespace: Namespace, showFavoriteButton: boolean = false) => (
+    <Tooltip
+      key={namespace.name}
+      title={
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            {namespace.name}
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {namespace.description || 'No description available'}
+          </Typography>
+          <Typography variant="caption" display="block">
+            Collections: {namespace.collection_count}
+          </Typography>
+          <Typography variant="caption" display="block">
+            Downloads: {namespace.total_downloads?.toLocaleString() || '0'}
+          </Typography>
+          <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+            Click to browse collections
+          </Typography>
+        </Box>
+      }
+      placement="right"
+      arrow
+    >
+      <ListItem disablePadding>
+        <ListItemButton
+          onClick={() => navigateToCollections(namespace.name)}
+          sx={{
+            '&:hover': {
+              bgcolor: 'primary.light',
+              color: 'white',
+            },
+          }}
+        >
+          <FolderIcon sx={{ mr: 1, fontSize: 18 }} />
+          <ListItemText
+            primary={namespace.name}
+            secondary={`${namespace.collection_count} collections`}
+            primaryTypographyProps={{
+              variant: 'body2',
+              fontWeight: 'medium',
+            }}
+            secondaryTypographyProps={{
+              variant: 'caption',
+              sx: { fontSize: '0.7rem' },
+            }}
+          />
+          {showFavoriteButton && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation()
+                console.log('Star clicked for:', namespace.name)
+                handleToggleFavorite(namespace.name)
+              }}
+              disabled={favoritesLoading}
+              sx={{ ml: 1 }}
+            >
+              {isFavoriteNamespace(namespace.name) ? (
+                <StarIcon fontSize="small" color="primary" />
+              ) : (
+                <StarBorderIcon fontSize="small" />
+              )}
+            </IconButton>
+          )}
+          {/* Debug log */}
+          {(() => {
+            console.log('Rendering namespace:', namespace.name, 'showFavoriteButton:', showFavoriteButton)
+            return null
+          })()}
+        </ListItemButton>
+      </ListItem>
+    </Tooltip>
+  )
   
   // Search filter
   const filterItems = (items: any[]) => {
@@ -263,27 +366,6 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
   }
   
-  // Toggle favorite namespace
-  const toggleFavoriteNamespace = async (namespace: string) => {
-    try {
-      setFavoritesLoading(true)
-      
-      const isFavorite = favoriteNamespaces.includes(namespace)
-      
-      if (isFavorite) {
-        await userPreferencesService.removeFavoriteNamespace(namespace)
-        setFavoriteNamespaces(prev => prev.filter(ns => ns !== namespace))
-      } else {
-        await userPreferencesService.addFavoriteNamespace(namespace)
-        setFavoriteNamespaces(prev => [...prev, namespace])
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite namespace:', error)
-      setError(`Failed to ${favoriteNamespaces.includes(namespace) ? 'remove' : 'add'} favorite: ${error}`)
-    } finally {
-      setFavoritesLoading(false)
-    }
-  }
 
   // Force refresh is now handled by the context
 
@@ -789,17 +871,8 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
                       <Box>
                         <List dense>
                           {sortNamespaces(filterItems(popularNamespaces))
-                            .map((namespace) => (
-                              <NamespaceListItem 
-                                key={namespace.name} 
-                                namespace={namespace} 
-                                onNavigate={navigateToCollections}
-                                isFavorite={favoriteNamespaces.includes(namespace.name)}
-                                onToggleFavorite={toggleFavoriteNamespace}
-                                favoritesLoading={favoritesLoading}
-                                showFavoriteButton={true}
-                              />
-                          ))}
+                            .map((namespace) => renderNamespace(namespace, true)
+                          )}
                         </List>
                       </Box>
                     )}
@@ -840,17 +913,8 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
 
                         <List dense>
                           {sortNamespaces(filterItems(allNamespaces))
-                            .map((namespace) => (
-                              <NamespaceListItem 
-                                key={namespace.name} 
-                                namespace={namespace} 
-                                onNavigate={navigateToCollections}
-                                isFavorite={favoriteNamespaces.includes(namespace.name)}
-                                onToggleFavorite={toggleFavoriteNamespace}
-                                favoritesLoading={favoritesLoading}
-                                showFavoriteButton={true}
-                              />
-                          ))}
+                            .map((namespace) => renderNamespace(namespace, true)
+                          )}
                         </List>
                       </Box>
                     )}

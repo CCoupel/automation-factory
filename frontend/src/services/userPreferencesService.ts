@@ -126,15 +126,16 @@ class UserPreferencesService {
   }
 
   /**
-   * Get favorite namespaces
+   * Get favorite namespaces (simplified for file-based API)
    */
   async getFavoriteNamespaces(): Promise<string[]> {
     try {
       const response = await this.httpClient.get<FavoriteNamespaceResponse>('/user/favorites');
-      return response.data.favorite_namespaces;
+      return response.data.favorite_namespaces || [];
     } catch (error: any) {
       console.error('Failed to get favorite namespaces:', error);
-      throw new Error(`Failed to get favorites: ${error.response?.data?.detail || error.message}`);
+      // Return empty array on error to allow UI to function
+      return [];
     }
   }
 
@@ -203,3 +204,9 @@ class UserPreferencesService {
 
 // Export singleton instance
 export const userPreferencesService = new UserPreferencesService();
+
+// Export convenience functions for easier usage
+export const getUserFavorites = () => userPreferencesService.getFavoriteNamespaces();
+export const addFavorite = (type: 'namespace', namespace: string) => userPreferencesService.addFavoriteNamespace(namespace);
+export const removeFavorite = (type: 'namespace', namespace: string) => userPreferencesService.removeFavoriteNamespace(namespace);
+export const isFavorite = (type: 'namespace', namespace: string) => userPreferencesService.isFavoriteNamespace(namespace);

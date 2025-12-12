@@ -18,21 +18,6 @@ async def api_version():
         "name": "Ansible Builder API"
     }
 
-# Add combined version endpoint  
-@api_router.get("/versions")
-async def combined_versions():
-    """Combined versions endpoint - Returns frontend + backend versions"""
-    return {
-        "backend": {
-            "version": __version__,
-            "name": "Ansible Builder API"
-        },
-        "frontend": {
-            "version": "1.8.0_2", 
-            "name": "Ansible Builder Frontend"
-        },
-        "environment": "development"
-    }
 
 
 # Include all endpoint routers

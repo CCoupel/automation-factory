@@ -5,6 +5,7 @@ export interface Namespace {
   name: string
   collection_count: number
   total_downloads: number
+  description?: string
 }
 
 // Cache configuration

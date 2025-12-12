@@ -66,7 +66,7 @@ services:
         echo "  listen 80;" >> /etc/nginx/conf.d/default.conf
         echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
         echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-proxy\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
-        echo "  location = /version { proxy_pass http://backend_upstream/api/versions; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://frontend_upstream/version; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "}" >> /etc/nginx/conf.d/default.conf
@@ -74,7 +74,7 @@ services:
         echo "  listen 5173;" >> /etc/nginx/conf.d/default.conf
         echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
         echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-direct\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
-        echo "  location = /version { proxy_pass http://backend_upstream/api/versions; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://frontend_upstream/version; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
         echo "}" >> /etc/nginx/conf.d/default.conf

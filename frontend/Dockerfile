@@ -30,8 +30,12 @@ RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration and inject version from package.json
+COPY nginx.conf /tmp/nginx.conf.template
+COPY package.json /tmp/package.json
+RUN FRONTEND_VERSION=$(cat /tmp/package.json | grep '"version"' | sed 's/.*"version": *"\([^"]*\)".*/\1/') && \
+    sed "s/{{FRONTEND_VERSION}}/$FRONTEND_VERSION/g" /tmp/nginx.conf.template > /etc/nginx/conf.d/default.conf && \
+    rm /tmp/nginx.conf.template /tmp/package.json
 
 # Copy and setup entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
