@@ -43,7 +43,7 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 5. **Tests Phase 1** :
    - 5a) Analyse logs et tests unitaires/bout-en-bout + corrections
    - 5b) Rapport de tests et performance
-   - 5c) Arrêt instances précédentes + relance sur 192.168.1.217 (ports 5180/8000)
+   - 5c) Arrêt instances précédentes + relance sur 192.168.1.217 (ports 5180/8000) via docker compose
    - 5d) Test page d'accueil sans erreur + API répond
 6. **Validation** : Tests manuels utilisateur
 7. **Décision** :
@@ -97,9 +97,15 @@ docker --host=tcp://192.168.1.217:2375 build ...
 ## 🚀 **Phase 2 : Intégration**
 
 ### Objectifs
+- Documentation finale
+   - mise a jour du change log
+   - mise a jour de l'ensemble des documents  de travail
 - Déploiement en production
 - Tests complets environnement réel
-- Documentation finale
+- attente de validation ou de demande de correction de l'utilisateur
+- aptres validation, intégré les dernieres informations dans la documentation
+- netoyer le CURRENT_WORK
+- attendre la prochaine demande d'implementation
 
 ### Procédures
 

@@ -7,6 +7,44 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [1.8.1] - 2025-12-12
+
+### ✨ Nouvelles fonctionnalités
+- **About Dialog:** Boîte "About" dans le menu utilisateur
+  - Affichage des versions Frontend/Backend/Environment
+  - Changelog intégré des fonctionnalités récentes
+  - Informations utilisateur connecté avec badge admin
+- **Configuration Admin:** Page de configuration pour les administrateurs
+  - Gestion des namespaces standards configurables
+  - Remplacement de la liste hardcodée `['community']`
+  - Interface d'ajout/suppression avec validation
+  - API backend sécurisée `/api/admin/configuration`
+- **Chargement dynamique:** Standard namespaces depuis configuration
+  - ModulesZoneCached intègre maintenant les namespaces configurés
+  - Fallback gracieux pour utilisateurs non-admin
+  - Combinaison namespaces standards + favoris utilisateur
+
+### 🎨 Interface optimisée
+- **Menu utilisateur:** Ajout entrée "About" avec icône Info
+- **Menu admin:** Entrée "Configuration" visible pour les admins uniquement
+- **Versions épurées:** 
+  - Suppression versions du header principal (page travail)
+  - Conservation versions sur page de login pour info technique
+  - Versions détaillées disponibles dans About sur demande
+
+### 🛠️ Corrections
+- **API routing:** Fix double `/api` dans appels backend version
+- **Import fixes:** Correction `app.schemas.user` → `app.models.user`
+- **Docker compose:** Correction port mapping 5173→5180 pour Phase 1
+
+### 🔧 Améliorations techniques
+- **Stockage configuration:** File-based storage `/tmp/admin_configuration.json`
+- **Sécurité:** Endpoints admin protégés par `get_current_admin`
+- **Validation:** Contrôle format namespaces (regex + nettoyage)
+- **State management:** Gestion d'état pour configuration + favoris
+
+---
+
 ## [1.8.0] - 2025-12-12
 
 ### ✨ Nouvelles fonctionnalités

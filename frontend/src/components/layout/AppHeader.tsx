@@ -32,6 +32,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DescriptionIcon from '@mui/icons-material/Description'
 import LockIcon from '@mui/icons-material/Lock'
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'
+import SettingsIcon from '@mui/icons-material/Settings'
+import InfoIcon from '@mui/icons-material/Info'
 import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -90,6 +92,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
 
+  // About dialog state
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
+
   /**
    * Fetch versions on component mount
    */
@@ -98,12 +103,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
       try {
         const http = getHttpClient()
         
-        // Fetch frontend version from frontend itself
-        const frontendResponse = await fetch('/version')
+        // Fetch frontend version from frontend itself (relative URL respects base path)
+        const frontendResponse = await fetch('./version')
         const frontendData = await frontendResponse.json()
         
-        // Fetch backend version from API
-        const backendResponse = await http.get('/api/version')
+        // Fetch backend version from API (uses configured base URL)
+        const backendResponse = await http.get('/version')
         const backendData = backendResponse.data
         
         // Combine both versions
@@ -198,6 +203,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const handleAccountsManagement = () => {
     handleMenuClose()
     navigate('/admin/accounts')
+  }
+
+  /**
+   * Handle configuration page navigation (Admin only)
+   */
+  const handleConfigurationPage = () => {
+    handleMenuClose()
+    navigate('/admin/configuration')
+  }
+
+  /**
+   * Handle About dialog
+   */
+  const handleOpenAboutDialog = () => {
+    handleMenuClose()
+    setAboutDialogOpen(true)
+  }
+
+  const handleCloseAboutDialog = () => {
+    setAboutDialogOpen(false)
   }
 
   /**
@@ -427,18 +452,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
         {/* Right side - User info and Menu */}
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs, 4px)' }}>
-            {/* Version info */}
-            {versions?.frontend?.version && versions?.backend?.version && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', mr: 2 }}>
-                <Typography variant="caption" sx={{ fontSize: 'var(--font-xs, 12px)', opacity: 0.9, lineHeight: 1 }}>
-                  Frontend: {versions.frontend.version}
-                </Typography>
-                <Typography variant="caption" sx={{ fontSize: 'var(--font-xs, 12px)', opacity: 0.9, lineHeight: 1 }}>
-                  Backend: {versions.backend.version}
-                </Typography>
-              </Box>
-            )}
-
             {/* User info */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
               <Typography variant="body2" sx={{ fontSize: 'var(--font-sm, 13px)', lineHeight: 1.2 }}>
@@ -529,6 +542,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
                   <ListItemText>Accounts Management</ListItemText>
                 </MenuItem>
               )}
+
+              {/* Configuration (Admin only) */}
+              {user.role === 'admin' && (
+                <MenuItem onClick={handleConfigurationPage}>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Configuration</ListItemText>
+                </MenuItem>
+              )}
+
+              {user.role === 'admin' && <Divider />}
+
+              {/* About */}
+              <MenuItem onClick={handleOpenAboutDialog}>
+                <ListItemIcon>
+                  <InfoIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>About</ListItemText>
+              </MenuItem>
 
               <Divider />
 
@@ -628,6 +661,83 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
             }
           >
             Change Password
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* About Dialog */}
+      <Dialog
+        open={aboutDialogOpen}
+        onClose={handleCloseAboutDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <InfoIcon color="primary" />
+          About Ansible Builder
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Typography variant="h6" gutterBottom>
+              Ansible Builder
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Constructeur graphique de playbooks Ansible en mode SaaS. 
+              Cette application permet de construire des playbooks Ansible de manière visuelle 
+              via un système de drag & drop.
+            </Typography>
+            
+            <Box sx={{ bgcolor: 'background.paper', p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+                Versions des composants :
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                • Frontend: {versions?.frontend?.version || 'N/A'} ({versions?.frontend?.name || 'Frontend'})
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                • Backend: {versions?.backend?.version || 'N/A'} ({versions?.backend?.name || 'API'})
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                • Environment: {versions?.environment || 'development'}
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary">
+              <strong>Nouvelles fonctionnalités v1.8.1 :</strong>
+            </Typography>
+            <Box component="ul" sx={{ pl: 2, m: 0 }}>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Boîte About avec versions et changelog intégré
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Configuration Admin pour namespaces standards
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Chargement dynamique des namespaces configurables
+              </Typography>
+              <Typography component="li" variant="body2" color="text.secondary">
+                Interface épurée sans versions dans le header
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="body2" color="text.secondary">
+                Utilisateur connecté : <strong>{user?.username}</strong> ({user?.email})
+              </Typography>
+              {user?.role === 'admin' && (
+                <Chip 
+                  label="Admin" 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                />
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAboutDialog} variant="contained">
+            Fermer
           </Button>
         </DialogActions>
       </Dialog>

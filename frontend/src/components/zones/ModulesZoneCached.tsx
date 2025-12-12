@@ -114,8 +114,9 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   const [favorites, setFavorites] = useState<string[]>([])
   const [favoritesLoading, setFavoritesLoading] = useState(false)
   
-  // Standard namespaces that should always appear in FAVORITE tab
-  const standardNamespaces = ['community']
+  // Standard namespaces - loaded from configuration
+  const [standardNamespaces, setStandardNamespaces] = useState<string[]>(['community'])
+  const [standardNamespacesLoading, setStandardNamespacesLoading] = useState(false)
   
   // Combined favorite namespaces (standard + user favorites)
   const [favoriteNamespaces, setFavoriteNamespaces] = useState<Namespace[]>([])
@@ -126,6 +127,43 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
   ]
+  
+  // Load standard namespaces from configuration on mount
+  useEffect(() => {
+    const loadStandardNamespaces = async () => {
+      setStandardNamespacesLoading(true)
+      try {
+        const token = localStorage.getItem('access_token')
+        if (!token) {
+          console.log('No admin token available - using default standard namespaces')
+          return
+        }
+        
+        const response = await fetch('/api/admin/configuration/standard-namespaces', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.namespaces) {
+            setStandardNamespaces(data.namespaces)
+            console.log(`✅ Loaded ${data.namespaces.length} standard namespaces from configuration:`, data.namespaces)
+          }
+        } else if (response.status === 403) {
+          console.log('User is not admin - using default standard namespaces')
+        }
+      } catch (error) {
+        console.error('Failed to load standard namespaces from configuration:', error)
+      } finally {
+        setStandardNamespacesLoading(false)
+      }
+    }
+    
+    loadStandardNamespaces()
+  }, [])
   
   // Load user favorites on mount
   useEffect(() => {
@@ -164,7 +202,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
       setFavoriteNamespaces(foundNamespaces)
       console.log(`🌟 Updated favorite namespaces: ${foundNamespaces.length} total (${standardNamespaces.length} standard + ${favorites.length} user favorites)`)
     }
-  }, [favorites, popularNamespaces, allNamespaces, cacheReady])
+  }, [favorites, popularNamespaces, allNamespaces, cacheReady, standardNamespaces])
   
   // Load data based on navigation state
   useEffect(() => {

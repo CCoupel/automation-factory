@@ -27,7 +27,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **[Optimisations Frontend](frontend/docs/README_OPTIMISATION.md)** - Refactoring et optimisations
 
 ### ⚙️ **Documentation Backend**
-- **[Spécifications Backend](docs/backend/BACKEND_SPECS.md)** - APIs et services
+- **[Spécifications Backend](docs/backend/BACKEND_SPECS.md)** - APIs, architecture et modèles de données
 - **[Implémentation Backend](docs/backend/BACKEND_IMPLEMENTATION.md)** - Détails techniques FastAPI/Python
 - **[Intégration Galaxy](docs/backend/GALAXY_INTEGRATION.md)** - Service Galaxy API SMART
 

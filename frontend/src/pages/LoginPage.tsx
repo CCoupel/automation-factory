@@ -340,6 +340,7 @@ const LoginPage: React.FC = () => {
               variant="outlined"
             />
           </Box>
+
         </Paper>
       </Container>
     </Box>

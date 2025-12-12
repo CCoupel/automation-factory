@@ -8,16 +8,16 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ### Versions Déployées
 **Production (K8s) :**
-- **Backend :** `1.8.0` (ghcr.io/ccoupel/ansible-builder-backend) - 🚀 Déploiement en cours
-- **Frontend :** `1.8.0` (ghcr.io/ccoupel/ansible-builder-frontend) - 🚀 Déploiement en cours
+- **Backend :** `1.8.1` (ghcr.io/ccoupel/ansible-builder-backend)
+- **Frontend :** `1.8.1` (ghcr.io/ccoupel/ansible-builder-frontend)
 - **URL :** https://coupel.net/ansible-builder
-- **Status :** ⏳ Mise à jour en cours
+- **Status :** ✅ Déployé avec configuration admin
 
 **Développement (Docker-Compose) :**
-- **Backend :** `1.8.0` (ansible-builder-backend:dev)
-- **Frontend :** `1.8.0` (ansible-builder-frontend:dev)
-- **URL :** http://192.168.1.217:80
-- **Status :** ✅ Opérationnel avec favoris complets
+- **Backend :** `1.8.1` (ansible-builder-backend:dev)
+- **Frontend :** `1.8.1` (ansible-builder-frontend:dev)  
+- **URL :** http://192.168.1.217:5180
+- **Status :** ✅ Synchronisé avec production
 
 ---
 
@@ -51,6 +51,20 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 - **Docker builds :** Directives `build:` ajoutées dans docker-compose.yml
 - **Procédure :** Phases 1 (dev _n) et 2 (prod) respectées
 
+### ✅ **Configuration Admin (v1.8.1)**
+- **About Dialog :** Boîte "About" accessible via menu utilisateur
+  - Versions Frontend/Backend/Environment affichées
+  - Changelog intégré des fonctionnalités récentes
+  - Badge admin pour utilisateurs privilégiés
+- **Page Configuration :** Interface admin pour namespaces standards
+  - Gestion ajout/suppression namespaces avec validation
+  - API backend sécurisée `/api/admin/configuration`
+  - Stockage file-based `/tmp/admin_configuration.json`
+- **Chargement dynamique :** Standard namespaces depuis configuration
+  - ModulesZoneCached intègre les namespaces configurés
+  - Fallback gracieux `['community']` pour non-admins
+- **Interface épurée :** Versions retirées du header principal
+
 ### ✅ **Optimisations Performance**
 - **Réduction API calls :** 100+ → 11 appels (-90%)
 - **Cache multi-couches :** Frontend TTL 15min + Backend 30min + Redis
@@ -65,22 +79,19 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🛠️ **En Cours de Développement**
+## 🛠️ **Session Terminée - En Attente Nouvelle Demande**
 
-### 🎯 **Finalisation Gestion Favoris (v1.8.0)**
-**Priorité :** Haute  
-**Description :** Interface favoris implémentée, logique métier à compléter  
-**Actions :**
-1. Finaliser intégration favoris avec Galaxy API
-2. Tester sélection/désélection UI → persistance backend
-3. Valider synchronisation favoris utilisateur
-4. Tests complets fonctionnalité favoris
+### ✅ **Version 1.8.1 Déployée**
+**Fonctionnalités livrées :**
+- About Dialog avec versions et changelog
+- Configuration Admin pour namespaces standards  
+- Interface épurée (versions retirées du header)
+- API admin sécurisée et chargement dynamique
 
-### 📋 **Next Steps Session**
-1. **Favoris complets :** Finalisation logique métier
-2. **Documentation :** Mise à jour avec features v1.8.0
-3. **Validation utilisateur :** Tests interface favoris
-4. **Commit & Push :** Version 1.8.0_2 complète
+**Status :** ✅ **Complètement implémenté, testé et déployé en production**
+
+### 📋 **Prochaine Session**
+En attente de nouvelles demandes d'implémentation ou corrections utilisateur.
 
 ---
 

@@ -159,7 +159,14 @@
       "Bash(./deploy-final.sh)",
       "Bash(mv:*)",
       "Bash(touch:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash($env:KUBECONFIG=\"C:\\Users\\cyril\\Documents\\VScode\\Ansible Builder\\kubeconfig.txt\")",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d --build)",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose ps)",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose logs frontend --tail 10)",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose build frontend)",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d frontend)",
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d)"
     ],
     "deny": [],
     "ask": []

@@ -38,12 +38,29 @@ export function getApiBaseUrl(): string {
 }
 
 /**
+ * Get Frontend base URL dynamically
+ * Uses runtime-injected BASE_PATH from docker-entrypoint.sh
+ */
+export function getFrontendBaseUrl(): string {
+  // Check for runtime-injected base path first
+  const basePath = (window as any).__BASE_PATH__
+  if (basePath && basePath !== '/') {
+    console.log('Using injected frontend base path:', basePath)
+    return basePath
+  }
+  
+  // Fallback to current origin for production/development
+  return window.location.origin + window.location.pathname.replace(/\/$/, '')
+}
+
+/**
  * Log current API configuration for debugging
  */
 export function logApiConfig(): void {
   console.log('API Configuration:', {
     injectedUrl: (window as any).__API_URL__,
     basePath: (window as any).__BASE_PATH__,
-    currentUrl: getApiBaseUrl()
+    currentUrl: getApiBaseUrl(),
+    frontendBaseUrl: getFrontendBaseUrl()
   })
 }
