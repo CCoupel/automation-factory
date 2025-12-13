@@ -6,6 +6,44 @@
  */
 
 /**
+ * Module parameter definition from Galaxy API
+ */
+export interface ModuleParameter {
+  name: string
+  type: 'str' | 'int' | 'float' | 'bool' | 'list' | 'dict' | 'path' | 'any'
+  required: boolean
+  default?: any
+  description: string
+  choices?: string[]
+  aliases?: string[]
+  elements?: string // Type of elements for lists
+  version_added?: string
+  suboptions?: Record<string, ModuleParameter>
+}
+
+/**
+ * Module schema from Galaxy API
+ */
+export interface ModuleSchema {
+  module_name: string
+  namespace: string
+  collection: string
+  version: string
+  description: string
+  short_description: string
+  author: string[]
+  parameters: Record<string, ModuleParameter>
+  examples?: any
+  notes?: string[]
+  requirements?: string[]
+  version_added?: string
+  filename?: string
+  parameter_count: number
+  required_parameters: number
+  optional_parameters: number
+}
+
+/**
  * Represents a module, task, or block in the playbook
  */
 export interface ModuleBlock {
@@ -44,6 +82,18 @@ export interface ModuleBlock {
   become?: boolean
   loop?: string
   delegateTo?: string
+
+  // Module configuration (NEW)
+  moduleParameters?: Record<string, any>  // User-configured module parameters
+  moduleSchema?: ModuleSchema            // Galaxy API schema for this module
+  
+  // Validation state
+  validationState?: {
+    isValid: boolean
+    errors: string[]
+    warnings: string[]
+    lastValidated?: Date
+  }
 
   // Custom dimensions (for blocks)
   width?: number

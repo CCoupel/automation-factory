@@ -23,15 +23,15 @@ import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
-import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes, ModuleSchema } from '../../types/playbook'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
-  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) => void
+  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
   onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', playbookName: string) => void
   onSavePlaybook?: (saveHandler: () => Promise<void>) => void
@@ -1633,7 +1633,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }, [handleDelete, onDeleteModule])
 
   // Fonction pour mettre à jour un module
-  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => {
+  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => {
     // Gérer les modules normaux
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
@@ -1661,6 +1661,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         delegateTo: updates.delegateTo !== undefined ? updates.delegateTo : module.delegateTo,
         isBlock: module.isBlock,
         isPlay: module.isPlay,
+        moduleParameters: updates.moduleParameters !== undefined ? updates.moduleParameters : module.moduleParameters,
+        moduleSchema: updates.moduleSchema !== undefined ? updates.moduleSchema : module.moduleSchema,
+        validationState: updates.validationState !== undefined ? updates.validationState : module.validationState,
       })
     }
   }, [modules, selectedModuleId, onSelectModule, setModules, setPlays, activePlayIndex, currentPlay])
@@ -2762,7 +2765,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       loop: module.loop,
                       delegateTo: module.delegateTo,
                       isBlock: module.isBlock,
-                      isPlay: module.isPlay
+                      isPlay: module.isPlay,
+                      moduleParameters: module.moduleParameters,
+                      moduleSchema: module.moduleSchema,
+                      validationState: module.validationState
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}
@@ -3556,7 +3562,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       loop: module.loop,
                       delegateTo: module.delegateTo,
                       isBlock: module.isBlock,
-                      isPlay: module.isPlay
+                      isPlay: module.isPlay,
+                      moduleParameters: module.moduleParameters,
+                      moduleSchema: module.moduleSchema,
+                      validationState: module.validationState
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}

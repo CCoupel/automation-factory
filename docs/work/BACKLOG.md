@@ -114,6 +114,13 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 - [ ] **Tooltips contextuels améliorés**
 - [ ] **Undo/Redo système**
 
+### Authentification UX
+- [ ] **Avatar rouge pour réauthentification**
+  - [ ] Indicateur visuel clair quand token expiré
+  - [ ] Animation/pulsation pour attirer l'attention
+  - [ ] Message contextuel explicatif
+  - [ ] Auto-redirect vers login si nécessaire
+
 ### Workflow
 - [ ] **Templates de playbooks**
 - [ ] **Snippets réutilisables**

@@ -11,7 +11,7 @@ import WorkZone from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
-import { PlayAttributes } from '../../types/playbook'
+import { PlayAttributes, ModuleSchema } from '../../types/playbook'
 
 interface SelectedModule {
   id: string
@@ -25,6 +25,14 @@ interface SelectedModule {
   delegateTo?: string
   isBlock?: boolean
   isPlay?: boolean
+  moduleParameters?: Record<string, any>
+  moduleSchema?: ModuleSchema
+  validationState?: {
+    isValid: boolean
+    errors: string[]
+    warnings: string[]
+    lastValidated?: Date
+  }
 }
 
 const MainLayout = () => {
@@ -40,7 +48,21 @@ const MainLayout = () => {
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
   const [isVarsCollapsed, setIsVarsCollapsed] = useState(true) // Collapsed by default since Variables are in PLAY sections now
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
-  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string }>) => void) | null>(null)
+  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ 
+    when?: string; 
+    ignoreErrors?: boolean; 
+    become?: boolean; 
+    loop?: string; 
+    delegateTo?: string;
+    moduleParameters?: Record<string, any>;
+    moduleSchema?: ModuleSchema;
+    validationState?: {
+      isValid: boolean;
+      errors: string[];
+      warnings: string[];
+      lastValidated?: Date;
+    }
+  }>) => void) | null>(null)
   const getPlayAttributesCallbackRef = useRef<(() => PlayAttributes) | null>(null)
   const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
   const savePlaybookCallbackRef = useRef<(() => Promise<void>) | null>(null)

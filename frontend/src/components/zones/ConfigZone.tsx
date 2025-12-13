@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip } from '@mui/material'
+import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip, Alert, CircularProgress, MenuItem, FormControl, InputLabel, Select, InputAdornment } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssignmentIcon from '@mui/icons-material/Assignment'
@@ -7,8 +7,11 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DeleteIcon from '@mui/icons-material/Delete'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
-import { PlayAttributes } from '../../types/playbook'
-import { useState } from 'react'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playbook'
+import { useState, useEffect } from 'react'
+import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 
 interface ConfigZoneProps {
   selectedModule?: {
@@ -23,6 +26,14 @@ interface ConfigZoneProps {
     delegateTo?: string
     isBlock?: boolean
     isPlay?: boolean
+    moduleParameters?: Record<string, any>
+    moduleSchema?: ModuleSchema
+    validationState?: {
+      isValid: boolean
+      errors: string[]
+      warnings: string[]
+      lastValidated?: Date
+    }
   } | null
   onCollapse?: () => void
   onDelete?: (id: string) => void
@@ -32,6 +43,14 @@ interface ConfigZoneProps {
     become?: boolean
     loop?: string
     delegateTo?: string
+    moduleParameters?: Record<string, any>
+    moduleSchema?: ModuleSchema
+    validationState?: {
+      isValid: boolean
+      errors: string[]
+      warnings: string[]
+      lastValidated?: Date
+    }
   }>) => void
   playAttributes?: PlayAttributes
   onUpdatePlay?: (updates: Partial<PlayAttributes>) => void
@@ -62,7 +81,231 @@ const moduleConfigs: Record<string, Array<{ name: string; type: string; required
 }
 
 const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay }: ConfigZoneProps) => {
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false)
+  const [schemaError, setSchemaError] = useState<string | null>(null)
+  const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
+  
+  // Legacy static config for modules without Galaxy schemas
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
+  
+  // Initialize module parameters from selected module
+  useEffect(() => {
+    if (selectedModule?.moduleParameters) {
+      setModuleParameters(selectedModule.moduleParameters)
+    } else {
+      setModuleParameters({})
+    }
+  }, [selectedModule?.id, selectedModule?.moduleParameters])
+  
+  // Load schema for selected module if not already loaded
+  useEffect(() => {
+    if (selectedModule && !selectedModule.isBlock && !selectedModule.isPlay && !selectedModule.moduleSchema) {
+      loadModuleSchema()
+    }
+  }, [selectedModule?.id, selectedModule?.collection, selectedModule?.name])
+  
+  const loadModuleSchema = async () => {
+    if (!selectedModule || selectedModule.isBlock || selectedModule.isPlay) return
+    
+    setIsLoadingSchema(true)
+    setSchemaError(null)
+    
+    try {
+      console.log(`Loading schema for ${selectedModule.collection}.${selectedModule.name}`)
+      
+      // Parse collection name (e.g., "community.general")
+      const parsed = galaxyModuleSchemaService.parseModuleName(`${selectedModule.collection}.${selectedModule.name}`)
+      if (!parsed) {
+        throw new Error(`Invalid module name format: ${selectedModule.collection}.${selectedModule.name}`)
+      }
+      
+      const schema = await galaxyModuleSchemaService.getModuleSchema(
+        parsed.namespace,
+        parsed.collection,
+        parsed.module,
+        'latest'
+      )
+      
+      if (schema) {
+        console.log(`Schema loaded for ${schema.module_name}: ${schema.parameter_count} parameters`)
+        
+        // Update module with schema and validation
+        const validation = galaxyModuleSchemaService.validateParameters(moduleParameters, schema)
+        
+        onUpdateModule?.(selectedModule.id, {
+          moduleSchema: schema,
+          validationState: {
+            isValid: validation.valid,
+            errors: validation.errors,
+            warnings: validation.warnings,
+            lastValidated: new Date()
+          }
+        })
+      } else {
+        console.log(`No schema found for ${selectedModule.collection}.${selectedModule.name}`)
+      }
+    } catch (error: any) {
+      console.error('Error loading module schema:', error)
+      setSchemaError(error.message || 'Failed to load module schema')
+    } finally {
+      setIsLoadingSchema(false)
+    }
+  }
+  
+  const handleParameterChange = (paramName: string, value: any) => {
+    const updatedParams = { ...moduleParameters, [paramName]: value }
+    setModuleParameters(updatedParams)
+    
+    // Validate if schema is available
+    let validationState
+    if (selectedModule?.moduleSchema) {
+      const validation = galaxyModuleSchemaService.validateParameters(updatedParams, selectedModule.moduleSchema)
+      validationState = {
+        isValid: validation.valid,
+        errors: validation.errors,
+        warnings: validation.warnings,
+        lastValidated: new Date()
+      }
+    }
+    
+    // Update module with new parameters and validation
+    onUpdateModule?.(selectedModule!.id, {
+      moduleParameters: updatedParams,
+      validationState
+    })
+  }
+  
+  const renderParameterField = (param: ModuleParameter) => {
+    const currentValue = moduleParameters[param.name] || param.default
+    
+    switch (param.type) {
+      case 'bool':
+        return (
+          <FormControlLabel
+            key={param.name}
+            control={
+              <Checkbox
+                checked={currentValue === true || currentValue === 'yes' || currentValue === 'true'}
+                onChange={(e) => handleParameterChange(param.name, e.target.checked)}
+              />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="body2">
+                  {param.name}{param.required && ' *'}
+                </Typography>
+                <Tooltip title={param.description} placement="right">
+                  <HelpOutlineIcon sx={{ fontSize: 16, color: 'text.secondary', cursor: 'help' }} />
+                </Tooltip>
+              </Box>
+            }
+          />
+        )
+      
+      case 'int':
+      case 'float':
+        return (
+          <TextField
+            key={param.name}
+            label={param.name + (param.required ? ' *' : '')}
+            fullWidth
+            size="small"
+            type="number"
+            value={currentValue || ''}
+            onChange={(e) => handleParameterChange(param.name, param.type === 'int' ? parseInt(e.target.value) || undefined : parseFloat(e.target.value) || undefined)}
+            error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title={param.description} placement="left">
+                    <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                  </Tooltip>
+                </InputAdornment>
+              )
+            }}
+          />
+        )
+      
+      case 'list':
+        return (
+          <TextField
+            key={param.name}
+            label={param.name + (param.required ? ' *' : '')}
+            fullWidth
+            size="small"
+            multiline
+            rows={2}
+            value={Array.isArray(currentValue) ? currentValue.join('\n') : currentValue || ''}
+            onChange={(e) => {
+              const lines = e.target.value.split('\n').filter(line => line.trim())
+              handleParameterChange(param.name, lines.length > 0 ? lines : undefined)
+            }}
+            placeholder="item1\nitem2\nitem3"
+            error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title={`${param.description} (one item per line)`} placement="left">
+                    <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                  </Tooltip>
+                </InputAdornment>
+              )
+            }}
+          />
+        )
+      
+      default:
+        // String, path, any - with choices support
+        if (param.choices && param.choices.length > 0) {
+          return (
+            <FormControl key={param.name} fullWidth size="small" sx={{ position: 'relative' }}>
+              <InputLabel>{param.name}{param.required && ' *'}</InputLabel>
+              <Select
+                value={currentValue || ''}
+                label={param.name + (param.required ? ' *' : '')}
+                onChange={(e) => handleParameterChange(param.name, e.target.value || undefined)}
+                error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {param.choices.map((choice) => (
+                  <MenuItem key={choice} value={choice}>
+                    {choice}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Box sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}>
+                <Tooltip title={param.description} placement="left">
+                  <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                </Tooltip>
+              </Box>
+            </FormControl>
+          )
+        }
+        
+        return (
+          <TextField
+            key={param.name}
+            label={param.name + (param.required ? ' *' : '')}
+            fullWidth
+            size="small"
+            value={currentValue || ''}
+            onChange={(e) => handleParameterChange(param.name, e.target.value || undefined)}
+            error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title={param.description} placement="left">
+                    <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                  </Tooltip>
+                </InputAdornment>
+              )
+            }}
+          />
+        )
+    }
+  }
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -281,62 +524,134 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
             {/* Section 2: Attributs du Module */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                   <ExtensionIcon color="secondary" fontSize="small" />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', flex: 1 }}>
                     Module: {selectedModule.collection}.{selectedModule.name}
                   </Typography>
+                  {!selectedModule.moduleSchema && !isLoadingSchema && (
+                    <IconButton size="small" onClick={loadModuleSchema} title="Load module schema">
+                      <RefreshIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                  {isLoadingSchema && (
+                    <CircularProgress size={16} />
+                  )}
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {moduleConfig.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      No configuration available for this module yet
-                    </Typography>
+                  {/* Schema loading status */}
+                  {schemaError && (
+                    <Alert severity="warning">
+                      Schema load failed: {schemaError}. Using static configuration.
+                    </Alert>
+                  )}
+                  
+                  {/* Validation status */}
+                  {selectedModule.validationState && (
+                    <Box>
+                      {selectedModule.validationState.errors.length > 0 && (
+                        <Alert severity="error" sx={{ mb: 1 }}>
+                          <Typography variant="caption">Errors:</Typography>
+                          {selectedModule.validationState.errors.map((error, idx) => (
+                            <Typography key={idx} variant="caption" display="block">
+                              • {error}
+                            </Typography>
+                          ))}
+                        </Alert>
+                      )}
+                      {selectedModule.validationState.warnings.length > 0 && (
+                        <Alert severity="warning" sx={{ mb: 1 }}>
+                          <Typography variant="caption">Warnings:</Typography>
+                          {selectedModule.validationState.warnings.map((warning, idx) => (
+                            <Typography key={idx} variant="caption" display="block">
+                              • {warning}
+                            </Typography>
+                          ))}
+                        </Alert>
+                      )}
+                    </Box>
+                  )}
+                  
+                  {/* Module schema info */}
+                  {selectedModule.moduleSchema && (
+                    <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {selectedModule.moduleSchema.short_description || selectedModule.moduleSchema.description}
+                      </Typography>
+                      <Box sx={{ mt: 0.5 }}>
+                        <Chip size="small" label={`${selectedModule.moduleSchema.parameter_count} params`} variant="outlined" sx={{ mr: 0.5 }} />
+                        <Chip size="small" label={`${selectedModule.moduleSchema.required_parameters} required`} variant="outlined" sx={{ mr: 0.5 }} />
+                        <Chip size="small" label={`v${selectedModule.moduleSchema.version}`} variant="outlined" />
+                      </Box>
+                    </Box>
+                  )}
+                  
+                  {/* Dynamic schema-based parameters */}
+                  {selectedModule.moduleSchema ? (
+                    Object.values(selectedModule.moduleSchema.parameters).map(renderParameterField)
                   ) : (
-                    moduleConfig.map((param) => (
-                      <TextField
-                        key={param.name}
-                        label={param.name + (param.required ? ' *' : '')}
-                        fullWidth
-                        size="small"
-                        type={param.type === 'text' ? 'text' : undefined}
-                        select={param.type === 'select'}
-                        SelectProps={param.type === 'select' ? { native: true } : undefined}
-                        helperText={param.description}
-                        defaultValue={param.default || ''}
-                      >
-                        {param.type === 'select' && param.name === 'backup' && (
-                          <>
-                            <option value="no">no</option>
-                            <option value="yes">yes</option>
-                          </>
-                        )}
-                        {param.type === 'select' && param.name === 'state' && selectedModule.name === 'service' && (
-                          <>
-                            <option value="started">started</option>
-                            <option value="stopped">stopped</option>
-                            <option value="restarted">restarted</option>
-                            <option value="reloaded">reloaded</option>
-                          </>
-                        )}
-                        {param.type === 'select' && param.name === 'state' && selectedModule.name === 'file' && (
-                          <>
-                            <option value="file">file</option>
-                            <option value="directory">directory</option>
-                            <option value="absent">absent</option>
-                            <option value="link">link</option>
-                          </>
-                        )}
-                        {param.type === 'select' && param.name === 'enabled' && (
-                          <>
-                            <option value="yes">yes</option>
-                            <option value="no">no</option>
-                          </>
-                        )}
-                      </TextField>
-                    ))
+                    /* Fallback to static configuration */
+                    moduleConfig.length === 0 ? (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          No schema available for this module.
+                        </Typography>
+                        <Button
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={loadModuleSchema}
+                          disabled={isLoadingSchema}
+                          sx={{ mt: 1 }}
+                        >
+                          Load Schema
+                        </Button>
+                      </Box>
+                    ) : (
+                      moduleConfig.map((param) => (
+                        <TextField
+                          key={param.name}
+                          label={param.name + (param.required ? ' *' : '')}
+                          fullWidth
+                          size="small"
+                          type={param.type === 'text' ? 'text' : undefined}
+                          select={param.type === 'select'}
+                          SelectProps={param.type === 'select' ? { native: true } : undefined}
+                          helperText={param.description}
+                          defaultValue={param.default || ''}
+                        >
+                          {param.type === 'select' && param.name === 'backup' && (
+                            <>
+                              <option value="no">no</option>
+                              <option value="yes">yes</option>
+                            </>
+                          )}
+                          {param.type === 'select' && param.name === 'state' && selectedModule.name === 'service' && (
+                            <>
+                              <option value="started">started</option>
+                              <option value="stopped">stopped</option>
+                              <option value="restarted">restarted</option>
+                              <option value="reloaded">reloaded</option>
+                            </>
+                          )}
+                          {param.type === 'select' && param.name === 'state' && selectedModule.name === 'file' && (
+                            <>
+                              <option value="file">file</option>
+                              <option value="directory">directory</option>
+                              <option value="absent">absent</option>
+                              <option value="link">link</option>
+                            </>
+                          )}
+                          {param.type === 'select' && param.name === 'enabled' && (
+                            <>
+                              <option value="yes">yes</option>
+                              <option value="no">no</option>
+                            </>
+                          )}
+                        </TextField>
+                      ))
+                    )
                   )}
                 </Box>
 
@@ -344,6 +659,9 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
 
                 <Typography variant="caption" color="text.secondary">
                   * Required fields
+                  {selectedModule.moduleSchema && (
+                    <> • Schema from Galaxy API v{selectedModule.moduleSchema.version}</>
+                  )}
                 </Typography>
               </AccordionDetails>
             </Accordion>

@@ -79,19 +79,36 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🛠️ **Session Terminée - En Attente Nouvelle Demande**
+## 🚧 **Version 1.9.0_1** - *En cours*
 
-### ✅ **Version 1.8.1 Déployée**
-**Fonctionnalités livrées :**
-- About Dialog avec versions et changelog
-- Configuration Admin pour namespaces standards  
-- Interface épurée (versions retirées du header)
-- API admin sécurisée et chargement dynamique
+### Nouvelle Fonctionnalité : Collecte Paramètres Modules
+- **Type**: Feature majeure 
+- **Description**: Implémentation de la collecte et configuration des paramètres des modules Ansible
+- **Impact**: Transformation de l'éditeur en outil de production complet
+- **Risques**: Complexité Galaxy API schémas, performance interface dynamique
+- **Tests prévus**: Configuration modules populaires, validation paramètres, interface responsive
 
-**Status :** ✅ **Complètement implémenté, testé et déployé en production**
+#### Scope Technique
+**Backend :**
+- Extension Galaxy Service pour récupération schémas modules
+- Nouveaux endpoints `/api/galaxy/modules/{namespace}/{collection}/{module}/schema`
+- Validation paramètres côté serveur avec contraintes Ansible
+- Stockage configuration dans structure playbook existante
 
-### 📋 **Prochaine Session**
-En attente de nouvelles demandes d'implémentation ou corrections utilisateur.
+**Frontend :**
+- Interface configuration dynamique dans Zone Config
+- Génération formulaires selon schémas modules
+- Validation temps réel paramètres utilisateur
+- Persistance configuration dans state playbook
+
+#### Objectifs Phase 1
+1. **Analyse architecture** Galaxy API pour schémas modules
+2. **Prototype interface** configuration dynamique
+3. **Définition structure** stockage paramètres 
+4. **Tests techniques** avec modules populaires
+5. **Validation utilisateur** workflow complet
+
+**Status :** 🚧 **Phase 1 - Développement en cours**
 
 ---
 

@@ -166,7 +166,9 @@
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose logs frontend --tail 10)",
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose build frontend)",
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d frontend)",
-      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d)"
+      "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d)",
+      "WebFetch(domain:ansible.readthedocs.io)",
+      "WebFetch(domain:beta-galaxy.ansible.com)"
     ],
     "deny": [],
     "ask": []
