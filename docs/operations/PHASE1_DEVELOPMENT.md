@@ -1,15 +1,15 @@
 # Phase 1 : Développement - Ansible Builder
 
-Ce document détaille les procédures spécifiques à la phase de développement (Phase 1).
+Ce document détaille les procédures spécifiques à la **Phase 1 : Développement** du processus en 3 phases.
 
 ---
 
 ## 🎯 **Objectifs Phase 1**
 
 ### Scope de la Phase
-- **Développement et test en local** sur environnement de développement
-- **Validation technique** de l'implémentation
-- **Préparation pour validation utilisateur** 
+- **Développement et test en local natif** (pas Docker)
+- **Validation technique rigoureuse** de l'implémentation
+- **Tests unitaires et linting obligatoires**
 - **Utilisation version `X.Y.Z_n`** avec suffixe de build
 
 ### Critères d'Entrée
@@ -19,36 +19,38 @@ Ce document détaille les procédures spécifiques à la phase de développement
 - **CURRENT_WORK.md mis à jour** avec nouvelle tâche
 
 ### Critères de Sortie
-- ✅ **Version `X.Y.Z_n` testée** et validée techniquement
-- ✅ **Rapport technique** avec métriques
-- ✅ **Documentation technique** mise à jour  
-- ✅ **Validation utilisateur obtenue**
-- ✅ **CHANGELOG.md mis à jour** avec nouvelles fonctionnalités
-- 🚫 **Pas de déploiement production** avant validation
+- ✅ **Exécution locale fonctionnelle** (backend:8000, frontend:5173)
+- ✅ **Versions confirmées** via /version et /api/version
+- ✅ **Tests unitaires passent** (100% backend minimum)
+- ✅ **Linting conforme** (0 erreurs)
+- ✅ **API tests non-régression** validés
+- ✅ **Nouvelles API** testées et fonctionnelles
 
 ---
 
 ## 🛠️ **Environnement de Développement**
 
-### Infrastructure
+### Infrastructure Locale
 ```bash
-# Configuration Docker Host
-export DOCKER_HOST=tcp://192.168.1.217:2375
+# Backend Python natif
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 
-# URLs de test
-Frontend: http://192.168.1.217:5173
-Backend:  http://192.168.1.217:8000
+# Frontend Node natif  
+cd frontend
+npm install
+npm run dev  # Port 5173
 ```
 
-### Configuration Database
-- **Type** : SQLite pour développement rapide
-- **Location** : `/tmp/ansible_builder_dev.db`
-- **Reset** : Possible à chaque test
-
-### Services
-- **Cache** : Redis local ou in-memory
-- **Logs** : Console output pour debug immédiat
-- **Monitoring** : Logs temps réel uniquement
+### URLs de Test
+```bash
+Frontend: http://localhost:5173
+Backend:  http://localhost:8000
+API Docs: http://localhost:8000/docs
+```
 
 ---
 
@@ -69,212 +71,302 @@ Backend:  http://192.168.1.217:8000
 - **Tests prévus**: [Plan de test]
 ```
 
-### 2. Préparation Environnement
+#### Mise à jour des versions
 ```bash
-# Vérification Docker host
-docker --host=tcp://192.168.1.217:2375 ps
+# Backend
+echo '__version__ = "X.Y.Z_n"' > backend/app/version.py
 
-# Arrêt instances précédentes
-docker --host=tcp://192.168.1.217:2375 compose down
-
-# Nettoyage si nécessaire
-docker --host=tcp://192.168.1.217:2375 system prune -f
+# Frontend
+# Modifier "version": "X.Y.Z_n" dans package.json
 ```
 
-### 3. Versioning Development
-```bash
-# Incrément automatique version _n
-# Pattern: X.Y.Z_n où n s'incrémente à chaque build
+### 2. Développement
 
-# Exemples:
-1.8.1_1 → 1.8.1_2 → 1.8.1_3
+#### Implémentation
+- **Code source** avec tests unitaires intégrés
+- **Documentation code** (docstrings)
+- **Gestion d'erreurs** appropriée
+
+#### Tests Unitaires OBLIGATOIRES
+```bash
+# Backend
+cd backend
+python -m pytest tests/ -v --cov=app
+
+# Minimum requis:
+# - Nouveaux endpoints testés
+# - Cas d'erreur couverts  
+# - Coverage > 80%
 ```
 
-### 4. Build et Lancement
+#### Linting OBLIGATOIRE
 ```bash
-# Build images
-docker --host=tcp://192.168.1.217:2375 compose build
+# Backend
+python -m flake8 app/ --max-line-length=120
 
-# Lancement services
-docker --host=tcp://192.168.1.217:2375 compose up -d
-
-# Vérification démarrage
-docker --host=tcp://192.168.1.217:2375 compose logs -f
-```
-
-### 5. Tests Automatisés
-```bash
-# Tests unitaires frontend
-npm run test
-
-# Tests unitaires backend  
-python -m pytest
-
-# Tests linting
+# Frontend
 npm run lint
-python -m flake8
+
+# Critère: 0 erreurs acceptées
 ```
 
-### 6. Validation Technique
+### 3. Exécution Locale Native
+
+#### Lancement Services
 ```bash
-# Test accessibilité frontend
-curl -f http://192.168.1.217:5173
+# Terminal 1: Backend
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --reload --port 8000
 
-# Test API backend
-curl -f http://192.168.1.217:8000/api/health
-curl -f http://192.168.1.217:8000/api/version
-
-# Test endpoints principaux
-curl -f http://192.168.1.217:8000/api/auth/...
-curl -f http://192.168.1.217:8000/api/playbooks/...
+# Terminal 2: Frontend
+cd frontend
+npm run dev
 ```
 
-### 7. Validation Utilisateur et Documentation
+#### Validation Démarrage
+- ✅ Backend démarre sans erreur
+- ✅ Frontend démarre sans erreur
+- ✅ Hot reload fonctionnel
+- ✅ Pas d'erreurs console
 
-#### Démonstration à l'utilisateur
-- **Présentation fonctionnalité** développée
-- **Tests scenarios utilisateur** validés
-- **Collecte feedback** et demandes d'ajustements
+### 4. Validation Versions
 
-#### Mise à jour CHANGELOG.md (Après validation)
-```markdown
-# Ajouter dans CHANGELOG.md
-## [X.Y.Z_n] - 2025-MM-DD (Development)
+#### Vérification Versions Affichées
+```bash
+# Frontend - Page d'accueil
+curl -s http://localhost:5173 | grep -o "X.Y.Z_n"
 
-### Added
-- [Feature] Description nouvelle fonctionnalité
-- [Enhancement] Amélioration existante
-
-### Fixed  
-- [Bug] Correction problème identifié
-
-### Changed
-- [Update] Modification comportement
-
-### Performance
-- [Optimization] Amélioration performance mesurée
+# Backend - API Version
+curl -s http://localhost:8000/api/version
+# Attendu: {"version":"X.Y.Z_n","name":"Ansible Builder API"}
 ```
 
-#### Validation Formelle
-- ✅ **Approbation explicite** utilisateur pour passage Phase 2
-- ✅ **Tests utilisateur** réussis
-- ✅ **Documentation** technique et fonctionnelle à jour
-- ✅ **CHANGELOG.md** enrichi avec développements Phase 1
+#### Screenshots Traçabilité
+- Capture écran page d'accueil avec version
+- Capture écran API /version
+- Sauvegarde dans docs/work/screenshots/
+
+### 5. Tests API Non-Régression
+
+#### Script Test Automatisé
+```bash
+#!/bin/bash
+# test-api-regression.sh
+
+echo "=== Test API Non-Régression ==="
+BASE_URL="http://localhost:8000"
+EXIT_CODE=0
+
+# Test Health
+echo -n "Testing /api/health... "
+if curl -s $BASE_URL/api/health | grep -q "ok"; then
+    echo "✅ OK"
+else
+    echo "❌ FAIL"
+    EXIT_CODE=1
+fi
+
+# Test Version
+echo -n "Testing /api/version... "
+VERSION=$(curl -s $BASE_URL/api/version | jq -r .version)
+if [[ $VERSION == *"_"* ]]; then
+    echo "✅ Version: $VERSION"
+else
+    echo "❌ FAIL - Wrong version format"
+    EXIT_CODE=1
+fi
+
+# Test Auth Status
+echo -n "Testing /api/auth/status... "
+if curl -s $BASE_URL/api/auth/status | grep -q "user"; then
+    echo "✅ OK"
+else
+    echo "❌ FAIL"
+    EXIT_CODE=1
+fi
+
+# Test Galaxy Namespaces
+echo -n "Testing /api/galaxy/namespaces... "
+COUNT=$(curl -s $BASE_URL/api/galaxy/namespaces | jq '. | length')
+if [[ $COUNT -gt 0 ]]; then
+    echo "✅ Found $COUNT namespaces"
+else
+    echo "❌ FAIL"
+    EXIT_CODE=1
+fi
+
+# Test Playbooks
+echo -n "Testing /api/playbooks... "
+if curl -s $BASE_URL/api/playbooks | grep -q "playbooks"; then
+    echo "✅ OK"
+else
+    echo "❌ FAIL"
+    EXIT_CODE=1
+fi
+
+exit $EXIT_CODE
+```
+
+### 6. Tests Nouvelles API
+
+#### Exemples pour Module Schemas
+```bash
+# Test module avec documentation
+echo "Testing docker_container schema..."
+curl -s "http://localhost:8000/api/galaxy/modules/community.docker.docker_container/schema" \
+  | jq .parameters | head -5
+
+# Test module sans documentation (erreur 404)
+echo "Testing api_gateway schema..."
+HTTP_CODE=$(curl -s -w "%{http_code}" "http://localhost:8000/api/galaxy/modules/community.aws.api_gateway/schema")
+if [[ $HTTP_CODE == "404" ]]; then
+    echo "✅ Correct 404 error"
+else
+    echo "❌ Wrong HTTP code: $HTTP_CODE"
+fi
+
+# Test performance
+echo "Testing response time..."
+TIME=$(curl -w "@curl-format.txt" -s "http://localhost:8000/api/galaxy/modules/community.docker.docker_container/schema" -o /dev/null)
+echo "Response time: ${TIME}s (target: <2s)"
+```
+
+### 7. Build Validation
+
+#### Frontend Build
+```bash
+cd frontend
+npm run build
+
+# Vérifications:
+# - Build réussit sans erreurs
+# - Warnings acceptables
+# - Taille bundle raisonnable
+```
+
+#### TypeScript Check
+```bash
+npm run tsc --noEmit
+# Aucune erreur TypeScript acceptée
+```
 
 ---
 
 ## ✅ **Checklist Validation Phase 1**
 
-### Tests Techniques Obligatoires
-- [ ] **Logs frontend** : Aucune erreur critique en console
-- [ ] **Logs backend** : Démarrage propre, connexion DB OK
-- [ ] **Page d'accueil** : Charge sans erreur 200/300
-- [ ] **API Health** : Endpoints /health et /version répondent
-- [ ] **Tests unitaires** : 100% de passage
-- [ ] **Linting** : Code conforme aux standards
+### Tests Techniques OBLIGATOIRES
+- [ ] **Backend démarre** : Port 8000 sans erreur
+- [ ] **Frontend démarre** : Port 5173 sans erreur
+- [ ] **Version frontend** : Page affiche X.Y.Z_n
+- [ ] **Version backend** : API retourne X.Y.Z_n
+- [ ] **Tests unitaires** : 100% passent (minimum backend)
+- [ ] **Linting backend** : 0 erreurs flake8
+- [ ] **Linting frontend** : 0 erreurs ESLint
+- [ ] **Build frontend** : npm run build réussit
+
+### Tests API OBLIGATOIRES
+- [ ] **Non-régression** : Script tests-api-regression.sh passe
+- [ ] **Health API** : /api/health OK
+- [ ] **Auth API** : /api/auth/status OK
+- [ ] **Galaxy API** : /api/galaxy/namespaces OK
+- [ ] **Playbooks API** : /api/playbooks OK
+- [ ] **Nouvelles API** : Tous les nouveaux endpoints testés
 
 ### Tests Fonctionnels
-- [ ] **Feature implémentée** : Fonctionne selon spécifications
-- [ ] **Navigation** : Pas de régression sur fonctionnalités existantes
-- [ ] **Performance locale** : Réponses <2s sur réseau local
-- [ ] **Gestion erreurs** : Messages appropriés si erreur
-
-### Tests d'Intégration
-- [ ] **Frontend ↔ Backend** : Communication OK
-- [ ] **Base de données** : CRUD operations fonctionnelles
-- [ ] **Authentification** : Login/logout opérationnels
-- [ ] **Cache/Galaxy** : Services externes répondent
+- [ ] **Hot reload** : Modifications code reflétées
+- [ ] **Console clean** : Pas d'erreurs navigateur
+- [ ] **Logs clean** : Pas d'erreurs backend
+- [ ] **Performance** : Réponses <2s local
 
 ---
 
-## 📊 **Métriques Phase 1**
+## 📊 **Livrables Phase 1**
 
-### Performance Locale
-```bash
-# Temps build
-time docker --host=tcp://192.168.1.217:2375 compose build
+### Code et Tests
+- **Code source** avec modifications
+- **Tests unitaires** pour nouveau code
+- **Documentation** code mise à jour
 
-# Temps démarrage
-time docker --host=tcp://192.168.1.217:2375 compose up -d
+### Rapports
+- **Rapport tests unitaires** (coverage + résultats)
+- **Rapport tests API** (script + résultats)
+- **Screenshots** versions confirmées
+- **Métriques** performance locale
 
-# Temps réponse API
-curl -w "@curl-format.txt" http://192.168.1.217:8000/api/version
-```
-
-### Métriques Cibles
-- **Build Time** : <5 minutes
-- **Startup Time** : <30 secondes
-- **API Response** : <1s local
-- **Page Load** : <2s local
-- **Memory Usage** : <1GB total
-
----
-
-## 📝 **Livrables Phase 1**
-
-### Documentation Technique
-- **Rapport de tests** : Résultats tous tests automatisés
-- **Métriques performance** : Temps build, startup, réponse
-- **Screenshots** : Interface utilisateur si changes UI
-- **Changelog technique** : Modifications code significatives
-
-### Artefacts Code
-- **Version `X.Y.Z_n`** : Testée et validée
-- **Tests mis à jour** : Coverage maintenu ou amélioré
-- **Documentation code** : Comments et docstrings
-- **Configuration** : Environnement développement stable
+### Validation
+- **Checklist** complète signée
+- **TodoWrite** avec toutes étapes complétées
 
 ---
 
 ## 🚨 **Points d'Attention Phase 1**
 
 ### ⚠️ **Arrêts Obligatoires**
-- **Erreurs critiques** : Logs avec ERROR ou FATAL
-- **Tests échoués** : Même un seul test unitaire en échec
-- **Régression** : Fonctionnalité existante cassée
-- **Performance dégradée** : Temps réponse >5s local
+- **Tests unitaires échouent** : Même 1 test en échec
+- **Erreurs linting** : Aucune erreur acceptée
+- **Services ne démarrent pas** : Problème de dépendances
+- **Versions incorrectes** : Doivent afficher X.Y.Z_n
+- **API régression** : Changement comportement existant
 
-### 🔍 **Validations Utilisateur**
-- **Démonstration** : Présenter la fonctionnalité à l'utilisateur
-- **Feedback** : Collecter commentaires et demandes ajustements
-- **Approbation explicite** : Obtenir "go" pour Phase 2
-- **Corrections si nécessaire** : Retour développement si demandé
-
-### 📋 **Avant Phase 2**
-- **Documentation jour** : Mise à jour complète docs techniques
-- **Code review** : Vérification qualité code
-- **Plan Phase 2** : Stratégie déploiement définie
-- **Backup config** : Sauvegarder configuration actuelle
+### 🔍 **Validations Critiques**
+- **Exécution native** : Pas via Docker
+- **Versions cohérentes** : Frontend ET backend
+- **Performance locale** : <2s response time
+- **Error handling** : Codes HTTP appropriés
 
 ---
 
 ## 🔄 **Transition vers Phase 2**
 
-### Conditions de Passage
-1. ✅ **Tous tests Phase 1 passent**
-2. ✅ **Validation utilisateur obtenue**
-3. ✅ **Documentation technique à jour**
-4. ✅ **Performance locale acceptable**
-5. ✅ **Aucune erreur critique**
+### ⚠️ **IMPORTANT - Validation Utilisateur Obligatoire**
 
-### Préparation Phase 2
+**Claude doit TOUJOURS :**
+1. ✅ **Compléter checklist** Phase 1 à 100%
+2. 🙋 **Demander validation explicite** à l'utilisateur
+3. ⏳ **Attendre réponse "go"** avant continuer
+4. 🚫 **NE JAMAIS** démarrer Phase 2 automatiquement
+
+### Message de Validation
+```markdown
+🎯 **Phase 1 Complète - Validation Requise**
+
+**Checklist Phase 1 :** [X/X] ✅
+**Tests unitaires :** [X/X] passés ✅  
+**Linting :** 0 erreurs ✅
+**Version validée :** X.Y.Z_n ✅
+**API tests :** Non-régression + nouvelles API ✅
+
+**Êtes-vous prêt pour le passage en Phase 2 (Intégration) ?**
+- ✅ **OUI** - Démarrer Phase 2
+- ❌ **NON** - Rester en Phase 1
+
+Merci de confirmer avant que je continue.
+```
+
+### Préparation Phase 2 (après validation)
 ```bash
-# Arrêt propre environnement dev
-docker --host=tcp://192.168.1.217:2375 compose down
+# Commit local
+git add .
+git commit -m "feat: [description] - Phase 1 complete
 
-# Vérification version finale
-cat frontend/package.json | grep version
-cat backend/app/version.py | grep version
+- Feature implemented and tested locally
+- Unit tests: [X/X] passed
+- API regression tests: passed
+- Version X.Y.Z_n validated
+- User validation: approved
 
-# Documentation finale
-git status # Vérifier docs à jour
+🤖 Generated with Claude Code
+"
+
+# Phase 2 autorisée par utilisateur
 ```
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-12*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-14*
 
 *Voir aussi :*
-- [Phase 2 Production](PHASE2_PRODUCTION.md)
+- [Phase 2 Intégration](PHASE2_INTEGRATION.md)
+- [Phase 3 Production](PHASE3_PRODUCTION.md)
 - [Process Développement](../core/DEVELOPMENT_PROCESS.md)
-- [Guide Déploiement](DEPLOYMENT_GUIDE.md)

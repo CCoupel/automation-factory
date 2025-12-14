@@ -41,6 +41,8 @@ import ErrorIcon from '@mui/icons-material/Error'
 import SaveIcon from '@mui/icons-material/Save'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import { getHttpClient } from '../../utils/httpClient'
+import axios from 'axios'
+import packageJson from '../../../package.json'
 
 interface AppHeaderProps {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
@@ -69,12 +71,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const { darkMode, toggleDarkMode } = useTheme()
   const { ansibleVersion, setAnsibleVersion } = useAnsibleVersion()
 
-  // Version state
-  const [versions, setVersions] = useState<{
-    frontend: { version: string; name: string }
-    backend: { version: string; name: string }
-    environment: string
-  } | null>(null)
+  // Version state (simplified like LoginPage)
+  const [backendVersion, setBackendVersion] = useState<string>('...')
+  const [backendVersionInfo, setBackendVersionInfo] = useState<any>(null)
+  const frontendVersion = packageJson.version
+  const environment = 'development'
 
   // Playbook fields state (local for other fields)
   const [playbookVersion, setPlaybookVersion] = useState('1.0.0')
@@ -95,40 +96,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   // About dialog state
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
 
+
   /**
-   * Fetch versions on component mount
+   * Fetch backend version on component mount (simplified like LoginPage)
    */
   useEffect(() => {
-    const fetchVersions = async () => {
+    const fetchBackendVersion = async () => {
       try {
-        const http = getHttpClient()
+        const apiUrl = (window as any).__API_URL__ || '/api'
+        const response = await axios.get(`${apiUrl}/version`)
         
-        // Fetch frontend version from frontend itself (relative URL respects base path)
-        const frontendResponse = await fetch('./version')
-        const frontendData = await frontendResponse.json()
+        // Store simple version string
+        setBackendVersion(response.data.version || 'N/A')
         
-        // Fetch backend version from API (uses configured base URL)
-        const backendResponse = await http.get('/version')
-        const backendData = backendResponse.data
-        
-        // Combine both versions
-        setVersions({
-          frontend: {
-            version: frontendData.version,
-            name: frontendData.name
-          },
-          backend: {
-            version: backendData.version,
-            name: backendData.name
-          },
-          environment: frontendData.environment || "development"
-        })
-      } catch (error) {
-        console.error('Failed to fetch versions:', error)
+        // Store complete version info for About dialog
+        setBackendVersionInfo(response.data)
+      } catch (err) {
+        console.error('Failed to fetch backend version:', err)
+        setBackendVersion('N/A')
+        setBackendVersionInfo(null)
       }
     }
 
-    fetchVersions()
+    fetchBackendVersion()
   }, [])
 
   /**
@@ -216,7 +206,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   /**
    * Handle About dialog
    */
-  const handleOpenAboutDialog = () => {
+  const handleOpenAbout = () => {
     handleMenuClose()
     setAboutDialogOpen(true)
   }
@@ -556,7 +546,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               {user.role === 'admin' && <Divider />}
 
               {/* About */}
-              <MenuItem onClick={handleOpenAboutDialog}>
+              <MenuItem onClick={handleOpenAbout}>
                 <ListItemIcon>
                   <InfoIcon fontSize="small" />
                 </ListItemIcon>
@@ -665,11 +655,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
         </DialogActions>
       </Dialog>
 
-      {/* About Dialog */}
+      {/* About Dialog - Enriched with dynamic version info */}
       <Dialog
         open={aboutDialogOpen}
         onClose={handleCloseAboutDialog}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -687,37 +677,110 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               via un système de drag & drop.
             </Typography>
             
+            {/* Versions des composants */}
             <Box sx={{ bgcolor: 'background.paper', p: 2, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
                 Versions des composants :
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Frontend: {versions?.frontend?.version || 'N/A'} ({versions?.frontend?.name || 'Frontend'})
+                • Frontend: {frontendVersion} (ansible-builder-frontend)
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Backend: {versions?.backend?.version || 'N/A'} ({versions?.backend?.name || 'API'})
+                • Backend: {backendVersion} ({backendVersionInfo?.name || 'Ansible Builder API'})
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Environment: {versions?.environment || 'development'}
+                • Environment: {environment}
               </Typography>
+              {backendVersionInfo?.is_rc && (
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'orange', fontWeight: 'bold' }}>
+                  ⚠️ Release Candidate - Version de test
+                </Typography>
+              )}
             </Box>
 
-            <Typography variant="body2" color="text.secondary">
-              <strong>Nouvelles fonctionnalités v1.8.1 :</strong>
-            </Typography>
-            <Box component="ul" sx={{ pl: 2, m: 0 }}>
-              <Typography component="li" variant="body2" color="text.secondary">
-                Boîte About avec versions et changelog intégré
+            {/* Nouvelles fonctionnalités de la version actuelle */}
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 2 }}>
+                Nouvelles fonctionnalités version {backendVersionInfo?.base_version || frontendVersion.split('_')[0]} :
               </Typography>
-              <Typography component="li" variant="body2" color="text.secondary">
-                Configuration Admin pour namespaces standards
+
+              {/* Backend Features */}
+              {backendVersionInfo?.features?.features?.length > 0 && (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }}></Box>
+                    Backend API - {backendVersionInfo.features.title}
+                  </Typography>
+                  <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
+                    {backendVersionInfo.features.features.map((feature: string, index: number) => (
+                      <Typography key={index} component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        🔧 {feature}
+                      </Typography>
+                    ))}
+                  </Box>
+                </>
+              )}
+
+              {/* Frontend Features */}
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }}></Box>
+                Frontend Interface
               </Typography>
-              <Typography component="li" variant="body2" color="text.secondary">
-                Chargement dynamique des namespaces configurables
+              <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  🎨 Interface utilisateur avec Material-UI v6
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  📱 Design responsive et navigation intuitive
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  ⚡ Popup About dynamique avec récupération temps réel
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  🔗 Intégration rationalisée avec pattern LoginPage
+                </Typography>
+              </Box>
+
+              {/* Backend Improvements */}
+              {backendVersionInfo?.features?.improvements?.length > 0 && (
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }}></Box>
+                    Améliorations Backend
+                  </Typography>
+                  <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
+                    {backendVersionInfo.features.improvements.map((improvement: string, index: number) => (
+                      <Typography key={index} component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        ⚙️ {improvement}
+                      </Typography>
+                    ))}
+                  </Box>
+                </>
+              )}
+
+              {/* Full Stack Features */}
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'info.main' }}></Box>
+                Fonctionnalités Full Stack
               </Typography>
-              <Typography component="li" variant="body2" color="text.secondary">
-                Interface épurée sans versions dans le header
-              </Typography>
+              <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  🔄 Synchronisation automatique des versions Frontend ↔ Backend
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  📊 API enrichie pour affichage dynamique des fonctionnalités
+                </Typography>
+                <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  🐳 Déploiement Docker coordonné avec versions alignées
+                </Typography>
+              </Box>
+
+              {/* Release date */}
+              {backendVersionInfo?.features?.release_date && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  📅 Date de release: {backendVersionInfo.features.release_date}
+                </Typography>
+              )}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
@@ -741,6 +804,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
           </Button>
         </DialogActions>
       </Dialog>
+
     </AppBar>
   )
 }

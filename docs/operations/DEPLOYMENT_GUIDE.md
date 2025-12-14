@@ -40,6 +40,162 @@ curl http://192.168.1.217:8000/api/galaxy/smart/status
 
 ---
 
+### Phase 2 : Architecture Nginx Reverse Proxy (Staging)
+
+**🏗️ Architecture recommandée pour staging/intégration**
+
+#### Structure
+```
+nginx (port 80) → Point d'entrée unique
+├── / → frontend (Vite dev server, port 5173)
+└── /api/* → backend (FastAPI, port 8000)
+```
+
+#### Configuration docker-compose.staging.yml
+```yaml
+version: '3.8'
+
+services:
+  # Backend FastAPI
+  backend:
+    image: ansible-builder-backend:X.Y.Z_n
+    container_name: ansible-builder-backend-staging
+    environment:
+      - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+    restart: unless-stopped
+    networks:
+      - ansiblebuilder_default
+
+  # Frontend Vite Dev Server
+  frontend:
+    image: ansible-builder-frontend:X.Y.Z_n-vite
+    container_name: ansible-builder-frontend-staging
+    restart: unless-stopped
+    networks:
+      - ansiblebuilder_default
+    depends_on:
+      - backend
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ansible-builder-nginx-staging
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - ansiblebuilder_default
+    depends_on:
+      - frontend
+      - backend
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+
+configs:
+  nginx_conf:
+    content: |
+      worker_processes 1;
+      
+      events {
+          worker_connections 1024;
+      }
+      
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+      
+          access_log /var/log/nginx/access.log;
+          error_log /var/log/nginx/error.log;
+      
+          gzip on;
+          gzip_vary on;
+          gzip_min_length 1024;
+          gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+      
+          server {
+              listen 80;
+              server_name localhost;
+              
+              # Backend API Routing
+              location /api/ {
+                  proxy_pass http://backend:8000/api/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+                  
+                  add_header 'Access-Control-Allow-Origin' '*' always;
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+                  
+                  if ($$request_method = 'OPTIONS') {
+                      add_header 'Access-Control-Allow-Origin' '*';
+                      add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                      add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                      add_header 'Access-Control-Max-Age' 1728000;
+                      add_header 'Content-Type' 'text/plain; charset=utf-8';
+                      add_header 'Content-Length' 0;
+                      return 204;
+                  }
+              }
+              
+              # Health endpoint
+              location = /health {
+                  access_log off;
+                  return 200 "healthy\n";
+                  add_header Content-Type text/plain;
+              }
+              
+              # Frontend Routing (MUST BE LAST)
+              location / {
+                  proxy_pass http://frontend:5173;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+                  proxy_cache_bypass $$http_upgrade;
+                  proxy_read_timeout 86400;
+              }
+          }
+      }
+
+networks:
+  ansiblebuilder_default:
+    external: true
+```
+
+#### Procédure de déploiement Phase 2
+```bash
+# 1. Build images localement sur le serveur staging
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z_n backend/
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z_n-vite -f frontend/Dockerfile.dev frontend/
+
+# 2. Déploiement avec docker-compose
+docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
+
+# 3. Validation santé complète
+curl -I http://192.168.1.217/health          # Nginx OK
+curl http://192.168.1.217/api/version        # Backend API OK
+curl -I http://192.168.1.217/                # Frontend OK (Vite dev)
+```
+
+#### Points clés Phase 2
+- **Images locales** : Build sur 192.168.1.217, pas de push vers ghcr.io
+- **Frontend Vite** : Utiliser `Dockerfile.dev` pour serveur développement
+- **Nginx central** : Point d'entrée unique sur port 80
+- **Réseau interne** : Backend/Frontend non exposés directement
+- **Configuration inline** : nginx.conf intégré dans docker-compose
+
+---
+
 ## 🏗️ **Déploiement Production**
 
 ### Phase 2 : Kubernetes

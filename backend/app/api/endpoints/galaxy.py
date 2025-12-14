@@ -609,7 +609,14 @@ async def get_module_schema(
             raise HTTPException(status_code=404, detail=f"Module {module} not found in {namespace}.{collection}:{version}")
         
         # Extract and format the schema
-        doc_strings = module_content.get("doc_strings", {})
+        doc_strings = module_content.get("doc_strings")
+        if doc_strings is None:
+            logger.warning(f"No doc_strings available for {namespace}.{collection}.{module}:{version}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Documentation not available for module {namespace}.{collection}.{module}:{version}"
+            )
+        
         doc = doc_strings.get("doc", {})
         
         # Transform parameters to our format

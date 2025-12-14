@@ -30,7 +30,7 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 
 ---
 
-## 🚀 **Sprint de Développement**
+## 🚀 **Sprint de Développement - 3 Phases**
 
 ### Étapes du Sprint
 
@@ -39,23 +39,70 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 3. **Planification** :
    - 3a) Plan de développement avec impact, risques, gains
    - 3b) Mise à jour documentation avec la demande
-4. **Phase 1** : Développement local
-5. **Tests Phase 1** :
-   - 5a) Analyse logs et tests unitaires/bout-en-bout + corrections
-   - 5b) Rapport de tests et performance
-   - 5c) Arrêt instances précédentes + relance sur 192.168.1.217 (ports 5180/8000) via docker compose
-   - 5d) Test page d'accueil sans erreur + API répond
-6. **Validation** : Tests manuels utilisateur
-7. **Décision** :
-   - 7a) Corrections → Retour Phase 1
-   - 7b) Validation → Phase 2
-8. **Phase 2** : Intégration production
-9. **Build** : Images frontend et backend
-10. **Publication** : Push images sur ghcr.io
-11. **Déploiement** : Deploy dans Kubernetes
-12. **Tests Phase 2** : Logs + tests + corrections si nécessaire
-13. **Rapport final** : Tests et performance
-14. **Finalisation** : Mise à jour documentation + commit/push
+
+### **Phase 1 : Développement** 🛠️
+4. **Développement Local Native** :
+   - 4a) Implémentation + tests unitaires OBLIGATOIRES
+   - 4b) Exécution locale (backend:8000, frontend:5173)
+   - 4c) Validation versions via /version et /api/version
+   - 4d) Tests API non-régression + nouvelles API
+   - 4e) Linting et build validation
+
+### **Phase 2 : Intégration** 🔗  
+5. **Packaging et Staging** :
+   - 5a) Build images Docker X.Y.Z-rc.n
+   - 5b) Déploiement docker-compose sur 192.168.1.217
+   - 5c) Tests end-to-end automatisés
+   - 5d) Validation utilisateur sur staging
+
+### **Phase 3 : Production** 🚀
+6. **Déploiement Production** :
+   - 6a) Tag version finale X.Y.Z
+   - 6b) Déploiement Kubernetes production
+   - 6c) Smoke tests et monitoring
+   - 6d) Documentation finale
+
+---
+
+## 🔄 **Gates et Critères de Passage**
+
+### Gate Phase 1 → Phase 2
+**Procédure Claude :**
+1. 🔍 **Relire PHASE1_DEVELOPMENT.md** avant début Phase 1
+2. ✅ Compléter toutes étapes Phase 1
+3. 🙋 **Demander validation utilisateur** pour passage Phase 2
+4. ⏳ **Attendre "go" explicite** avant continuer
+
+**Critères techniques :**
+- ✅ Tests unitaires passent (100%)
+- ✅ Linting 0 erreurs
+- ✅ Exécution locale fonctionnelle
+- ✅ Versions correctes affichées
+- ✅ API tests non-régression OK
+
+### Gate Phase 2 → Phase 3
+**Procédure Claude :**
+1. 🔍 **Relire PHASE2_INTEGRATION.md** avant début Phase 2
+2. ✅ Compléter toutes étapes Phase 2
+3. 🙋 **Demander validation utilisateur** pour passage Phase 3
+4. ⏳ **Attendre "go" explicite** avant continuer
+
+**Critères techniques :**
+- ✅ Tests E2E automatisés passent
+- ✅ Validation utilisateur signée
+- ✅ Performance conforme aux cibles
+- ✅ Version RC validée
+
+### Gate Phase 3 → Fini
+**Procédure Claude :**
+1. 🔍 **Relire PHASE3_PRODUCTION.md** avant début Phase 3
+2. ✅ Compléter toutes étapes Phase 3
+3. ℹ️ **Informer utilisateur** déploiement terminé
+
+**Critères techniques :**
+- ✅ Smoke tests production OK
+- ✅ Métriques stables 30 min
+- ✅ 0 erreurs critiques
 
 ---
 

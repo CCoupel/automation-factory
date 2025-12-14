@@ -3,6 +3,7 @@ Common API endpoints
 """
 
 from fastapi import APIRouter
+from app.version import get_version_info
 
 router = APIRouter()
 
@@ -10,11 +11,16 @@ router = APIRouter()
 @router.get("/version")
 async def version():
     """
-    Version endpoint - Returns API version
+    Version endpoint - Returns complete API version information including features
     """
+    version_info = get_version_info()
     return {
-        "version": "1.2.8",
-        "name": "Ansible Builder API"
+        "version": version_info["version"],
+        "base_version": version_info["base_version"],
+        "name": "Ansible Builder API",
+        "description": version_info["description"],
+        "is_rc": version_info["is_rc"],
+        "features": version_info["features"]
     }
 
 

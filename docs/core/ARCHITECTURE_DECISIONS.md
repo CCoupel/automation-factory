@@ -98,13 +98,43 @@ Ce document trace les décisions techniques importantes et leurs justifications.
 - **Performance :** Géodistribution
 - **Gratuit :** Pas de limite pour projets publics
 
-### Nginx Reverse Proxy
-**Décision :** Nginx devant frontend
+### Architecture de Déploiement Multi-Phase
+**Décision :** 3 phases distinctes avec architectures différentes
 **Justification :**
-- **Compression :** Gzip automatique
-- **Cache :** Assets statiques
-- **SSL :** Terminaison TLS
-- **Routing :** URLs relatives
+
+#### Phase 1 : Développement Local
+- **Containers directs :** Backend (8000) + Frontend (5173)
+- **Simplicité :** Test rapide et debugging
+- **Isolation :** Services indépendants
+
+#### Phase 2 : Staging/Intégration (nginx reverse proxy)
+**Architecture :**
+```
+nginx (port 80) → Point d'entrée unique
+├── / → frontend (Vite dev server, port 5173)
+└── /api/* → backend (FastAPI, port 8000)
+```
+
+**Justifications :**
+- **Réalisme production :** Simule architecture finale
+- **Point d'entrée unique :** Gestion CORS simplifiée
+- **Images locales :** Build sur serveur staging (pas de push ghcr.io)
+- **Frontend Vite :** Développement avec hot-reload
+- **Debugging :** Logs accessibles et isolation réseau
+
+#### Phase 3 : Production Kubernetes
+- **Ingress Controller :** Routing externe
+- **Images registry :** ghcr.io avec tags versionnés
+- **SSL/TLS :** Certificats automatiques
+- **Monitoring :** Observabilité complète
+
+### Nginx Reverse Proxy (Phase 2)
+**Décision :** Configuration nginx inline dans docker-compose
+**Justification :**
+- **Simplicité :** Pas de fichiers externes à synchroniser
+- **Version control :** Configuration dans le code
+- **Déploiement atomique :** Tout dans docker-compose.staging.yml
+- **Flexibilité :** Adaptation facile par environnement
 
 ---
 

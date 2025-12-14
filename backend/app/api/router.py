@@ -9,14 +9,7 @@ from app.version import __version__
 # Create main API router
 api_router = APIRouter()
 
-# Add version endpoint directly
-@api_router.get("/version")
-async def api_version():
-    """API version endpoint - Returns backend API version"""
-    return {
-        "version": __version__, 
-        "name": "Ansible Builder API"
-    }
+# Version endpoint is now handled by common.router with enriched features
 
 
 
@@ -24,6 +17,7 @@ async def api_version():
 api_router.include_router(auth.router)
 api_router.include_router(playbooks.router)
 api_router.include_router(admin.router)
+api_router.include_router(common.router)  # Include common router for enriched version endpoint
 api_router.include_router(collections.router)
 api_router.include_router(galaxy.router)
 api_router.include_router(galaxy_cache.router, prefix="/galaxy", tags=["galaxy-cache"])

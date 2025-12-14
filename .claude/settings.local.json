@@ -168,7 +168,10 @@
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d frontend)",
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker-compose up -d)",
       "WebFetch(domain:ansible.readthedocs.io)",
-      "WebFetch(domain:beta-galaxy.ansible.com)"
+      "WebFetch(domain:beta-galaxy.ansible.com)",
+      "Bash(npm run lint)",
+      "Bash(./e2e-tests.sh)",
+      "Bash(./performance-tests.sh:*)"
     ],
     "deny": [],
     "ask": []

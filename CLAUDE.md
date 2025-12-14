@@ -8,11 +8,11 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 1.8.0_2 / Frontend 1.8.0_2  
+**Version Développement :** Backend 1.9.0_5 / Frontend 1.9.0_7  
 **Version Production :** Backend 1.5.0_3 / Frontend 1.6.5  
 **URL Production :** https://coupel.net/ansible-builder  
-**URL Développement :** http://192.168.1.217:80  
-**Dernière mise à jour :** 2025-12-08
+**URL Staging :** http://192.168.1.217 (nginx reverse proxy)  
+**Dernière mise à jour :** 2025-12-14
 
 ## 📚 **Documentation Organisée**
 
@@ -49,9 +49,23 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ## 🛠️ **Quick Start pour Claude**
 
 1. **Nouvelle session :** Lire `docs/work/CURRENT_WORK.md` pour l'état actuel
-2. **Nouvelle feature :** Consulter `docs/core/DEVELOPMENT_PROCESS.md`
-3. **Problème technique :** Vérifier `docs/operations/TROUBLESHOOTING.md`
-4. **Questions architecture :** Voir `docs/core/ARCHITECTURE_DECISIONS.md`
+2. **Nouvelle feature :** Consulter `docs/core/DEVELOPMENT_PROCESS.md` (processus 3 phases)
+3. **Phase 1 Dev :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` (local natif)
+4. **Phase 2 Staging :** Utiliser architecture nginx reverse proxy (voir section ci-dessous)
+5. **Phase 3 Prod :** Voir `docs/operations/PHASE3_PRODUCTION.md` (production)
+6. **Problème technique :** Vérifier `docs/operations/TROUBLESHOOTING.md`
+
+## ⚠️ **RÈGLES CRITIQUES pour Claude**
+
+### 🚫 **INTERDICTIONS ABSOLUES**
+- **NE JAMAIS** passer d'une phase à l'autre sans validation utilisateur
+- **NE JAMAIS** démarrer une phase sans relire sa procédure complète
+- **NE JAMAIS** ignorer les gates et critères de passage
+
+### ✅ **OBLIGATIONS**
+- **TOUJOURS** demander "go" explicite entre phases
+- **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter  
+- **TOUJOURS** attendre réponse utilisateur avant continuer
 
 ## 📋 **Règles de Versioning**
 
@@ -78,6 +92,45 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **Kubeconfig :** kubeconfig.txt
 - **GitHub Token :** github_token.txt
 - **Custom Values :** custom-values.yaml
+
+---
+
+## 🏗️ **Architecture Phase 2 - Nginx Reverse Proxy (PERMANENT)**
+
+**⚠️ IMPORTANT :** En Phase 2, TOUJOURS utiliser cette architecture nginx reverse proxy
+
+### Structure
+```
+nginx (port 80) → Point d'entrée unique
+├── / → frontend (Vite dev server, port 5173)
+└── /api/* → backend (FastAPI, port 8000)
+```
+
+### Procédure de déploiement Phase 2
+```bash
+# 1. Build images localement sur staging server
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z_n backend/
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z_n-vite -f frontend/Dockerfile.dev frontend/
+
+# 2. Update docker-compose.staging.yml avec nouvelles versions
+
+# 3. Déploiement
+docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
+
+# 4. Validation santé OBLIGATOIRE
+curl -I http://192.168.1.217/health          # Nginx OK
+curl http://192.168.1.217/api/version        # Backend API OK
+curl -I http://192.168.1.217/                # Frontend OK (Vite)
+```
+
+### Points clés PERMANENTS
+- **Images locales** : Build sur 192.168.1.217, PAS de push ghcr.io
+- **Frontend Vite** : TOUJOURS utiliser `Dockerfile.dev` (pas `Dockerfile`)
+- **Nginx central** : Point d'entrée unique sur port 80
+- **Configuration inline** : nginx.conf dans docker-compose.staging.yml
+- **Validation santé** : TOUJOURS tester les 3 endpoints
+
+**Voir détails complets :** [Guide Déploiement Phase 2](docs/operations/DEPLOYMENT_GUIDE.md#phase-2--architecture-nginx-reverse-proxy-staging)
 
 ---
 
