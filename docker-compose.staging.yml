@@ -18,7 +18,7 @@ services:
 
   # Frontend Vite
   frontend:
-    image: ansible-builder-frontend:1.9.0_7-vite
+    image: ansible-builder-frontend:1.9.0_8-vite
     container_name: ansible-builder-frontend-staging
     restart: unless-stopped
     networks:

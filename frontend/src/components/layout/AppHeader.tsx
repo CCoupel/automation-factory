@@ -707,10 +707,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               {/* Backend Features */}
               {backendVersionInfo?.features?.features?.length > 0 && (
                 <>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main' }}></Box>
-                    Backend API - {backendVersionInfo.features.title}
-                  </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                      Backend API - {backendVersionInfo.features.title}
+                    </Typography>
+                  </Box>
                   <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
                     {backendVersionInfo.features.features.map((feature: string, index: number) => (
                       <Typography key={index} component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
@@ -722,10 +724,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               )}
 
               {/* Frontend Features */}
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }}></Box>
-                Frontend Interface
-              </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                  Frontend Interface
+                </Typography>
+              </Box>
               <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
                 <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                   🎨 Interface utilisateur avec Material-UI v6
@@ -744,10 +748,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               {/* Backend Improvements */}
               {backendVersionInfo?.features?.improvements?.length > 0 && (
                 <>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main' }}></Box>
-                    Améliorations Backend
-                  </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                      Améliorations Backend
+                    </Typography>
+                  </Box>
                   <Box component="ul" sx={{ pl: 3, m: 0, mb: 2 }}>
                     {backendVersionInfo.features.improvements.map((improvement: string, index: number) => (
                       <Typography key={index} component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
@@ -759,10 +765,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               )}
 
               {/* Full Stack Features */}
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'info.main' }}></Box>
-                Fonctionnalités Full Stack
-              </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                  Fonctionnalités Full Stack
+                </Typography>
+              </Box>
               <Box component="ul" sx={{ pl: 3, m: 0, mb: 1 }}>
                 <Typography component="li" variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                   🔄 Synchronisation automatique des versions Frontend ↔ Backend
