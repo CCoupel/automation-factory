@@ -41,8 +41,9 @@ import SortIcon from '@mui/icons-material/Sort'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { useState, useEffect } from 'react'
-import { galaxyService, Namespace, Collection, Module } from '../../services/galaxyService'
-import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
+import { ansibleApiService } from '../../services/ansibleApiService'
+import { Namespace, Collection, Module } from '../../services/galaxyService'
+import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxy } from '../../contexts/GalaxyContext'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
 import { userPreferencesService } from '../../services/userPreferencesService'
@@ -67,7 +68,8 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   console.log('ModulesZone v1.16.0 loaded at:', new Date().toISOString())
   const [activeTab, setActiveTab] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const { ansibleVersion } = useAnsibleVersion()
+  // Get current Ansible version from the hook (managed by AppHeader VersionSelector)
+  const { selectedVersion: ansibleVersion } = useAnsibleVersions()
   
   // Use Galaxy context for namespaces
   const {
@@ -158,8 +160,19 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await galaxyService.getCollections(namespace)
-      setCollections(result.collections || [])
+      const collections = await ansibleApiService.getCollections(namespace)
+      // Convert ansible API format to galaxy format for compatibility
+      const formattedCollections = collections.map(name => ({
+        name,
+        description: '',
+        latest_version: '1.0.0',
+        download_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        requires_ansible: undefined,
+        deprecated: false
+      }))
+      setCollections(formattedCollections)
     } catch (err) {
       setError(`Failed to load collections for ${namespace}`)
       console.error('Error loading collections:', err)
@@ -172,14 +185,17 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await galaxyService.getVersions(namespace, collection)
-      const versions = result.versions || []
+      // For Ansible API, we don't have versions per collection, so simulate one version
+      const versions = [{
+        version: 'latest',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        requires_ansible: undefined
+      }]
       setVersions(versions)
       
-      // Si une seule version, naviguer directement vers les modules
-      if (versions.length === 1) {
-        navigateToModules(namespace, collection, versions[0].version)
-      }
+      // Navigate directly to modules since there's only one version
+      navigateToModules(namespace, collection, 'latest')
     } catch (err) {
       setError(`Failed to load versions for ${namespace}.${collection}`)
       console.error('Error loading versions:', err)
@@ -192,10 +208,14 @@ const ModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await galaxyService.getModules(namespace, collection, version)
-      // Combine modules and plugins
-      const allModules = [...(result.modules || []), ...(result.plugins || [])]
-      setModules(allModules)
+      const modules = await ansibleApiService.getModules(namespace, collection)
+      // Convert ansible API format to galaxy format for compatibility
+      const formattedModules = modules.map(module => ({
+        name: module.name,
+        description: module.description || '',
+        content_type: 'module'
+      }))
+      setModules(formattedModules)
     } catch (err) {
       setError(`Failed to load modules for ${namespace}.${collection}:${version}`)
       console.error('Error loading modules:', err)

@@ -26,7 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
+import { VersionSelector } from '../VersionSelector'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import DescriptionIcon from '@mui/icons-material/Description'
@@ -69,7 +69,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
   const { darkMode, toggleDarkMode } = useTheme()
-  const { ansibleVersion, setAnsibleVersion } = useAnsibleVersion()
+  // Remove useAnsibleVersion - now using VersionSelector directly
 
   // Version state (simplified like LoginPage)
   const [backendVersion, setBackendVersion] = useState<string>('...')
@@ -78,7 +78,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const environment = 'development'
 
   // Playbook fields state (local for other fields)
-  const [playbookVersion, setPlaybookVersion] = useState('1.0.0')
   const [inventory, setInventory] = useState('hosts')
 
   // User menu state
@@ -300,40 +299,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
             }}
           />
           <TextField
-            label="Version"
-            variant="outlined"
-            size="small"
-            value={playbookVersion}
-            onChange={(e) => setPlaybookVersion(e.target.value)}
-            sx={{
-              width: 'calc(100px * var(--spacing-scale, 1))',
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.15)',
-                color: 'white',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.7)',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: 'var(--font-xs, 12px)',
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              },
-              '& .MuiOutlinedInput-input': {
-                fontSize: 'var(--font-sm, 13px)',
-                py: 'var(--spacing-xs, 4px)',
-              },
-            }}
-          />
-          <TextField
             label="Inventory"
             variant="outlined"
             size="small"
@@ -367,38 +332,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               },
             }}
           />
-          <TextField
-            label="Ansible Version"
-            variant="outlined"
-            size="small"
-            value={ansibleVersion}
-            onChange={(e) => setAnsibleVersion(e.target.value)}
-            sx={{
-              width: 'calc(100px * var(--spacing-scale, 1))',
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.15)',
-                color: 'white',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.7)',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: 'var(--font-xs, 12px)',
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              },
-              '& .MuiOutlinedInput-input': {
-                fontSize: 'var(--font-sm, 13px)',
-                py: 'var(--spacing-xs, 4px)',
-              },
+          <VersionSelector 
+            variant="header"
+            onChange={() => {
+              // Optionnel: action après changement de version
+              console.log('Ansible version changed in header');
             }}
           />
         </Box>

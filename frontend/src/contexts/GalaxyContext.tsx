@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { galaxyService, Namespace } from '../services/galaxyService'
+import { ansibleApiService } from '../services/ansibleApiService'
 import { userPreferencesService } from '../services/userPreferencesService'
 
 interface GalaxyContextType {
@@ -59,9 +60,10 @@ export const GalaxyProvider: React.FC<GalaxyProviderProps> = ({ children }) => {
     setStreamingStatus('Initializing namespace discovery...')
     
     try {
-      // First: Get popular namespaces instantly
-      console.log('📥 Loading popular namespaces...')
-      const popularResult = await galaxyService.getNamespaces()
+      // First: Get namespaces from Ansible API
+      console.log('📥 Loading namespaces from Ansible API...')
+      const cachedData = await ansibleApiService.getAllCachedData()
+      const popularResult = { namespaces: cachedData?.popular_namespaces || [] }
       
       // Load user favorites and merge with system defaults
       try {
@@ -97,9 +99,14 @@ export const GalaxyProvider: React.FC<GalaxyProviderProps> = ({ children }) => {
         console.log(`✅ Loaded ${popularResult.namespaces?.length || 0} popular namespaces (system only)`)
       }
       
-      // Then: Start progressive discovery
-      console.log('🔍 Starting progressive discovery...')
-      await galaxyService.streamNamespacesEnhanced(
+      // Then: Load all namespaces from Ansible API
+      console.log('🔍 Loading all namespaces...')
+      setAllNamespaces(cachedData?.all_namespaces || [])
+      setDiscoveryPhase('complete')
+      setIsDiscovering(false)
+      
+      // Skip streaming for now as we use Ansible API
+      /*await galaxyService.streamNamespacesEnhanced(
         // onNamespaces: Update all namespaces and refresh popular with user favorites
         async (namespacesUpdate) => {
           setAllNamespaces(namespacesUpdate)
@@ -154,7 +161,7 @@ export const GalaxyProvider: React.FC<GalaxyProviderProps> = ({ children }) => {
           setDiscoveryPhase('complete')
           console.log('✅ Progressive discovery completed')
         }
-      )
+      )*/
     } catch (error) {
       console.error('❌ Error during namespace discovery:', error)
       setStreamingStatus('Discovery failed')
@@ -171,10 +178,8 @@ export const GalaxyProvider: React.FC<GalaxyProviderProps> = ({ children }) => {
     setDiscoveryStats(null)
     setDiscoveryPhase('discovering')
     
-    // Clear cache and restart
-    galaxyService.clearCache().then(() => {
-      startNamespaceDiscovery()
-    })
+    // Restart discovery with Ansible API
+    startNamespaceDiscovery()
   }
   
   const value: GalaxyContextType = {

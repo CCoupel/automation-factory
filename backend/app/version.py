@@ -2,11 +2,34 @@
 Application version information
 """
 
-__version__ = "1.9.0_5"
-__description__ = "Ansible Builder API with module parameter schemas from Galaxy API"
+__version__ = "1.10.0_12"
+__description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.10.0": {
+        "title": "Ansible Documentation Integration",
+        "release_date": "2025-12-14",
+        "features": [
+            "Dynamic Ansible version detection from official documentation",
+            "Direct integration with Ansible docs for module parameters",
+            "Complete collection coverage across Ansible versions",
+            "Automatic version synchronization with upstream releases",
+            "Enhanced module documentation parsing from HTML sources"
+        ],
+        "improvements": [
+            "Eliminated dependency on Galaxy API doc_strings",
+            "Comprehensive collection support (70+ collections per version)",
+            "Version-specific documentation accuracy",
+            "Simplified API architecture with /api/ansible endpoints"
+        ],
+        "technical": [
+            "Web scraping service for Ansible documentation",
+            "Intelligent caching with 24-hour TTL for versions",
+            "Fallback mechanisms for offline scenarios",
+            "Namespace and collection preservation for user experience"
+        ]
+    },
     "1.9.0": {
         "title": "Module Parameter Collection",
         "release_date": "2025-12-14",

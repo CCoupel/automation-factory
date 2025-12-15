@@ -1,0 +1,411 @@
+"""
+Ansible Collections Service - Web scraping from Ansible documentation
+"""
+
+import aiohttp
+import re
+import logging
+from typing import Dict, List, Optional, Any
+from bs4 import BeautifulSoup
+from app.services.cache_service import cache
+from app.services.ansible_versions_service import ansible_versions_service
+
+logger = logging.getLogger(__name__)
+
+class AnsibleCollectionsService:
+    """Service for scraping collections and modules from Ansible documentation"""
+    
+    CACHE_TTL_COLLECTIONS = 3600  # 1 heure pour les collections
+    CACHE_TTL_MODULES = 1800      # 30 minutes pour les modules  
+    CACHE_TTL_SCHEMA = 3600       # 1 heure pour les schémas
+    
+    def __init__(self):
+        self.session: Optional[aiohttp.ClientSession] = None
+    
+    async def get_session(self) -> aiohttp.ClientSession:
+        """Get or create HTTP session"""
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=60)
+            )
+        return self.session
+    
+    async def close_session(self):
+        """Close HTTP session"""
+        if self.session and not self.session.closed:
+            await self.session.close()
+            self.session = None
+    
+    async def get_collections(self, version: str) -> Dict[str, List[str]]:
+        """
+        Récupère les collections disponibles pour une version Ansible
+        
+        Args:
+            version: Version Ansible (latest, 13, 12, etc.)
+            
+        Returns:
+            Dictionnaire {namespace: [collections]}
+        """
+        cache_key = f"ansible_collections:{version}"
+        cached_result = cache.get(cache_key)
+        
+        if cached_result:
+            logger.info(f"Returning cached collections for Ansible {version}")
+            return cached_result
+        
+        try:
+            logger.info(f"Fetching collections for Ansible version {version}")
+            collections_url = ansible_versions_service.get_collections_url_for_version(version)
+            
+            session = await self.get_session()
+            async with session.get(collections_url) as response:
+                if response.status == 200:
+                    html_content = await response.text()
+                    collections = self._parse_collections_from_html(html_content)
+                    
+                    # Cache le résultat
+                    cache.set(cache_key, collections, self.CACHE_TTL_COLLECTIONS)
+                    logger.info(f"Found {len(collections)} namespaces for Ansible {version}")
+                    return collections
+                else:
+                    logger.error(f"Failed to fetch collections for {version}: HTTP {response.status}")
+                    return {}
+                    
+        except Exception as e:
+            logger.error(f"Error fetching collections for {version}: {str(e)}")
+            return {}
+    
+    def _parse_collections_from_html(self, html: str) -> Dict[str, List[str]]:
+        """
+        Parse les namespaces depuis le HTML de la page index des collections
+        La page principale liste les namespaces (amazon/index.html, ansible/index.html, etc.)
+        """
+        collections = {}
+
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Sur la page index, les liens sont relatifs comme "amazon/index.html"
+            # Chercher tous les liens qui pointent vers namespace/index.html
+            namespace_links = soup.find_all('a', href=re.compile(r'^[a-z][a-z0-9_]+/index\.html$', re.IGNORECASE))
+
+            for link in namespace_links:
+                href = link.get('href', '')
+                # Extraire le namespace depuis le lien relatif
+                match = re.match(r'^([a-z][a-z0-9_]+)/index\.html$', href, re.IGNORECASE)
+                if match:
+                    namespace = match.group(1)
+                    # Ignorer les liens de navigation comme ../index.html
+                    if namespace not in collections and namespace not in ['index', 'genindex', 'search']:
+                        collections[namespace] = []  # Collections seront chargées à la demande
+
+            logger.info(f"Parsed {len(collections)} namespaces from collections index page")
+            logger.debug(f"Namespaces found: {list(collections.keys())[:10]}...")
+            return collections
+
+        except Exception as e:
+            logger.error(f"Error parsing namespaces from HTML: {str(e)}")
+            return {}
+
+    async def get_namespace_collections(self, version: str, namespace: str) -> List[str]:
+        """
+        Récupère les collections d'un namespace spécifique
+
+        Args:
+            version: Version Ansible
+            namespace: Nom du namespace (ex: amazon, ansible, community)
+
+        Returns:
+            Liste des noms de collections
+        """
+        cache_key = f"ansible_ns_collections:{version}:{namespace}"
+        cached_result = cache.get(cache_key)
+
+        if cached_result:
+            logger.info(f"Returning cached collections for namespace {namespace}")
+            return cached_result
+
+        try:
+            # Construire URL de la page namespace
+            if version == "latest":
+                namespace_url = f"https://docs.ansible.com/ansible/latest/collections/{namespace}/index.html"
+            else:
+                namespace_url = f"https://docs.ansible.com/projects/ansible/{version}/collections/{namespace}/index.html"
+
+            logger.info(f"Fetching collections for namespace {namespace} from {namespace_url}")
+
+            session = await self.get_session()
+            async with session.get(namespace_url) as response:
+                if response.status == 200:
+                    html_content = await response.text()
+                    collections = self._parse_namespace_collections_from_html(html_content)
+
+                    # Cache le résultat
+                    cache.set(cache_key, collections, self.CACHE_TTL_COLLECTIONS)
+                    logger.info(f"Found {len(collections)} collections for namespace {namespace}")
+                    return collections
+                else:
+                    logger.error(f"Failed to fetch namespace {namespace}: HTTP {response.status}")
+                    return []
+
+        except Exception as e:
+            logger.error(f"Error fetching collections for namespace {namespace}: {str(e)}")
+            return []
+
+    def _parse_namespace_collections_from_html(self, html: str) -> List[str]:
+        """
+        Parse les collections depuis la page d'un namespace
+        Les liens sont au format collection/index.html (ex: aws/index.html)
+        """
+        collections = []
+
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Chercher les liens vers les collections (format: collection/index.html)
+            collection_links = soup.find_all('a', href=re.compile(r'^[a-z][a-z0-9_]+/index\.html$', re.IGNORECASE))
+
+            for link in collection_links:
+                href = link.get('href', '')
+                match = re.match(r'^([a-z][a-z0-9_]+)/index\.html$', href, re.IGNORECASE)
+                if match:
+                    collection = match.group(1)
+                    if collection not in collections and collection not in ['index', 'genindex', 'search']:
+                        collections.append(collection)
+
+            collections.sort()
+            logger.debug(f"Parsed {len(collections)} collections from namespace page")
+            return collections
+
+        except Exception as e:
+            logger.error(f"Error parsing collections from namespace HTML: {str(e)}")
+            return []
+
+    async def get_collection_modules(self, version: str, namespace: str, collection: str) -> List[Dict[str, Any]]:
+        """
+        Récupère les modules d'une collection spécifique
+        """
+        cache_key = f"ansible_modules:{version}:{namespace}:{collection}"
+        cached_result = cache.get(cache_key)
+        
+        if cached_result:
+            logger.info(f"Returning cached modules for {namespace}.{collection} (Ansible {version})")
+            return cached_result
+        
+        try:
+            # Construire URL de la collection
+            if version == "latest":
+                collection_url = f"https://docs.ansible.com/ansible/latest/collections/{namespace}/{collection}/index.html"
+            else:
+                collection_url = f"https://docs.ansible.com/projects/ansible/{version}/collections/{namespace}/{collection}/index.html"
+            
+            logger.info(f"Fetching modules from {collection_url}")
+            
+            session = await self.get_session()
+            async with session.get(collection_url) as response:
+                if response.status == 200:
+                    html_content = await response.text()
+                    modules = self._parse_modules_from_collection_html(html_content)
+                    
+                    # Cache le résultat
+                    cache.set(cache_key, modules, self.CACHE_TTL_MODULES)
+                    logger.info(f"Found {len(modules)} modules for {namespace}.{collection}")
+                    return modules
+                else:
+                    logger.error(f"Failed to fetch modules for {namespace}.{collection}: HTTP {response.status}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"Error fetching modules for {namespace}.{collection}: {str(e)}")
+            return []
+    
+    def _parse_modules_from_collection_html(self, html: str) -> List[Dict[str, Any]]:
+        """
+        Parse les modules depuis la page d'une collection
+        """
+        modules = []
+        
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Chercher la section "Plugin Index" ou "Modules"
+            # Format: liens vers module_name_module.html
+            module_links = soup.find_all('a', href=re.compile(r'[^/]+_module\.html'))
+            
+            for link in module_links:
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Extraire nom du module depuis l'href
+                match = re.search(r'([^/]+)_module\.html', href)
+                if match:
+                    module_name = match.group(1)
+                    
+                    # Essayer d'extraire la description depuis le texte suivant
+                    description = ""
+                    next_sibling = link.next_sibling
+                    if next_sibling and isinstance(next_sibling, str):
+                        description = next_sibling.strip(' –-')
+                    
+                    modules.append({
+                        "name": module_name,
+                        "description": description or f"{module_name} module",
+                        "href": href
+                    })
+            
+            # Trier par nom
+            modules.sort(key=lambda x: x['name'])
+            
+            logger.debug(f"Parsed {len(modules)} modules")
+            return modules
+            
+        except Exception as e:
+            logger.error(f"Error parsing modules from HTML: {str(e)}")
+            return []
+    
+    async def get_module_schema(self, version: str, namespace: str, collection: str, module: str) -> Dict[str, Any]:
+        """
+        Récupère le schéma d'un module en parsant sa documentation HTML
+        """
+        cache_key = f"ansible_schema:{version}:{namespace}:{collection}:{module}"
+        cached_result = cache.get(cache_key)
+        
+        if cached_result:
+            logger.info(f"Returning cached schema for {namespace}.{collection}.{module}")
+            return cached_result
+        
+        try:
+            # Construire URL du module
+            if version == "latest":
+                module_url = f"https://docs.ansible.com/ansible/latest/collections/{namespace}/{collection}/{module}_module.html"
+            else:
+                module_url = f"https://docs.ansible.com/projects/ansible/{version}/collections/{namespace}/{collection}/{module}_module.html"
+            
+            logger.info(f"Fetching schema from {module_url}")
+            
+            session = await self.get_session()
+            async with session.get(module_url) as response:
+                if response.status == 200:
+                    html_content = await response.text()
+                    schema = self._parse_module_schema_from_html(html_content, module)
+                    
+                    # Cache le résultat
+                    cache.set(cache_key, schema, self.CACHE_TTL_SCHEMA)
+                    logger.info(f"Extracted schema for {namespace}.{collection}.{module}")
+                    return schema
+                else:
+                    logger.error(f"Failed to fetch module documentation: HTTP {response.status}")
+                    raise Exception(f"Module documentation not available (HTTP {response.status})")
+                    
+        except Exception as e:
+            logger.error(f"Error fetching schema for {namespace}.{collection}.{module}: {str(e)}")
+            raise
+    
+    def _parse_module_schema_from_html(self, html: str, module_name: str) -> Dict[str, Any]:
+        """
+        Parse le schéma des paramètres depuis la documentation HTML du module
+        """
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            schema = {
+                "module": module_name,
+                "description": "",
+                "parameters": [],
+                "examples": [],
+                "return_values": []
+            }
+            
+            # Extraire la description principale
+            description_elem = soup.find('div', class_='section')
+            if description_elem:
+                desc_p = description_elem.find('p')
+                if desc_p:
+                    schema["description"] = desc_p.get_text(strip=True)
+            
+            # Chercher la table des paramètres
+            param_table = soup.find('table') or soup.find('dl', class_='simple')
+            
+            if param_table:
+                schema["parameters"] = self._extract_parameters_from_table(param_table)
+            
+            # Chercher les exemples
+            examples_section = soup.find('div', id='examples') or soup.find(text=re.compile('Examples?'))
+            if examples_section:
+                schema["examples"] = self._extract_examples(soup, examples_section)
+            
+            logger.debug(f"Extracted {len(schema['parameters'])} parameters for {module_name}")
+            return schema
+            
+        except Exception as e:
+            logger.error(f"Error parsing module schema: {str(e)}")
+            return {
+                "module": module_name,
+                "description": f"Documentation parsing failed for {module_name}",
+                "parameters": [],
+                "examples": [],
+                "return_values": []
+            }
+    
+    def _extract_parameters_from_table(self, table_elem) -> List[Dict[str, Any]]:
+        """Extrait les paramètres depuis une table ou liste HTML"""
+        parameters = []
+        
+        try:
+            # Différents formats possibles selon les versions d'Ansible
+            if table_elem.name == 'table':
+                rows = table_elem.find_all('tr')[1:]  # Skip header
+                for row in rows:
+                    cols = row.find_all('td')
+                    if len(cols) >= 2:
+                        param_name = cols[0].get_text(strip=True)
+                        param_desc = cols[1].get_text(strip=True)
+                        
+                        parameters.append({
+                            "name": param_name,
+                            "type": "string",  # Default type
+                            "required": "required" in param_desc.lower(),
+                            "description": param_desc,
+                            "default": None
+                        })
+            
+            elif table_elem.name == 'dl':
+                dts = table_elem.find_all('dt')
+                for dt in dts:
+                    param_name = dt.get_text(strip=True)
+                    dd = dt.find_next_sibling('dd')
+                    param_desc = dd.get_text(strip=True) if dd else ""
+                    
+                    parameters.append({
+                        "name": param_name,
+                        "type": "string",
+                        "required": False,
+                        "description": param_desc,
+                        "default": None
+                    })
+        
+        except Exception as e:
+            logger.warning(f"Error extracting parameters: {str(e)}")
+        
+        return parameters
+    
+    def _extract_examples(self, soup, examples_section) -> List[str]:
+        """Extrait les exemples depuis la documentation"""
+        examples = []
+        
+        try:
+            # Chercher les blocs de code après la section examples
+            code_blocks = soup.find_all('pre') or soup.find_all('code')
+            
+            for block in code_blocks[:3]:  # Limiter à 3 exemples
+                example_text = block.get_text(strip=True)
+                if example_text and len(example_text) > 10:
+                    examples.append(example_text)
+        
+        except Exception as e:
+            logger.warning(f"Error extracting examples: {str(e)}")
+        
+        return examples
+
+# Instance globale du service
+ansible_collections_service = AnsibleCollectionsService()

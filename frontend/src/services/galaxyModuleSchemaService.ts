@@ -6,6 +6,7 @@
  */
 
 import { getHttpClient } from '../utils/httpClient'
+import { ansibleApiService } from './ansibleApiService'
 
 // Module parameter definition from Galaxy docs
 export interface ModuleParameter {
@@ -99,20 +100,39 @@ export const galaxyModuleSchemaService = {
         return cached
       }
 
-      console.log(`Fetching schema for ${namespace}.${collection}.${module}:${version}`)
+      console.log(`Fetching schema from Ansible API for ${namespace}.${collection}.${module}`)
 
-      // Use simplified endpoint with version resolution
-      const http = getHttpClient()
-      const response = await http.get(`/galaxy/modules/${namespace}.${collection}.${module}/schema`, {
-        params: { version }
-      })
-
-      const schema: ModuleSchema = response.data
-
-      // Validate response structure
-      if (!schema.module_name || !schema.parameters) {
-        console.warn(`Invalid schema structure for ${namespace}.${collection}.${module}`)
+      // Use new Ansible API
+      const ansibleSchema = await ansibleApiService.getModuleSchema(namespace, collection, module)
+      
+      if (!ansibleSchema) {
+        console.warn(`No schema found for ${namespace}.${collection}.${module}`)
         return null
+      }
+
+      // Convert Ansible schema to Galaxy schema format
+      const schema: ModuleSchema = {
+        module_name: ansibleSchema.module,
+        namespace: namespace,
+        collection: collection,
+        version: version,
+        description: ansibleSchema.description,
+        short_description: ansibleSchema.description,
+        author: [],
+        parameters: ansibleSchema.parameters.reduce((acc, param) => {
+          acc[param.name] = {
+            ...param,
+            type: param.type as any,
+            choices: param.choices || undefined
+          }
+          return acc
+        }, {} as Record<string, ModuleParameter>),
+        examples: ansibleSchema.examples,
+        notes: [],
+        requirements: [],
+        parameter_count: ansibleSchema.parameters.length,
+        required_parameters: ansibleSchema.parameters.filter(p => p.required).length,
+        optional_parameters: ansibleSchema.parameters.filter(p => !p.required).length
       }
 
       // Cache the result

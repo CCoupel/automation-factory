@@ -34,8 +34,9 @@ import HomeIcon from '@mui/icons-material/Home'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import CachedIcon from '@mui/icons-material/Cached'
 import { FixedSizeList as VirtualList } from 'react-window'
-import { galaxyService, Namespace, Collection, Module } from '../../services/galaxyService'
-import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
+import { ansibleApiService } from '../../services/ansibleApiService'
+import { Namespace, Collection, Module } from '../../services/galaxyService'
+import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
 
 interface ModulesZoneProps {
@@ -57,7 +58,8 @@ const VIRTUAL_ITEM_HEIGHT = 60
 const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
   const [activeTab, setActiveTab] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const { ansibleVersion } = useAnsibleVersion()
+  // Get current Ansible version from AppHeader VersionSelector
+  const { selectedVersion: ansibleVersion } = useAnsibleVersions()
   
   // Navigation state
   const [navigationState, setNavigationState] = useState<NavigationState>({
@@ -123,18 +125,20 @@ const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
       setLoading(true)
       setLoadingProgress(10)
       
-      // Preload backend cache
-      await galaxyService.preloadCache(30)
-      setLoadingProgress(30)
-      
-      // Load all namespaces
-      const namespacesData = await galaxyService.getNamespaces()
-      setAllNamespaces(namespacesData.namespaces || [])
-      setLoadingProgress(60)
-      
-      // Preload top namespaces' collections
-      const topNamespaces = namespacesData.namespaces.slice(0, 10).map(ns => ns.name)
-      await galaxyService.preloadNamespaceCollections(topNamespaces)
+      // Load all namespaces from Ansible API
+      setLoadingProgress(50)
+      const namespaces = await ansibleApiService.getAllNamespaces()
+      // Convert to galaxy format
+      const formattedNamespaces = namespaces.map(ns => ({
+        name: ns.name,
+        description: '',
+        collection_count: ns.collections_count || 0,
+        total_downloads: 0,
+        id: ns.name,
+        avatar_url: null,
+        company: ''
+      }))
+      setAllNamespaces(formattedNamespaces)
       setLoadingProgress(100)
       
       setIsPreloaded(true)
@@ -187,8 +191,17 @@ const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await galaxyService.getCollections(namespace)
-      setAllCollections(data.collections || [])
+      const collections = await ansibleApiService.getCollections(namespace)
+      // Convert to galaxy format
+      const formattedCollections = collections.map(name => ({
+        name,
+        description: '',
+        latest_version: '1.0.0',
+        download_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }))
+      setAllCollections(formattedCollections)
     } catch (err) {
       setError(`Failed to load collections: ${err}`)
     } finally {
@@ -200,17 +213,20 @@ const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await galaxyService.getVersions(namespace, collection)
-      setVersions(data.versions || [])
+      // For Ansible API, simulate one version and navigate directly to modules
+      const versions = [{
+        version: 'latest',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }]
+      setVersions(versions)
       
-      // If only one version, navigate directly to modules
-      if (data.versions?.length === 1) {
-        navigateTo('modules', {
-          namespace,
-          collection,
-          version: data.versions[0].version
-        })
-      }
+      // Navigate directly to modules
+      navigateTo('modules', {
+        namespace,
+        collection,
+        version: 'latest'
+      })
     } catch (err) {
       setError(`Failed to load versions: ${err}`)
     } finally {
@@ -222,8 +238,14 @@ const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await galaxyService.getModules(namespace, collection, version)
-      setModules(data.modules || [])
+      const modules = await ansibleApiService.getModules(namespace, collection)
+      // Convert to galaxy format
+      const formattedModules = modules.map(module => ({
+        name: module.name,
+        description: module.description || '',
+        content_type: 'module'
+      }))
+      setModules(formattedModules)
     } catch (err) {
       setError(`Failed to load modules: ${err}`)
     } finally {
@@ -233,8 +255,7 @@ const OptimizedModulesZone = ({ onCollapse }: ModulesZoneProps) => {
 
   // Refresh current view
   const handleRefresh = async () => {
-    // Clear cache for current view
-    await galaxyService.clearCache()
+    // For Ansible API, no cache to clear - just reload data
     
     // Reload data
     switch (navigationState.level) {

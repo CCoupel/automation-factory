@@ -33,7 +33,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import StarIcon from '@mui/icons-material/Star'
 import StarBorderIcon from '@mui/icons-material/StarBorder'
 import { useState, useEffect } from 'react'
-import { useAnsibleVersion } from '../../contexts/AnsibleVersionContext'
+import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { Namespace } from '../../services/galaxyService'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
@@ -74,7 +74,8 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   console.log('ModulesZoneCached v1.16.1 FIXED loaded at:', new Date().toISOString())
   const [activeTab, setActiveTab] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const { ansibleVersion } = useAnsibleVersion()
+  // Get current Ansible version from AppHeader VersionSelector
+  const { selectedVersion: ansibleVersion } = useAnsibleVersions()
   
   // Use Galaxy cache context
   const {
@@ -536,10 +537,10 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
               Ansible namespace containing collections
             </Typography>
             <Typography variant="caption" display="block">
-              Collections: {namespace.collection_count}
+              Collections: {namespace.collection_count || 0}
             </Typography>
             <Typography variant="caption" display="block">
-              Total downloads: {namespace.total_downloads.toLocaleString()}
+              Total downloads: {(namespace.total_downloads || 0).toLocaleString()}
             </Typography>
             <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
               Click to browse collections
@@ -561,7 +562,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
             <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
             <ListItemText
               primary={namespace.name}
-              secondary={`${namespace.collection_count} collections • ${namespace.total_downloads.toLocaleString()} downloads`}
+              secondary={`${namespace.collection_count || 0} collections • ${(namespace.total_downloads || 0).toLocaleString()} downloads`}
               primaryTypographyProps={{
                 variant: 'body2',
                 fontWeight: 'medium',
@@ -631,6 +632,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
           <Tab label="Generic" />
           <Tab label="Modules" />
         </Tabs>
+
 
         <TextField
           fullWidth
@@ -964,24 +966,27 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                                   <ListItemText
                                     primary={collection.name}
                                     secondary={
-                                      <Box>
-                                        <Typography variant="caption" display="block">
+                                      <>
+                                        <Typography component="span" variant="caption" display="block">
                                           {collection.description || 'No description'}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary">
+                                        <Typography component="span" variant="caption" color="text.secondary" display="block">
                                           v{collection.latest_version} • {collection.download_count.toLocaleString()} downloads
                                         </Typography>
                                         {isIncompatible && (
-                                          <Typography variant="caption" color="error.main" sx={{ fontWeight: 'bold' }}>
+                                          <Typography component="span" variant="caption" color="error.main" display="block" sx={{ fontWeight: 'bold' }}>
                                             ⚠️ Incompatible with Ansible {ansibleVersion}
                                           </Typography>
                                         )}
-                                      </Box>
+                                      </>
                                     }
                                     primaryTypographyProps={{
                                       variant: 'body2',
                                       fontWeight: 'medium',
                                       color: isIncompatible ? 'text.disabled' : 'text.primary'
+                                    }}
+                                    secondaryTypographyProps={{
+                                      component: 'div'
                                     }}
                                   />
                                   <ChevronRightIcon sx={{ color: isIncompatible ? 'text.disabled' : 'inherit' }} />

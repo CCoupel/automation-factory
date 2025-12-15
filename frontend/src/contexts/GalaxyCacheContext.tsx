@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { galaxySmartService } from '../services/galaxySmartService'
+import { ansibleApiService } from '../services/ansibleApiService'
 import { notificationService, CacheNotification } from '../services/notificationService'
 import { Namespace } from '../services/galaxyService'
 
@@ -73,8 +74,8 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       setIsLoading(true)
       setError(null)
       
-      // Get all cached data from SMART service
-      const cachedData = await galaxySmartService.getAllCachedData()
+      // Get all cached data from Ansible API service
+      const cachedData = await ansibleApiService.getAllCachedData()
       
       if (cachedData) {
         // Update state with cached data
@@ -91,12 +92,12 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
         setLastSync(cachedData.cache_info?.last_sync || null)
         setIsReady(true)
         
-        console.log('✅ Galaxy SMART data loaded successfully:', {
+        console.log('✅ Ansible API data loaded successfully:', {
           popular: cachedData.popular_namespaces?.length || 0,
           all: cachedData.all_namespaces?.length || 0,
           collections_sample: Object.keys(cachedData.collections_sample || {}).length,
           sync_status: cachedData.cache_info?.sync_status,
-          service: 'galaxy_smart'
+          service: 'ansible_api'
         })
       } else {
         // No cached data available
@@ -120,20 +121,10 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       setIsLoading(true)
       setError(null)
       
-      // Request backend to refresh its cache via SMART service
-      const success = await galaxySmartService.triggerResync()
-      
-      if (success) {
-        // Wait a bit for sync to start, then reload data
-        setTimeout(() => {
-          loadCachedData()
-        }, 2000)
-        
-        setSyncStatus('refreshing')
-      } else {
-        setError('Failed to initiate cache refresh')
-        setIsLoading(false)
-      }
+      // Use Ansible API service (no need for resync, just refresh data)
+      console.log('🔄 Refreshing Ansible data...')
+      await loadCachedData()
+      setSyncStatus('refreshed')
       
     } catch (err) {
       console.error('❌ Cache refresh failed:', err)
@@ -146,7 +137,8 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     try {
       console.log(`🔄 Enriching namespace on-demand: ${namespace}`)
       
-      const enrichedNamespace = await galaxySmartService.enrichNamespaceOnDemand(namespace)
+      // For Ansible API, no enrichment needed - return basic namespace info
+      const enrichedNamespace = { name: namespace, collection_count: 0 }
       if (enrichedNamespace) {
         // Mettre à jour les données en cache avec le namespace enrichi
         setAllNamespaces(prev => 
@@ -174,7 +166,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       
       // Fetch from backend via SMART service
       console.log(`📥 Fetching collections for ${namespace} from SMART service...`)
-      const collections = await galaxySmartService.getCollections(namespace)
+      const collections = await ansibleApiService.getCollections(namespace)
       
       if (collections) {
         // Cache the result
@@ -200,7 +192,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     try {
       console.log(`📥 Fetching modules for ${namespace}.${collection}:${version} from SMART service...`)
       
-      const modules = await galaxySmartService.getModules(namespace, collection, version)
+      const modules = await ansibleApiService.getModules(namespace, collection)
       
       if (modules) {
         console.log(`✅ Loaded ${modules.length} modules for ${namespace}.${collection}:${version}`)

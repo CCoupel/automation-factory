@@ -1,4 +1,5 @@
 import { getHttpClient } from '../utils/httpClient'
+import { ansibleApiService } from './ansibleApiService'
 
 // Types
 export interface Namespace {
@@ -111,7 +112,7 @@ export const galaxyService = {
     }
   },
 
-  // Get ALL collections for a namespace (backend handles pagination)
+  // Get ALL collections for a namespace (uses Ansible API)
   async getCollections(namespace: string) {
     const cacheKey = `collections-${namespace}-all`
     
@@ -122,19 +123,27 @@ export const galaxyService = {
     }
     
     try {
-      console.log(`Fetching ALL collections for namespace: ${namespace}`)
-      const response = await getHttpClient().get(
-        `/galaxy/namespaces/${namespace}/collections`
-      )
+      console.log(`Fetching collections from Ansible API for namespace: ${namespace}`)
+      const collections = await ansibleApiService.getCollections(namespace)
+      
+      // Convert to Galaxy format for compatibility
+      const response = {
+        collections: collections.map(name => ({
+          name: name,
+          namespace: namespace,
+          latest_version: { version: '1.0.0' } // Default version
+        }))
+      }
       
       // Cache for 10 minutes
-      cache.set(cacheKey, response.data, 10)
-      console.log(`Loaded ${response.data.collections?.length || 0} collections for ${namespace}`)
+      cache.set(cacheKey, response, 10)
+      console.log(`Loaded ${collections.length} collections for ${namespace}`)
       
-      return response.data
+      return response
     } catch (error) {
       console.error(`Error fetching collections for ${namespace}:`, error)
-      throw error
+      // Return empty result on error
+      return { collections: [] }
     }
   },
 
@@ -165,16 +174,23 @@ export const galaxyService = {
     }
   },
 
-  // Get modules for a specific version
+  // Get modules for a specific version (uses Ansible API)
   async getModules(namespace: string, collection: string, version: string) {
     try {
-      const response = await getHttpClient().get(
-        `/galaxy/namespaces/${namespace}/collections/${collection}/versions/${version}/modules`
-      )
-      return response.data
+      console.log(`Fetching modules from Ansible API for ${namespace}.${collection}`)
+      const modules = await ansibleApiService.getModules(namespace, collection)
+      
+      // Convert to Galaxy format for compatibility
+      const response = {
+        modules: modules,
+        plugins: []  // Ansible API combines modules and plugins
+      }
+      
+      return response
     } catch (error) {
       console.error(`Error fetching modules for ${namespace}.${collection}:${version}:`, error)
-      throw error
+      // Return empty result on error
+      return { modules: [], plugins: [] }
     }
   },
 

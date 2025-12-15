@@ -530,9 +530,15 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     Module: {selectedModule.collection}.{selectedModule.name}
                   </Typography>
                   {!selectedModule.moduleSchema && !isLoadingSchema && (
-                    <IconButton size="small" onClick={loadModuleSchema} title="Load module schema">
-                      <RefreshIcon fontSize="small" />
-                    </IconButton>
+                    <Tooltip title="Load module schema">
+                      <Box
+                        component="span"
+                        onClick={(e) => { e.stopPropagation(); loadModuleSchema(); }}
+                        sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', p: 0.5, borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}
+                      >
+                        <RefreshIcon fontSize="small" />
+                      </Box>
+                    </Tooltip>
                   )}
                   {isLoadingSchema && (
                     <CircularProgress size={16} />

@@ -8,8 +8,8 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 1.9.0_5 / Frontend 1.9.0_7  
-**Version Production :** Backend 1.5.0_3 / Frontend 1.6.5  
+**Version Développement :** Backend 1.9.0 / Frontend 1.9.0  
+**Version Production :** Backend 1.9.0 / Frontend 1.9.0  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/ansible-builder  
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)  
 **Dernière mise à jour :** 2025-12-14

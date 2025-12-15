@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getHttpClient } from '../utils/httpClient'
-import { galaxyService } from '../services/galaxyService'
 
 /**
  * User interface representing authenticated user data
@@ -152,16 +151,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   /**
    * Preload Galaxy data when user is authenticated
    */
-  useEffect(() => {
-    if (user && token && !authLost) {
-      // Trigger preloading for faster subsequent access
-      galaxyService.preloadOnStartup().then(() => {
-        console.log('✅ Galaxy data preloaded successfully')
-      }).catch((error) => {
-        console.warn('⚠️ Galaxy data preload failed (non-blocking):', error)
-      })
-    }
-  }, [user, token, authLost])
 
   /**
    * Login user with email and password

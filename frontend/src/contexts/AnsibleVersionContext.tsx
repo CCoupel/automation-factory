@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 /**
- * Ansible Version Context - Manages current Ansible version for compatibility checking
+ * Ansible Version Context - Manages current Ansible version for new /api/ansible endpoints
  */
 interface AnsibleVersionContextType {
   /**
-   * Current Ansible version (e.g. "2.15", "2.17.1")
+   * Current Ansible version (e.g. "latest", "13", "12", "2.10")
    */
   ansibleVersion: string
 
@@ -33,10 +33,10 @@ export const useAnsibleVersion = () => {
  * Ansible Version Provider Component
  *
  * Manages the current Ansible version setting across the application
- * Used for compatibility checking with Galaxy modules/collections
+ * Used for /api/ansible endpoints and dynamic version selection
  */
 export const AnsibleVersionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [ansibleVersion, setAnsibleVersion] = useState('2.15') // Default version
+  const [ansibleVersion, setAnsibleVersion] = useState('latest') // Default to latest
 
   const value: AnsibleVersionContextType = {
     ansibleVersion,

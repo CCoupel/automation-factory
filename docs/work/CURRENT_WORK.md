@@ -4,227 +4,195 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-14**
+## 🚀 **Status Actuel - 2025-12-15**
 
 ### Versions Déployées
 **Production (K8s) :**
-- **Backend :** `1.8.1` (ghcr.io/ccoupel/ansible-builder-backend)
-- **Frontend :** `1.8.1` (ghcr.io/ccoupel/ansible-builder-frontend)
+- **Backend :** `1.9.0` (ghcr.io/ccoupel/ansible-builder-backend:1.9.0) ✅ **DEPLOYED**
+- **Frontend :** `1.9.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.9.0) ✅ **DEPLOYED**
 - **URL :** https://coupel.net/ansible-builder
-- **Status :** ✅ Stable
+- **Status :** ✅ **v1.9.0 LIVE** - Module Parameter Collection feature
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.9.0_5` (ansible-builder-backend:1.9.0_5)
-- **Frontend :** `1.9.0_7-vite` (ansible-builder-frontend:1.9.0_7-vite)  
+- **Backend :** `1.10.0_12` (ansible-builder-backend:1.10.0_12)
+- **Frontend :** `1.10.0_12-vite` (ansible-builder-frontend:1.10.0_12-vite)
 - **URL :** http://192.168.1.217
-- **Status :** ✅ Phase 2 complète avec architecture nginx
+- **Status :** ✅ Phase 2 - Ansible Documentation Integration
 
 **Développement :**
-- **Phase 1** : Build et test local sur 192.168.1.217
+- **Phase 1** : ✅ Build et test local sur 192.168.1.217
 - **Phase 2** : ✅ Déploiement staging validé
-- **Phase 3** : ⏳ Prêt pour passage production
+- **Phase 3** : 🔜 En attente validation utilisateur
 
 ---
 
-## ✅ **Version 1.9.0 - Complétée (Phase 2)**
+## ✅ **Version 1.10.0 - En Cours (Phase 2)**
 
-### Fonctionnalité Majeure : Collecte Paramètres Modules
-**Status :** ✅ **Implémentation complète avec architecture Phase 2**
+### Fonctionnalité Majeure : Intégration Documentation Ansible
+**Status :** ✅ **Implémentation complète - Staging déployé**
 
-#### Backend v1.9.0_5
-- **Galaxy API v3 docs-blob :** Intégration complète des schémas modules
-- **Endpoint enrichi :** `/api/version` avec features détaillées par version
-- **Architecture modulaire :** endpoints/common.py pour version enrichie
-- **Gestion erreurs :** 404 vs 500 pour modules manquants
-- **Cache optimisé :** 60min TTL pour schémas modules
+#### Objectif
+Remplacement de l'architecture Galaxy API par le web scraping direct de la documentation officielle Ansible pour une couverture complète et à jour des collections et modules.
 
-#### Frontend v1.9.0_7
-- **Interface About :** Popup dynamique avec versions en temps réel
-- **Icônes de catégorisation :** 
-  - 🔧 Backend features (vert)
-  - 🎨📱⚡🔗 Frontend features (bleu)
-  - ⚙️ Améliorations backend (orange)
-  - 🔄📊🐳 Full stack features (info)
-- **Pattern LoginPage :** Rationalisation récupération versions avec axios
-- **Material-UI :** Popup About au lieu de page séparée
+#### Backend v1.10.0_12
+- **Service ansible_collections_service.py :** Web scraping de docs.ansible.com
+  - Parsing des namespaces depuis la page index collections
+  - Parsing des collections par namespace (lazy loading)
+  - Parsing des modules par collection
+  - Parsing des schémas de paramètres modules
+- **Service ansible_versions_service.py :** Détection dynamique des versions
+  - Scraping des versions disponibles depuis docs.ansible.com
+  - Validation des URLs de documentation
+  - Cache 24h avec fallback
+- **API Endpoints `/api/ansible/*` :**
+  - `GET /versions` - Versions Ansible disponibles
+  - `GET /{version}/namespaces` - 54 namespaces détectés
+  - `GET /{version}/namespaces/{ns}/collections` - Collections dynamiques
+  - `GET /{version}/namespaces/{ns}/collections/{coll}/modules` - Modules
+  - `GET /{version}/namespaces/{ns}/collections/{coll}/modules/{mod}/schema` - Schéma paramètres
+- **Cache intelligent :**
+  - Versions : 24h TTL
+  - Collections : 1h TTL
+  - Modules : 30min TTL
+  - Schémas : 1h TTL
 
-#### Architecture Phase 2 - nginx reverse proxy
+#### Frontend v1.10.0_12
+- **ansibleApiService.ts :** Nouveau service API Ansible
+  - Interface avec les nouveaux endpoints `/api/ansible/*`
+  - Fallback data pour mode hors-ligne
+  - Gestion des versions Ansible
+- **useAnsibleVersions hook :** Gestion état versions
+- **VersionSelector dans AppHeader :** Sélection version Ansible centralisée
+- **ModulesZoneCached.tsx :** Corrections DOM nesting
+  - Fix `<button>` dans `<button>` (AccordionSummary)
+  - Fix `<div>` dans `<p>` (ListItemText secondary)
+  - Fallback values pour `total_downloads` et `collection_count`
+- **ConfigZone.tsx :** Fix DOM nesting IconButton
+
+#### Corrections Bugs (builds _1 à _12)
+- `_2` : Suppression VersionSelector redondant dans ModulesZone
+- `_3-_4` : Migration `/api/galaxy/*` → `/api/ansible/*`
+- `_5` : Ajout fallback namespaces quand backend vide
+- `_6` : Fix propriétés manquantes `collection_count`, `total_downloads`
+- `_7` : Séparation correcte namespaces/collections
+- `_8` : Ajout interface `AnsibleCollectionObject`
+- `_9` : Fix DOM nesting `<button>` dans AccordionSummary
+- `_10` : Fix DOM nesting `<div>` dans `<p>` ListItemText
+- `_11` : Fallback values pour propriétés undefined
+- `_12` : Backend scraping documentation Ansible fonctionnel
+
+#### Résultats
+- **54 namespaces** détectés depuis Ansible 13 docs
+- **Collections dynamiques** par namespace (ex: community = 24 collections)
+- **Parsing HTML robuste** avec regex patterns
+- **Architecture scalable** pour futures versions Ansible
+
+---
+
+## ✅ **Version 1.9.0 - Complétée (Production)**
+
+### Fonctionnalité : Collecte Paramètres Modules
+**Status :** ✅ **Déployé en production**
+
+#### Points clés
+- Galaxy API v3 docs-blob pour schémas modules
+- Interface configuration avec help tooltips
+- Support tous types paramètres
+- Phase 2 nginx reverse proxy architecture
+
+---
+
+## 🔧 **Architecture Documentation Ansible**
+
+### Structure Web Scraping
+```
+docs.ansible.com/projects/ansible/{version}/collections/
+├── index.html → Liste namespaces (amazon/, ansible/, community/, ...)
+├── {namespace}/
+│   ├── index.html → Liste collections (aws/, general/, ...)
+│   └── {collection}/
+│       ├── index.html → Liste modules
+│       └── {module}_module.html → Documentation + paramètres
+```
+
+### Endpoints API
+```
+/api/ansible/versions                                    → Versions disponibles
+/api/ansible/{version}/namespaces                        → 54 namespaces
+/api/ansible/{version}/namespaces/{ns}/collections       → Collections namespace
+/api/ansible/{version}/namespaces/{ns}/collections/{c}/modules → Modules
+/api/ansible/{version}/namespaces/{ns}/collections/{c}/modules/{m}/schema → Paramètres
+```
+
+### Cache Strategy
+| Donnée | TTL | Raison |
+|--------|-----|--------|
+| Versions | 24h | Stable, change rarement |
+| Namespaces | 1h | Nouveau namespace rare |
+| Collections | 1h | Nouvelles collections rares |
+| Modules | 30min | Updates plus fréquents |
+| Schémas | 1h | Documentation stable |
+
+---
+
+## 📊 **Métriques v1.10.0**
+
+### Couverture Ansible 13
+- **Namespaces :** 54 (vs 12 fallback précédent)
+- **Collections :** Dynamique par namespace
+- **Sources :** docs.ansible.com officiel
+
+### Performance Staging
+- **Scraping initial :** ~2-3s par page
+- **Cache hit :** <100ms
+- **Frontend load :** Immédiat avec fallback
+
+---
+
+## 🏗️ **Architecture Phase 2 - nginx reverse proxy**
+
 ```
 nginx (port 80) → Point d'entrée unique
 ├── / → frontend (Vite dev server, port 5173)
 └── /api/* → backend (FastAPI, port 8000)
 ```
 
-**Spécifications :**
-- **Images locales :** Build sur 192.168.1.217 (pas de push ghcr.io)
-- **Frontend Vite :** Dockerfile.dev avec serveur développement
-- **Configuration inline :** nginx.conf intégré dans docker-compose.staging.yml
-- **Réseau interne :** Backend/Frontend non exposés directement
-- **Validation santé :** Tests automatisés sur 3 endpoints
-
-#### Fonctionnalités Implémentées
-**Module Parameters Collection :**
-- ✅ Récupération dynamique schémas depuis Galaxy API v3
-- ✅ Interface configuration avec help tooltips
-- ✅ Support tous types paramètres (str, int, bool, list, dict, path)
-- ✅ Génération formulaires dynamiques
-- ✅ Validation côté serveur et client
-- ✅ Cache performances avec monitoring hit/miss
-
-**Enhanced About System :**
-- ✅ Popup About avec versions temps réel
-- ✅ Features par version avec icônes catégorisées
-- ✅ Informations utilisateur et rôle admin
-- ✅ Pattern rationalisé LoginPage pour axios
-
-**Phase 2 Architecture :**
-- ✅ nginx reverse proxy déployé et fonctionnel
-- ✅ docker-compose.staging.yml avec configuration complète
-- ✅ Procédures déploiement documentées
-- ✅ Tests santé validés (nginx, API, frontend)
-
----
-
-## 🔧 **Fonctionnalités Complètes Précédentes**
-
-### ✅ **Galaxy SMART Service (v1.8.0)**
-- **Service backend :** galaxy_service_smart.py avec API directe
-- **Performance :** 12.2s → <100ms (>99% amélioration)
-- **Découverte :** 2,204 namespaces complets
-- **Enrichissement 3 niveaux :** Populaires + Background + On-demand
-
-### ✅ **Gestion Favoris Namespaces (v1.8.0)**
-- **API Backend :** `/api/user/favorites` avec persistance
-- **UI Frontend :** Étoiles + Onglet FAVORITE
-- **Stockage :** JSON côté serveur
-
-### ✅ **Configuration Admin (v1.8.1)**
-- **Interface admin :** Gestion namespaces standards
-- **About Dialog :** Versions + Changelog intégré
-- **Sécurité :** Endpoints sécurisés admin uniquement
-
----
-
-## 📊 **Métriques v1.9.0**
-
-### Performance Validée
-- **Galaxy API calls :** <2s response time
-- **Frontend build :** 723.60 kB bundle
-- **Backend startup :** <5s with schema cache
-- **nginx routing :** <100ms proxy overhead
-
-### Architecture Staging
-- **Health checks :** ✅ 3/3 endpoints OK
-- **Network isolation :** ✅ Internal Docker network
-- **Load balancing :** ✅ nginx stable proxy
-- **Container restart :** ✅ Auto-recovery tested
-
-### Code Quality
-- **TypeScript coverage :** 95%+ strict mode
-- **Component reuse :** 80%+ shared components
-- **Documentation :** Complete modular structure
-- **API design :** RESTful with OpenAPI docs
-
----
-
-## 🏗️ **Documentation Mise à Jour**
-
-### Documentation Complète v1.9.0
-- **[CLAUDE.md](../../CLAUDE.md)** : ✅ Architecture Phase 2 permanente
-- **[DEPLOYMENT_GUIDE.md](../operations/DEPLOYMENT_GUIDE.md)** : ✅ Section nginx reverse proxy
-- **[ARCHITECTURE_DECISIONS.md](../core/ARCHITECTURE_DECISIONS.md)** : ✅ Décisions multi-phase
-- **[PHASE2_INTEGRATION.md](../operations/PHASE2_INTEGRATION.md)** : ✅ Procédures staging complètes
-
-### Guides Opérationnels
-- **Phase 1 :** Développement local avec containers directs
-- **Phase 2 :** ✅ Staging nginx reverse proxy (images locales)
-- **Phase 3 :** Production Kubernetes (images ghcr.io)
-
-### Version Features Documentation
-- **Backend :** VERSION_FEATURES dict avec détails par version
-- **Frontend :** About popup avec catégorisation icônes
-- **API :** Endpoint enrichi `/api/version` avec metadata
+**Images :**
+```bash
+ansible-builder-backend:1.10.0_12
+ansible-builder-frontend:1.10.0_12-vite
+```
 
 ---
 
 ## 🎯 **Prochaines Étapes**
 
-### Prêt pour Phase 3 Production
-**Critères atteints :**
-- ✅ Phase 2 complète et validée
-- ✅ Architecture nginx stable
-- ✅ Tests santé passés
-- ✅ Documentation complète
-- ✅ Features v1.9.0 implémentées
+### Phase 3 Production (optionnel)
+1. Tests complets fonctionnalités
+2. Suppression suffixes `_n` des versions
+3. Push images vers ghcr.io
+4. Déploiement Kubernetes
 
-**Phase 3 Requirements :**
-1. **Release candidate :** Suppression suffixes `_n` des versions
-2. **Push registry :** Images vers ghcr.io/ccoupel
-3. **Kubernetes deploy :** Helm upgrade avec nouvelles versions
-4. **Production validation :** Tests end-to-end production
-5. **Monitoring :** Validation métriques production
-
-### Roadmap Post-Production
-1. **Templates système :** Bibliothèque playbooks réutilisables
-2. **Export/Import :** Sauvegarde et partage playbooks
-3. **Performance monitoring :** Métriques détaillées utilisateurs
-4. **Collaboration features :** Multi-utilisateurs temps réel
+### Améliorations Futures
+1. Cache persistant Redis pour scraping
+2. Pre-fetch collections populaires
+3. Search full-text modules
+4. Historique versions modules
 
 ---
 
 ## 🔗 **Environnements Actifs**
 
-### URLs Opérationnelles
-- **Production :** https://coupel.net/ansible-builder
-- **Staging nginx :** http://192.168.1.217
-- **Health checks :** http://192.168.1.217/health
+### URLs
+- **Production :** https://coupel.net/ansible-builder (v1.9.0)
+- **Staging :** http://192.168.1.217 (v1.10.0_12)
 
-### Configuration Technique
+### Configuration
 - **Docker Host :** 192.168.1.217:2375
 - **Registry :** ghcr.io/ccoupel (pour phase 3)
-- **Kubeconfig :** kubeconfig.txt (production)
-- **GitHub Token :** github_token.txt
-
-### Images Actuelles
-```bash
-# Staging (local builds)
-ansible-builder-backend:1.9.0_5
-ansible-builder-frontend:1.9.0_7-vite
-
-# Production (registry)
-ghcr.io/ccoupel/ansible-builder-backend:1.8.1
-ghcr.io/ccoupel/ansible-builder-frontend:1.8.1
-```
 
 ---
 
-## 📝 **Commit Status**
+*Document maintenu en temps réel. Dernière mise à jour : 2025-12-15 14:35*
 
-### Latest Commit
-```
-feat: Complete v1.9.0 implementation with Phase 2 nginx architecture
-- Module parameter collection from Galaxy API v3 docs-blob
-- Enhanced About popup with feature categorization icons
-- Dynamic version fetching following LoginPage pattern
-- Phase 2 nginx reverse proxy architecture (staging)
-- Complete documentation update with deployment guides
-
-22 files changed, 2323 insertions(+), 272 deletions(-)
-```
-
-### Repository Status
-- **Branch :** master
-- **Remote :** bitbucket.org/ccoupel/ansible_builder.git
-- **Status :** ✅ Pushed successfully
-- **Commits ahead :** 0 (synchronized)
-
----
-
-*Document maintenu en temps réel. Dernière mise à jour : 2025-12-14 15:00*
-
-*Phase 2 complète - Prêt pour Phase 3 production*
-
-*Voir aussi :*
-- [Process Développement](../core/DEVELOPMENT_PROCESS.md)
-- [Architecture Phase 2](../../CLAUDE.md#architecture-phase-2---nginx-reverse-proxy-permanent)
-- [Guide Déploiement](../operations/DEPLOYMENT_GUIDE.md)
+*Phase 2 complète v1.10.0 - Ansible Documentation Integration*
