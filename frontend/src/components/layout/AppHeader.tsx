@@ -21,11 +21,13 @@ import {
   Alert,
   Chip,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  Snackbar
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { VersionSelector } from '../VersionSelector'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -38,7 +40,6 @@ import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
-import SaveIcon from '@mui/icons-material/Save'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import { getHttpClient } from '../../utils/httpClient'
 import axios from 'axios'
@@ -69,7 +70,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
   const { darkMode, toggleDarkMode } = useTheme()
-  // Remove useAnsibleVersion - now using VersionSelector directly
+  const { forceRefreshCache, isLoading: cacheLoading, currentVersion } = useGalaxyCache()
 
   // Version state (simplified like LoginPage)
   const [backendVersion, setBackendVersion] = useState<string>('...')
@@ -79,6 +80,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
 
   // Playbook fields state (local for other fields)
   const [inventory, setInventory] = useState('hosts')
+
+  // Refresh notification state
+  const [refreshSnackbar, setRefreshSnackbar] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState('')
 
   // User menu state
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -222,6 +227,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   }
 
   /**
+   * Handle logo click - Ctrl+Click triggers force refresh of all caches
+   */
+  const handleLogoClick = async (event: React.MouseEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault()
+      console.log('🔄 Force refresh triggered via Ctrl+Click on logo')
+
+      setRefreshMessage('Force refreshing namespaces/collections from Ansible docs...')
+      setRefreshSnackbar(true)
+
+      try {
+        await forceRefreshCache()
+        setRefreshMessage(`✅ Cache refreshed successfully for Ansible ${currentVersion}`)
+      } catch (error) {
+        setRefreshMessage('❌ Failed to refresh cache')
+        console.error('Force refresh failed:', error)
+      }
+    }
+  }
+
+  /**
    * Get initials from username for avatar
    */
   const getUserInitials = (): string => {
@@ -240,12 +266,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
     >
       <Toolbar sx={{ minHeight: 'calc(48px * var(--spacing-scale, 1))', py: 'var(--spacing-xs, 4px)' }}>
         {/* Left side - Logo and Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs, 4px)', mr: 'var(--spacing-sm, 8px)' }}>
-          <PlayArrowIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
-          <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: 'var(--font-base, 14px)' }}>
-            Ansible Builder
-          </Typography>
-        </Box>
+        <Tooltip title="Ctrl+Click to force refresh namespaces/collections" placement="bottom">
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs, 4px)',
+              mr: 'var(--spacing-sm, 8px)',
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.9 }
+            }}
+            onClick={handleLogoClick}
+          >
+            <PlayArrowIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
+            <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: 'var(--font-base, 14px)' }}>
+              Ansible Builder
+            </Typography>
+            {cacheLoading && (
+              <CircularProgress size={16} sx={{ color: 'white', ml: 1 }} />
+            )}
+          </Box>
+        </Tooltip>
 
         {/* Center - Playbook Info */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm, 8px)', flexGrow: 1 }}>
@@ -750,6 +791,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Force Refresh Snackbar */}
+      <Snackbar
+        open={refreshSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setRefreshSnackbar(false)}
+        message={refreshMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
 
     </AppBar>
   )

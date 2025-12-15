@@ -14,10 +14,10 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 - **Status :** ✅ **v1.9.0 LIVE** - Module Parameter Collection feature
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.10.0_12` (ansible-builder-backend:1.10.0_12)
-- **Frontend :** `1.10.0_12-vite` (ansible-builder-frontend:1.10.0_12-vite)
+- **Backend :** `1.10.0_15` (ansible-builder-backend:1.10.0_15)
+- **Frontend :** `1.10.0_15-vite` (ansible-builder-frontend:1.10.0_15-vite)
 - **URL :** http://192.168.1.217
-- **Status :** ✅ Phase 2 - Ansible Documentation Integration
+- **Status :** ✅ Phase 2 - Ansible Documentation Integration + Cache Management
 
 **Développement :**
 - **Phase 1** : ✅ Build et test local sur 192.168.1.217
@@ -81,6 +81,16 @@ Remplacement de l'architecture Galaxy API par le web scraping direct de la docum
 - `_11` : Fallback values pour propriétés undefined
 - `_12` : Backend scraping documentation Ansible fonctionnel
 
+#### Nouvelles Fonctionnalités (builds _13 à _15)
+- `_13` : Changement version Ansible rafraîchit namespaces/collections
+- `_14` : Fix useAnsibleVersions hook pour partager état via Context
+- `_15` : **Gestion Cache Complète**
+  - Backend scheduler automatique (sync toutes les 24h)
+  - SSE endpoint `/api/ansible/cache/notifications` pour notifications temps réel
+  - Indicateur cache visuel dans panneau Elements (Cached/Refreshing/Refreshed/Error)
+  - Ctrl+Click sur logo "Ansible Builder" = force refresh cache complet
+  - Retour automatique à "Cached" après 5 secondes
+
 #### Résultats
 - **54 namespaces** détectés depuis Ansible 13 docs
 - **Collections dynamiques** par namespace (ex: community = 24 collections)
@@ -122,6 +132,11 @@ docs.ansible.com/projects/ansible/{version}/collections/
 /api/ansible/{version}/namespaces/{ns}/collections       → Collections namespace
 /api/ansible/{version}/namespaces/{ns}/collections/{c}/modules → Modules
 /api/ansible/{version}/namespaces/{ns}/collections/{c}/modules/{m}/schema → Paramètres
+
+# Cache Management (v1.10.0_15)
+/api/ansible/cache/status                                → État scheduler + SSE
+/api/ansible/cache/sync                                  → POST - Déclencher sync manuel
+/api/ansible/cache/notifications                         → SSE - Notifications temps réel
 ```
 
 ### Cache Strategy
@@ -159,8 +174,8 @@ nginx (port 80) → Point d'entrée unique
 
 **Images :**
 ```bash
-ansible-builder-backend:1.10.0_12
-ansible-builder-frontend:1.10.0_12-vite
+ansible-builder-backend:1.10.0_15
+ansible-builder-frontend:1.10.0_15-vite
 ```
 
 ---
@@ -185,7 +200,7 @@ ansible-builder-frontend:1.10.0_12-vite
 
 ### URLs
 - **Production :** https://coupel.net/ansible-builder (v1.9.0)
-- **Staging :** http://192.168.1.217 (v1.10.0_12)
+- **Staging :** http://192.168.1.217 (v1.10.0_15)
 
 ### Configuration
 - **Docker Host :** 192.168.1.217:2375
@@ -193,6 +208,6 @@ ansible-builder-frontend:1.10.0_12-vite
 
 ---
 
-*Document maintenu en temps réel. Dernière mise à jour : 2025-12-15 14:35*
+*Document maintenu en temps réel. Dernière mise à jour : 2025-12-15 16:20*
 
-*Phase 2 complète v1.10.0 - Ansible Documentation Integration*
+*Phase 2 complète v1.10.0_15 - Ansible Documentation Integration + Cache Management*

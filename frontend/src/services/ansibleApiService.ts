@@ -106,19 +106,25 @@ export class AnsibleApiService {
 
   /**
    * Get all namespaces for selected version
+   * @param forceRefresh - If true, bypass backend cache
    */
-  async getAllNamespaces(): Promise<AnsibleNamespace[]> {
+  async getAllNamespaces(forceRefresh: boolean = false): Promise<AnsibleNamespace[]> {
     try {
-      const response = await this.httpClient.get<AnsibleNamespacesResponse>(
-        `${this.baseUrl}/${this.selectedVersion}/namespaces`
-      )
-      
+      const url = forceRefresh
+        ? `${this.baseUrl}/${this.selectedVersion}/namespaces?force_refresh=true`
+        : `${this.baseUrl}/${this.selectedVersion}/namespaces`
+
+      console.log(`📥 Fetching namespaces for Ansible ${this.selectedVersion}${forceRefresh ? ' (FORCE REFRESH)' : ''}`)
+
+      const response = await this.httpClient.get<AnsibleNamespacesResponse>(url)
+
       // If backend returns empty namespaces, use fallback data for testing
       if (!response.data.namespaces || response.data.namespaces.length === 0) {
         console.warn('Backend returned empty namespaces, using fallback data')
         return this.getFallbackNamespaces()
       }
-      
+
+      console.log(`✅ Got ${response.data.namespaces.length} namespaces for Ansible ${this.selectedVersion}`)
       return response.data.namespaces || []
     } catch (error) {
       console.error('Failed to get namespaces:', error)
@@ -325,13 +331,14 @@ export class AnsibleApiService {
 
   /**
    * Get Galaxy-compatible data format for backward compatibility
+   * @param forceRefresh - If true, bypass all caches (frontend and backend)
    */
-  async getAllCachedData() {
+  async getAllCachedData(forceRefresh: boolean = false) {
     try {
-      console.log('🔄 AnsibleApiService: Fetching namespaces from Ansible docs...')
-      
-      const namespaces = await this.getAllNamespaces()
-      
+      console.log(`🔄 AnsibleApiService: Fetching namespaces from Ansible docs...${forceRefresh ? ' (FORCE REFRESH)' : ''}`)
+
+      const namespaces = await this.getAllNamespaces(forceRefresh)
+
       // Convert to Galaxy format for compatibility
       const galaxyNamespaces = namespaces.map(ns => ({
         name: ns.name,
@@ -348,7 +355,7 @@ export class AnsibleApiService {
         all_namespaces: galaxyNamespaces,
         collections_sample: {},
         cache_info: {
-          sync_status: 'completed',
+          sync_status: forceRefresh ? 'force_refreshed' : 'completed',
           last_sync: new Date().toISOString(),
           method: 'ansible_docs',
           api_calls: 1
@@ -357,7 +364,8 @@ export class AnsibleApiService {
 
       console.log('✅ AnsibleApiService: Data fetched:', {
         namespaces: galaxyNamespaces.length,
-        version: this.selectedVersion
+        version: this.selectedVersion,
+        forceRefresh
       })
 
       return cachedData

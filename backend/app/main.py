@@ -9,6 +9,8 @@ from app.models.user import User
 from app.api.router import api_router
 from app.version import __version__
 from app.services.galaxy_cache_service import galaxy_cache_service
+from app.services.cache_scheduler_service import cache_scheduler
+from app.services.sse_manager import sse_manager
 
 async def create_default_user():
     """Create default admin user for testing if not exists"""
@@ -59,21 +61,16 @@ async def lifespan(app: FastAPI):
         # Create default admin user for testing
         await create_default_user()
         
-        # Start SMART Galaxy data synchronization
-        print("Starting SMART Galaxy sync (API directe optimisée)...")
-        import asyncio
-        from app.services.galaxy_service_smart import smart_galaxy_service
-        
-        # Démarrer le sync principal
-        sync_task = asyncio.create_task(smart_galaxy_service.startup_sync_smart())
-        
-        # Démarrer l'enrichissement en arrière-plan après le sync
-        async def start_background_enrichment():
-            await sync_task  # Attendre la fin du sync principal
-            print("Starting background namespace enrichment...")
-            await smart_galaxy_service.background_enrich_all_namespaces()
-        
-        asyncio.create_task(start_background_enrichment())
+        # Start Ansible cache scheduler
+        print("Starting Ansible cache scheduler...")
+
+        # Connect scheduler to SSE manager for broadcasting notifications
+        async def broadcast_notification(notification):
+            await sse_manager.broadcast(notification)
+
+        cache_scheduler.register_notification_callback(broadcast_notification)
+        await cache_scheduler.start()
+        print(f"✅ Cache scheduler started (sync interval: {cache_scheduler.SYNC_INTERVAL_HOURS}h)")
         
     except Exception as e:
         print(f"Database initialization failed: {e}")
@@ -81,6 +78,8 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     print("Shutting down Ansible Builder API")
+    await cache_scheduler.stop()
+    print("✅ Cache scheduler stopped")
 
 app = FastAPI(
     title="Ansible Builder API",

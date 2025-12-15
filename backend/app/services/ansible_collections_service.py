@@ -36,33 +36,40 @@ class AnsibleCollectionsService:
             await self.session.close()
             self.session = None
     
-    async def get_collections(self, version: str) -> Dict[str, List[str]]:
+    async def get_collections(self, version: str, force_refresh: bool = False) -> Dict[str, List[str]]:
         """
         Récupère les collections disponibles pour une version Ansible
-        
+
         Args:
             version: Version Ansible (latest, 13, 12, etc.)
-            
+            force_refresh: Si True, ignore le cache et récupère les données fraîches
+
         Returns:
             Dictionnaire {namespace: [collections]}
         """
         cache_key = f"ansible_collections:{version}"
-        cached_result = cache.get(cache_key)
-        
-        if cached_result:
-            logger.info(f"Returning cached collections for Ansible {version}")
-            return cached_result
-        
+
+        # Check cache unless force_refresh is requested
+        if not force_refresh:
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                logger.info(f"Returning cached collections for Ansible {version}")
+                return cached_result
+        else:
+            logger.info(f"Force refresh requested - bypassing cache for Ansible {version}")
+            # Clear existing cache
+            cache.delete(cache_key)
+
         try:
-            logger.info(f"Fetching collections for Ansible version {version}")
+            logger.info(f"Fetching collections for Ansible version {version} from docs.ansible.com")
             collections_url = ansible_versions_service.get_collections_url_for_version(version)
-            
+
             session = await self.get_session()
             async with session.get(collections_url) as response:
                 if response.status == 200:
                     html_content = await response.text()
                     collections = self._parse_collections_from_html(html_content)
-                    
+
                     # Cache le résultat
                     cache.set(cache_key, collections, self.CACHE_TTL_COLLECTIONS)
                     logger.info(f"Found {len(collections)} namespaces for Ansible {version}")
@@ -70,7 +77,7 @@ class AnsibleCollectionsService:
                 else:
                     logger.error(f"Failed to fetch collections for {version}: HTTP {response.status}")
                     return {}
-                    
+
         except Exception as e:
             logger.error(f"Error fetching collections for {version}: {str(e)}")
             return {}

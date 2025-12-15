@@ -1,24 +1,27 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { galaxySmartService } from '../services/galaxySmartService'
 import { ansibleApiService } from '../services/ansibleApiService'
 import { notificationService, CacheNotification } from '../services/notificationService'
 import { Namespace } from '../services/galaxyService'
+import { useAnsibleVersion } from './AnsibleVersionContext'
 
 interface GalaxyCacheContextType {
   // Data
   popularNamespaces: Namespace[]
   allNamespaces: Namespace[]
   collectionsCache: Record<string, any[]>
-  
+
   // Status
   isLoading: boolean
   isReady: boolean
   lastSync: string | null
   syncStatus: string
   error: string | null
-  
+  currentVersion: string
+
   // Actions
   refreshCache: () => Promise<void>
+  forceRefreshCache: () => Promise<void>  // Force refresh bypassing cache
   enrichNamespaceOnDemand: (namespace: string) => Promise<any | null>
   getCollections: (namespace: string) => Promise<any[] | null>
   getModules: (namespace: string, collection: string, version: string) => Promise<any[] | null>
@@ -39,35 +42,57 @@ interface GalaxyCacheProviderProps {
 }
 
 export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ children }) => {
+  // Get current Ansible version from shared context
+  const { ansibleVersion } = useAnsibleVersion()
+
   // Data state
   const [popularNamespaces, setPopularNamespaces] = useState<Namespace[]>([])
   const [allNamespaces, setAllNamespaces] = useState<Namespace[]>([])
   const [collectionsCache, setCollectionsCache] = useState<Record<string, any[]>>({})
-  
+  const [currentVersion, setCurrentVersion] = useState<string>(ansibleVersion)
+
   // Status state
   const [isLoading, setIsLoading] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string>('loading')
   const [error, setError] = useState<string | null>(null)
-  
+
   // Load cached data and start notifications on component mount
   useEffect(() => {
     console.log('🚀 GalaxyCacheContext: Loading cached Galaxy data on app startup...')
     loadCachedData()
-    
+
     // Start listening to SSE notifications
     notificationService.connect()
-    
+
     // Subscribe to cache notifications
     const unsubscribe = notificationService.subscribe(handleNotification)
-    
+
     // Cleanup on unmount
     return () => {
       unsubscribe()
       notificationService.disconnect()
     }
   }, [])
+
+  // React to Ansible version changes
+  useEffect(() => {
+    if (ansibleVersion && ansibleVersion !== currentVersion) {
+      console.log(`🔄 GalaxyCacheContext: Ansible version changed from ${currentVersion} to ${ansibleVersion}`)
+      setCurrentVersion(ansibleVersion)
+
+      // Update the service with new version
+      ansibleApiService.setVersion(ansibleVersion)
+
+      // Clear collections cache (collections are version-specific)
+      setCollectionsCache({})
+
+      // Reload namespaces for new version
+      console.log(`📥 GalaxyCacheContext: Reloading data for Ansible ${ansibleVersion}...`)
+      loadCachedData()
+    }
+  }, [ansibleVersion, currentVersion])
   
   const loadCachedData = async () => {
     try {
@@ -120,15 +145,72 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
       console.log('🔄 Refreshing Galaxy cache...')
       setIsLoading(true)
       setError(null)
-      
+
       // Use Ansible API service (no need for resync, just refresh data)
       console.log('🔄 Refreshing Ansible data...')
       await loadCachedData()
       setSyncStatus('refreshed')
-      
+
+      // Return to 'completed' (displayed as 'Cached') after 5 seconds
+      setTimeout(() => {
+        setSyncStatus('completed')
+      }, 5000)
+
     } catch (err) {
       console.error('❌ Cache refresh failed:', err)
       setError(err instanceof Error ? err.message : 'Cache refresh failed')
+      setSyncStatus('error')
+
+      // Return to 'completed' after 5 seconds even on error
+      setTimeout(() => {
+        setSyncStatus('completed')
+      }, 5000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const forceRefreshCache = async () => {
+    try {
+      console.log('🔄 FORCE Refreshing - Bypassing all caches...')
+      setIsLoading(true)
+      setSyncStatus('refreshing')
+      setError(null)
+
+      // Clear local collections cache
+      setCollectionsCache({})
+
+      // Request fresh data from backend with force_refresh parameter
+      const cachedData = await ansibleApiService.getAllCachedData(true)
+
+      if (cachedData) {
+        setPopularNamespaces(cachedData.popular_namespaces || [])
+        setAllNamespaces(cachedData.all_namespaces || [])
+        setSyncStatus('refreshed')
+        setLastSync(new Date().toISOString())
+        setIsReady(true)
+
+        console.log('✅ Force refresh completed:', {
+          namespaces: cachedData.all_namespaces?.length || 0,
+          version: currentVersion
+        })
+
+        // Return to 'completed' (displayed as 'Cached') after 5 seconds
+        setTimeout(() => {
+          setSyncStatus('completed')
+        }, 5000)
+      }
+
+    } catch (err) {
+      console.error('❌ Force cache refresh failed:', err)
+      setError(err instanceof Error ? err.message : 'Force cache refresh failed')
+      setSyncStatus('error')
+
+      // Return to 'completed' after 5 seconds even on error
+      setTimeout(() => {
+        setSyncStatus('completed')
+      }, 5000)
+    } finally {
       setIsLoading(false)
     }
   }
@@ -209,44 +291,45 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
   }
   
   const handleNotification = (notification: CacheNotification) => {
-    console.log('📨 Received cache notification:', notification.type, notification.message)
-    
+    // Skip logging for ping keepalives
+    if (notification.type === 'ping') {
+      return // No action needed for keepalive pings
+    }
+
+    console.log('📨 Cache notification:', notification.type, notification.message || '')
+
     switch (notification.type) {
       case 'connected':
         console.log('✅ Connected to cache notifications')
         break
-        
+
       case 'cache_sync_started':
         console.log('🚀 Cache sync started')
         setSyncStatus('syncing')
         setError(null)
         break
-        
+
       case 'cache_sync_completed':
         console.log('✅ Cache sync completed')
         setSyncStatus('completed')
         setLastSync(notification.timestamp)
-        
+
         // Reload cache data to get latest updates
         loadCachedData()
         break
-        
+
       case 'cache_updated':
         console.log('📊 Cache data updated:', notification.data?.update_type)
         // Could selectively update specific data based on update_type
         loadCachedData()
         break
-        
+
       case 'cache_error':
         console.error('❌ Cache sync error:', notification.data?.error)
         setSyncStatus('error')
         setError(notification.data?.error || 'Cache sync failed')
         break
-        
-      case 'ping':
-        // Keepalive ping - no action needed
-        break
-        
+
       default:
         console.log('📨 Unknown notification type:', notification.type)
     }
@@ -257,16 +340,18 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     popularNamespaces,
     allNamespaces,
     collectionsCache,
-    
+
     // Status
     isLoading,
     isReady,
     lastSync,
     syncStatus,
     error,
-    
+    currentVersion,
+
     // Actions
     refreshCache,
+    forceRefreshCache,
     enrichNamespaceOnDemand,
     getCollections,
     getModules,

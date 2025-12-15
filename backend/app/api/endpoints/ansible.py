@@ -3,11 +3,14 @@ Ansible Documentation API Endpoints
 """
 
 from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi.responses import StreamingResponse
 from typing import Dict, List, Any
 import logging
 
 from app.services.ansible_versions_service import ansible_versions_service
 from app.services.ansible_collections_service import ansible_collections_service
+from app.services.cache_scheduler_service import cache_scheduler
+from app.services.sse_manager import sse_manager
 
 logger = logging.getLogger(__name__)
 
@@ -83,17 +86,18 @@ async def get_collections_for_version(
 
 @router.get("/{version}/namespaces")
 async def get_namespaces_for_version(
-    version: str = Path(..., description="Ansible version")
+    version: str = Path(..., description="Ansible version"),
+    force_refresh: bool = Query(False, description="Bypass cache and fetch fresh data")
 ) -> Dict[str, Any]:
     """
     Récupère les namespaces disponibles (compatible avec l'API existante)
     """
     try:
-        logger.info(f"Fetching namespaces for Ansible version {version}")
-        
+        logger.info(f"Fetching namespaces for Ansible version {version} (force_refresh={force_refresh})")
+
         # Récupérer les collections et les transformer en format namespaces
-        collections = await ansible_collections_service.get_collections(version)
-        
+        collections = await ansible_collections_service.get_collections(version, force_refresh=force_refresh)
+
         namespaces = []
         for namespace, collection_list in collections.items():
             namespaces.append({
@@ -101,14 +105,15 @@ async def get_namespaces_for_version(
                 "collections_count": len(collection_list),
                 "collections": collection_list
             })
-        
+
         return {
             "ansible_version": version,
             "namespaces": namespaces,
             "total_count": len(namespaces),
-            "source": "ansible_docs"
+            "source": "ansible_docs",
+            "cache_bypassed": force_refresh
         }
-        
+
     except Exception as e:
         logger.error(f"Error fetching namespaces for version {version}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch namespaces: {str(e)}")
@@ -286,3 +291,66 @@ async def ansible_health_check():
             "error": str(e),
             "cache_status": "unknown"
         }
+
+
+# ========== Cache Management Endpoints ==========
+
+@router.get("/cache/status")
+async def get_cache_status() -> Dict[str, Any]:
+    """
+    Get current cache and scheduler status
+    """
+    try:
+        scheduler_status = cache_scheduler.get_status()
+        sse_status = sse_manager.get_status()
+
+        return {
+            "status": "ok",
+            "scheduler": scheduler_status,
+            "sse": sse_status
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting cache status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get cache status: {str(e)}")
+
+
+@router.post("/cache/sync")
+async def trigger_cache_sync() -> Dict[str, Any]:
+    """
+    Manually trigger a cache synchronization from Ansible docs
+    """
+    try:
+        logger.info("Manual cache sync triggered")
+        result = await cache_scheduler.sync_all_caches(force=True)
+
+        return {
+            "status": "sync_triggered",
+            "result": result
+        }
+
+    except Exception as e:
+        logger.error(f"Error triggering cache sync: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to trigger sync: {str(e)}")
+
+
+@router.get("/cache/notifications")
+async def cache_notifications():
+    """
+    SSE endpoint for cache update notifications
+    Clients connect here to receive real-time updates about cache changes
+    """
+    logger.info("New SSE client connecting to cache notifications")
+
+    client = await sse_manager.connect()
+
+    return StreamingResponse(
+        sse_manager.event_generator(client),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Access-Control-Allow-Origin": "*"
+        }
+    )

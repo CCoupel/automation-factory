@@ -32,6 +32,9 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import StarIcon from '@mui/icons-material/Star'
 import StarBorderIcon from '@mui/icons-material/StarBorder'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ErrorIcon from '@mui/icons-material/Error'
+import SaveIcon from '@mui/icons-material/Save'
 import { useState, useEffect } from 'react'
 import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
@@ -605,11 +608,41 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {syncStatus && (
-              <Chip 
-                label={syncStatus === 'completed' ? 'Cached' : syncStatus} 
-                size="small" 
-                color={syncStatus === 'completed' ? 'success' : 'warning'}
+              <Chip
+                size="small"
+                icon={
+                  syncStatus === 'refreshing' ? (
+                    <CircularProgress size={12} />
+                  ) : syncStatus === 'refreshed' ? (
+                    <CheckCircleIcon sx={{ fontSize: 14 }} />
+                  ) : syncStatus === 'error' ? (
+                    <ErrorIcon sx={{ fontSize: 14 }} />
+                  ) : (
+                    <SaveIcon sx={{ fontSize: 14 }} />
+                  )
+                }
+                label={
+                  syncStatus === 'refreshing'
+                    ? 'Refreshing...'
+                    : syncStatus === 'refreshed'
+                    ? 'Refreshed'
+                    : syncStatus === 'error'
+                    ? 'Error'
+                    : 'Cached'
+                }
+                color={
+                  syncStatus === 'refreshing'
+                    ? 'info'
+                    : syncStatus === 'refreshed'
+                    ? 'success'
+                    : syncStatus === 'error'
+                    ? 'error'
+                    : 'success'
+                }
                 variant="outlined"
+                sx={{
+                  transition: 'all 0.3s ease'
+                }}
               />
             )}
             {onCollapse && (

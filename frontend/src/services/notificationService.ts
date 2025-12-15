@@ -22,7 +22,7 @@ class NotificationService {
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000 // 1 second, exponentially increased
   private isConnected = false
-  
+
   /**
    * Start listening to cache notifications
    */
@@ -31,12 +31,13 @@ class NotificationService {
       console.log('📡 SSE already connected')
       return
     }
-    
-    console.log('📡 Connecting to cache notifications...')
-    
+
+    console.log('📡 Connecting to Ansible cache notifications...')
+
     try {
       const baseUrl = getApiBaseUrl()
-      const sseUrl = `${baseUrl}/galaxy/cache/notifications`
+      // Updated: Use new Ansible API endpoint instead of legacy Galaxy endpoint
+      const sseUrl = `${baseUrl}/ansible/cache/notifications`
       console.log('📡 Connecting to SSE:', sseUrl)
       
       this.eventSource = new EventSource(sseUrl)
@@ -106,7 +107,10 @@ class NotificationService {
   }
   
   private handleNotification(notification: CacheNotification): void {
-    console.log('📨 Received cache notification:', notification.type, notification.message)
+    // Don't log ping keepalives to reduce console noise
+    if (notification.type !== 'ping') {
+      console.log('📨 Received cache notification:', notification.type, notification.message || '')
+    }
     
     // Call all registered callbacks
     this.callbacks.forEach(callback => {
