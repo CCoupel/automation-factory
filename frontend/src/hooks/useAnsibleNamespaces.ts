@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ansibleService } from '../services/ansibleService';
-import { 
-  getUserFavorites, 
-  addFavorite, 
-  removeFavorite, 
-  isFavorite
-} from '../services/userPreferencesService';
+import { userPreferencesService } from '../services/userPreferencesService';
 
 interface Namespace {
   name: string;
@@ -30,7 +25,7 @@ export const useAnsibleNamespaces = (version: string) => {
   useEffect(() => {
     const loadFavorites = async () => {
       try {
-        const userFavorites = await getUserFavorites();
+        const userFavorites = await userPreferencesService.getFavoriteNamespaces();
         setFavorites(userFavorites);
       } catch (error) {
         console.error('Failed to load user favorites:', error);
@@ -52,10 +47,16 @@ export const useAnsibleNamespaces = (version: string) => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await ansibleService.getNamespaces(version);
-        setNamespaces(response.namespaces);
-        
+        // Transform API response to match Namespace interface (collections_count -> collection_count)
+        const transformedNamespaces: Namespace[] = response.namespaces.map(ns => ({
+          name: ns.name,
+          collection_count: ns.collections_count,
+          collections: ns.collections,
+        }));
+        setNamespaces(transformedNamespaces);
+
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch namespaces';
         setError(errorMessage);
@@ -89,13 +90,13 @@ export const useAnsibleNamespaces = (version: string) => {
 
   const handleToggleFavorite = async (namespaceName: string) => {
     try {
-      const isCurrentlyFavorite = await isFavorite(namespaceName);
-      
+      const isCurrentlyFavorite = await userPreferencesService.isFavoriteNamespace(namespaceName);
+
       if (isCurrentlyFavorite) {
-        await removeFavorite(namespaceName);
+        await userPreferencesService.removeFavoriteNamespace(namespaceName);
         setFavorites(prev => prev.filter(name => name !== namespaceName));
       } else {
-        await addFavorite(namespaceName);
+        await userPreferencesService.addFavoriteNamespace(namespaceName);
         setFavorites(prev => [...prev, namespaceName]);
       }
     } catch (error) {

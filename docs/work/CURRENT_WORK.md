@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-15**
+## 🚀 **Status Actuel - 2025-12-19**
 
 ### Versions Déployées
 **Production (K8s) :**
@@ -14,153 +14,123 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 - **Status :** ✅ **v1.9.0 LIVE** - Module Parameter Collection feature
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.10.0_15` (ansible-builder-backend:1.10.0_15)
-- **Frontend :** `1.10.0_15-vite` (ansible-builder-frontend:1.10.0_15-vite)
+- **Backend :** `1.10.0_16` (ansible-builder-backend:1.10.0_16)
+- **Frontend :** `1.10.0_16-vite` (ansible-builder-frontend:1.10.0_16-vite)
 - **URL :** http://192.168.1.217
-- **Status :** ✅ Phase 2 - Ansible Documentation Integration + Cache Management
+- **Status :** ✅ **Phase 2 VALIDÉE** - Prêt pour Phase 3
 
 **Développement :**
-- **Phase 1** : ✅ Build et test local sur 192.168.1.217
-- **Phase 2** : ✅ Déploiement staging validé
-- **Phase 3** : 🔜 En attente validation utilisateur
+- **Phase 1** : ✅ Build et test local validé
+- **Phase 2** : ✅ Déploiement staging validé (2025-12-19)
+- **Phase 3** : 🔜 En attente démarrage
 
 ---
 
-## ✅ **Version 1.10.0 - En Cours (Phase 2)**
+## ✅ **Version 1.10.0_16 - Phase 2 Validée**
 
-### Fonctionnalité Majeure : Intégration Documentation Ansible
-**Status :** ✅ **Implémentation complète - Staging déployé**
+### Fonctionnalité Majeure : Intégration Documentation Ansible + Refactorisation
+**Status :** ✅ **Staging déployé et validé**
 
 #### Objectif
-Remplacement de l'architecture Galaxy API par le web scraping direct de la documentation officielle Ansible pour une couverture complète et à jour des collections et modules.
+Remplacement de l'architecture Galaxy API par le web scraping direct de la documentation officielle Ansible + nettoyage du code obsolète.
 
-#### Backend v1.10.0_12
-- **Service ansible_collections_service.py :** Web scraping de docs.ansible.com
-  - Parsing des namespaces depuis la page index collections
-  - Parsing des collections par namespace (lazy loading)
-  - Parsing des modules par collection
-  - Parsing des schémas de paramètres modules
-- **Service ansible_versions_service.py :** Détection dynamique des versions
-  - Scraping des versions disponibles depuis docs.ansible.com
-  - Validation des URLs de documentation
-  - Cache 24h avec fallback
-- **API Endpoints `/api/ansible/*` :**
-  - `GET /versions` - Versions Ansible disponibles
-  - `GET /{version}/namespaces` - 54 namespaces détectés
-  - `GET /{version}/namespaces/{ns}/collections` - Collections dynamiques
-  - `GET /{version}/namespaces/{ns}/collections/{coll}/modules` - Modules
-  - `GET /{version}/namespaces/{ns}/collections/{coll}/modules/{mod}/schema` - Schéma paramètres
-- **Cache intelligent :**
-  - Versions : 24h TTL
-  - Collections : 1h TTL
-  - Modules : 30min TTL
-  - Schémas : 1h TTL
+#### Refactorisation v1.10.0_16 (2025-12-19)
 
-#### Frontend v1.10.0_12
-- **ansibleApiService.ts :** Nouveau service API Ansible
-  - Interface avec les nouveaux endpoints `/api/ansible/*`
-  - Fallback data pour mode hors-ligne
-  - Gestion des versions Ansible
-- **useAnsibleVersions hook :** Gestion état versions
-- **VersionSelector dans AppHeader :** Sélection version Ansible centralisée
-- **ModulesZoneCached.tsx :** Corrections DOM nesting
-  - Fix `<button>` dans `<button>` (AccordionSummary)
-  - Fix `<div>` dans `<p>` (ListItemText secondary)
-  - Fallback values pour `total_downloads` et `collection_count`
-- **ConfigZone.tsx :** Fix DOM nesting IconButton
+**Frontend - 7 fichiers supprimés (~2500 lignes) :**
+| Fichier | Raison |
+|---------|--------|
+| `galaxyService.ts` | Remplacé par ansibleApiService.ts |
+| `galaxyCacheService.ts` | Logique migrée dans GalaxyCacheContext |
+| `galaxySmartService.ts` | Obsolète |
+| `GalaxyContext.tsx` | Remplacé par GalaxyCacheContext |
+| `ModulesZone.tsx` | Remplacé par ModulesZoneCached |
+| `OptimizedModulesZone.tsx` | Remplacé par ModulesZoneCached |
 
-#### Corrections Bugs (builds _1 à _12)
-- `_2` : Suppression VersionSelector redondant dans ModulesZone
-- `_3-_4` : Migration `/api/galaxy/*` → `/api/ansible/*`
-- `_5` : Ajout fallback namespaces quand backend vide
-- `_6` : Fix propriétés manquantes `collection_count`, `total_downloads`
-- `_7` : Séparation correcte namespaces/collections
-- `_8` : Ajout interface `AnsibleCollectionObject`
-- `_9` : Fix DOM nesting `<button>` dans AccordionSummary
-- `_10` : Fix DOM nesting `<div>` dans `<p>` ListItemText
-- `_11` : Fallback values pour propriétés undefined
-- `_12` : Backend scraping documentation Ansible fonctionnel
+**Backend - 10 fichiers supprimés (~3000 lignes) :**
+| Fichier | Raison |
+|---------|--------|
+| `galaxy_service.py` | Remplacé par ansible_collections_service |
+| `galaxy_service_optimized.py` | Obsolète |
+| `galaxy_service_simple.py` | Obsolète |
+| `galaxy_service_hybrid.py` | Obsolète |
+| `galaxy_service_smart.py` | Obsolète |
+| `galaxy_cache_service.py` | Remplacé par cache_scheduler_service |
+| `cache_storage_service.py` | Obsolète |
+| `notification_service.py` | Remplacé par sse_manager |
+| `galaxy.py` (endpoint) | Endpoints `/api/galaxy/*` supprimés |
+| `galaxy_cache.py` (endpoint) | Endpoints obsolètes |
 
-#### Nouvelles Fonctionnalités (builds _13 à _15)
+**Gains :**
+- ~5500 lignes de code supprimées
+- Architecture simplifiée
+- Point d'entrée unique `/api/ansible/*`
+- Code plus maintenable
+
+#### Backend Services Conservés
+```
+services/
+├── ansible_collections_service.py  # Web scraping docs.ansible.com
+├── ansible_versions_service.py     # Versions Ansible
+├── cache_scheduler_service.py      # Scheduler auto-sync 24h
+├── sse_manager.py                  # SSE notifications
+├── cache_service.py                # Cache général
+├── collections_service.py          # Collections helper
+└── __init__.py
+```
+
+#### Frontend Services Conservés
+```
+services/
+├── ansibleApiService.ts     # Service principal Ansible docs
+├── ansibleService.ts        # API calls Ansible
+├── galaxyModuleSchemaService.ts # Schémas modules
+├── authService.ts           # Authentification
+├── playbookService.ts       # Playbooks CRUD
+├── userPreferencesService.ts # Préférences utilisateur
+└── notificationService.ts   # SSE notifications
+```
+
+#### Fonctionnalités builds _13 à _16
 - `_13` : Changement version Ansible rafraîchit namespaces/collections
 - `_14` : Fix useAnsibleVersions hook pour partager état via Context
-- `_15` : **Gestion Cache Complète**
-  - Backend scheduler automatique (sync toutes les 24h)
-  - SSE endpoint `/api/ansible/cache/notifications` pour notifications temps réel
-  - Indicateur cache visuel dans panneau Elements (Cached/Refreshing/Refreshed/Error)
-  - Ctrl+Click sur logo "Ansible Builder" = force refresh cache complet
-  - Retour automatique à "Cached" après 5 secondes
-
-#### Résultats
-- **54 namespaces** détectés depuis Ansible 13 docs
-- **Collections dynamiques** par namespace (ex: community = 24 collections)
-- **Parsing HTML robuste** avec regex patterns
-- **Architecture scalable** pour futures versions Ansible
+- `_15` : Gestion Cache Complète (scheduler 24h, SSE, indicateur visuel)
+- `_16` : **Refactorisation majeure** - Suppression code Galaxy obsolète
 
 ---
 
-## ✅ **Version 1.9.0 - Complétée (Production)**
+## 🔧 **Architecture Après Refactorisation**
 
-### Fonctionnalité : Collecte Paramètres Modules
-**Status :** ✅ **Déployé en production**
-
-#### Points clés
-- Galaxy API v3 docs-blob pour schémas modules
-- Interface configuration avec help tooltips
-- Support tous types paramètres
-- Phase 2 nginx reverse proxy architecture
-
----
-
-## 🔧 **Architecture Documentation Ansible**
-
-### Structure Web Scraping
-```
-docs.ansible.com/projects/ansible/{version}/collections/
-├── index.html → Liste namespaces (amazon/, ansible/, community/, ...)
-├── {namespace}/
-│   ├── index.html → Liste collections (aws/, general/, ...)
-│   └── {collection}/
-│       ├── index.html → Liste modules
-│       └── {module}_module.html → Documentation + paramètres
-```
-
-### Endpoints API
+### Endpoints API Actifs
 ```
 /api/ansible/versions                                    → Versions disponibles
-/api/ansible/{version}/namespaces                        → 54 namespaces
-/api/ansible/{version}/namespaces/{ns}/collections       → Collections namespace
+/api/ansible/{version}/namespaces                        → Namespaces
+/api/ansible/{version}/namespaces/{ns}/collections       → Collections
 /api/ansible/{version}/namespaces/{ns}/collections/{c}/modules → Modules
 /api/ansible/{version}/namespaces/{ns}/collections/{c}/modules/{m}/schema → Paramètres
 
-# Cache Management (v1.10.0_15)
+# Cache Management
 /api/ansible/cache/status                                → État scheduler + SSE
-/api/ansible/cache/sync                                  → POST - Déclencher sync manuel
-/api/ansible/cache/notifications                         → SSE - Notifications temps réel
+/api/ansible/cache/sync                                  → POST - Sync manuel
+/api/ansible/cache/notifications                         → SSE - Notifications
 ```
 
-### Cache Strategy
-| Donnée | TTL | Raison |
-|--------|-----|--------|
-| Versions | 24h | Stable, change rarement |
-| Namespaces | 1h | Nouveau namespace rare |
-| Collections | 1h | Nouvelles collections rares |
-| Modules | 30min | Updates plus fréquents |
-| Schémas | 1h | Documentation stable |
+### Endpoints Supprimés
+```
+/api/galaxy/*  → SUPPRIMÉ (remplacé par /api/ansible/*)
+```
 
 ---
 
-## 📊 **Métriques v1.10.0**
+## 📊 **Tests Phase 2 - Résultats**
 
-### Couverture Ansible 13
-- **Namespaces :** 54 (vs 12 fallback précédent)
-- **Collections :** Dynamique par namespace
-- **Sources :** docs.ansible.com officiel
-
-### Performance Staging
-- **Scraping initial :** ~2-3s par page
-- **Cache hit :** <100ms
-- **Frontend load :** Immédiat avec fallback
+| Test | Status |
+|------|--------|
+| Nginx Health | ✅ HTTP 200 |
+| Backend Version | ✅ 1.10.0_16 |
+| Frontend | ✅ HTTP 200 |
+| API /ansible/versions | ✅ 9 versions |
+| API /ansible/13/namespaces | ✅ OK |
+| API /ansible/13/namespaces/community/collections | ✅ OK |
 
 ---
 
@@ -174,25 +144,19 @@ nginx (port 80) → Point d'entrée unique
 
 **Images :**
 ```bash
-ansible-builder-backend:1.10.0_15
-ansible-builder-frontend:1.10.0_15-vite
+ansible-builder-backend:1.10.0_16
+ansible-builder-frontend:1.10.0_16-vite
 ```
 
 ---
 
-## 🎯 **Prochaines Étapes**
+## 🎯 **Prochaines Étapes - Phase 3**
 
-### Phase 3 Production (optionnel)
-1. Tests complets fonctionnalités
-2. Suppression suffixes `_n` des versions
+1. Suppression suffixes `_16` → `1.10.0`
+2. Build images production
 3. Push images vers ghcr.io
 4. Déploiement Kubernetes
-
-### Améliorations Futures
-1. Cache persistant Redis pour scraping
-2. Pre-fetch collections populaires
-3. Search full-text modules
-4. Historique versions modules
+5. Validation production
 
 ---
 
@@ -200,14 +164,14 @@ ansible-builder-frontend:1.10.0_15-vite
 
 ### URLs
 - **Production :** https://coupel.net/ansible-builder (v1.9.0)
-- **Staging :** http://192.168.1.217 (v1.10.0_15)
+- **Staging :** http://192.168.1.217 (v1.10.0_16)
 
 ### Configuration
 - **Docker Host :** 192.168.1.217:2375
-- **Registry :** ghcr.io/ccoupel (pour phase 3)
+- **Registry :** ghcr.io/ccoupel
 
 ---
 
-*Document maintenu en temps réel. Dernière mise à jour : 2025-12-15 16:20*
+*Document maintenu en temps réel. Dernière mise à jour : 2025-12-19 12:10*
 
-*Phase 2 complète v1.10.0_15 - Ansible Documentation Integration + Cache Management*
+*Phase 2 validée v1.10.0_16 - Refactorisation + Ansible Documentation Integration*

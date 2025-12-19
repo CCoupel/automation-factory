@@ -8,7 +8,6 @@ from app.core.security import get_password_hash
 from app.models.user import User
 from app.api.router import api_router
 from app.version import __version__
-from app.services.galaxy_cache_service import galaxy_cache_service
 from app.services.cache_scheduler_service import cache_scheduler
 from app.services.sse_manager import sse_manager
 

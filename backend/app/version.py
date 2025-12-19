@@ -2,7 +2,7 @@
 Application version information
 """
 
-__version__ = "1.10.0_15"
+__version__ = "1.10.0_16"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Features by version - used for About page and API

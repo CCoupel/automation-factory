@@ -38,7 +38,7 @@ import SaveIcon from '@mui/icons-material/Save'
 import { useState, useEffect } from 'react'
 import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
-import { Namespace } from '../../services/galaxyService'
+import { Namespace } from '../../services/ansibleApiService'
 import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
 import { 
   getUserFavorites, 

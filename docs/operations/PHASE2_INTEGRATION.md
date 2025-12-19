@@ -63,19 +63,19 @@ echo '__version__ = "X.Y.Z-rc.n"' > backend/app/version.py
 # Modifier "version": "X.Y.Z-rc.n" dans package.json
 ```
 
-#### Build Images Docker
+#### Build Images Docker (Local sur Staging)
 ```bash
-# Backend
-docker build -t ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n \
-  -f backend/Dockerfile.dev backend/
+# ⚠️ IMPORTANT: Build local sur 192.168.1.217, PAS de push ghcr.io
 
-# Frontend
-docker build -t ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z-rc.n \
+# Backend - build local
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n \
+  -f backend/Dockerfile backend/
+
+# Frontend - build local  
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n-vite \
   -f frontend/Dockerfile.dev frontend/
 
-# Push au registry
-docker push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n
-docker push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z-rc.n
+# PAS de push - images restent locales sur 192.168.1.217
 ```
 
 #### Mise à jour Docker-Compose
@@ -83,9 +83,11 @@ docker push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z-rc.n
 # docker-compose.staging.yml
 services:
   backend:
-    image: ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n
+    image: ansible-builder-backend:X.Y.Z-rc.n
   frontend:
-    image: ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z-rc.n
+    image: ansible-builder-frontend:X.Y.Z-rc.n-vite
+  nginx:
+    # Configuration nginx reverse proxy inline
 ```
 
 ### 2. Déploiement Staging
@@ -98,11 +100,11 @@ docker --host=tcp://192.168.1.217:2375 system prune -f
 
 #### Déploiement RC
 ```bash
-# Déploiement
-docker --host=tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
+# Déploiement avec architecture nginx reverse proxy
+docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
 
 # Vérification démarrage
-docker --host=tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml logs -f
+docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml logs -f
 
 # Attendre stabilisation (30s)
 sleep 30
@@ -110,12 +112,13 @@ sleep 30
 
 #### Validation Déploiement
 ```bash
-# Health checks
-curl -f http://192.168.1.217:8000/api/health
-curl -f http://192.168.1.217:8000/api/version
+# Health checks via nginx reverse proxy
+curl -I http://192.168.1.217/health          # Nginx OK
+curl http://192.168.1.217/api/version        # Backend API OK
+curl -I http://192.168.1.217/                # Frontend OK (Vite)
 
 # Vérification version RC
-VERSION=$(curl -s http://192.168.1.217:8000/api/version | jq -r .version)
+VERSION=$(curl -s http://192.168.1.217/api/version | jq -r .version)
 if [[ $VERSION == *"-rc."* ]]; then
     echo "✅ RC Version deployed: $VERSION"
 else
@@ -132,18 +135,17 @@ fi
 # e2e-tests.sh
 
 echo "=== Tests End-to-End Phase 2 ==="
-BASE_URL="http://192.168.1.217:8000"
-FRONTEND_URL="http://192.168.1.217:80"
+BASE_URL="http://192.168.1.217"  # Via nginx reverse proxy
 EXIT_CODE=0
 
-# Test 1: Services Health
+# Test 1: Services Health (via nginx)
 echo "🔍 Testing services health..."
-if ! curl -s -f $BASE_URL/api/health > /dev/null; then
-    echo "❌ Backend health check failed"
+if ! curl -s -f $BASE_URL/health > /dev/null; then
+    echo "❌ Nginx health check failed"
     EXIT_CODE=1
 fi
 
-if ! curl -s -f $FRONTEND_URL > /dev/null; then
+if ! curl -s -f $BASE_URL/ > /dev/null; then
     echo "❌ Frontend not accessible"
     EXIT_CODE=1
 fi
@@ -152,26 +154,33 @@ fi
 echo "🔍 Testing authentication flow..."
 # TODO: Add auth tests when implemented
 
-# Test 3: Galaxy API Integration
-echo "🔍 Testing Galaxy API integration..."
-NAMESPACES=$(curl -s $BASE_URL/api/galaxy/namespaces | jq '. | length')
-if [[ $NAMESPACES -lt 5 ]]; then
-    echo "❌ Too few namespaces: $NAMESPACES"
+# Test 3: Nouvelle API Ansible Integration
+echo "🔍 Testing new Ansible API..."
+# Test versions Ansible
+VERSIONS=$(curl -s $BASE_URL/api/ansible/versions | jq '.versions | length')
+if [[ $VERSIONS -lt 5 ]]; then
+    echo "❌ Too few Ansible versions: $VERSIONS"
     EXIT_CODE=1
 fi
 
-# Test 4: Module Schema Retrieval
+# Test collections pour version latest
+COLLECTIONS=$(curl -s $BASE_URL/api/ansible/latest/collections | jq '.total_collections')
+if [[ $COLLECTIONS -lt 10 ]]; then
+    echo "❌ Too few collections: $COLLECTIONS"
+    EXIT_CODE=1
+fi
+
+# Test 4: Module Schema Retrieval (nouvelle API)
 echo "🔍 Testing module schema retrieval..."
-SCHEMA=$(curl -s $BASE_URL/api/galaxy/modules/community.docker.docker_container/schema)
-PARAM_COUNT=$(echo $SCHEMA | jq '.parameter_count')
-if [[ $PARAM_COUNT -lt 50 ]]; then
-    echo "❌ Too few parameters: $PARAM_COUNT"
+SCHEMA=$(curl -s $BASE_URL/api/ansible/latest/namespaces/community/collections/general/modules/copy/schema)
+if ! echo $SCHEMA | jq -e '.schema.parameters' > /dev/null; then
+    echo "❌ Schema not properly returned"
     EXIT_CODE=1
 fi
 
 # Test 5: Error Handling
 echo "🔍 Testing error handling..."
-HTTP_CODE=$(curl -s -w "%{http_code}" $BASE_URL/api/galaxy/modules/community.aws.api_gateway/schema -o /dev/null)
+HTTP_CODE=$(curl -s -w "%{http_code}" $BASE_URL/api/ansible/latest/namespaces/nonexistent/collections/fake/modules/test/schema -o /dev/null)
 if [[ $HTTP_CODE != "404" ]]; then
     echo "❌ Wrong error code: $HTTP_CODE (expected 404)"
     EXIT_CODE=1
@@ -179,7 +188,7 @@ fi
 
 # Test 6: Performance
 echo "🔍 Testing performance..."
-RESPONSE_TIME=$(curl -w "%{time_total}" -s $BASE_URL/api/galaxy/modules/community.docker.docker_container/schema -o /dev/null)
+RESPONSE_TIME=$(curl -w "%{time_total}" -s $BASE_URL/api/ansible/versions -o /dev/null)
 if [[ $(echo "$RESPONSE_TIME > 5.0" | bc) -eq 1 ]]; then
     echo "❌ Response too slow: ${RESPONSE_TIME}s"
     EXIT_CODE=1
@@ -196,17 +205,17 @@ exit $EXIT_CODE
 
 echo "=== Performance Tests Phase 2 ==="
 
-# Test charge API
-echo "🚀 Load testing Galaxy API..."
+# Test charge API (nouvelle API Ansible)
+echo "🚀 Load testing Ansible API..."
 for i in {1..10}; do
-    TIME=$(curl -w "%{time_total}" -s http://192.168.1.217:8000/api/galaxy/namespaces -o /dev/null)
+    TIME=$(curl -w "%{time_total}" -s http://192.168.1.217/api/ansible/versions -o /dev/null)
     echo "Request $i: ${TIME}s"
 done
 
 # Test parallèle
 echo "🚀 Concurrent requests test..."
 for i in {1..5}; do
-    curl -s http://192.168.1.217:8000/api/galaxy/modules/community.docker.docker_container/schema > /dev/null &
+    curl -s http://192.168.1.217/api/ansible/latest/collections > /dev/null &
 done
 wait
 
@@ -275,9 +284,9 @@ echo "✅ Performance tests complete"
 # 3. Nouveau build RC
 echo '__version__ = "X.Y.Z-rc.n+1"' > backend/app/version.py
 
-# 4. Redéploiement
-docker build -t ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n+1 backend/
-docker push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n+1
+# 4. Redéploiement local
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n+1 backend/
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n+1-vite frontend/
 
 # 5. Retest complet
 ```
@@ -287,7 +296,7 @@ docker push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n+1
 ## ✅ **Checklist Validation Phase 2**
 
 ### Déploiement Staging
-- [ ] **Images RC** buildées et pushées
+- [ ] **Images RC** buildées localement sur 192.168.1.217
 - [ ] **Docker-compose** déployé sans erreurs  
 - [ ] **Services démarrent** correctement
 - [ ] **Version RC** confirmée via APIs
@@ -324,13 +333,13 @@ docker push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z-rc.n+1
 ### Métriques Collectées
 ```bash
 # Temps déploiement
-time docker-compose up -d
+time docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
 
-# Temps startup
-time curl --retry 30 --retry-delay 1 http://192.168.1.217:8000/api/health
+# Temps startup (via nginx reverse proxy)
+time curl --retry 30 --retry-delay 1 http://192.168.1.217/health
 
-# Performance API
-curl -w "@curl-format.txt" http://192.168.1.217:8000/api/galaxy/namespaces
+# Performance API (nouvelle API Ansible)
+curl -w "@curl-format.txt" http://192.168.1.217/api/ansible/versions
 
 # Mémoire containers
 docker --host=tcp://192.168.1.217:2375 stats --no-stream

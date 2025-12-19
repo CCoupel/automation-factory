@@ -1,8 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { galaxySmartService } from '../services/galaxySmartService'
-import { ansibleApiService } from '../services/ansibleApiService'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { ansibleApiService, Namespace } from '../services/ansibleApiService'
 import { notificationService, CacheNotification } from '../services/notificationService'
-import { Namespace } from '../services/galaxyService'
 import { useAnsibleVersion } from './AnsibleVersionContext'
 
 interface GalaxyCacheContextType {

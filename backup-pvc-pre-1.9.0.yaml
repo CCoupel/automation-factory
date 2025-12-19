@@ -1,0 +1,72 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+      pv.kubernetes.io/bind-completed: "yes"
+      pv.kubernetes.io/bound-by-controller: "yes"
+      volume.beta.kubernetes.io/storage-provisioner: csi.moosefs.com
+      volume.kubernetes.io/storage-provisioner: csi.moosefs.com
+    creationTimestamp: "2025-11-30T12:40:52Z"
+    finalizers:
+    - kubernetes.io/pvc-protection
+    labels:
+      app.kubernetes.io/instance: ansible-builder
+      app.kubernetes.io/name: redis
+    name: ansible-builder-redis-storage-ansible-builder-redis-0
+    namespace: ansible-builder
+    resourceVersion: "9354952"
+    uid: 9b1defce-5bc8-461d-a9d0-b9a2ad5250bb
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
+    storageClassName: moosefs-storage
+    volumeMode: Filesystem
+    volumeName: pvc-9b1defce-5bc8-461d-a9d0-b9a2ad5250bb
+  status:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 1Gi
+    phase: Bound
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+      pv.kubernetes.io/bind-completed: "yes"
+      pv.kubernetes.io/bound-by-controller: "yes"
+      volume.beta.kubernetes.io/storage-provisioner: csi.moosefs.com
+      volume.kubernetes.io/storage-provisioner: csi.moosefs.com
+    creationTimestamp: "2025-12-05T13:52:13Z"
+    finalizers:
+    - kubernetes.io/pvc-protection
+    labels:
+      app.kubernetes.io/component: primary
+      app.kubernetes.io/instance: ansible-builder
+      app.kubernetes.io/name: postgresql
+    name: data-ansible-builder-postgresql-0
+    namespace: ansible-builder
+    resourceVersion: "12679046"
+    uid: ba158cdc-920b-415c-b736-e38d7c23fb17
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+    storageClassName: moosefs-storage
+    volumeMode: Filesystem
+    volumeName: pvc-ba158cdc-920b-415c-b736-e38d7c23fb17
+  status:
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: 10Gi
+    phase: Bound
+kind: List
+metadata:
+  resourceVersion: ""

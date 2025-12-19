@@ -1,14 +1,47 @@
 /**
  * Ansible API Service - Interface avec la nouvelle API Ansible documentation
  * Remplace l'ancien service Galaxy pour utiliser la documentation Ansible
+ *
+ * Ce service est le point d'entrée unique pour toutes les données Ansible.
+ * Les anciens services (galaxyService, galaxyCacheService, galaxySmartService) sont obsolètes.
  */
 
 import { getHttpClient } from '../utils/httpClient'
+
+// ============================================================================
+// Types principaux
+// ============================================================================
 
 export interface AnsibleNamespace {
   name: string
   collections: string[]
   collections_count: number
+}
+
+// Alias pour compatibilité avec l'ancien code
+export interface Namespace {
+  name: string
+  collection_count: number
+  total_downloads?: number
+  description?: string
+}
+
+export interface Collection {
+  name: string
+  namespace: string
+  description: string
+  latest_version: string
+  requires_ansible?: string
+  download_count: number
+  created_at: string
+  updated_at: string
+  deprecated: boolean
+}
+
+export interface Module {
+  name: string
+  description: string
+  content_type?: string
 }
 
 export interface AnsibleCollection {

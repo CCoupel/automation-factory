@@ -5,7 +5,6 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ZoomProvider } from './contexts/ZoomContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AnsibleVersionProvider } from './contexts/AnsibleVersionContext'
-import { GalaxyProvider } from './contexts/GalaxyContext'
 import { GalaxyCacheProvider } from './contexts/GalaxyCacheContext'
 import PrivateRoute from './components/auth/PrivateRoute'
 import LoginPage from './pages/LoginPage'
@@ -28,8 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ZoomProvider>
           <AuthProvider>
             <AnsibleVersionProvider>
-              <GalaxyProvider>
-                <GalaxyCacheProvider>
+              <GalaxyCacheProvider>
                   <Routes>
                   {/* Public route - Version endpoint */}
                   <Route path="/version" element={<VersionEndpoint />} />
@@ -50,8 +48,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   {/* Redirect any unknown routes to root */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
-                </GalaxyCacheProvider>
-              </GalaxyProvider>
+              </GalaxyCacheProvider>
             </AnsibleVersionProvider>
           </AuthProvider>
         </ZoomProvider>
