@@ -180,7 +180,8 @@
       "Bash(KUBECONFIG=kubeconfig.txt helm upgrade:*)",
       "Bash(KUBECONFIG=kubeconfig.txt kubectl set image:*)",
       "Bash(KUBECONFIG=kubeconfig.txt kubectl rollout status:*)",
-      "Bash(python -c:*)"
+      "Bash(python -c:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
