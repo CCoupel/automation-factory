@@ -51,12 +51,31 @@ Documentation: https://coupel.net/ansible-builder/docs
 
 ## 📋 **Procédures Phase 3**
 
-### 0. ⚠️ **OBLIGATOIRE : Relire Procédure**
+### 0. ⚠️ **OBLIGATOIRE : Préparation**
+
+#### A. Relire Procédure
 **Claude doit TOUJOURS :**
 1. 🔍 **Relire PHASE3_PRODUCTION.md COMPLÈTEMENT** avant débuter
 2. ✅ **Comprendre toutes les étapes** critiques
 3. ⚠️ **Identifier points de risque** et rollback
 4. 📋 **Suivre checklist** sans exception
+
+#### B. Mettre à jour CURRENT_WORK.md
+```markdown
+# Mettre à jour dans docs/work/CURRENT_WORK.md
+
+## 🚀 **Version X.Y.Z - Phase 3 Production**
+
+**Status :** 🔄 Déploiement production en cours
+
+### Fonctionnalités à déployer
+- [Feature 1] Description
+- [Feature 2] Description
+
+### Environnement cible
+- **URL :** https://coupel.net/ansible-builder
+- **Version :** X.Y.Z
+```
 
 ### 1. Préparation Production
 
@@ -318,19 +337,56 @@ done
 echo "✅ 30-minute monitoring complete"
 ```
 
-### 6. Finalisation
+### 6. Finalisation (OBLIGATOIRE)
 
-#### Documentation Finale
+#### A. Transfert vers DONE.md
+```markdown
+# Ajouter dans docs/work/DONE.md
+
+## ✅ **Version X.Y.Z** - *YYYY-MM-DD*
+
+### 🎯 [Nom de la fonctionnalité principale]
+
+- **[Feature 1]** : Description détaillée
+  - Points techniques importants
+  - Impact utilisateur
+
+- **[Feature 2]** : Description détaillée
+  - Améliorations apportées
+
+### 📊 Métriques
+- **Temps déploiement** : Xm
+- **Smoke tests** : ✅ Passés
+- **Performance** : Conforme aux SLOs
+```
+
+#### B. Nettoyage CURRENT_WORK.md
+```markdown
+# Mettre à jour docs/work/CURRENT_WORK.md
+
+## 🚀 **Status Actuel - YYYY-MM-DD**
+
+### Versions Déployées
+**Production (Kubernetes) :**
+- **Backend :** `X.Y.Z` ✅
+- **Frontend :** `X.Y.Z` ✅
+- **URL :** https://coupel.net/ansible-builder
+- **Tag Git :** `vX.Y.Z`
+
+## 📋 **Prochaines Priorités**
+*En attente de nouvelles demandes utilisateur*
+```
+
+#### C. Commit et Tag
 ```bash
-# Mise à jour CHANGELOG.md
-git checkout main
-# Ajouter entrée production dans CHANGELOG.md
+# Commit documentation
+git add docs/work/CURRENT_WORK.md docs/work/DONE.md
+git commit -m "docs: Finalize v X.Y.Z - transfer to DONE.md"
+git push
 
-# Mise à jour DONE.md
-# Déplacer features de CURRENT_WORK.md vers DONE.md
-
-# Nettoyage CURRENT_WORK.md
-# Supprimer sections completed
+# Tag version production
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 #### Communication

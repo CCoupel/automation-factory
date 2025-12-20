@@ -49,6 +49,25 @@ API Docs: http://192.168.1.217:8000/docs
 
 ## 📋 **Procédures Phase 2**
 
+### 0. Mise à jour Documentation (OBLIGATOIRE)
+
+#### Mettre à jour CURRENT_WORK.md
+```markdown
+# Ajouter/Mettre à jour dans docs/work/CURRENT_WORK.md
+
+## 🚧 **Version X.Y.Z - Phase 2 Intégration**
+
+**Status :** 🔄 Phase 2 en cours
+
+### Fonctionnalités en test
+- [Feature 1] Description
+- [Feature 2] Description
+
+### Environnement Staging
+- **URL :** http://192.168.1.217
+- **Version :** X.Y.Z_n
+```
+
 ### 1. Packaging Release Candidate
 
 #### Versioning RC
