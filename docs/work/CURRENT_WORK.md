@@ -8,28 +8,28 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ### Versions Déployées
 **Production (K8s) :**
-- **Backend :** `1.10.0` (ghcr.io/ccoupel/ansible-builder-backend:1.10.0)
-- **Frontend :** `1.10.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.10.0)
+- **Backend :** `1.11.0` (ghcr.io/ccoupel/ansible-builder-backend:1.11.0) ✅ **DEPLOYED**
+- **Frontend :** `1.11.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.11.0) ✅ **DEPLOYED**
 - **URL :** https://coupel.net/ansible-builder
-- **Status :** ⏳ **v1.11.0 prête pour déploiement**
+- **Status :** ✅ **v1.11.0 LIVE** - YAML Preview & Validation
 
 **Staging (nginx reverse proxy) :**
 - **Backend :** `1.11.0_9` (ansible-builder-backend:1.11.0_9)
 - **Frontend :** `1.11.0_9-vite` (ansible-builder-frontend:1.11.0_9-vite)
 - **URL :** http://192.168.1.217
-- **Status :** ✅ Testé et validé
+- **Status :** ✅ Synchronisé avec production
 
 **Développement :**
-- **v1.10.0** : ✅ En production
-- **v1.11.0** : ✅ **Phase 2 terminée** - Prêt pour Phase 3 (production)
+- **v1.11.0** : ✅ **Déployé en production** (2025-12-20)
+- **v1.12.0** : 🔜 Prochaine version
 
 ---
 
-## ✅ **Version 1.11.0 - Prête pour Production**
+## ✅ **Version 1.11.0 - Déployée en Production**
 
 ### Fonctionnalité : Génération YAML Preview & Validation
 
-**Status :** ✅ **Phase 2 terminée** - En attente déploiement production
+**Status :** ✅ **Déployé en production** (2025-12-20)
 
 #### Fonctionnalités Implémentées
 
