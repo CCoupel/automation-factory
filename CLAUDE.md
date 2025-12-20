@@ -8,11 +8,10 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 1.9.0 / Frontend 1.9.0  
-**Version Production :** Backend 1.9.0 / Frontend 1.9.0  ✅ **DEPLOYED**
-**URL Production :** https://coupel.net/ansible-builder  
-**URL Staging :** http://192.168.1.217 (nginx reverse proxy)  
-**Dernière mise à jour :** 2025-12-14
+**Version Production :** Backend 1.11.0 / Frontend 1.11.0 ✅ **DEPLOYED**
+**URL Production :** https://coupel.net/ansible-builder
+**URL Staging :** http://192.168.1.217 (nginx reverse proxy)
+**Dernière mise à jour :** 2025-12-20
 
 ## 📚 **Documentation Organisée**
 
@@ -33,10 +32,9 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ### 🚀 **Documentation Opérations**
 - **[Guide Déploiement](docs/operations/DEPLOYMENT_GUIDE.md)** - Docker, Kubernetes, environnements
-- **[Phase 1 - Développement](docs/operations/PHASE1_DEVELOPMENT.md)** - Procédures développement local
-- **[Phase 2 - Production](docs/operations/PHASE2_PRODUCTION.md)** - Procédures mise en production
-- **[Stratégie Tests](docs/operations/TESTING_STRATEGY.md)** - Tests unitaires et intégration
-- **[Dépannage](docs/operations/TROUBLESHOOTING.md)** - Guide de résolution des problèmes
+- **[Phase 1 - Développement](docs/operations/PHASE1_DEVELOPMENT.md)** - Développement local
+- **[Phase 2 - Intégration](docs/operations/PHASE2_INTEGRATION.md)** - Staging (nginx reverse proxy)
+- **[Phase 3 - Production](docs/operations/PHASE3_PRODUCTION.md)** - Production (Kubernetes)
 
 ### 📋 **Travail en Cours**
 - **[Session Actuelle](docs/work/CURRENT_WORK.md)** - Versions, features, bugs en cours
@@ -50,10 +48,9 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 1. **Nouvelle session :** Lire `docs/work/CURRENT_WORK.md` pour l'état actuel
 2. **Nouvelle feature :** Consulter `docs/core/DEVELOPMENT_PROCESS.md` (processus 3 phases)
-3. **Phase 1 Dev :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` (local natif)
-4. **Phase 2 Staging :** Utiliser architecture nginx reverse proxy (voir section ci-dessous)
-5. **Phase 3 Prod :** Voir `docs/operations/PHASE3_PRODUCTION.md` (production)
-6. **Problème technique :** Vérifier `docs/operations/TROUBLESHOOTING.md`
+3. **Phase 1 :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` - Développement local
+4. **Phase 2 :** Voir `docs/operations/PHASE2_INTEGRATION.md` - Staging (nginx reverse proxy)
+5. **Phase 3 :** Voir `docs/operations/PHASE3_PRODUCTION.md` - Production (Kubernetes)
 
 ## ⚠️ **RÈGLES CRITIQUES pour Claude**
 
@@ -71,13 +68,14 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 **Format :** `X.Y.Z_n`
 - **X** : Structure base de données
-- **Y** : Nouvelle fonctionnalité  
+- **Y** : Nouvelle fonctionnalité
 - **Z** : Bugfix
-- **n** : Build incrémental (développement uniquement)
+- **n** : Build incrémental (Phase 1 et 2 uniquement)
 
 **Phases :**
-- **Phase 1** : Développement avec version `_n` 
-- **Phase 2** : Intégration et production (suppression `_n`)
+- **Phase 1** : Développement local avec version `X.Y.Z_n`
+- **Phase 2** : Intégration/Staging avec version `X.Y.Z_n`
+- **Phase 3** : Production avec version `X.Y.Z` (suppression `_n`)
 
 ---
 
