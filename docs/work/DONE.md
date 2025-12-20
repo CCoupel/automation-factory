@@ -4,6 +4,37 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.12.0** - *2025-12-20*
+
+### 🔧 Transposition YAML complète et Réactivité UI
+
+- **Transposition YAML corrigée**
+  - `moduleToTask()` utilise maintenant `moduleParameters` (corrigé depuis `config`)
+  - Attributs PLAY `remote_user` et `connection` transposés vers YAML
+  - Champ `tags` connecté et transposé correctement
+
+- **Réactivité UI améliorée (État local + Debounce)**
+  - Pattern état local + debounce 300ms pour tous les champs
+  - Attributs Task : name, when, loop, tags, delegate_to, ignore_errors, become
+  - Attributs PLAY : hosts, remote_user, connection, gather_facts, become
+  - Mise à jour UI immédiate, synchronisation parent différée
+
+- **Design unifié**
+  - Tous les champs booléens convertis en checkboxes
+  - Cohérence PLAY/Task pour ignore_errors et become
+  - Suppression des listes déroulantes yes/no
+
+- **Comportement clic WorkZone**
+  - Clic zone vide désélectionne le module
+  - Affichage automatique config PLAY
+
+### 📊 Métriques
+- **Temps réponse production** : 20ms
+- **Smoke tests** : ✅ Passés
+- **Pods** : Running (backend + frontend + redis)
+
+---
+
 ## ✅ **Version 1.11.0** - *2025-12-20*
 
 ### 📄 Génération YAML Preview & Validation
