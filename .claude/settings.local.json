@@ -190,7 +190,9 @@
       "Bash(echo \"Checking OpenAPI...\" curl -s http://localhost:8000/openapi.json)",
       "Bash(sleep 15 echo \"\" echo \"=== Health Checks ===\" echo -n \"1. Nginx health: \" curl -s -I http://192.168.1.217/health)",
       "Bash(head -1 echo -n \"2. Backend API version: \" curl -s http://192.168.1.217/api/version)",
-      "Bash(grep -o '\"\"version\"\":\"\"[^\"\"]*\"\"' echo -n \"3. Frontend: \" curl -s -I http://192.168.1.217/)"
+      "Bash(grep -o '\"\"version\"\":\"\"[^\"\"]*\"\"' echo -n \"3. Frontend: \" curl -s -I http://192.168.1.217/)",
+      "Bash(KUBECONFIG=kubeconfig.txt helm list:*)",
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl get:*)"
     ],
     "deny": [],
     "ask": []

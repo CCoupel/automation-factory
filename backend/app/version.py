@@ -1,9 +1,14 @@
 """
 Application version information
 """
+import os
 
-__version__ = "1.12.0"
+__version__ = "1.12.1-rc.1"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
+
+# Environment: PROD (default), STAGING, DEV
+# In PROD, RC suffix is hidden from displayed version
+ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
@@ -71,23 +76,35 @@ VERSION_FEATURES = {
     }
 }
 
-def get_current_version():
-    """Get current version string"""
+def get_base_version(version: str) -> str:
+    """Extract base version (remove -rc.X or _N suffix)"""
+    if '-rc.' in version:
+        return version.split('-')[0]
+    elif '_' in version:
+        return version.split('_')[0]
+    return version
+
+def get_display_version() -> str:
+    """Get version string for display (hides RC in PROD)"""
+    if ENVIRONMENT == "PROD":
+        return get_base_version(__version__)
     return __version__
+
+def get_current_version():
+    """Get current version string (respects ENVIRONMENT)"""
+    return get_display_version()
 
 def get_version_info():
     """Get complete version information including features"""
-    # Extract base version (remove -rc.X or _N suffix)
-    base_version = __version__
-    if '-rc.' in base_version:
-        base_version = base_version.split('-')[0]
-    elif '_' in base_version:
-        base_version = base_version.split('_')[0]
-    
+    base_version = get_base_version(__version__)
+    display_version = get_display_version()
+
     return {
-        "version": __version__,
+        "version": display_version,
         "base_version": base_version,
+        "internal_version": __version__,  # Always shows full version for debugging
+        "environment": ENVIRONMENT,
         "description": __description__,
-        "is_rc": "-rc." in __version__,
+        "is_rc": "-rc." in __version__ and ENVIRONMENT != "PROD",
         "features": VERSION_FEATURES.get(base_version, {})
     }

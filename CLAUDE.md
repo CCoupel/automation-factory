@@ -8,7 +8,8 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Production :** Backend 1.11.0 / Frontend 1.11.0 ✅ **DEPLOYED**
+**Version Production :** Backend 1.12.0 / Frontend 1.12.0 ✅ **DEPLOYED**
+**Version Développement :** 1.12.1-rc.1
 **URL Production :** https://coupel.net/ansible-builder
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **Dernière mise à jour :** 2025-12-20
@@ -66,16 +67,22 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 📋 **Règles de Versioning**
 
-**Format :** `X.Y.Z_n`
+**Format :** `X.Y.Z-rc.n`
 - **X** : Structure base de données
 - **Y** : Nouvelle fonctionnalité
 - **Z** : Bugfix
-- **n** : Build incrémental (Phase 1 et 2 uniquement)
+- **-rc.n** : Release Candidate (incrémental pendant développement)
 
-**Phases :**
-- **Phase 1** : Développement local avec version `X.Y.Z_n`
-- **Phase 2** : Intégration/Staging avec version `X.Y.Z_n`
-- **Phase 3** : Production avec version `X.Y.Z` (suppression `_n`)
+**Variable d'environnement ENVIRONMENT :**
+- `STAGING` : Affiche la version complète avec `-rc.n`
+- `PROD` (défaut) : Masque le suffixe `-rc.n`
+
+**Workflow :**
+1. **Développement** : Version `X.Y.Z-rc.1` dans les fichiers sources
+2. **Phase 2 Staging** : ENVIRONMENT=STAGING → affiche `X.Y.Z-rc.n`
+3. **Phase 3 Production** : ENVIRONMENT=PROD (défaut) → affiche `X.Y.Z`
+
+**Avantage :** Images identiques staging/production (même code, même build)
 
 ---
 

@@ -3,13 +3,14 @@ version: '3.8'
 services:
   # Backend FastAPI
   backend:
-    image: ansible-builder-backend:1.12.0-rc.5
+    image: ansible-builder-backend:1.12.1-rc.1
     container_name: ansible-builder-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
       - DEBUG=true
       - HOST=0.0.0.0
       - PORT=8000
+      - ENVIRONMENT=STAGING
     restart: unless-stopped
     networks:
       - ansiblebuilder_default
@@ -18,7 +19,7 @@ services:
 
   # Frontend Vite
   frontend:
-    image: ansible-builder-frontend:1.12.0-rc.5-vite
+    image: ansible-builder-frontend:1.12.1-rc.1-vite
     container_name: ansible-builder-frontend-staging
     restart: unless-stopped
     networks:
