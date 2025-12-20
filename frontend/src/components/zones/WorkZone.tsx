@@ -28,10 +28,10 @@ import { playbookService, PlaybookContent } from '../../services/playbookService
 import { useAuth } from '../../contexts/AuthContext'
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
-  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
+  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
   onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', playbookName: string) => void
   onSavePlaybook?: (saveHandler: () => Promise<void>) => void
@@ -187,9 +187,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       plays: plays.map(play => ({
         id: play.id,
         name: play.name,
-        hosts: play.attributes.hosts,
-        gatherFacts: play.attributes.gatherFacts,
-        become: play.attributes.become
+        hosts: play.attributes?.hosts,
+        gatherFacts: play.attributes?.gatherFacts,
+        become: play.attributes?.become,
+        remoteUser: play.attributes?.remoteUser,
+        connection: play.attributes?.connection
       })),
       collapsedBlocks: Array.from(collapsedBlocks),
       collapsedBlockSections: Array.from(collapsedBlockSections),
@@ -1619,7 +1621,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }, [handleDelete, onDeleteModule])
 
   // Fonction pour mettre à jour un module
-  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => {
+  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => {
     // Gérer les modules normaux
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
@@ -1645,6 +1647,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         become: updates.become !== undefined ? updates.become : module.become,
         loop: updates.loop !== undefined ? updates.loop : module.loop,
         delegateTo: updates.delegateTo !== undefined ? updates.delegateTo : module.delegateTo,
+        tags: updates.tags !== undefined ? updates.tags : module.tags,
         isBlock: module.isBlock,
         isPlay: module.isPlay,
         moduleParameters: updates.moduleParameters !== undefined ? updates.moduleParameters : module.moduleParameters,
@@ -2448,6 +2451,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             }}
             onDrop={(e) => handlePlaySectionDrop('pre_tasks', e)}
             onDragOver={handleDragOver}
+            onClick={(e) => {
+              // Deselect module when clicking on empty space in section
+              if (e.target === e.currentTarget) {
+                onSelectModule(null)
+              }
+            }}
           >
             {/* Render START task and other tasks/blocks in pre_tasks section */}
             <PlaySectionContent
@@ -2512,6 +2521,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             }}
             onDrop={(e) => handlePlaySectionDrop('tasks', e)}
             onDragOver={handleDragOver}
+            onClick={(e) => {
+              // Deselect module when clicking on empty space in section
+              if (e.target === e.currentTarget) {
+                onSelectModule(null)
+              }
+            }}
           >
             {/* Render START task and other tasks/blocks in tasks section */}
             <PlaySectionContent
@@ -2576,6 +2591,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             }}
             onDrop={(e) => handlePlaySectionDrop('post_tasks', e)}
             onDragOver={handleDragOver}
+            onClick={(e) => {
+              // Deselect module when clicking on empty space in section
+              if (e.target === e.currentTarget) {
+                onSelectModule(null)
+              }
+            }}
           >
             {/* Render START task and other tasks in post_tasks section */}
             <PlaySectionContent
@@ -2640,6 +2661,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             }}
             onDrop={(e) => handlePlaySectionDrop('handlers', e)}
             onDragOver={handleDragOver}
+            onClick={(e) => {
+              // Deselect module when clicking on empty space in section
+              if (e.target === e.currentTarget) {
+                onSelectModule(null)
+              }
+            }}
           >
             {/* Render START task and other tasks in handlers section */}
             <PlaySectionContent
@@ -2750,6 +2777,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       become: module.become,
                       loop: module.loop,
                       delegateTo: module.delegateTo,
+                      tags: module.tags,
                       isBlock: module.isBlock,
                       isPlay: module.isPlay,
                       moduleParameters: module.moduleParameters,
@@ -3547,6 +3575,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       become: module.become,
                       loop: module.loop,
                       delegateTo: module.delegateTo,
+                      tags: module.tags,
                       isBlock: module.isBlock,
                       isPlay: module.isPlay,
                       moduleParameters: module.moduleParameters,

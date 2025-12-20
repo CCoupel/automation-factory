@@ -48,6 +48,16 @@ export interface ModuleBlock {
     rescue: string[]
     always: string[]
   }
+  // Task-level attributes (Ansible task keywords)
+  when?: string              // Conditional execution
+  loop?: string              // Loop over items
+  ignoreErrors?: boolean     // Continue on error (ignore_errors)
+  become?: boolean           // Privilege escalation
+  delegateTo?: string        // Delegate to another host
+  tags?: string[]            // Task tags for selective execution
+  // Module parameters from Galaxy schema
+  moduleParameters?: Record<string, any>
+  // Legacy config (deprecated, use moduleParameters instead)
   config?: Record<string, any>
 }
 
@@ -64,6 +74,8 @@ export interface Play {
   hosts?: string
   gatherFacts?: boolean
   become?: boolean
+  remoteUser?: string     // SSH user (remote_user in YAML)
+  connection?: string     // Connection type (ssh, local, docker, etc.)
 }
 
 export interface Variable {

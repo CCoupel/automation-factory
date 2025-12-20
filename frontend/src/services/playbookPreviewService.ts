@@ -28,6 +28,8 @@ interface AnsiblePlaybook {
   hosts: string
   become?: boolean
   become_user?: string
+  remote_user?: string
+  connection?: string
   gather_facts?: boolean
   vars?: Record<string, any>
   vars_files?: string[]
@@ -64,48 +66,60 @@ function getAuthHeader(): { Authorization: string } | Record<string, never> {
 
 /**
  * Transform a ModuleBlock to an AnsibleTask
+ * Uses module direct properties for task attributes and moduleParameters for module params
  */
 function moduleToTask(module: ModuleBlock): AnsibleTask {
+  // Use moduleParameters for module-specific params, fallback to config for backwards compatibility
+  const params = module.moduleParameters || module.config || {}
+
   const task: AnsibleTask = {
     name: module.taskName || module.name,
     module: `${module.collection}.${module.name}`,
-    params: module.config || {}
+    params: { ...params }
   }
 
-  // Add optional task attributes
-  if (module.config?.when) {
-    task.when = module.config.when
-    delete task.params!.when
+  // Task attributes are stored directly on module, not in config/moduleParameters
+  // when - conditional execution
+  if (module.when) {
+    task.when = module.when
   }
 
-  if (module.config?.loop) {
-    task.loop = module.config.loop
-    delete task.params!.loop
+  // loop - iteration
+  if (module.loop) {
+    task.loop = module.loop
   }
 
+  // register - store result in variable (from config for now)
   if (module.config?.register) {
     task.register = module.config.register
-    delete task.params!.register
   }
 
-  if (module.config?.ignore_errors) {
-    task.ignore_errors = module.config.ignore_errors
-    delete task.params!.ignore_errors
+  // ignore_errors - continue on failure
+  if (module.ignoreErrors) {
+    task.ignore_errors = module.ignoreErrors
   }
 
-  if (module.config?.become !== undefined) {
-    task.become = module.config.become
-    delete task.params!.become
+  // become - privilege escalation
+  if (module.become !== undefined) {
+    task.become = module.become
   }
 
-  if (module.config?.delegate_to) {
-    task.delegate_to = module.config.delegate_to
-    delete task.params!.delegate_to
+  // delegate_to - run on different host
+  if (module.delegateTo) {
+    task.delegate_to = module.delegateTo
   }
 
-  if (module.config?.tags) {
-    task.tags = module.config.tags
-    delete task.params!.tags
+  // tags - task categorization
+  if (module.tags && module.tags.length > 0) {
+    task.tags = module.tags
+  }
+
+  // Clean up params - remove any task-level attributes that might have been included
+  const taskLevelKeys = ['when', 'loop', 'register', 'ignore_errors', 'become', 'delegate_to', 'tags']
+  for (const key of taskLevelKeys) {
+    if (task.params && key in task.params) {
+      delete task.params[key]
+    }
   }
 
   return task
@@ -277,7 +291,9 @@ function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlaybook[] {
       name: play.name || 'Untitled Play',
       hosts: play.hosts || 'all',
       become: play.become,
-      gather_facts: play.gatherFacts
+      gather_facts: play.gatherFacts,
+      remote_user: play.remoteUser,
+      connection: play.connection
     }
 
     // Add variables

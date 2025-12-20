@@ -10,7 +10,7 @@ import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playbook'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 
 interface ConfigZoneProps {
@@ -24,6 +24,7 @@ interface ConfigZoneProps {
     become?: boolean
     loop?: string
     delegateTo?: string
+    tags?: string[]
     isBlock?: boolean
     isPlay?: boolean
     moduleParameters?: Record<string, any>
@@ -44,6 +45,7 @@ interface ConfigZoneProps {
     become?: boolean
     loop?: string
     delegateTo?: string
+    tags?: string[]
     moduleParameters?: Record<string, any>
     moduleSchema?: ModuleSchema
     validationState?: {
@@ -85,19 +87,107 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
-  
+
+  // Local state for immediate UI feedback (task attributes)
+  const [localTaskName, setLocalTaskName] = useState('')
+  const [localWhen, setLocalWhen] = useState('')
+  const [localLoop, setLocalLoop] = useState('')
+  const [localTags, setLocalTags] = useState('')
+  const [localDelegateTo, setLocalDelegateTo] = useState('')
+  const [localIgnoreErrors, setLocalIgnoreErrors] = useState(false)
+  const [localTaskBecome, setLocalTaskBecome] = useState(false)
+
+  // Local state for PLAY attributes
+  const [localHosts, setLocalHosts] = useState('')
+  const [localRemoteUser, setLocalRemoteUser] = useState('')
+  const [localConnection, setLocalConnection] = useState('')
+  const [localGatherFacts, setLocalGatherFacts] = useState(true)
+  const [localBecome, setLocalBecome] = useState(false)
+
+  // Track current module ID to detect module changes
+  const [currentModuleId, setCurrentModuleId] = useState<string | null>(null)
+
+  // Track if we're showing PLAY config (selectedModule is null)
+  const [showingPlayConfig, setShowingPlayConfig] = useState(false)
+
   // Legacy static config for modules without Galaxy schemas
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
-  
-  // Initialize module parameters from selected module
+
+  // Initialize local state ONLY when module ID changes (not on every prop update)
   useEffect(() => {
-    if (selectedModule?.moduleParameters) {
-      setModuleParameters(selectedModule.moduleParameters)
-    } else {
-      setModuleParameters({})
+    if (selectedModule?.id !== currentModuleId) {
+      setCurrentModuleId(selectedModule?.id || null)
+      setModuleParameters(selectedModule?.moduleParameters || {})
+      setLocalTaskName(selectedModule?.taskName || '')
+      setLocalWhen(selectedModule?.when || '')
+      setLocalLoop(selectedModule?.loop || '')
+      setLocalTags(selectedModule?.tags?.join(', ') || '')
+      setLocalDelegateTo(selectedModule?.delegateTo || '')
+      setLocalIgnoreErrors(selectedModule?.ignoreErrors || false)
+      setLocalTaskBecome(selectedModule?.become || false)
     }
-  }, [selectedModule?.id, selectedModule?.moduleParameters])
-  
+  }, [selectedModule?.id, currentModuleId])
+
+  // Initialize PLAY local state when switching to PLAY config
+  useEffect(() => {
+    const isNowShowingPlay = !selectedModule
+    if (isNowShowingPlay !== showingPlayConfig) {
+      setShowingPlayConfig(isNowShowingPlay)
+      if (isNowShowingPlay) {
+        // Switching to PLAY config - initialize from props
+        setLocalHosts(playAttributes?.hosts || '')
+        setLocalRemoteUser(playAttributes?.remoteUser || '')
+        setLocalConnection(playAttributes?.connection || '')
+        setLocalGatherFacts(playAttributes?.gatherFacts !== false)
+        setLocalBecome(playAttributes?.become || false)
+      }
+    }
+  }, [selectedModule, showingPlayConfig, playAttributes])
+
+  // Debounce timer refs
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const playDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced update for module - only propagate after user stops typing
+  const debouncedUpdate = (updates: Parameters<NonNullable<typeof onUpdateModule>>[1]) => {
+    if (!selectedModule) return
+
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Set new timer - update parent after 300ms of no typing
+    debounceTimerRef.current = setTimeout(() => {
+      onUpdateModule?.(selectedModule.id, updates)
+    }, 300)
+  }
+
+  // Debounced update for PLAY attributes
+  const debouncedPlayUpdate = (updates: Partial<PlayAttributes>) => {
+    // Clear previous timer
+    if (playDebounceTimerRef.current) {
+      clearTimeout(playDebounceTimerRef.current)
+    }
+
+    // Set new timer - update parent after 300ms of no typing
+    playDebounceTimerRef.current = setTimeout(() => {
+      onUpdatePlay?.(updates)
+    }, 300)
+  }
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      if (playDebounceTimerRef.current) {
+        clearTimeout(playDebounceTimerRef.current)
+      }
+    }
+  }, [])
+
   // Load schema for selected module if not already loaded
   useEffect(() => {
     if (selectedModule && !selectedModule.isBlock && !selectedModule.isPlay && !selectedModule.moduleSchema) {
@@ -154,9 +244,10 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
   }
   
   const handleParameterChange = (paramName: string, value: any) => {
+    // Update local state immediately for responsive UI
     const updatedParams = { ...moduleParameters, [paramName]: value }
     setModuleParameters(updatedParams)
-    
+
     // Validate if schema is available
     let validationState
     if (selectedModule?.moduleSchema) {
@@ -168,12 +259,75 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
         lastValidated: new Date()
       }
     }
-    
-    // Update module with new parameters and validation
-    onUpdateModule?.(selectedModule!.id, {
+
+    // Debounced update to parent
+    debouncedUpdate({
       moduleParameters: updatedParams,
       validationState
     })
+  }
+
+  // Handlers for task attributes with immediate local state + debounced parent update
+  const handleTaskNameChange = (value: string) => {
+    setLocalTaskName(value)
+    debouncedUpdate({ taskName: value })
+  }
+
+  const handleWhenChange = (value: string) => {
+    setLocalWhen(value)
+    debouncedUpdate({ when: value || undefined })
+  }
+
+  const handleLoopChange = (value: string) => {
+    setLocalLoop(value)
+    debouncedUpdate({ loop: value || undefined })
+  }
+
+  const handleTagsChange = (value: string) => {
+    setLocalTags(value)
+    const tags = value ? value.split(',').map(t => t.trim()).filter(t => t) : undefined
+    debouncedUpdate({ tags })
+  }
+
+  const handleDelegateToChange = (value: string) => {
+    setLocalDelegateTo(value)
+    debouncedUpdate({ delegateTo: value || undefined })
+  }
+
+  const handleIgnoreErrorsChange = (checked: boolean) => {
+    setLocalIgnoreErrors(checked)
+    debouncedUpdate({ ignoreErrors: checked })
+  }
+
+  const handleTaskBecomeChange = (checked: boolean) => {
+    setLocalTaskBecome(checked)
+    debouncedUpdate({ become: checked })
+  }
+
+  // Handlers for PLAY attributes with immediate local state + debounced parent update
+  const handleHostsChange = (value: string) => {
+    setLocalHosts(value)
+    debouncedPlayUpdate({ hosts: value || undefined })
+  }
+
+  const handleRemoteUserChange = (value: string) => {
+    setLocalRemoteUser(value)
+    debouncedPlayUpdate({ remoteUser: value || undefined })
+  }
+
+  const handleConnectionChange = (value: string) => {
+    setLocalConnection(value)
+    debouncedPlayUpdate({ connection: value || undefined })
+  }
+
+  const handleGatherFactsChange = (checked: boolean) => {
+    setLocalGatherFacts(checked)
+    debouncedPlayUpdate({ gatherFacts: checked })
+  }
+
+  const handleBecomeChange = (checked: boolean) => {
+    setLocalBecome(checked)
+    debouncedPlayUpdate({ become: checked })
   }
   
   const renderParameterField = (param: ModuleParameter) => {
@@ -368,8 +522,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                   size="small"
                   placeholder="all"
                   helperText="Target hosts pattern (e.g., all, webservers, db*)"
-                  value={playAttributes?.hosts || ''}
-                  onChange={(e) => onUpdatePlay?.({ hosts: e.target.value || undefined })}
+                  value={localHosts}
+                  onChange={(e) => handleHostsChange(e.target.value)}
                 />
 
                 <TextField
@@ -378,15 +532,15 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                   size="small"
                   placeholder="root"
                   helperText="SSH user for connection"
-                  value={playAttributes?.remoteUser || ''}
-                  onChange={(e) => onUpdatePlay?.({ remoteUser: e.target.value || undefined })}
+                  value={localRemoteUser}
+                  onChange={(e) => handleRemoteUserChange(e.target.value)}
                 />
 
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={playAttributes?.gatherFacts !== false}
-                      onChange={(e) => onUpdatePlay?.({ gatherFacts: e.target.checked })}
+                      checked={localGatherFacts}
+                      onChange={(e) => handleGatherFactsChange(e.target.checked)}
                     />
                   }
                   label={
@@ -402,8 +556,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={playAttributes?.become || false}
-                      onChange={(e) => onUpdatePlay?.({ become: e.target.checked })}
+                      checked={localBecome}
+                      onChange={(e) => handleBecomeChange(e.target.checked)}
                     />
                   }
                   label={
@@ -422,8 +576,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                   size="small"
                   placeholder="ssh"
                   helperText="Connection type (ssh, local, docker, etc.)"
-                  value={playAttributes?.connection || ''}
-                  onChange={(e) => onUpdatePlay?.({ connection: e.target.value || undefined })}
+                  value={localConnection}
+                  onChange={(e) => handleConnectionChange(e.target.value)}
                 />
               </Box>
             </AccordionDetails>
@@ -446,9 +600,9 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     label="name"
                     fullWidth
                     size="small"
-                    value={selectedModule.taskName}
+                    value={localTaskName}
                     helperText="Task name (displayed in playbook)"
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { taskName: e.target.value })}
+                    onChange={(e) => handleTaskNameChange(e.target.value)}
                   />
 
                   <TextField
@@ -457,8 +611,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     size="small"
                     placeholder="ansible_os_family == 'Debian'"
                     helperText="Conditional execution"
-                    value={selectedModule.when || ''}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { when: e.target.value || undefined })}
+                    value={localWhen}
+                    onChange={(e) => handleWhenChange(e.target.value)}
                   />
 
                   {/* Loop - SEULEMENT pour les tâches, pas les blocks */}
@@ -469,8 +623,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                       size="small"
                       placeholder="{{ item_list }}"
                       helperText="Loop over items"
-                      value={selectedModule.loop || ''}
-                      onChange={(e) => onUpdateModule?.(selectedModule.id, { loop: e.target.value || undefined })}
+                      value={localLoop}
+                      onChange={(e) => handleLoopChange(e.target.value)}
                     />
                   )}
 
@@ -480,35 +634,43 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     size="small"
                     placeholder="setup, config"
                     helperText="Task tags (comma separated)"
+                    value={localTags}
+                    onChange={(e) => handleTagsChange(e.target.value)}
                   />
 
-                  <TextField
-                    label="ignore_errors"
-                    fullWidth
-                    size="small"
-                    select
-                    SelectProps={{ native: true }}
-                    helperText="Continue on error"
-                    value={selectedModule.ignoreErrors ? 'yes' : 'no'}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { ignoreErrors: e.target.value === 'yes' })}
-                  >
-                    <option value="no">no</option>
-                    <option value="yes">yes</option>
-                  </TextField>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={localIgnoreErrors}
+                        onChange={(e) => handleIgnoreErrorsChange(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">ignore_errors</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Continue on error
+                        </Typography>
+                      </Box>
+                    }
+                  />
 
-                  <TextField
-                    label="become"
-                    fullWidth
-                    size="small"
-                    select
-                    SelectProps={{ native: true }}
-                    helperText="Execute with sudo"
-                    value={selectedModule.become ? 'yes' : 'no'}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { become: e.target.value === 'yes' })}
-                  >
-                    <option value="no">no</option>
-                    <option value="yes">yes</option>
-                  </TextField>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={localTaskBecome}
+                        onChange={(e) => handleTaskBecomeChange(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">become</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Execute with sudo
+                        </Typography>
+                      </Box>
+                    }
+                  />
 
                   <TextField
                     label="delegate_to"
@@ -516,8 +678,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     size="small"
                     placeholder="hostname or {{ inventory_hostname }}"
                     helperText="Delegate task to another host"
-                    value={selectedModule.delegateTo || ''}
-                    onChange={(e) => onUpdateModule?.(selectedModule.id, { delegateTo: e.target.value || undefined })}
+                    value={localDelegateTo}
+                    onChange={(e) => handleDelegateToChange(e.target.value)}
                   />
                 </Box>
               </AccordionDetails>
