@@ -38,6 +38,7 @@ interface ConfigZoneProps {
   onCollapse?: () => void
   onDelete?: (id: string) => void
   onUpdateModule?: (id: string, updates: Partial<{
+    taskName?: string
     when?: string
     ignoreErrors?: boolean
     become?: boolean
@@ -447,6 +448,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                     size="small"
                     value={selectedModule.taskName}
                     helperText="Task name (displayed in playbook)"
+                    onChange={(e) => onUpdateModule?.(selectedModule.id, { taskName: e.target.value })}
                   />
 
                   <TextField

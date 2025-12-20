@@ -42,6 +42,7 @@ export interface ModuleBlock {
   isPlay?: boolean
   parentId?: string
   parentSection?: 'normal' | 'rescue' | 'always' | 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+  playId?: string // ID of the play this module belongs to
   blockSections?: {
     normal: string[]
     rescue: string[]

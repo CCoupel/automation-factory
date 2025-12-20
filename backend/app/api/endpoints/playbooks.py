@@ -18,7 +18,11 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.playbook import Playbook
-from app.schemas.playbook import PlaybookCreate, PlaybookUpdate, PlaybookResponse, PlaybookDetailResponse
+from app.schemas.playbook import (
+    PlaybookCreate, PlaybookUpdate, PlaybookResponse, PlaybookDetailResponse,
+    PlaybookYamlResponse, PlaybookValidationResponse, PlaybookPreviewRequest
+)
+from app.services.playbook_yaml_service import playbook_yaml_service
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
 
@@ -205,3 +209,145 @@ async def delete_playbook(
     await db.commit()
 
     return None
+
+
+@router.get("/{playbook_id}/yaml", response_model=PlaybookYamlResponse)
+async def get_playbook_yaml(
+    playbook_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get generated YAML for a playbook
+
+    Args:
+        playbook_id: Playbook ID
+
+    Returns:
+        Generated YAML string
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not the owner of this playbook
+    """
+    result = await db.execute(
+        select(Playbook).where(Playbook.id == playbook_id)
+    )
+    playbook = result.scalar_one_or_none()
+
+    if not playbook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playbook not found"
+        )
+
+    if playbook.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+
+    yaml_output = playbook_yaml_service.json_to_yaml(playbook.content)
+
+    return PlaybookYamlResponse(
+        yaml=yaml_output,
+        playbook_id=playbook_id
+    )
+
+
+@router.post("/{playbook_id}/validate", response_model=PlaybookValidationResponse)
+async def validate_playbook(
+    playbook_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validate a saved playbook
+
+    Args:
+        playbook_id: Playbook ID
+
+    Returns:
+        Validation result with errors and warnings
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not the owner of this playbook
+    """
+    result = await db.execute(
+        select(Playbook).where(Playbook.id == playbook_id)
+    )
+    playbook = result.scalar_one_or_none()
+
+    if not playbook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playbook not found"
+        )
+
+    if playbook.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+
+    validation = playbook_yaml_service.validate(playbook.content)
+
+    return PlaybookValidationResponse(
+        is_valid=validation.is_valid,
+        errors=validation.errors,
+        warnings=validation.warnings,
+        playbook_id=playbook_id
+    )
+
+
+@router.post("/preview", response_model=PlaybookYamlResponse)
+async def preview_playbook(
+    preview_data: PlaybookPreviewRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate YAML preview without saving
+
+    This endpoint is used for real-time preview in the frontend.
+    It does not require a saved playbook.
+
+    Args:
+        preview_data: Playbook content to preview
+
+    Returns:
+        Generated YAML string
+    """
+    yaml_output = playbook_yaml_service.json_to_yaml(preview_data.content)
+
+    return PlaybookYamlResponse(
+        yaml=yaml_output,
+        playbook_id=None
+    )
+
+
+@router.post("/validate-preview", response_model=PlaybookValidationResponse)
+async def validate_preview(
+    preview_data: PlaybookPreviewRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Validate playbook content without saving
+
+    This endpoint is used for real-time validation in the frontend.
+    It does not require a saved playbook.
+
+    Args:
+        preview_data: Playbook content to validate
+
+    Returns:
+        Validation result with errors and warnings
+    """
+    validation = playbook_yaml_service.validate(preview_data.content)
+
+    return PlaybookValidationResponse(
+        is_valid=validation.is_valid,
+        errors=validation.errors,
+        warnings=validation.warnings,
+        playbook_id=None
+    )

@@ -12,6 +12,7 @@ import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 import { PlayAttributes, ModuleSchema } from '../../types/playbook'
+import { PlaybookContent } from '../../services/playbookService'
 
 interface SelectedModule {
   id: string
@@ -48,11 +49,12 @@ const MainLayout = () => {
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
   const [isVarsCollapsed, setIsVarsCollapsed] = useState(true) // Collapsed by default since Variables are in PLAY sections now
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
-  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{ 
-    when?: string; 
-    ignoreErrors?: boolean; 
-    become?: boolean; 
-    loop?: string; 
+  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{
+    taskName?: string;
+    when?: string;
+    ignoreErrors?: boolean;
+    become?: boolean;
+    loop?: string;
     delegateTo?: string;
     moduleParameters?: Record<string, any>;
     moduleSchema?: ModuleSchema;
@@ -67,6 +69,7 @@ const MainLayout = () => {
   const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
   const savePlaybookCallbackRef = useRef<(() => Promise<void>) | null>(null)
   const loadPlaybookCallbackRef = useRef<((playbookId: string) => Promise<void>) | null>(null)
+  const getPlaybookContentCallbackRef = useRef<(() => PlaybookContent) | null>(null)
 
   // Playbook save status
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -321,6 +324,7 @@ const MainLayout = () => {
             }}
             onSavePlaybook={(callback) => { savePlaybookCallbackRef.current = callback }}
             onLoadPlaybook={(callback) => { loadPlaybookCallbackRef.current = callback }}
+            onGetPlaybookContent={(callback) => { getPlaybookContentCallbackRef.current = callback }}
           />
         </Box>
 
@@ -436,7 +440,10 @@ const MainLayout = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          <SystemZone />
+          <SystemZone
+            getPlaybookContent={() => getPlaybookContentCallbackRef.current?.()}
+            onSaveComplete={saveStatus === 'saved'}
+          />
         </Box>
       ) : (
         <Box

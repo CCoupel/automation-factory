@@ -39,3 +39,22 @@ class PlaybookResponse(PlaybookBase):
 class PlaybookDetailResponse(PlaybookResponse):
     """Schema for detailed playbook response (includes content)"""
     content: dict
+
+
+class PlaybookYamlResponse(BaseModel):
+    """Schema for YAML generation response"""
+    yaml: str = Field(..., description="Generated Ansible YAML")
+    playbook_id: Optional[str] = Field(None, description="Playbook ID if from saved playbook")
+
+
+class PlaybookValidationResponse(BaseModel):
+    """Schema for validation response"""
+    is_valid: bool = Field(..., description="Whether the playbook is valid")
+    errors: list[str] = Field(default_factory=list, description="List of errors")
+    warnings: list[str] = Field(default_factory=list, description="List of warnings")
+    playbook_id: Optional[str] = Field(None, description="Playbook ID if from saved playbook")
+
+
+class PlaybookPreviewRequest(BaseModel):
+    """Schema for preview request (without saving)"""
+    content: dict = Field(..., description="Playbook content to preview")

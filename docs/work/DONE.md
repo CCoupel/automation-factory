@@ -4,6 +4,84 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.11.0** - *2025-12-20*
+
+### 📄 Génération YAML Preview & Validation
+
+- **Génération YAML temps réel**
+  - Service `playbook_yaml_service.py` pour conversion JSON → YAML Ansible
+  - Service `playbookPreviewService.ts` pour transformation frontend
+  - Support complet des sections (pre_tasks, tasks, post_tasks, handlers)
+  - Support des blocks imbriqués récursifs (block/rescue/always)
+  - Ordre des tâches préservé selon les connexions
+
+- **Validation Playbook en temps réel**
+  - Endpoints `/api/playbooks/preview` et `/api/playbooks/validate-preview`
+  - Affichage erreurs (rouge) et warnings (orange)
+  - Coloration dynamique des onglets selon status
+
+- **Interface utilisateur améliorée**
+  - Rafraîchissement après sauvegarde (suppression polling 2s)
+  - Onglet Preview : vert (succès) / rouge (erreur)
+  - Onglet Validation : vert (valide) / orange (warnings) / rouge (erreurs)
+  - Avatar utilisateur : vert (authentifié) / rouge (erreur credentials)
+  - Bouton Download YAML fonctionnel
+
+- **Gestion des liens rationalisée**
+  - Règle universelle : 1 lien entrant max, 1 lien sortant max par type
+  - Chaîne linéaire garantie (A → B → C)
+  - Code `createLink()` simplifié et unifié
+
+- **Code rationalisé**
+  - Fonction unifiée `convertToAnsibleTask()` pour modules et blocks
+  - Fonctions `buildBlockTask()`, `convertTaskIds()` réutilisables
+  - Suppression duplication code (~200 lignes)
+
+---
+
+## ✅ **Version 1.10.0** - *2025-12-19*
+
+### 🌐 Intégration Documentation Ansible
+
+- **Web scraping docs.ansible.com**
+  - Service `ansible_collections_service.py` pour parsing HTML
+  - Extraction namespaces, collections, modules, paramètres
+  - 54 namespaces détectés pour Ansible 13
+
+- **Gestion dynamique des versions Ansible**
+  - Service `ansible_versions_service.py`
+  - Détection automatique versions disponibles
+  - Sélecteur de version dans l'interface
+
+- **Cache automatique avec notifications**
+  - Scheduler `cache_scheduler_service.py` (sync 24h)
+  - SSE Manager pour notifications temps réel
+  - Indicateur visuel cache status
+
+- **Refactorisation majeure**
+  - API unique `/api/ansible/*`
+  - Suppression endpoints legacy `/api/galaxy/*`
+  - ~5500 lignes de code supprimées
+  - Architecture simplifiée et maintenable
+
+---
+
+## ✅ **Version 1.9.0** - *2025-12-14*
+
+### 📋 Collecte Paramètres Modules
+
+- **Affichage paramètres modules Galaxy**
+  - Schémas de paramètres avec types et descriptions
+  - Icônes d'aide pour chaque paramètre
+  - Validation des valeurs requises
+
+- **Architecture nginx Phase 2**
+  - Reverse proxy unifié pour staging
+  - Configuration inline docker-compose
+  - Simplification déploiement
+
+---
+
 ## ✅ **Version 1.8.1** - *2025-12-12*
 
 ### 🔧 Interface & UX
@@ -213,6 +291,6 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
-*Document maintenu automatiquement. Dernière mise à jour : 2025-12-12*
+*Document maintenu automatiquement. Dernière mise à jour : 2025-12-20*
 
 *Les versions listées correspondent aux dates de déploiement en production.*

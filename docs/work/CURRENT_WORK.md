@@ -4,167 +4,109 @@ Ce document trace l'état actuel du développement, les versions et l'avancement
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-19**
+## 🚀 **Status Actuel - 2025-12-20**
 
 ### Versions Déployées
 **Production (K8s) :**
-- **Backend :** `1.9.0` (ghcr.io/ccoupel/ansible-builder-backend:1.9.0) ✅ **DEPLOYED**
-- **Frontend :** `1.9.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.9.0) ✅ **DEPLOYED**
+- **Backend :** `1.10.0` (ghcr.io/ccoupel/ansible-builder-backend:1.10.0)
+- **Frontend :** `1.10.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.10.0)
 - **URL :** https://coupel.net/ansible-builder
-- **Status :** ✅ **v1.9.0 LIVE** - Module Parameter Collection feature
+- **Status :** ⏳ **v1.11.0 prête pour déploiement**
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.10.0_16` (ansible-builder-backend:1.10.0_16)
-- **Frontend :** `1.10.0_16-vite` (ansible-builder-frontend:1.10.0_16-vite)
+- **Backend :** `1.11.0_9` (ansible-builder-backend:1.11.0_9)
+- **Frontend :** `1.11.0_9-vite` (ansible-builder-frontend:1.11.0_9-vite)
 - **URL :** http://192.168.1.217
-- **Status :** ✅ **Phase 2 VALIDÉE** - Prêt pour Phase 3
+- **Status :** ✅ Testé et validé
 
 **Développement :**
-- **Phase 1** : ✅ Build et test local validé
-- **Phase 2** : ✅ Déploiement staging validé (2025-12-19)
-- **Phase 3** : 🔜 En attente démarrage
+- **v1.10.0** : ✅ En production
+- **v1.11.0** : ✅ **Phase 2 terminée** - Prêt pour Phase 3 (production)
 
 ---
 
-## ✅ **Version 1.10.0_16 - Phase 2 Validée**
+## ✅ **Version 1.11.0 - Prête pour Production**
 
-### Fonctionnalité Majeure : Intégration Documentation Ansible + Refactorisation
-**Status :** ✅ **Staging déployé et validé**
+### Fonctionnalité : Génération YAML Preview & Validation
 
-#### Objectif
-Remplacement de l'architecture Galaxy API par le web scraping direct de la documentation officielle Ansible + nettoyage du code obsolète.
+**Status :** ✅ **Phase 2 terminée** - En attente déploiement production
 
-#### Refactorisation v1.10.0_16 (2025-12-19)
+#### Fonctionnalités Implémentées
 
-**Frontend - 7 fichiers supprimés (~2500 lignes) :**
-| Fichier | Raison |
-|---------|--------|
-| `galaxyService.ts` | Remplacé par ansibleApiService.ts |
-| `galaxyCacheService.ts` | Logique migrée dans GalaxyCacheContext |
-| `galaxySmartService.ts` | Obsolète |
-| `GalaxyContext.tsx` | Remplacé par GalaxyCacheContext |
-| `ModulesZone.tsx` | Remplacé par ModulesZoneCached |
-| `OptimizedModulesZone.tsx` | Remplacé par ModulesZoneCached |
+1. **Génération YAML temps réel**
+   - Conversion structure JSON → YAML Ansible valide
+   - Support complet des sections (pre_tasks, tasks, post_tasks, handlers)
+   - Support des blocks imbriqués (block/rescue/always)
+   - Ordre des tâches selon les connexions
 
-**Backend - 10 fichiers supprimés (~3000 lignes) :**
-| Fichier | Raison |
-|---------|--------|
-| `galaxy_service.py` | Remplacé par ansible_collections_service |
-| `galaxy_service_optimized.py` | Obsolète |
-| `galaxy_service_simple.py` | Obsolète |
-| `galaxy_service_hybrid.py` | Obsolète |
-| `galaxy_service_smart.py` | Obsolète |
-| `galaxy_cache_service.py` | Remplacé par cache_scheduler_service |
-| `cache_storage_service.py` | Obsolète |
-| `notification_service.py` | Remplacé par sse_manager |
-| `galaxy.py` (endpoint) | Endpoints `/api/galaxy/*` supprimés |
-| `galaxy_cache.py` (endpoint) | Endpoints obsolètes |
+2. **Validation Playbook**
+   - Validation syntaxique en temps réel
+   - Affichage erreurs (rouge) et warnings (orange)
+   - Coloration des onglets selon status
 
-**Gains :**
-- ~5500 lignes de code supprimées
-- Architecture simplifiée
-- Point d'entrée unique `/api/ansible/*`
-- Code plus maintenable
+3. **Interface utilisateur améliorée**
+   - Rafraîchissement après sauvegarde (plus de polling 2s)
+   - Onglet Preview : vert (succès) / rouge (erreur)
+   - Onglet Validation : vert (valide) / orange (warnings) / rouge (erreurs)
+   - Avatar utilisateur : vert (authentifié) / rouge (erreur credentials)
+   - Bouton Download YAML
 
-#### Backend Services Conservés
+4. **Gestion des liens rationalisée**
+   - Règle universelle : 1 lien entrant max, 1 lien sortant max par type
+   - Chaîne linéaire garantie (A → B → C)
+   - Ordre des tâches préservé dans le YAML
+
+5. **Code rationalisé**
+   - Fonction unifiée `convertToAnsibleTask()` pour modules et blocks
+   - Récursivité pour blocks imbriqués
+   - Suppression code dupliqué
+
+#### Architecture Backend
 ```
 services/
-├── ansible_collections_service.py  # Web scraping docs.ansible.com
-├── ansible_versions_service.py     # Versions Ansible
-├── cache_scheduler_service.py      # Scheduler auto-sync 24h
-├── sse_manager.py                  # SSE notifications
-├── cache_service.py                # Cache général
-├── collections_service.py          # Collections helper
-└── __init__.py
+├── playbook_yaml_service.py     # Génération YAML Ansible
+└── ...
 ```
 
-#### Frontend Services Conservés
+#### Architecture Frontend
 ```
 services/
-├── ansibleApiService.ts     # Service principal Ansible docs
-├── ansibleService.ts        # API calls Ansible
-├── galaxyModuleSchemaService.ts # Schémas modules
-├── authService.ts           # Authentification
-├── playbookService.ts       # Playbooks CRUD
-├── userPreferencesService.ts # Préférences utilisateur
-└── notificationService.ts   # SSE notifications
+├── playbookPreviewService.ts    # Preview et validation API
+│   ├── convertToAnsibleTask()   # Conversion unifiée
+│   ├── buildBlockTask()         # Blocks avec sections
+│   ├── convertTaskIds()         # Liste de tâches
+│   └── getTasksForSection()     # Traversée liens
+└── ...
 ```
 
-#### Fonctionnalités builds _13 à _16
-- `_13` : Changement version Ansible rafraîchit namespaces/collections
-- `_14` : Fix useAnsibleVersions hook pour partager état via Context
-- `_15` : Gestion Cache Complète (scheduler 24h, SSE, indicateur visuel)
-- `_16` : **Refactorisation majeure** - Suppression code Galaxy obsolète
-
----
-
-## 🔧 **Architecture Après Refactorisation**
-
-### Endpoints API Actifs
+#### Endpoints API
 ```
-/api/ansible/versions                                    → Versions disponibles
-/api/ansible/{version}/namespaces                        → Namespaces
-/api/ansible/{version}/namespaces/{ns}/collections       → Collections
-/api/ansible/{version}/namespaces/{ns}/collections/{c}/modules → Modules
-/api/ansible/{version}/namespaces/{ns}/collections/{c}/modules/{m}/schema → Paramètres
-
-# Cache Management
-/api/ansible/cache/status                                → État scheduler + SSE
-/api/ansible/cache/sync                                  → POST - Sync manuel
-/api/ansible/cache/notifications                         → SSE - Notifications
-```
-
-### Endpoints Supprimés
-```
-/api/galaxy/*  → SUPPRIMÉ (remplacé par /api/ansible/*)
+POST /api/playbooks/preview           # Preview temps réel
+POST /api/playbooks/validate-preview  # Validation temps réel
+GET  /api/playbooks/{id}/yaml         # YAML playbook sauvegardé
+POST /api/playbooks/{id}/validate     # Validation playbook sauvegardé
 ```
 
 ---
 
-## 📊 **Tests Phase 2 - Résultats**
+## ✅ **Version 1.10.0 - En Production**
 
-| Test | Status |
-|------|--------|
-| Nginx Health | ✅ HTTP 200 |
-| Backend Version | ✅ 1.10.0_16 |
-| Frontend | ✅ HTTP 200 |
-| API /ansible/versions | ✅ 9 versions |
-| API /ansible/13/namespaces | ✅ OK |
-| API /ansible/13/namespaces/community/collections | ✅ OK |
+### Fonctionnalité : Intégration Documentation Ansible
+**Status :** ✅ **Déployé en production**
 
----
-
-## 🏗️ **Architecture Phase 2 - nginx reverse proxy**
-
-```
-nginx (port 80) → Point d'entrée unique
-├── / → frontend (Vite dev server, port 5173)
-└── /api/* → backend (FastAPI, port 8000)
-```
-
-**Images :**
-```bash
-ansible-builder-backend:1.10.0_16
-ansible-builder-frontend:1.10.0_16-vite
-```
-
----
-
-## 🎯 **Prochaines Étapes - Phase 3**
-
-1. Suppression suffixes `_16` → `1.10.0`
-2. Build images production
-3. Push images vers ghcr.io
-4. Déploiement Kubernetes
-5. Validation production
+#### Points clés
+- Web scraping docs.ansible.com pour données modules
+- API unique `/api/ansible/*`
+- Cache automatique 24h avec notifications SSE
+- Refactorisation majeure (~5500 lignes supprimées)
 
 ---
 
 ## 🔗 **Environnements Actifs**
 
 ### URLs
-- **Production :** https://coupel.net/ansible-builder (v1.9.0)
-- **Staging :** http://192.168.1.217 (v1.10.0_16)
+- **Production :** https://coupel.net/ansible-builder (v1.10.0)
+- **Staging :** http://192.168.1.217 (v1.11.0_9)
 
 ### Configuration
 - **Docker Host :** 192.168.1.217:2375
@@ -172,6 +114,6 @@ ansible-builder-frontend:1.10.0_16-vite
 
 ---
 
-*Document maintenu en temps réel. Dernière mise à jour : 2025-12-19 12:10*
+*Document maintenu en temps réel. Dernière mise à jour : 2025-12-20*
 
-*Phase 2 validée v1.10.0_16 - Refactorisation + Ansible Documentation Integration*
+*v1.11.0 prête pour déploiement production*

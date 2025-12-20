@@ -447,17 +447,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
                 sx={{
                   width: 'var(--icon-xl, 32px)',
                   height: 'var(--icon-xl, 32px)',
-                  bgcolor: authLost ? 'rgba(244, 67, 54, 0.9)' : 'rgba(255, 255, 255, 0.3)',
+                  bgcolor: authLost
+                    ? 'rgba(244, 67, 54, 0.9)'  // Red when auth lost
+                    : 'rgba(76, 175, 80, 0.9)', // Green when authenticated
                   fontSize: 'var(--font-sm, 13px)',
                   fontWeight: 'bold',
                   cursor: 'pointer',
-                  border: authLost ? '2px solid #f44336' : 'none',
-                  boxShadow: authLost ? '0 0 8px rgba(244, 67, 54, 0.6)' : 'none',
+                  border: authLost ? '2px solid #f44336' : '2px solid #4caf50',
+                  boxShadow: authLost
+                    ? '0 0 8px rgba(244, 67, 54, 0.6)'
+                    : '0 0 8px rgba(76, 175, 80, 0.4)',
                   '&:hover': {
-                    bgcolor: authLost ? 'rgba(244, 67, 54, 1)' : 'rgba(255, 255, 255, 0.4)'
+                    bgcolor: authLost
+                      ? 'rgba(244, 67, 54, 1)'
+                      : 'rgba(76, 175, 80, 1)'
                   }
                 }}
-                title={authLost ? '🔒 Authentication lost - Please re-login' : undefined}
+                title={authLost ? '🔒 Authentication lost - Please re-login' : '✓ Authenticated'}
               >
                 {getUserInitials()}
               </Avatar>

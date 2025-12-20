@@ -179,7 +179,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: Major cleanup v1.10.0_16 - Remove obsolete Galaxy code\n\nFrontend (7 files deleted, ~2500 lines):\n- Remove galaxyService.ts, galaxyCacheService.ts, galaxySmartService.ts\n- Remove GalaxyContext.tsx (replaced by GalaxyCacheContext)\n- Remove ModulesZone.tsx, OptimizedModulesZone.tsx (keep ModulesZoneCached)\n- Update imports to use ansibleApiService\n- Add Namespace, Collection, Module types to ansibleApiService\n\nBackend (10 files deleted, ~3000 lines):\n- Remove galaxy_service.py and all variants (optimized, simple, hybrid, smart)\n- Remove galaxy_cache_service.py, cache_storage_service.py\n- Remove notification_service.py (replaced by sse_manager)\n- Remove galaxy.py, galaxy_cache.py endpoints\n- Update router.py to remove /api/galaxy/* routes\n- Clean up main.py imports\n\nArchitecture:\n- Single API entry point: /api/ansible/*\n- Legacy /api/galaxy/* endpoints removed\n- ~5500 lines of code removed total\n- Simplified, maintainable codebase\n\nPhase 2 validated on staging (192.168.1.217)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(KUBECONFIG=kubeconfig.txt helm upgrade:*)",
       "Bash(KUBECONFIG=kubeconfig.txt kubectl set image:*)",
-      "Bash(KUBECONFIG=kubeconfig.txt kubectl rollout status:*)"
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl rollout status:*)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []

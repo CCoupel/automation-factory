@@ -31,14 +31,15 @@ interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
-  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
+  onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
   onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', playbookName: string) => void
   onSavePlaybook?: (saveHandler: () => Promise<void>) => void
   onLoadPlaybook?: (loadHandler: (playbookId: string) => Promise<void>) => void
+  onGetPlaybookContent?: (getHandler: () => PlaybookContent) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -172,8 +173,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Serialize current state to PlaybookContent
   const serializePlaybookContent = useCallback((): PlaybookContent => {
-    // Flatten all modules from all plays
-    const allModules: ModuleBlock[] = plays.flatMap(play => play.modules)
+    // Flatten all modules from all plays, adding playId to each module
+    const allModules: ModuleBlock[] = plays.flatMap(play =>
+      play.modules.map(m => ({ ...m, playId: play.id }))
+    )
 
     // Flatten all links from all plays
     const allLinks: Link[] = plays.flatMap(play => play.links)
@@ -315,6 +318,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       onLoadPlaybook(loadPlaybook)
     }
   }, [loadPlaybook, onLoadPlaybook])
+
+  // Expose getPlaybookContent function to parent (for Preview/Validation)
+  useEffect(() => {
+    if (onGetPlaybookContent) {
+      onGetPlaybookContent(serializePlaybookContent)
+    }
+  }, [serializePlaybookContent, onGetPlaybookContent])
 
   // Load playbook on mount
   useEffect(() => {
@@ -1163,56 +1173,32 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     if (!sourceId || !targetId) return
 
-    // Vérifier si la source est un PLAY
-    const sourceModule = modules.find(m => m.id === sourceId)
+    // Règle universelle pour tous les types de liens:
+    // 1. Une source ne peut avoir qu'un seul lien sortant de ce type
+    // 2. Une cible ne peut avoir qu'un seul lien entrant de ce type
+    // Cela garantit une chaîne linéaire: A -> B -> C (pas de branches multiples)
 
-    // Pour les liens PLAY (pre_tasks, tasks, post_tasks, handlers), un seul lien par type
-    if (type === 'pre_tasks' || type === 'tasks' || type === 'post_tasks' || type === 'handlers') {
-      const hasOutgoingOfThisType = links.some(l => l.from === sourceId && l.type === type)
-      if (hasOutgoingOfThisType) {
-        setLinks(links.filter(l => !(l.from === sourceId && l.type === type)))
-      }
-    }
-    // Vérifier et supprimer les liens existants selon le type
-    else if (type === 'normal') {
-      // Une tâche ne peut avoir qu'une seule sortie normale
-      const hasOutgoingNormal = links.some(l => l.from === sourceId && l.type === 'normal')
-      const hasIncomingNormal = links.some(l => l.to === targetId && l.type === 'normal')
+    setLinks(prevLinks => {
+      // Supprimer les liens existants qui violent les règles
+      let updatedLinks = prevLinks.filter(l => {
+        // Supprimer tout lien sortant de la source pour ce type
+        if (l.from === sourceId && l.type === type) return false
+        // Supprimer tout lien entrant vers la cible pour ce type
+        if (l.to === targetId && l.type === type) return false
+        return true
+      })
 
-      if (hasOutgoingNormal) {
-        setLinks(links.filter(l => !(l.from === sourceId && l.type === 'normal')))
-      }
-      if (hasIncomingNormal) {
-        setLinks(prevLinks => prevLinks.filter(l => !(l.to === targetId && l.type === 'normal')))
-      }
-    } else if (type === 'rescue') {
-      // Un block ne peut avoir qu'une seule sortie rescue
-      const hasOutgoingRescue = links.some(l => l.from === sourceId && l.type === 'rescue')
-      if (hasOutgoingRescue) {
-        setLinks(links.filter(l => !(l.from === sourceId && l.type === 'rescue')))
-      }
-    } else if (type === 'always') {
-      // Un block ne peut avoir qu'une seule sortie always
-      const hasOutgoingAlways = links.some(l => l.from === sourceId && l.type === 'always')
-      if (hasOutgoingAlways) {
-        setLinks(links.filter(l => !(l.from === sourceId && l.type === 'always')))
-      }
-    }
-
-    // Créer le nouveau lien
-    const linkExists = links.some(l =>
-      l.from === sourceId && l.to === targetId && l.type === type
-    )
-
-    if (!linkExists) {
+      // Ajouter le nouveau lien
       const newLink: Link = {
         id: `link-${Date.now()}`,
         from: sourceId,
         to: targetId,
         type
       }
-      setLinks(prevLinks => [...prevLinks, newLink])
-    }
+      updatedLinks.push(newLink)
+
+      return updatedLinks
+    })
   }
 
   const updateTaskName = (id: string, newName: string) => {
@@ -1633,7 +1619,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }, [handleDelete, onDeleteModule])
 
   // Fonction pour mettre à jour un module
-  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => {
+  const handleUpdateModuleAttributes = useCallback((id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => {
     // Gérer les modules normaux
     // Trouver le module avant la mise à jour
     const module = modules.find(m => m.id === id)
@@ -1653,7 +1639,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         id: module.id,
         name: module.name,
         collection: module.collection,
-        taskName: module.taskName,
+        taskName: updates.taskName !== undefined ? updates.taskName : module.taskName,
         when: updates.when !== undefined ? updates.when : module.when,
         ignoreErrors: updates.ignoreErrors !== undefined ? updates.ignoreErrors : module.ignoreErrors,
         become: updates.become !== undefined ? updates.become : module.become,
