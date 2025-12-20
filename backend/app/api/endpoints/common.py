@@ -17,6 +17,8 @@ async def version():
     return {
         "version": version_info["version"],
         "base_version": version_info["base_version"],
+        "internal_version": version_info["internal_version"],
+        "environment": version_info["environment"],
         "name": "Ansible Builder API",
         "description": version_info["description"],
         "is_rc": version_info["is_rc"],
