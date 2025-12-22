@@ -4,6 +4,46 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.12.2** - *2025-12-22*
+
+### 🔍 Ansible Lint Integration & UI Improvements
+
+- **Validation Ansible Lint**
+  - Intégration `ansible-playbook --syntax-check` + `ansible-lint`
+  - Affichage version Ansible utilisée pour validation
+  - Issues catégorisées par sévérité (error/warning/info)
+  - Endpoint `/api/playbooks/validate-full-preview`
+
+- **Preview YAML amélioré**
+  - Layout 3 colonnes : numéros de lignes | indicateur validation | code
+  - Surlignage des lignes référencées par les issues de validation
+  - Couleurs selon sévérité (rouge/orange/bleu)
+
+- **Parsing des paramètres corrigé**
+  - Extraction correcte du nom depuis balise `<strong>`
+  - Types extraits séparément (string, boolean, dict, path, etc.)
+  - Aliases et required correctement parsés
+  - Normalisation des types API → interne (string→str, integer→int, boolean→bool)
+
+- **Zone Configuration améliorée**
+  - Icônes de types devant chaque attribut
+  - Boolean → Checkbox
+  - List avec choices → Multi-select dropdown
+  - List sans choices → Autocomplete avec chips
+
+- **Gestion des versions**
+  - Masquage du suffix `-rc.X` en production (ENVIRONMENT=PROD)
+  - Affichage version complète en staging (ENVIRONMENT=STAGING)
+  - Frontend : version nettoyée via regex
+  - Backend : `get_display_version()` masque le RC selon l'environnement
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version affichée** : 1.12.2 (masque -rc.1 en prod)
+- **Tag Git** : v1.12.2
+
+---
+
 ## ✅ **Version 1.12.0** - *2025-12-20*
 
 ### 🔧 Transposition YAML complète et Réactivité UI

@@ -22,7 +22,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🎉 **Version 1.12.2 - Déployée en Production**
+## 🎉 **Version 1.12.2 - Déployée en Production (2025-12-22)**
 
 ### Fonctionnalités
 
@@ -48,6 +48,12 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - Boolean → Checkbox
 - List avec choices → Multi-select dropdown
 - List sans choices → Autocomplete avec chips
+
+**Gestion des versions :**
+- Masquage du suffix `-rc.X` en production (ENVIRONMENT=PROD)
+- Affichage version complète en staging (ENVIRONMENT=STAGING)
+- Frontend : version nettoyée via regex `replace(/-rc\.\d+$/, '')`
+- Backend : `get_display_version()` masque le RC selon l'environnement
 
 ---
 
@@ -76,4 +82,4 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-*Dernière mise à jour : 2025-12-21*
+*Dernière mise à jour : 2025-12-22*
