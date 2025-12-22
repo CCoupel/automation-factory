@@ -94,6 +94,13 @@ export interface Playbook {
   owner_id: string
   created_at: string
   updated_at: string
+  // Additional fields for collaboration
+  owner_username?: string
+  user_role?: 'owner' | 'editor' | 'viewer'
+  is_shared?: boolean
+  // For owned playbooks: sharing info
+  shared_with_count?: number
+  shared_with_users?: string[]
 }
 
 /**
@@ -119,6 +126,23 @@ export interface PlaybookUpdate {
   name?: string
   description?: string
   content?: PlaybookContent
+}
+
+/**
+ * Transfer ownership request
+ */
+export interface PlaybookTransferOwnershipRequest {
+  new_owner_username: string
+  keep_access: boolean
+}
+
+/**
+ * Transfer ownership response
+ */
+export interface PlaybookTransferOwnershipResponse {
+  success: boolean
+  new_owner_username: string
+  old_owner_kept_access: boolean
 }
 
 /**
@@ -244,6 +268,35 @@ export const playbookService = {
         throw new Error(error.response.data.detail)
       }
       throw new Error('Failed to delete playbook')
+    }
+  },
+
+  /**
+   * Transfer playbook ownership to another user
+   *
+   * @param playbookId - Playbook ID
+   * @param request - Transfer ownership request (new owner username, keep access)
+   * @returns Promise with transfer result
+   */
+  async transferOwnership(
+    playbookId: string,
+    request: PlaybookTransferOwnershipRequest
+  ): Promise<PlaybookTransferOwnershipResponse> {
+    try {
+      const response = await axios.post(
+        `${getApiBaseUrl()}/playbooks/${playbookId}/transfer-ownership`,
+        request,
+        {
+          headers: getAuthHeader()
+        }
+      )
+      return response.data
+    } catch (error: any) {
+      console.error('Transfer ownership API error:', error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to transfer ownership')
     }
   }
 }

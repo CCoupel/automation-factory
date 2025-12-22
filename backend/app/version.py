@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.12.2-rc.1"
+__version__ = "1.13.0-rc.4"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,32 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.13.0": {
+        "title": "Collaboration Multi-utilisateur Temps Réel",
+        "release_date": "2025-12-22",
+        "features": [
+            "Système de rôles (Propriétaire/Éditeur/Visualiseur)",
+            "Partage de playbooks par username",
+            "Synchronisation temps réel via WebSockets",
+            "Avatars des utilisateurs connectés",
+            "Highlight des modifications reçues",
+            "Indicateur de partage sur les playbooks personnels",
+            "Transfert de propriété lors de la suppression d'un playbook partagé"
+        ],
+        "improvements": [
+            "Collaboration en temps réel entre utilisateurs",
+            "Audit log des modifications",
+            "Gestion des conflits d'édition",
+            "Séparation playbooks personnels / partagés avec onglets",
+            "Affichage du propriétaire et rôle pour playbooks partagés"
+        ],
+        "technical": [
+            "WebSocket endpoint avec ConnectionManager",
+            "Tables playbook_shares et playbook_audit_log",
+            "Broadcast des modifications aux collaborateurs",
+            "JWT token enrichi avec username pour WebSockets"
+        ]
+    },
     "1.12.2": {
         "title": "Ansible Lint Integration",
         "release_date": "2025-12-20",

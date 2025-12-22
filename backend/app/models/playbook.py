@@ -2,7 +2,7 @@
 Playbook model for storing user-created playbooks
 """
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -45,12 +45,29 @@ class Playbook(Base):
     # Owner relationship
     owner_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
+    # Version for optimistic locking (incremented on each update)
+    version = Column(Integer, default=1, nullable=False)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="playbooks")
+
+    # Cascade delete for shares and audit logs (SQLite doesn't enforce FK constraints by default)
+    shares = relationship(
+        "PlaybookShare",
+        back_populates="playbook",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+    audit_logs = relationship(
+        "PlaybookAuditLog",
+        back_populates="playbook",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
     def __repr__(self):
         return f"<Playbook {self.name} (id={self.id}, owner={self.owner_id})>"
@@ -70,6 +87,7 @@ class Playbook(Base):
             "name": self.name,
             "description": self.description,
             "owner_id": self.owner_id,
+            "version": self.version,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

@@ -192,7 +192,12 @@
       "Bash(head -1 echo -n \"2. Backend API version: \" curl -s http://192.168.1.217/api/version)",
       "Bash(grep -o '\"\"version\"\":\"\"[^\"\"]*\"\"' echo -n \"3. Frontend: \" curl -s -I http://192.168.1.217/)",
       "Bash(KUBECONFIG=kubeconfig.txt helm list:*)",
-      "Bash(KUBECONFIG=kubeconfig.txt kubectl get:*)"
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl get:*)",
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl logs:*)",
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl rollout:*)",
+      "Bash(KUBECONFIG=kubeconfig.txt kubectl exec:*)",
+      "Bash(git mv:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

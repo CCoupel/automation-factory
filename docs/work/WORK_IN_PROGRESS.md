@@ -15,51 +15,122 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Tag Git :** `v1.12.2`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.12.2-rc.1`
-- **Frontend :** `1.12.2-rc.1-vite`
+- **Backend :** `1.13.0-rc.4`
+- **Frontend :** `1.13.0-rc.4-vite`
 - **URL :** http://192.168.1.217
-- **Status :** Synchronisé avec production
+- **Status :** Phase 2 - Tests validés, prêt pour Phase 3
 
 ---
 
-## 🎉 **Version 1.12.2 - Déployée en Production (2025-12-22)**
+## 🚧 **Version 1.13.0 - En Développement**
 
-### Fonctionnalités
+### Collaboration Multi-utilisateur Temps Réel
 
-**Ansible Lint Integration :**
-- Validation `ansible-playbook --syntax-check` + `ansible-lint`
-- Affichage version Ansible utilisée pour validation
-- Issues catégorisées par sévérité (error/warning/info)
-- Endpoint `/api/playbooks/validate-full-preview`
+**Système de rôles (3 niveaux) :**
+- Propriétaire : Gestion complète + droits utilisateurs
+- Éditeur : Modification sans gestion des droits
+- Visualiseur : Lecture seule
 
-**Preview YAML amélioré :**
-- Layout 3 colonnes : numéros de lignes | indicateur validation | code
-- Surlignage des lignes référencées par les issues de validation
-- Couleurs selon sévérité (rouge/orange/bleu)
+**Partage de playbooks :**
+- Partage par username (pas d'email)
+- Interface de gestion des collaborateurs
+- Table `playbook_shares` (playbook_id, user_id, role)
 
-**Parsing des paramètres corrigé :**
-- Extraction correcte du nom (balise `<strong>`)
-- Types extraits séparément (string, boolean, dict, path, etc.)
-- Aliases et required correctement parsés
-- Normalisation des types API → interne (string→str, integer→int, boolean→bool)
+**WebSockets temps réel :**
+- Synchronisation instantanée des modifications
+- ConnectionManager pour gérer les connexions par playbook
+- Messages : join, leave, update, presence
 
-**Zone Configuration améliorée :**
-- Icônes de types devant chaque attribut
-- Boolean → Checkbox
-- List avec choices → Multi-select dropdown
-- List sans choices → Autocomplete avec chips
+**UI Temps réel :**
+- Avatars des utilisateurs connectés dans AppHeader
+- Highlight des modifications reçues (flash 2s)
+- Indicateur "X utilisateurs connectés"
 
-**Gestion des versions :**
-- Masquage du suffix `-rc.X` en production (ENVIRONMENT=PROD)
-- Affichage version complète en staging (ENVIRONMENT=STAGING)
-- Frontend : version nettoyée via regex `replace(/-rc\.\d+$/, '')`
-- Backend : `get_display_version()` masque le RC selon l'environnement
+**Gestion des playbooks partagés :**
+- Séparation playbooks personnels / partagés avec onglets
+- Indicateur de partage sur les playbooks personnels (chip "Partagé (N)")
+- Affichage propriétaire et rôle pour playbooks partagés
+- Sécurisation suppression : transfert propriété ou suppression définitive
+- Option conserver accès éditeur après transfert
+
+**Audit Log :**
+- Table `playbook_audit_log`
+- Traçage : create, update, delete, share, unshare, transfer_ownership
+- Historique consultable par playbook
+
+### Phase actuelle : Phase 2 - Intégration Staging
+
+#### Implémentation Backend (Terminée)
+- [x] Modèles SQLAlchemy : PlaybookShare, PlaybookAuditLog
+- [x] Ajout colonne `version` sur Playbook (optimistic locking)
+- [x] WebSocketManager pour les rooms par playbook
+- [x] Endpoint WebSocket `/ws/playbook/{playbook_id}`
+- [x] Endpoints REST collaboration :
+  - `POST /playbooks/{id}/shares` - Partager avec un utilisateur
+  - `GET /playbooks/{id}/shares` - Liste des partages
+  - `PUT /playbooks/{id}/shares/{share_id}` - Modifier rôle
+  - `DELETE /playbooks/{id}/shares/{share_id}` - Retirer partage
+  - `GET /playbooks/shared-with-me` - Playbooks partagés avec moi
+  - `GET /playbooks/{id}/audit-log` - Journal d'audit
+- [x] Mise à jour endpoints existants pour accès partagés
+
+#### Implémentation Frontend (Terminée)
+- [x] Hook `usePlaybookWebSocket.ts` pour connexions temps réel
+- [x] Service `collaborationService.ts` pour API REST
+- [x] Contexte `CollaborationContext.tsx` pour état global
+- [x] Composant `PresenceIndicator.tsx` - Avatars utilisateurs connectés
+- [x] Composant `ShareDialog.tsx` - Dialog de partage
+- [x] Intégration dans MainLayout et AppHeader
+
+#### Tests Phase 1 (2025-12-22)
+- [x] Backend: 9/9 imports réussis (models, services, schemas, routers)
+- [x] Backend: 61 routes enregistrées dont 8 nouvelles (collaboration)
+- [x] Frontend: Build TypeScript réussi (11637 modules)
+- [x] Frontend: Bundle production généré (782 kB)
+- [x] Corrections: `NodeJS.Timeout` → `ReturnType<typeof setTimeout>`
+
+#### Tests Phase 2 - Staging (2025-12-22)
+- [x] Build Docker backend: `ansible-builder-backend:1.13.0-rc.4`
+- [x] Build Docker frontend: `ansible-builder-frontend:1.13.0-rc.4-vite`
+- [x] Configuration nginx: WebSocket `/ws/` proxy ajouté
+- [x] Déploiement: 3 containers démarrés (backend, frontend, nginx)
+- [x] Health check nginx: HTTP 200 OK
+- [x] Backend version: `1.13.0-rc.4` (STAGING, is_rc=true)
+- [x] Frontend accessible: HTTP 200 OK
+- [x] API shares (non-auth): 403 Forbidden (attendu)
+- [x] API shared-with-me (non-auth): 403 Forbidden (attendu)
+- [x] WebSocket presence: `{"users":[], "count":0}` (attendu)
+- [x] API Ansible versions: 9 versions disponibles
+- [x] Logs backend: OK, pas d'erreurs
+
+#### Tests fonctionnels validés (2025-12-22)
+- [x] Affichage version: rc.X affiché en staging, masqué en prod
+- [x] Suppression playbook non partagé: confirmation simple OK
+- [x] Partage playbook: par username, fonctionne
+- [x] Liste playbooks: onglets "Mes playbooks" / "Partagés avec moi"
+- [x] Indicateur partage: chip "Partagé (N)" avec tooltip des usernames
+- [x] Affichage rôle: badge Éditeur/Lecteur pour playbooks partagés
+- [x] Suppression playbook partagé: dialog avec options transfert/supprimer
+- [x] Transfert propriété: fonctionne avec option conserver accès éditeur
+- [x] Cascade delete: plus d'erreur IntegrityError sur audit_log
+
+#### Prochaines étapes
+- [x] Tests fonctionnels utilisateur validés
+- [x] Validation utilisateur OK
+- [ ] Phase 3 : Production
+
+---
+
+## ✅ **Version 1.12.2 - Déployée en Production (2025-12-22)**
+
+Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
 ## 📋 **Prochaines Priorités**
 
-- Voir backlog pour les nouvelles fonctionnalités
+- Finaliser v1.13.0 (Collaboration temps réel)
+- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
 
 ---
 
@@ -82,4 +153,4 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-*Dernière mise à jour : 2025-12-22*
+*Dernière mise à jour : 2025-12-22 - v1.13.0-rc.4 validé en staging*

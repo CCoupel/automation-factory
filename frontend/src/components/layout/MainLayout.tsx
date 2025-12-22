@@ -3,8 +3,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import AppHeader from './AppHeader'
+import { useCollaboration } from '../../contexts/CollaborationContext'
 import VarsZone from '../zones/VarsZone'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import WorkZone from '../zones/WorkZone'
@@ -79,6 +80,29 @@ const MainLayout = () => {
   // Playbook manager dialog
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
 
+  // Collaboration
+  const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected } = useCollaboration()
+
+  // Store functions in refs to avoid dependency issues
+  const connectToPlaybookRef = useRef(connectToPlaybook)
+  const disconnectFromPlaybookRef = useRef(disconnectFromPlaybook)
+
+  // Update refs when functions change
+  useEffect(() => {
+    connectToPlaybookRef.current = connectToPlaybook
+    disconnectFromPlaybookRef.current = disconnectFromPlaybook
+  })
+
+  // Connect to playbook collaboration when playbook ID changes
+  useEffect(() => {
+    if (currentPlaybookId) {
+      connectToPlaybookRef.current(currentPlaybookId)
+    }
+    return () => {
+      disconnectFromPlaybookRef.current()
+    }
+  }, [currentPlaybookId])
+
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
   }
@@ -144,6 +168,9 @@ const MainLayout = () => {
       <AppHeader
         saveStatus={saveStatus}
         playbookName={playbookName}
+        playbookId={currentPlaybookId}
+        connectedUsers={connectedUsers}
+        isCollaborationConnected={isConnected}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
       />
 

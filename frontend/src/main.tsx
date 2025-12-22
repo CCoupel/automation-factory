@@ -6,6 +6,7 @@ import { ZoomProvider } from './contexts/ZoomContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AnsibleVersionProvider } from './contexts/AnsibleVersionContext'
 import { GalaxyCacheProvider } from './contexts/GalaxyCacheContext'
+import { CollaborationProvider } from './contexts/CollaborationContext'
 import PrivateRoute from './components/auth/PrivateRoute'
 import LoginPage from './pages/LoginPage'
 import App from './App.tsx'
@@ -40,7 +41,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     path="/*"
                     element={
                       <PrivateRoute>
-                        <App />
+                        <CollaborationProvider>
+                          <App />
+                        </CollaborationProvider>
                       </PrivateRoute>
                     }
                   />

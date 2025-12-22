@@ -29,8 +29,18 @@ class PlaybookResponse(PlaybookBase):
     """Schema for playbook response"""
     id: str
     owner_id: str
+    version: int = 1
     created_at: datetime
     updated_at: datetime
+
+    # Additional fields for list view (set dynamically)
+    owner_username: Optional[str] = None
+    user_role: Optional[str] = None  # 'owner', 'editor', 'viewer'
+    is_shared: bool = False  # True if user is not the owner
+
+    # For owned playbooks: info about who it's shared with
+    shared_with_count: int = 0  # Number of users this playbook is shared with
+    shared_with_users: Optional[list[str]] = None  # List of usernames it's shared with
 
     class Config:
         from_attributes = True
@@ -39,6 +49,7 @@ class PlaybookResponse(PlaybookBase):
 class PlaybookDetailResponse(PlaybookResponse):
     """Schema for detailed playbook response (includes content)"""
     content: dict
+    version: int = 1
 
 
 class PlaybookYamlResponse(BaseModel):
@@ -80,6 +91,19 @@ class PlaybookLintResponse(BaseModel):
     info_count: int = Field(default=0, description="Number of info messages")
     issues: list[LintIssueResponse] = Field(default_factory=list, description="List of lint issues")
     playbook_id: Optional[str] = Field(None, description="Playbook ID if from saved playbook")
+
+
+class PlaybookTransferOwnershipRequest(BaseModel):
+    """Schema for transferring playbook ownership"""
+    new_owner_username: str = Field(..., description="Username of the new owner")
+    keep_access: bool = Field(default=True, description="Keep editor access for the old owner")
+
+
+class PlaybookTransferOwnershipResponse(BaseModel):
+    """Schema for transfer ownership response"""
+    success: bool = Field(..., description="Whether the transfer was successful")
+    new_owner_username: str = Field(..., description="Username of the new owner")
+    old_owner_kept_access: bool = Field(..., description="Whether the old owner kept access")
 
 
 class FullValidationResponse(BaseModel):

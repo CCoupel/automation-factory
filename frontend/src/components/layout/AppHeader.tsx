@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   AppBar,
   Toolbar,
@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
+import { useVersionInfo } from '../../hooks/useVersionInfo'
 import { VersionSelector } from '../VersionSelector'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -41,13 +42,23 @@ import Brightness7Icon from '@mui/icons-material/Brightness7'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import ShareIcon from '@mui/icons-material/Share'
 import { getHttpClient } from '../../utils/httpClient'
-import axios from 'axios'
-import packageJson from '../../../package.json'
+import PresenceIndicator from '../collaboration/PresenceIndicator'
+import ShareDialog from '../collaboration/ShareDialog'
+
+interface ConnectedUser {
+  user_id: string
+  username: string
+  connected_at: string
+}
 
 interface AppHeaderProps {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error'
   playbookName: string
+  playbookId: string | null
+  connectedUsers?: ConnectedUser[]
+  isCollaborationConnected?: boolean
   onOpenPlaybookManager: () => void
 }
 
@@ -66,20 +77,27 @@ interface AppHeaderProps {
  * - Logout functionality with navigation to login page
  * - Auto-save status indicator
  */
-const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playbookNameProp, onOpenPlaybookManager }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({
+  saveStatus,
+  playbookName: playbookNameProp,
+  playbookId,
+  connectedUsers = [],
+  isCollaborationConnected = false,
+  onOpenPlaybookManager
+}) => {
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
   const { darkMode, toggleDarkMode } = useTheme()
   const { forceRefreshCache, isLoading: cacheLoading, currentVersion } = useGalaxyCache()
 
-  // Version state (simplified like LoginPage)
-  const [backendVersion, setBackendVersion] = useState<string>('...')
-  const [backendVersionInfo, setBackendVersionInfo] = useState<any>(null)
-  // Remove -rc.X suffix for display (production shows clean version)
-  const frontendVersion = packageJson.version.replace(/-rc\.\d+$/, '')
+  // Version info from shared hook
+  const { frontendVersion, backendVersion, backendVersionInfo, isReleaseCandidate } = useVersionInfo()
 
   // Playbook fields state (local for other fields)
   const [inventory, setInventory] = useState('hosts')
+
+  // Share dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   // Refresh notification state
   const [refreshSnackbar, setRefreshSnackbar] = useState(false)
@@ -101,29 +119,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
 
 
-  /**
-   * Fetch backend version on component mount (simplified like LoginPage)
-   */
-  useEffect(() => {
-    const fetchBackendVersion = async () => {
-      try {
-        const apiUrl = (window as any).__API_URL__ || '/api'
-        const response = await axios.get(`${apiUrl}/version`)
-        
-        // Store simple version string
-        setBackendVersion(response.data.version || 'N/A')
-        
-        // Store complete version info for About dialog
-        setBackendVersionInfo(response.data)
-      } catch (err) {
-        console.error('Failed to fetch backend version:', err)
-        setBackendVersion('N/A')
-        setBackendVersionInfo(null)
-      }
-    }
-
-    fetchBackendVersion()
-  }, [])
 
   /**
    * Handle user menu open
@@ -418,6 +413,34 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
           />
         )}
 
+        {/* Collaboration: Presence Indicator */}
+        {playbookId && isCollaborationConnected && (
+          <PresenceIndicator
+            users={connectedUsers}
+            currentUserId={user?.id}
+            maxVisible={4}
+          />
+        )}
+
+        {/* Share Button - Only show when playbook is loaded */}
+        {playbookId && (
+          <Tooltip title="Share Playbook">
+            <IconButton
+              onClick={() => setShareDialogOpen(true)}
+              size="small"
+              sx={{
+                color: 'white',
+                mx: 1,
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+            >
+              <ShareIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+
         {/* Right side - User info and Menu */}
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs, 4px)' }}>
@@ -676,7 +699,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                 • Environment: {backendVersionInfo?.environment || 'N/A'}
               </Typography>
-              {backendVersionInfo?.is_rc && (
+              {isReleaseCandidate && (
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'orange', fontWeight: 'bold' }}>
                   ⚠️ Release Candidate - Version de test
                 </Typography>
@@ -806,6 +829,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
         message={refreshMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+
+      {/* Share Dialog */}
+      {playbookId && (
+        <ShareDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          playbookId={playbookId}
+          playbookName={playbookNameProp}
+        />
+      )}
 
     </AppBar>
   )

@@ -11,22 +11,115 @@ Provides endpoints for managing playbooks:
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List
+from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import selectinload
+from typing import List, Optional, Tuple
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.playbook import Playbook
+from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
+from pydantic import BaseModel
 from app.schemas.playbook import (
     PlaybookCreate, PlaybookUpdate, PlaybookResponse, PlaybookDetailResponse,
     PlaybookYamlResponse, PlaybookValidationResponse, PlaybookPreviewRequest,
-    PlaybookLintResponse, LintIssueResponse, FullValidationResponse
+    PlaybookLintResponse, LintIssueResponse, FullValidationResponse,
+    PlaybookTransferOwnershipRequest, PlaybookTransferOwnershipResponse
 )
 from app.services.playbook_yaml_service import playbook_yaml_service
 from app.services.ansible_lint_service import ansible_lint_service
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
+
+
+# === Helper Functions ===
+
+async def check_playbook_access(
+    playbook_id: str,
+    user_id: str,
+    db: AsyncSession,
+    required_role: Optional[str] = None
+) -> Tuple[Playbook, str]:
+    """
+    Check if user has access to a playbook and return the playbook with their role.
+
+    Args:
+        playbook_id: The playbook ID
+        user_id: The user ID
+        db: Database session
+        required_role: Minimum required role ('owner', 'editor', 'viewer')
+
+    Returns:
+        Tuple of (Playbook, role string)
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not authorized or insufficient role
+    """
+    result = await db.execute(
+        select(Playbook).where(Playbook.id == playbook_id)
+    )
+    playbook = result.scalar_one_or_none()
+
+    if not playbook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playbook not found"
+        )
+
+    # Check if owner
+    if playbook.owner_id == user_id:
+        return playbook, PlaybookRole.OWNER.value
+
+    # Check if shared with user
+    share_result = await db.execute(
+        select(PlaybookShare).where(
+            and_(
+                PlaybookShare.playbook_id == playbook_id,
+                PlaybookShare.user_id == user_id
+            )
+        )
+    )
+    share = share_result.scalar_one_or_none()
+
+    if not share:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+
+    # Check required role if specified
+    if required_role:
+        role_hierarchy = {
+            PlaybookRole.OWNER.value: 3,
+            PlaybookRole.EDITOR.value: 2,
+            PlaybookRole.VIEWER.value: 1
+        }
+        if role_hierarchy.get(share.role, 0) < role_hierarchy.get(required_role, 0):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires at least '{required_role}' role"
+            )
+
+    return playbook, share.role
+
+
+async def log_playbook_action(
+    db: AsyncSession,
+    playbook_id: str,
+    user_id: str,
+    action: AuditAction,
+    details: dict = None
+):
+    """Log an action to the audit log"""
+    audit_entry = PlaybookAuditLog(
+        playbook_id=playbook_id,
+        user_id=user_id,
+        action=action.value,
+        details=details
+    )
+    db.add(audit_entry)
 
 
 @router.get("", response_model=List[PlaybookResponse])
@@ -37,17 +130,73 @@ async def list_playbooks(
     """
     List all playbooks for the authenticated user
 
+    Includes:
+    - Playbooks owned by the user (user_role='owner', is_shared=False)
+    - Playbooks shared with the user (user_role='editor'|'viewer', is_shared=True)
+
     Returns:
-        List of playbooks (without full content)
+        List of playbooks with owner info and user's role
     """
-    result = await db.execute(
+    result_list = []
+
+    # Get playbooks owned by the user
+    owned_result = await db.execute(
         select(Playbook)
         .where(Playbook.owner_id == current_user.id)
-        .order_by(Playbook.updated_at.desc())
     )
-    playbooks = result.scalars().all()
+    owned_playbooks = list(owned_result.scalars().all())
 
-    return playbooks
+    # Get share info for owned playbooks
+    for playbook in owned_playbooks:
+        # Get users this playbook is shared with
+        shares_result = await db.execute(
+            select(PlaybookShare, User)
+            .join(User, User.id == PlaybookShare.user_id)
+            .where(PlaybookShare.playbook_id == playbook.id)
+        )
+        shares = shares_result.all()
+        shared_usernames = [user.username for _, user in shares]
+
+        result_list.append({
+            "id": playbook.id,
+            "name": playbook.name,
+            "description": playbook.description,
+            "owner_id": playbook.owner_id,
+            "version": playbook.version,
+            "created_at": playbook.created_at,
+            "updated_at": playbook.updated_at,
+            "owner_username": current_user.username,
+            "user_role": PlaybookRole.OWNER.value,
+            "is_shared": False,
+            "shared_with_count": len(shared_usernames),
+            "shared_with_users": shared_usernames if shared_usernames else None
+        })
+
+    # Get playbooks shared with the user (with owner info and role)
+    shared_result = await db.execute(
+        select(Playbook, PlaybookShare, User)
+        .join(PlaybookShare, PlaybookShare.playbook_id == Playbook.id)
+        .join(User, User.id == Playbook.owner_id)
+        .where(PlaybookShare.user_id == current_user.id)
+    )
+    for playbook, share, owner in shared_result.all():
+        result_list.append({
+            "id": playbook.id,
+            "name": playbook.name,
+            "description": playbook.description,
+            "owner_id": playbook.owner_id,
+            "version": playbook.version,
+            "created_at": playbook.created_at,
+            "updated_at": playbook.updated_at,
+            "owner_username": owner.username,
+            "user_role": share.role,
+            "is_shared": True
+        })
+
+    # Sort by updated_at descending
+    result_list.sort(key=lambda p: p["updated_at"], reverse=True)
+
+    return result_list
 
 
 @router.post("", response_model=PlaybookDetailResponse, status_code=status.HTTP_201_CREATED)
@@ -74,6 +223,14 @@ async def create_playbook(
     )
 
     db.add(playbook)
+    await db.flush()  # Get the playbook ID
+
+    # Log audit action
+    await log_playbook_action(
+        db, playbook.id, current_user.id, AuditAction.CREATE,
+        {"name": playbook.name}
+    )
+
     await db.commit()
     await db.refresh(playbook)
 
@@ -89,6 +246,8 @@ async def get_playbook(
     """
     Get a specific playbook with full content
 
+    Accessible by owner or any user with share access.
+
     Args:
         playbook_id: Playbook ID
 
@@ -97,26 +256,9 @@ async def get_playbook(
 
     Raises:
         HTTPException 404: Playbook not found
-        HTTPException 403: Not the owner of this playbook
+        HTTPException 403: Not authorized to access this playbook
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Verify ownership
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
-
+    playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
     return playbook
 
 
@@ -130,6 +272,8 @@ async def update_playbook(
     """
     Update a playbook
 
+    Accessible by owner or users with 'editor' role.
+
     Args:
         playbook_id: Playbook ID
         playbook_data: Fields to update (name, description, content)
@@ -139,33 +283,37 @@ async def update_playbook(
 
     Raises:
         HTTPException 404: Playbook not found
-        HTTPException 403: Not the owner of this playbook
+        HTTPException 403: Not authorized or insufficient role
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
+    # Check access with editor role requirement
+    playbook, role = await check_playbook_access(
+        playbook_id, current_user.id, db,
+        required_role=PlaybookRole.EDITOR.value
     )
-    playbook = result.scalar_one_or_none()
 
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Verify ownership
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to modify this playbook"
-        )
+    # Track changes for audit log
+    changes = {}
 
     # Update fields
-    if playbook_data.name is not None:
+    if playbook_data.name is not None and playbook_data.name != playbook.name:
+        changes["name"] = {"old": playbook.name, "new": playbook_data.name}
         playbook.name = playbook_data.name
-    if playbook_data.description is not None:
+    if playbook_data.description is not None and playbook_data.description != playbook.description:
+        changes["description"] = {"old": playbook.description, "new": playbook_data.description}
         playbook.description = playbook_data.description
     if playbook_data.content is not None:
+        changes["content"] = True  # Don't store full content in audit log
         playbook.content = playbook_data.content
+
+    # Increment version for optimistic locking
+    if changes:
+        playbook.version += 1
+
+        # Log audit action
+        await log_playbook_action(
+            db, playbook_id, current_user.id, AuditAction.UPDATE,
+            {"changes": list(changes.keys()), "new_version": playbook.version}
+        )
 
     await db.commit()
     await db.refresh(playbook)
@@ -213,25 +361,32 @@ async def delete_playbook(
     return None
 
 
-@router.get("/{playbook_id}/yaml", response_model=PlaybookYamlResponse)
-async def get_playbook_yaml(
+@router.post("/{playbook_id}/transfer-ownership", response_model=PlaybookTransferOwnershipResponse)
+async def transfer_playbook_ownership(
     playbook_id: str,
+    transfer_data: PlaybookTransferOwnershipRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get generated YAML for a playbook
+    Transfer playbook ownership to another user.
+
+    Only the current owner can transfer ownership.
+    The new owner must be a user the playbook is currently shared with.
 
     Args:
         playbook_id: Playbook ID
+        transfer_data: New owner username and whether to keep access for old owner
 
     Returns:
-        Generated YAML string
+        Transfer result
 
     Raises:
-        HTTPException 404: Playbook not found
+        HTTPException 404: Playbook not found or new owner not found
         HTTPException 403: Not the owner of this playbook
+        HTTPException 400: New owner is not a shared user
     """
+    # Get the playbook
     result = await db.execute(
         select(Playbook).where(Playbook.id == playbook_id)
     )
@@ -243,11 +398,110 @@ async def get_playbook_yaml(
             detail="Playbook not found"
         )
 
+    # Verify current user is the owner
     if playbook.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
+            detail="Only the owner can transfer ownership"
         )
+
+    # Find the new owner by username
+    new_owner_result = await db.execute(
+        select(User).where(User.username == transfer_data.new_owner_username)
+    )
+    new_owner = new_owner_result.scalar_one_or_none()
+
+    if not new_owner:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{transfer_data.new_owner_username}' not found"
+        )
+
+    # Verify new owner is a shared user (not the current owner)
+    if new_owner.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot transfer ownership to yourself"
+        )
+
+    share_result = await db.execute(
+        select(PlaybookShare).where(
+            and_(
+                PlaybookShare.playbook_id == playbook_id,
+                PlaybookShare.user_id == new_owner.id
+            )
+        )
+    )
+    share = share_result.scalar_one_or_none()
+
+    if not share:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User '{transfer_data.new_owner_username}' is not a shared user of this playbook"
+        )
+
+    # Transfer ownership
+    old_owner_id = playbook.owner_id
+    playbook.owner_id = new_owner.id
+
+    # Remove share entry for new owner (they're now the owner)
+    await db.delete(share)
+
+    # Optionally add share entry for old owner
+    old_owner_kept_access = False
+    if transfer_data.keep_access:
+        new_share = PlaybookShare(
+            playbook_id=playbook_id,
+            user_id=old_owner_id,
+            role=PlaybookRole.EDITOR.value,
+            created_by=new_owner.id
+        )
+        db.add(new_share)
+        old_owner_kept_access = True
+
+    # Log audit action
+    await log_playbook_action(
+        db, playbook_id, current_user.id, AuditAction.UPDATE,
+        {
+            "action": "transfer_ownership",
+            "old_owner_id": old_owner_id,
+            "new_owner_id": new_owner.id,
+            "new_owner_username": new_owner.username,
+            "old_owner_kept_access": old_owner_kept_access
+        }
+    )
+
+    await db.commit()
+
+    return PlaybookTransferOwnershipResponse(
+        success=True,
+        new_owner_username=new_owner.username,
+        old_owner_kept_access=old_owner_kept_access
+    )
+
+
+@router.get("/{playbook_id}/yaml", response_model=PlaybookYamlResponse)
+async def get_playbook_yaml(
+    playbook_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get generated YAML for a playbook
+
+    Accessible by owner or any user with share access.
+
+    Args:
+        playbook_id: Playbook ID
+
+    Returns:
+        Generated YAML string
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not authorized
+    """
+    playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
 
     yaml_output = playbook_yaml_service.json_to_yaml(playbook.content)
 
@@ -266,6 +520,8 @@ async def validate_playbook(
     """
     Validate a saved playbook
 
+    Accessible by owner or any user with share access.
+
     Args:
         playbook_id: Playbook ID
 
@@ -274,24 +530,9 @@ async def validate_playbook(
 
     Raises:
         HTTPException 404: Playbook not found
-        HTTPException 403: Not the owner of this playbook
+        HTTPException 403: Not authorized
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
+    playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
 
     validation = playbook_yaml_service.validate(playbook.content)
 
@@ -364,6 +605,8 @@ async def lint_playbook(
     """
     Run ansible-lint on a saved playbook
 
+    Accessible by owner or any user with share access.
+
     Args:
         playbook_id: Playbook ID
 
@@ -372,24 +615,9 @@ async def lint_playbook(
 
     Raises:
         HTTPException 404: Playbook not found
-        HTTPException 403: Not the owner of this playbook
+        HTTPException 403: Not authorized
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
+    playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
 
     # Generate YAML and run ansible-lint
     yaml_content = playbook_yaml_service.json_to_yaml(playbook.content)
@@ -518,6 +746,8 @@ async def validate_full_playbook(
     """
     Run full validation (syntax-check + lint) on a saved playbook.
 
+    Accessible by owner or any user with share access.
+
     Args:
         playbook_id: Playbook ID
 
@@ -526,24 +756,9 @@ async def validate_full_playbook(
 
     Raises:
         HTTPException 404: Playbook not found
-        HTTPException 403: Not the owner of this playbook
+        HTTPException 403: Not authorized
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
+    playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
 
     # Generate YAML and run full validation
     yaml_content = playbook_yaml_service.json_to_yaml(playbook.content)

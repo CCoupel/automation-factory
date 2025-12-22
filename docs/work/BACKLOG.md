@@ -16,7 +16,16 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
   - [x] Layout 3 colonnes avec indicateurs de validation
   - [x] Icônes de types et contrôles adaptés (checkbox, multi-select)
 
-### P2 - Medium Priority (Version 2.0.x)
+### 🚧 P2 - En Cours (Version 1.13.0)
+- [ ] **Collaboration Multi-utilisateur Temps Réel**
+  - [ ] Système de rôles (Propriétaire/Éditeur/Visualiseur)
+  - [ ] Partage de playbooks par username
+  - [ ] WebSockets pour synchronisation temps réel
+  - [ ] Avatars des utilisateurs connectés dans AppHeader
+  - [ ] Highlight des modifications reçues
+  - [ ] Audit log des modifications
+
+### P3 - Medium Priority (Version 2.0.x)
 - [ ] **Gestion des Rôles Ansible**
   - [ ] Collecte et affichage des rôles disponibles
   - [ ] Drag & drop des rôles dans la section roles
@@ -44,7 +53,7 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ---
 
-## 👥 **Collaboration Multi-utilisateur**
+## 👥 **Collaboration Multi-utilisateur** (🚧 En cours v1.13.0)
 
 ### Gestion des Droits Playbooks
 - [ ] **Système de rôles avancé (3 niveaux)**
@@ -54,14 +63,15 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 - [ ] **Partage et collaboration**
   - [ ] Interface de gestion des droits d'accès
-  - [ ] Invitations par email
-  - [ ] Historique des modifications par utilisateur
+  - [ ] Invitations par username
+  - [ ] Audit log des modifications par utilisateur
 
-### Synchronisation temps réel
-- [ ] **WebSockets**
-  - [ ] Refresh automatique des pages ouvertes
-  - [ ] Notifications de modifications concurrentes
-  - [ ] Résolution de conflits d'édition
+### Synchronisation temps réel (WebSockets)
+- [ ] **Temps réel**
+  - [ ] Sync automatique des modifications
+  - [ ] Avatars des utilisateurs connectés (AppHeader)
+  - [ ] Highlight des changements reçus (flash 2s)
+  - [ ] Gestion des conflits d'édition
 
 ---
 

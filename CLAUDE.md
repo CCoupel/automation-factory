@@ -9,7 +9,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ## 🚀 **Status Actuel**
 
 **Version Production :** Backend 1.12.2 / Frontend 1.12.2 ✅ **DEPLOYED**
-**Version Développement :** 1.12.2-rc.1
+**Version Staging :** 1.13.0-rc.2 (Collaboration Multi-utilisateur)
 **URL Production :** https://coupel.net/ansible-builder
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **Dernière mise à jour :** 2025-12-22
@@ -20,6 +20,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **[Vue d'Ensemble](docs/core/PROJECT_OVERVIEW.md)** - Description du projet et objectifs
 - **[Décisions Architecture](docs/core/ARCHITECTURE_DECISIONS.md)** - Choix techniques importants
 - **[Process Développement](docs/core/DEVELOPMENT_PROCESS.md)** - Méthodologie et phases
+- **[Gestion des Versions](docs/core/VERSION_MANAGEMENT.md)** - Format, affichage et implémentation
 
 ### 💻 **Documentation Frontend**
 - **[Spécifications Frontend](docs/frontend/FRONTEND_SPECS.md)** - Interface utilisateur et fonctionnalités
@@ -67,22 +68,28 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 📋 **Règles de Versioning**
 
-**Format :** `X.Y.Z-rc.n`
-- **X** : Structure base de données
-- **Y** : Nouvelle fonctionnalité
-- **Z** : Bugfix
-- **-rc.n** : Release Candidate (incrémental pendant développement)
+> **📖 Documentation complète :** [Gestion des Versions](docs/core/VERSION_MANAGEMENT.md)
 
-**Variable d'environnement ENVIRONMENT :**
-- `STAGING` : Affiche la version complète avec `-rc.n`
-- `PROD` (défaut) : Masque le suffixe `-rc.n`
+**Format :** `X.Y.Z[-rc.n]`
 
-**Workflow :**
-1. **Développement** : Version `X.Y.Z-rc.1` dans les fichiers sources
-2. **Phase 2 Staging** : ENVIRONMENT=STAGING → affiche `X.Y.Z-rc.n`
-3. **Phase 3 Production** : ENVIRONMENT=PROD (défaut) → affiche `X.Y.Z`
+| Composant | Description |
+|-----------|-------------|
+| **X** | Version majeure (changements DB/breaking) |
+| **Y** | Version mineure (nouvelles fonctionnalités) |
+| **Z** | Version patch (bugfixes) |
+| **-rc.n** | Release Candidate (staging/dev uniquement) |
 
-**Avantage :** Images identiques staging/production (même code, même build)
+**Affichage par Environnement :**
+
+| Environnement | Variable | Version Affichée |
+|---------------|----------|------------------|
+| Production | `ENVIRONMENT=PROD` | `1.13.0` (sans RC) |
+| Staging | `ENVIRONMENT=STAGING` | `1.13.0-rc.2` (complet) |
+
+**Fichiers à synchroniser :**
+- `backend/app/version.py` : `__version__ = "X.Y.Z-rc.n"`
+- `frontend/package.json` : `"version": "X.Y.Z-rc.n"`
+- `docker-compose.staging.yml` : Tags images Docker
 
 ---
 

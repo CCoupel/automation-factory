@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Paper,
@@ -14,9 +14,8 @@ import {
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useVersionInfo } from '../hooks/useVersionInfo'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import axios from 'axios'
-import packageJson from '../../package.json'
 
 /**
  * Login/Register Page Component
@@ -39,6 +38,9 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { login, register, isLoading } = useAuth()
 
+  // Version info from shared hook
+  const { frontendVersion, backendVersion } = useVersionInfo()
+
   // Tab state (0 = login, 1 = register)
   const [activeTab, setActiveTab] = useState(0)
 
@@ -54,29 +56,6 @@ const LoginPage: React.FC = () => {
 
   // Error state
   const [error, setError] = useState<string | null>(null)
-
-  // Version state
-  const [backendVersion, setBackendVersion] = useState<string>('...')
-  // Remove -rc.X suffix for display (production shows clean version)
-  const frontendVersion = packageJson.version.replace(/-rc\.\d+$/, '')
-
-  /**
-   * Fetch backend version on component mount
-   */
-  useEffect(() => {
-    const fetchBackendVersion = async () => {
-      try {
-        const apiUrl = (window as any).__API_URL__ || '/api'
-        const response = await axios.get(`${apiUrl}/version`)
-        setBackendVersion(response.data.version)
-      } catch (err) {
-        console.error('Failed to fetch backend version:', err)
-        setBackendVersion('N/A')
-      }
-    }
-
-    fetchBackendVersion()
-  }, [])
 
   /**
    * Handle login form submission

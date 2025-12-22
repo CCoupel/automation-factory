@@ -7,6 +7,7 @@ from app.core.database import init_db, AsyncSessionLocal
 from app.core.security import get_password_hash
 from app.models.user import User
 from app.api.router import api_router
+from app.api.endpoints.websocket import router as websocket_router
 from app.version import __version__
 from app.services.cache_scheduler_service import cache_scheduler
 from app.services.sse_manager import sse_manager
@@ -98,6 +99,9 @@ app.add_middleware(
 
 # Include API router with /api prefix
 app.include_router(api_router, prefix="/api")
+
+# Include WebSocket router (no prefix, uses /ws/...)
+app.include_router(websocket_router)
 
 @app.get("/")
 async def root():

@@ -50,9 +50,9 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
-    # Create access token
+    # Create access token (include username for WebSocket collaboration)
     access_token = create_access_token(
-        data={"sub": user.id},
+        data={"sub": user.id, "username": user.username},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
@@ -82,9 +82,9 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
             detail="Account is disabled"
         )
 
-    # Create access token
+    # Create access token (include username for WebSocket collaboration)
     access_token = create_access_token(
-        data={"sub": user.id},
+        data={"sub": user.id, "username": user.username},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
