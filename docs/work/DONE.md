@@ -4,6 +4,49 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.13.0** - *2025-12-22*
+
+### 👥 Collaboration Multi-utilisateur Temps Réel
+
+- **Système de rôles (3 niveaux)**
+  - Propriétaire : Gestion complète + droits utilisateurs
+  - Éditeur : Modification sans gestion des droits
+  - Visualiseur : Lecture seule
+
+- **Partage de playbooks**
+  - Partage par username
+  - Interface de gestion des collaborateurs (ShareDialog)
+  - Table `playbook_shares` avec roles
+
+- **WebSockets temps réel**
+  - Synchronisation instantanée des modifications
+  - ConnectionManager pour rooms par playbook
+  - Messages : join, leave, update, presence
+
+- **UI Collaboration**
+  - Avatars des utilisateurs connectés (PresenceIndicator)
+  - Highlight des modifications reçues (flash 2s)
+  - Séparation playbooks personnels / partagés avec onglets
+  - Indicateur de partage sur playbooks personnels (chip "Partagé (N)")
+  - Badge Éditeur/Lecteur pour playbooks partagés
+
+- **Gestion sécurisée des playbooks partagés**
+  - Suppression avec options : transfert propriété ou supprimer pour tous
+  - Option conserver accès éditeur après transfert
+  - Endpoint `POST /playbooks/{id}/transfer-ownership`
+
+- **Audit Log**
+  - Table `playbook_audit_log`
+  - Traçage : create, update, delete, share, unshare, transfer_ownership
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.13.0
+- **Tag Git** : v1.13.0
+- **Smoke tests** : ✅ Passés (23ms temps de réponse)
+
+---
+
 ## ✅ **Version 1.12.2** - *2025-12-22*
 
 ### 🔍 Ansible Lint Integration & UI Improvements

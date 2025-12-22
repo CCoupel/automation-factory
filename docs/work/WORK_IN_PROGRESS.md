@@ -9,20 +9,20 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.12.2` (ghcr.io/ccoupel/ansible-builder-backend:1.12.2) ✅
-- **Frontend :** `1.12.2` (ghcr.io/ccoupel/ansible-builder-frontend:1.12.2) ✅
+- **Backend :** `1.13.0` (ghcr.io/ccoupel/ansible-builder-backend:1.13.0) ✅
+- **Frontend :** `1.13.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.13.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.12.2`
+- **Tag Git :** `v1.13.0`
 
 **Staging (nginx reverse proxy) :**
 - **Backend :** `1.13.0-rc.4`
 - **Frontend :** `1.13.0-rc.4-vite`
 - **URL :** http://192.168.1.217
-- **Status :** Phase 2 - Tests validés, prêt pour Phase 3
+- **Status :** Synced with production
 
 ---
 
-## 🚧 **Version 1.13.0 - En Développement**
+## ✅ **Version 1.13.0 - Déployée en Production (2025-12-22)**
 
 ### Collaboration Multi-utilisateur Temps Réel
 
@@ -117,7 +117,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 #### Prochaines étapes
 - [x] Tests fonctionnels utilisateur validés
 - [x] Validation utilisateur OK
-- [ ] Phase 3 : Production
+- [x] Phase 3 : Production déployée
 
 ---
 
@@ -153,4 +153,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Dernière mise à jour : 2025-12-22 - v1.13.0-rc.4 validé en staging*
+*Dernière mise à jour : 2025-12-22 - v1.13.0 déployé en production*
