@@ -51,9 +51,9 @@ API Docs: http://192.168.1.217:8000/docs
 
 ### 0. Mise à jour Documentation (OBLIGATOIRE)
 
-#### Mettre à jour CURRENT_WORK.md
+#### Mettre à jour WORK_IN_PROGRESS.md
 ```markdown
-# Ajouter/Mettre à jour dans docs/work/CURRENT_WORK.md
+# Ajouter/Mettre à jour dans docs/work/WORK_IN_PROGRESS.md
 
 ## 🚧 **Version X.Y.Z - Phase 2 Intégration**
 

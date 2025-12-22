@@ -359,4 +359,4 @@ describe('Galaxy Smart Service', () => {
 *Voir aussi :*
 - [Backend Implementation](BACKEND_IMPLEMENTATION.md)
 - [Performance Metrics](../work/PERFORMANCE_METRICS.md)
-- [Current Work](../work/CURRENT_WORK.md)
+- [Work In Progress](../work/WORK_IN_PROGRESS.md)

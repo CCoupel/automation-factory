@@ -206,7 +206,7 @@ curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/ans
 - Performance : Conforme
 ```
 
-**CURRENT_WORK.md** - Mettre à jour :
+**WORK_IN_PROGRESS.md** - Mettre à jour :
 ```markdown
 ## 🚀 **Status Actuel**
 
@@ -220,7 +220,7 @@ curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/ans
 #### B. Commit, Tag et Push
 ```bash
 # Commit documentation
-git add docs/work/CURRENT_WORK.md docs/work/DONE.md custom-values.yaml
+git add docs/work/WORK_IN_PROGRESS.md docs/work/DONE.md custom-values.yaml
 git commit -m "docs: Finalize vX.Y.Z - transfer to DONE.md"
 git push
 
@@ -256,7 +256,7 @@ git push --tags
 
 ### Finalisation
 - [ ] **DONE.md** mis à jour
-- [ ] **CURRENT_WORK.md** nettoyé
+- [ ] **WORK_IN_PROGRESS.md** nettoyé
 - [ ] **Git tag** vX.Y.Z créé et pushé
 
 ---

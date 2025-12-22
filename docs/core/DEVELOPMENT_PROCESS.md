@@ -277,4 +277,4 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 *Voir aussi :*
 - [Guide Déploiement](../operations/DEPLOYMENT_GUIDE.md)
 - [Stratégie Tests](../operations/TESTING_STRATEGY.md)
-- [Travail Actuel](../work/CURRENT_WORK.md)
+- [Travail en Cours](../work/WORK_IN_PROGRESS.md)

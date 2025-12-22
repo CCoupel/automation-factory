@@ -16,7 +16,7 @@ Ce document détaille les procédures spécifiques à la **Phase 1 : Développem
 - **Nouvelle demande utilisateur** reçue et analysée
 - **Classification confirmée** (feature vs bugfix)  
 - **Plan de développement** établi avec impacts et risques
-- **CURRENT_WORK.md mis à jour** avec nouvelle tâche
+- **WORK_IN_PROGRESS.md mis à jour** avec nouvelle tâche
 
 ### Critères de Sortie
 - ✅ **Exécution locale fonctionnelle** (backend:8000, frontend:5173)

@@ -8,11 +8,11 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Production :** Backend 1.12.0 / Frontend 1.12.0 ✅ **DEPLOYED**
-**Version Développement :** 1.12.1-rc.1
+**Version Production :** Backend 1.12.2 / Frontend 1.12.2 ✅ **DEPLOYED**
+**Version Développement :** 1.12.2-rc.1
 **URL Production :** https://coupel.net/ansible-builder
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
-**Dernière mise à jour :** 2025-12-20
+**Dernière mise à jour :** 2025-12-22
 
 ## 📚 **Documentation Organisée**
 
@@ -38,7 +38,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **[Phase 3 - Production](docs/operations/PHASE3_PRODUCTION.md)** - Production (Kubernetes)
 
 ### 📋 **Travail en Cours**
-- **[Session Actuelle](docs/work/CURRENT_WORK.md)** - Versions, features, bugs en cours
+- **[Travail en Cours](docs/work/WORK_IN_PROGRESS.md)** - Versions, features, bugs en cours
 - **[Backlog Projet](docs/work/BACKLOG.md)** - Roadmap et fonctionnalités prévues
 - **[Historique Réalisations](docs/work/DONE.md)** - Fonctionnalités implémentées par version
 - **[Métriques Performance](docs/work/PERFORMANCE_METRICS.md)** - Mesures et optimisations
@@ -47,7 +47,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🛠️ **Quick Start pour Claude**
 
-1. **Nouvelle session :** Lire `docs/work/CURRENT_WORK.md` pour l'état actuel
+1. **Nouvelle session :** Lire `docs/work/WORK_IN_PROGRESS.md` pour l'état actuel
 2. **Nouvelle feature :** Consulter `docs/core/DEVELOPMENT_PROCESS.md` (processus 3 phases)
 3. **Phase 1 :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` - Développement local
 4. **Phase 2 :** Voir `docs/operations/PHASE2_INTEGRATION.md` - Staging (nginx reverse proxy)
