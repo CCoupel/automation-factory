@@ -8,11 +8,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Production :** Backend 1.12.2 / Frontend 1.12.2 ✅ **DEPLOYED**
-**Version Staging :** 1.13.0-rc.2 (Collaboration Multi-utilisateur)
+**Version Production :** Backend 1.13.0 / Frontend 1.13.0 ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/ansible-builder
-**URL Staging :** http://192.168.1.217 (nginx reverse proxy)
+**Tag Git :** v1.13.0
 **Dernière mise à jour :** 2025-12-22
+
+**Staging :** http://192.168.1.217 (synced with production)
 
 ## 📚 **Documentation Organisée**
 
@@ -84,7 +85,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 | Environnement | Variable | Version Affichée |
 |---------------|----------|------------------|
 | Production | `ENVIRONMENT=PROD` | `1.13.0` (sans RC) |
-| Staging | `ENVIRONMENT=STAGING` | `1.13.0-rc.2` (complet) |
+| Staging | `ENVIRONMENT=STAGING` | `1.13.0-rc.4` (complet) |
 
 **Fichiers à synchroniser :**
 - `backend/app/version.py` : `__version__ = "X.Y.Z-rc.n"`
