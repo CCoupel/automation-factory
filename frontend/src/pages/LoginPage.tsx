@@ -57,7 +57,8 @@ const LoginPage: React.FC = () => {
 
   // Version state
   const [backendVersion, setBackendVersion] = useState<string>('...')
-  const frontendVersion = packageJson.version
+  // Remove -rc.X suffix for display (production shows clean version)
+  const frontendVersion = packageJson.version.replace(/-rc\.\d+$/, '')
 
   /**
    * Fetch backend version on component mount

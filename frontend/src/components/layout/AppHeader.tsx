@@ -75,8 +75,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
   // Version state (simplified like LoginPage)
   const [backendVersion, setBackendVersion] = useState<string>('...')
   const [backendVersionInfo, setBackendVersionInfo] = useState<any>(null)
-  const frontendVersion = packageJson.version
-  const environment = 'development'
+  // Remove -rc.X suffix for display (production shows clean version)
+  const frontendVersion = packageJson.version.replace(/-rc\.\d+$/, '')
 
   // Playbook fields state (local for other fields)
   const [inventory, setInventory] = useState('hosts')
@@ -674,7 +674,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ saveStatus, playbookName: playboo
                 • Backend: {backendVersion} ({backendVersionInfo?.name || 'Ansible Builder API'})
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Environment: {environment}
+                • Environment: {backendVersionInfo?.environment || 'N/A'}
               </Typography>
               {backendVersionInfo?.is_rc && (
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'orange', fontWeight: 'bold' }}>
