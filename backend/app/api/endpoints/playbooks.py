@@ -20,9 +20,11 @@ from app.models.user import User
 from app.models.playbook import Playbook
 from app.schemas.playbook import (
     PlaybookCreate, PlaybookUpdate, PlaybookResponse, PlaybookDetailResponse,
-    PlaybookYamlResponse, PlaybookValidationResponse, PlaybookPreviewRequest
+    PlaybookYamlResponse, PlaybookValidationResponse, PlaybookPreviewRequest,
+    PlaybookLintResponse, LintIssueResponse, FullValidationResponse
 )
 from app.services.playbook_yaml_service import playbook_yaml_service
+from app.services.ansible_lint_service import ansible_lint_service
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
 
@@ -350,4 +352,223 @@ async def validate_preview(
         errors=validation.errors,
         warnings=validation.warnings,
         playbook_id=None
+    )
+
+
+@router.post("/{playbook_id}/lint", response_model=PlaybookLintResponse)
+async def lint_playbook(
+    playbook_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Run ansible-lint on a saved playbook
+
+    Args:
+        playbook_id: Playbook ID
+
+    Returns:
+        Lint result with issues
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not the owner of this playbook
+    """
+    result = await db.execute(
+        select(Playbook).where(Playbook.id == playbook_id)
+    )
+    playbook = result.scalar_one_or_none()
+
+    if not playbook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playbook not found"
+        )
+
+    if playbook.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+
+    # Generate YAML and run ansible-lint
+    yaml_content = playbook_yaml_service.json_to_yaml(playbook.content)
+    lint_result = ansible_lint_service.lint_yaml(yaml_content)
+
+    return PlaybookLintResponse(
+        is_valid=lint_result.is_valid,
+        passed=lint_result.passed,
+        lint_available=lint_result.lint_available,
+        error_count=lint_result.error_count,
+        warning_count=lint_result.warning_count,
+        info_count=lint_result.info_count,
+        issues=[
+            LintIssueResponse(
+                rule_id=issue.rule_id,
+                rule_description=issue.rule_description,
+                severity=issue.severity.value,
+                message=issue.message,
+                line=issue.line,
+                column=issue.column
+            )
+            for issue in lint_result.issues
+        ],
+        playbook_id=playbook_id
+    )
+
+
+@router.post("/lint-preview", response_model=PlaybookLintResponse)
+async def lint_preview(
+    preview_data: PlaybookPreviewRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run ansible-lint on playbook content without saving
+
+    This endpoint is used for real-time linting in the frontend.
+    It does not require a saved playbook.
+
+    Args:
+        preview_data: Playbook content to lint
+
+    Returns:
+        Lint result with issues
+    """
+    # Generate YAML and run ansible-lint
+    yaml_content = playbook_yaml_service.json_to_yaml(preview_data.content)
+    lint_result = ansible_lint_service.lint_yaml(yaml_content)
+
+    return PlaybookLintResponse(
+        is_valid=lint_result.is_valid,
+        passed=lint_result.passed,
+        lint_available=lint_result.lint_available,
+        error_count=lint_result.error_count,
+        warning_count=lint_result.warning_count,
+        info_count=lint_result.info_count,
+        issues=[
+            LintIssueResponse(
+                rule_id=issue.rule_id,
+                rule_description=issue.rule_description,
+                severity=issue.severity.value,
+                message=issue.message,
+                line=issue.line,
+                column=issue.column
+            )
+            for issue in lint_result.issues
+        ],
+        playbook_id=None
+    )
+
+
+@router.post("/validate-full-preview", response_model=FullValidationResponse)
+async def validate_full_preview(
+    preview_data: PlaybookPreviewRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run full validation (syntax-check + lint) on playbook content without saving.
+
+    This endpoint combines ansible-playbook --syntax-check and ansible-lint
+    for comprehensive validation. It returns:
+    - Syntax validation result
+    - Lint issues (errors, warnings, info)
+    - Ansible version used for validation
+
+    Args:
+        preview_data: Playbook content to validate
+
+    Returns:
+        Full validation result with syntax and lint results
+    """
+    # Generate YAML and run full validation
+    yaml_content = playbook_yaml_service.json_to_yaml(preview_data.content)
+    validation_result = ansible_lint_service.validate(yaml_content)
+
+    return FullValidationResponse(
+        is_valid=validation_result.is_valid,
+        syntax_valid=validation_result.syntax_valid,
+        syntax_error=validation_result.syntax_error,
+        lint_passed=validation_result.lint_passed,
+        lint_available=validation_result.lint_available,
+        lint_error_count=validation_result.lint_error_count,
+        lint_warning_count=validation_result.lint_warning_count,
+        lint_info_count=validation_result.lint_info_count,
+        lint_issues=[
+            LintIssueResponse(
+                rule_id=issue.rule_id,
+                rule_description=issue.rule_description,
+                severity=issue.severity.value,
+                message=issue.message,
+                line=issue.line,
+                column=issue.column
+            )
+            for issue in validation_result.lint_issues
+        ],
+        ansible_version=validation_result.ansible_version,
+        playbook_id=None
+    )
+
+
+@router.post("/{playbook_id}/validate-full", response_model=FullValidationResponse)
+async def validate_full_playbook(
+    playbook_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Run full validation (syntax-check + lint) on a saved playbook.
+
+    Args:
+        playbook_id: Playbook ID
+
+    Returns:
+        Full validation result with syntax and lint results
+
+    Raises:
+        HTTPException 404: Playbook not found
+        HTTPException 403: Not the owner of this playbook
+    """
+    result = await db.execute(
+        select(Playbook).where(Playbook.id == playbook_id)
+    )
+    playbook = result.scalar_one_or_none()
+
+    if not playbook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Playbook not found"
+        )
+
+    if playbook.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+
+    # Generate YAML and run full validation
+    yaml_content = playbook_yaml_service.json_to_yaml(playbook.content)
+    validation_result = ansible_lint_service.validate(yaml_content)
+
+    return FullValidationResponse(
+        is_valid=validation_result.is_valid,
+        syntax_valid=validation_result.syntax_valid,
+        syntax_error=validation_result.syntax_error,
+        lint_passed=validation_result.lint_passed,
+        lint_available=validation_result.lint_available,
+        lint_error_count=validation_result.lint_error_count,
+        lint_warning_count=validation_result.lint_warning_count,
+        lint_info_count=validation_result.lint_info_count,
+        lint_issues=[
+            LintIssueResponse(
+                rule_id=issue.rule_id,
+                rule_description=issue.rule_description,
+                severity=issue.severity.value,
+                message=issue.message,
+                line=issue.line,
+                column=issue.column
+            )
+            for issue in validation_result.lint_issues
+        ],
+        ansible_version=validation_result.ansible_version,
+        playbook_id=playbook_id
     )

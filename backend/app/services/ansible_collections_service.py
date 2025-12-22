@@ -357,43 +357,100 @@ class AnsibleCollectionsService:
     def _extract_parameters_from_table(self, table_elem) -> List[Dict[str, Any]]:
         """Extrait les paramètres depuis une table ou liste HTML"""
         parameters = []
-        
+
+        # Known Ansible parameter types
+        PARAM_TYPES = ['string', 'boolean', 'list', 'dict', 'dictionary', 'integer', 'float', 'path', 'raw', 'any']
+
         try:
-            # Différents formats possibles selon les versions d'Ansible
             if table_elem.name == 'table':
                 rows = table_elem.find_all('tr')[1:]  # Skip header
                 for row in rows:
                     cols = row.find_all('td')
                     if len(cols) >= 2:
-                        param_name = cols[0].get_text(strip=True)
-                        param_desc = cols[1].get_text(strip=True)
-                        
+                        first_cell = cols[0]
+                        second_cell = cols[1]
+
+                        # Extract parameter name from <strong> tag
+                        strong = first_cell.find('strong')
+                        if strong:
+                            param_name = strong.get_text(strip=True)
+                        else:
+                            # Fallback: first text node
+                            param_name = first_cell.get_text(strip=True).split()[0] if first_cell.get_text(strip=True) else ""
+
+                        # Skip if no valid name
+                        if not param_name or param_name.startswith('aliases'):
+                            continue
+
+                        # Get full text of first cell for type/aliases extraction
+                        first_cell_text = first_cell.get_text()
+
+                        # Extract type
+                        param_type = "string"  # Default
+                        for t in PARAM_TYPES:
+                            if t in first_cell_text.lower():
+                                param_type = t if t != 'dictionary' else 'dict'
+                                break
+
+                        # Extract aliases (text format: "aliases: name1, name2\n")
+                        aliases = []
+                        alias_match = re.search(r'aliases?:\s*([^\n]+)', first_cell_text, re.IGNORECASE)
+                        if alias_match:
+                            alias_text = alias_match.group(1).strip()
+                            # Clean up: remove type keywords that might be at the end
+                            for t in PARAM_TYPES:
+                                alias_text = re.sub(rf'\s*{t}\s*$', '', alias_text, flags=re.IGNORECASE)
+                            aliases = [a.strip() for a in alias_text.split(',') if a.strip()]
+
+                        # Get description from second cell
+                        param_desc = second_cell.get_text(strip=True)
+
+                        # Check if required (in first 200 chars of description)
+                        is_required = 'required' in param_desc[:200].lower()
+
+                        # Extract default value if present
+                        default_value = None
+                        default_match = re.search(r'[Dd]efault[s]?:\s*([^\n.]+)', param_desc)
+                        if default_match:
+                            default_value = default_match.group(1).strip()
+
                         parameters.append({
                             "name": param_name,
-                            "type": "string",  # Default type
-                            "required": "required" in param_desc.lower(),
+                            "type": param_type,
+                            "required": is_required,
                             "description": param_desc,
-                            "default": None
+                            "default": default_value,
+                            "aliases": aliases if aliases else None
                         })
-            
+
             elif table_elem.name == 'dl':
                 dts = table_elem.find_all('dt')
                 for dt in dts:
-                    param_name = dt.get_text(strip=True)
+                    # Extract name from strong if present
+                    strong = dt.find('strong')
+                    if strong:
+                        param_name = strong.get_text(strip=True)
+                    else:
+                        param_name = dt.get_text(strip=True).split()[0] if dt.get_text(strip=True) else ""
+
+                    if not param_name:
+                        continue
+
                     dd = dt.find_next_sibling('dd')
                     param_desc = dd.get_text(strip=True) if dd else ""
-                    
+
                     parameters.append({
                         "name": param_name,
                         "type": "string",
-                        "required": False,
+                        "required": 'required' in param_desc[:200].lower() if param_desc else False,
                         "description": param_desc,
-                        "default": None
+                        "default": None,
+                        "aliases": None
                     })
-        
+
         except Exception as e:
             logger.warning(f"Error extracting parameters: {str(e)}")
-        
+
         return parameters
     
     def _extract_examples(self, soup, examples_section) -> List[str]:

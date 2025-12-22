@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.12.1-rc.1"
+__version__ = "1.12.2-rc.1"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,26 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.12.2": {
+        "title": "Ansible Lint Integration",
+        "release_date": "2025-12-20",
+        "features": [
+            "ansible-lint validation for playbooks",
+            "Detailed lint issues with rule IDs and severity levels",
+            "Real-time lint preview without saving",
+            "Support for error, warning, and info severity levels"
+        ],
+        "improvements": [
+            "Enhanced playbook quality validation",
+            "Structured lint output with line numbers",
+            "Integration with existing validation workflow"
+        ],
+        "technical": [
+            "ansible-lint subprocess execution with JSON output",
+            "Temporary file handling for lint validation",
+            "Comprehensive issue parsing from lint results"
+        ]
+    },
     "1.10.0": {
         "title": "Ansible Documentation Integration",
         "release_date": "2025-12-14",

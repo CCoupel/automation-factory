@@ -79,6 +79,32 @@ class SchemaCache {
 const schemaCache = new SchemaCache()
 
 /**
+ * Normalize parameter type from API format to internal format
+ * API returns: 'string', 'integer', 'boolean', etc.
+ * Internal uses: 'str', 'int', 'bool', etc.
+ */
+function normalizeType(apiType: string): ModuleParameter['type'] {
+  const typeMap: Record<string, ModuleParameter['type']> = {
+    'string': 'str',
+    'integer': 'int',
+    'boolean': 'bool',
+    'dictionary': 'dict',
+    'array': 'list',
+    // Already correct formats
+    'str': 'str',
+    'int': 'int',
+    'bool': 'bool',
+    'float': 'float',
+    'list': 'list',
+    'dict': 'dict',
+    'path': 'path',
+    'any': 'any',
+    'raw': 'any'
+  }
+  return typeMap[apiType?.toLowerCase()] || 'str'
+}
+
+/**
  * Galaxy Module Schema Service
  */
 export const galaxyModuleSchemaService = {
@@ -122,7 +148,7 @@ export const galaxyModuleSchemaService = {
         parameters: ansibleSchema.parameters.reduce((acc, param) => {
           acc[param.name] = {
             ...param,
-            type: param.type as any,
+            type: normalizeType(param.type),
             choices: param.choices || undefined
           }
           return acc

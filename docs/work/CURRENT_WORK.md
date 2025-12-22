@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-20**
+## 🚀 **Status Actuel - 2025-12-21**
 
 ### Versions Déployées
 
@@ -15,14 +15,45 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Tag Git :** `v1.12.0`
 
 **Staging (nginx reverse proxy) :**
+- **Backend :** `1.12.2-rc.1`
+- **Frontend :** `1.12.2-rc.1-vite`
 - **URL :** http://192.168.1.217
-- **Status :** Synchronisé avec production
+- **Status :** En test - Nouvelles fonctionnalités
+
+---
+
+## 🔧 **Version en Développement - 1.12.2-rc.1**
+
+### Fonctionnalités implémentées
+
+**Ansible Lint Integration :**
+- Validation `ansible-playbook --syntax-check` + `ansible-lint`
+- Affichage version Ansible utilisée pour validation
+- Issues catégorisées par sévérité (error/warning/info)
+- Endpoint `/api/playbooks/validate-full-preview`
+
+**Preview YAML amélioré :**
+- Layout 3 colonnes : numéros de lignes | indicateur validation | code
+- Surlignage des lignes référencées par les issues de validation
+- Couleurs selon sévérité (rouge/orange/bleu)
+
+**Parsing des paramètres corrigé :**
+- Extraction correcte du nom (balise `<strong>`)
+- Types extraits séparément (string, boolean, dict, path, etc.)
+- Aliases et required correctement parsés
+- Normalisation des types API → interne (string→str, integer→int, boolean→bool)
+
+**Zone Configuration améliorée :**
+- Icônes de types devant chaque attribut
+- Boolean → Checkbox
+- List avec choices → Multi-select dropdown
+- List sans choices → Autocomplete avec chips
 
 ---
 
 ## 📋 **Prochaines Priorités**
 
-*En attente de nouvelles demandes utilisateur*
+- Phase 3 : Déploiement en production de la version 1.12.2
 
 ---
 
@@ -45,4 +76,4 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-*Dernière mise à jour : 2025-12-20*
+*Dernière mise à jour : 2025-12-21*

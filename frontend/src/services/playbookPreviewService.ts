@@ -11,12 +11,41 @@ export interface YamlPreviewResponse {
 }
 
 /**
- * Validation response from backend
+ * Validation response from backend (basic)
  */
 export interface ValidationResponse {
   is_valid: boolean
   errors: string[]
   warnings: string[]
+  playbook_id: string | null
+}
+
+/**
+ * Lint issue from ansible-lint
+ */
+export interface LintIssue {
+  rule_id: string
+  rule_description: string
+  severity: 'error' | 'warning' | 'info'
+  message: string
+  line: number | null
+  column: number | null
+}
+
+/**
+ * Full validation response (syntax-check + lint)
+ */
+export interface FullValidationResponse {
+  is_valid: boolean
+  syntax_valid: boolean
+  syntax_error: string | null
+  lint_passed: boolean
+  lint_available: boolean
+  lint_error_count: number
+  lint_warning_count: number
+  lint_info_count: number
+  lint_issues: LintIssue[]
+  ansible_version: string | null
   playbook_id: string | null
 }
 
@@ -454,6 +483,56 @@ export const playbookPreviewService = {
         throw new Error(error.response.data.detail)
       }
       throw new Error('Failed to validate playbook')
+    }
+  },
+
+  /**
+   * Full validation (syntax-check + lint) for current playbook content
+   * Does not require a saved playbook - works with live content
+   *
+   * @param content - Current playbook content from editor
+   * @returns Promise with full validation results
+   */
+  async validateFullPreview(content: PlaybookContent): Promise<FullValidationResponse> {
+    try {
+      // Transform frontend format to Ansible format
+      const ansibleContent = transformSinglePlayToAnsible(content)
+
+      const response = await axios.post<FullValidationResponse>(
+        `${getApiBaseUrl()}/playbooks/validate-full-preview`,
+        { content: ansibleContent },
+        { headers: getAuthHeader() }
+      )
+      return response.data
+    } catch (error: any) {
+      console.error('Full validation API error:', error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to run full validation')
+    }
+  },
+
+  /**
+   * Full validation (syntax-check + lint) for a saved playbook
+   *
+   * @param playbookId - ID of saved playbook
+   * @returns Promise with full validation results
+   */
+  async validateFullPlaybook(playbookId: string): Promise<FullValidationResponse> {
+    try {
+      const response = await axios.post<FullValidationResponse>(
+        `${getApiBaseUrl()}/playbooks/${playbookId}/validate-full`,
+        {},
+        { headers: getAuthHeader() }
+      )
+      return response.data
+    } catch (error: any) {
+      console.error('Full validate API error:', error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to run full validation')
     }
   },
 

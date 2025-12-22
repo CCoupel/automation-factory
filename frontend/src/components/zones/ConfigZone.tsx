@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip, Alert, CircularProgress, MenuItem, FormControl, InputLabel, Select, InputAdornment } from '@mui/material'
+import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip, Alert, CircularProgress, MenuItem, FormControl, InputLabel, Select, InputAdornment, Autocomplete, OutlinedInput } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssignmentIcon from '@mui/icons-material/Assignment'
@@ -9,6 +9,14 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+// Type icons
+import TextFieldsIcon from '@mui/icons-material/TextFields'
+import ToggleOnIcon from '@mui/icons-material/ToggleOn'
+import NumbersIcon from '@mui/icons-material/Numbers'
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
+import DataObjectIcon from '@mui/icons-material/DataObject'
+import FolderIcon from '@mui/icons-material/Folder'
+import AllInclusiveIcon from '@mui/icons-material/AllInclusive'
 import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playbook'
 import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
@@ -81,6 +89,39 @@ const moduleConfigs: Record<string, Array<{ name: string; type: string; required
     { name: 'group', type: 'text', required: false, description: 'File group' },
     { name: 'mode', type: 'text', required: false, description: 'File permissions' },
   ],
+}
+
+/**
+ * Get icon component for parameter type
+ */
+const getTypeIcon = (type: string) => {
+  const iconProps = { sx: { fontSize: 18, color: 'text.secondary', mr: 0.5 } }
+
+  switch (type?.toLowerCase()) {
+    case 'bool':
+    case 'boolean':
+      return <Tooltip title="Boolean"><ToggleOnIcon {...iconProps} sx={{ ...iconProps.sx, color: '#9c27b0' }} /></Tooltip>
+    case 'int':
+    case 'integer':
+    case 'float':
+      return <Tooltip title="Number"><NumbersIcon {...iconProps} sx={{ ...iconProps.sx, color: '#2196f3' }} /></Tooltip>
+    case 'list':
+    case 'array':
+      return <Tooltip title="List"><FormatListBulletedIcon {...iconProps} sx={{ ...iconProps.sx, color: '#ff9800' }} /></Tooltip>
+    case 'dict':
+    case 'dictionary':
+    case 'object':
+      return <Tooltip title="Dictionary"><DataObjectIcon {...iconProps} sx={{ ...iconProps.sx, color: '#4caf50' }} /></Tooltip>
+    case 'path':
+      return <Tooltip title="Path"><FolderIcon {...iconProps} sx={{ ...iconProps.sx, color: '#795548' }} /></Tooltip>
+    case 'raw':
+    case 'any':
+      return <Tooltip title="Any"><AllInclusiveIcon {...iconProps} sx={{ ...iconProps.sx, color: '#607d8b' }} /></Tooltip>
+    case 'str':
+    case 'string':
+    default:
+      return <Tooltip title="String"><TextFieldsIcon {...iconProps} sx={{ ...iconProps.sx, color: '#00bcd4' }} /></Tooltip>
+  }
 }
 
 const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay }: ConfigZoneProps) => {
@@ -332,9 +373,13 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
   
   const renderParameterField = (param: ModuleParameter) => {
     const currentValue = moduleParameters[param.name] || param.default
-    
-    switch (param.type) {
+    const typeIcon = getTypeIcon(param.type)
+
+    const paramType = param.type?.toLowerCase()
+
+    switch (paramType) {
       case 'bool':
+      case 'boolean':
         return (
           <FormControlLabel
             key={param.name}
@@ -346,6 +391,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
             }
             label={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {typeIcon}
                 <Typography variant="body2">
                   {param.name}{param.required && ' *'}
                 </Typography>
@@ -356,13 +402,19 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
             }
           />
         )
-      
+
       case 'int':
+      case 'integer':
       case 'float':
         return (
           <TextField
             key={param.name}
-            label={param.name + (param.required ? ' *' : '')}
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {typeIcon}
+                <span>{param.name}{param.required ? ' *' : ''}</span>
+              </Box>
+            }
             fullWidth
             size="small"
             type="number"
@@ -378,48 +430,128 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                 </InputAdornment>
               )
             }}
+            InputLabelProps={{ sx: { display: 'flex', alignItems: 'center' } }}
           />
         )
-      
+
       case 'list':
+      case 'array':
+        // List with predefined choices: multi-select dropdown
+        if (param.choices && param.choices.length > 0) {
+          const selectedValues = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : [])
+          return (
+            <FormControl key={param.name} fullWidth size="small">
+              <InputLabel sx={{ display: 'flex', alignItems: 'center' }}>
+                {typeIcon}
+                <span>{param.name}{param.required && ' *'}</span>
+              </InputLabel>
+              <Select
+                multiple
+                value={selectedValues}
+                onChange={(e) => {
+                  const value = e.target.value as string[]
+                  handleParameterChange(param.name, value.length > 0 ? value : undefined)
+                }}
+                input={<OutlinedInput label={param.name + (param.required ? ' *' : '')} />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {(selected as string[]).map((value) => (
+                      <Chip key={value} label={value} size="small" />
+                    ))}
+                  </Box>
+                )}
+                error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+                endAdornment={
+                  <InputAdornment position="end" sx={{ mr: 2 }}>
+                    <Tooltip title={param.description} placement="left">
+                      <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                    </Tooltip>
+                  </InputAdornment>
+                }
+              >
+                {param.choices.map((choice) => (
+                  <MenuItem key={choice} value={choice}>
+                    <Checkbox checked={selectedValues.includes(choice)} size="small" />
+                    {choice}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )
+        }
+
+        // List without choices: Autocomplete with free input
+        const listValues = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : [])
         return (
-          <TextField
+          <Autocomplete
             key={param.name}
-            label={param.name + (param.required ? ' *' : '')}
-            fullWidth
-            size="small"
-            multiline
-            rows={2}
-            value={Array.isArray(currentValue) ? currentValue.join('\n') : currentValue || ''}
-            onChange={(e) => {
-              const lines = e.target.value.split('\n').filter(line => line.trim())
-              handleParameterChange(param.name, lines.length > 0 ? lines : undefined)
+            multiple
+            freeSolo
+            options={[]}
+            value={listValues}
+            onChange={(_, newValue) => {
+              handleParameterChange(param.name, newValue.length > 0 ? newValue : undefined)
             }}
-            placeholder="item1\nitem2\nitem3"
-            error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Tooltip title={`${param.description} (one item per line)`} placement="left">
-                    <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
-                  </Tooltip>
-                </InputAdornment>
-              )
-            }}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  {...getTagProps({ index })}
+                  key={option}
+                  label={option}
+                  size="small"
+                />
+              ))
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {typeIcon}
+                    <span>{param.name}{param.required ? ' *' : ''}</span>
+                  </Box>
+                }
+                size="small"
+                placeholder="Tapez et appuyez Entrée"
+                error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {params.InputProps.endAdornment}
+                      <Tooltip title={param.description} placement="left">
+                        <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                      </Tooltip>
+                    </>
+                  )
+                }}
+                InputLabelProps={{ sx: { display: 'flex', alignItems: 'center' } }}
+              />
+            )}
           />
         )
-      
+
       default:
         // String, path, any - with choices support
         if (param.choices && param.choices.length > 0) {
           return (
-            <FormControl key={param.name} fullWidth size="small" sx={{ position: 'relative' }}>
-              <InputLabel>{param.name}{param.required && ' *'}</InputLabel>
+            <FormControl key={param.name} fullWidth size="small">
+              <InputLabel sx={{ display: 'flex', alignItems: 'center' }}>
+                {typeIcon}
+                <span>{param.name}{param.required && ' *'}</span>
+              </InputLabel>
               <Select
                 value={currentValue || ''}
                 label={param.name + (param.required ? ' *' : '')}
                 onChange={(e) => handleParameterChange(param.name, e.target.value || undefined)}
                 error={selectedModule?.validationState?.errors?.some(err => err.includes(param.name))}
+                endAdornment={
+                  <InputAdornment position="end" sx={{ mr: 2 }}>
+                    <Tooltip title={param.description} placement="left">
+                      <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
+                    </Tooltip>
+                  </InputAdornment>
+                }
               >
                 <MenuItem value="">
                   <em>None</em>
@@ -430,19 +562,19 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                   </MenuItem>
                 ))}
               </Select>
-              <Box sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)' }}>
-                <Tooltip title={param.description} placement="left">
-                  <HelpOutlineIcon sx={{ fontSize: 18, color: 'text.secondary', cursor: 'help' }} />
-                </Tooltip>
-              </Box>
             </FormControl>
           )
         }
-        
+
         return (
           <TextField
             key={param.name}
-            label={param.name + (param.required ? ' *' : '')}
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {typeIcon}
+                <span>{param.name}{param.required ? ' *' : ''}</span>
+              </Box>
+            }
             fullWidth
             size="small"
             value={currentValue || ''}
@@ -457,6 +589,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
                 </InputAdornment>
               )
             }}
+            InputLabelProps={{ sx: { display: 'flex', alignItems: 'center' } }}
           />
         )
     }
