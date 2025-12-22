@@ -4,27 +4,27 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-21**
+## 🚀 **Status Actuel - 2025-12-22**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.12.0` (ghcr.io/ccoupel/ansible-builder-backend:1.12.0) ✅
-- **Frontend :** `1.12.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.12.0) ✅
+- **Backend :** `1.12.2` (ghcr.io/ccoupel/ansible-builder-backend:1.12.2) ✅
+- **Frontend :** `1.12.2` (ghcr.io/ccoupel/ansible-builder-frontend:1.12.2) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.12.0`
+- **Tag Git :** `v1.12.2`
 
 **Staging (nginx reverse proxy) :**
 - **Backend :** `1.12.2-rc.1`
 - **Frontend :** `1.12.2-rc.1-vite`
 - **URL :** http://192.168.1.217
-- **Status :** En test - Nouvelles fonctionnalités
+- **Status :** Synchronisé avec production
 
 ---
 
-## 🔧 **Version en Développement - 1.12.2-rc.1**
+## 🎉 **Version 1.12.2 - Déployée en Production**
 
-### Fonctionnalités implémentées
+### Fonctionnalités
 
 **Ansible Lint Integration :**
 - Validation `ansible-playbook --syntax-check` + `ansible-lint`
@@ -53,7 +53,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ## 📋 **Prochaines Priorités**
 
-- Phase 3 : Déploiement en production de la version 1.12.2
+- Voir backlog pour les nouvelles fonctionnalités
 
 ---
 
