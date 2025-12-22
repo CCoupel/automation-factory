@@ -5,11 +5,24 @@ set -e
 # This allows the basePath to be configured via Helm values without rebuilding the image
 
 HTML_ROOT="/usr/share/nginx/html"
+NGINX_CONF="/etc/nginx/conf.d/default.conf"
 
-# Get BASE_PATH from environment variable (default to empty/root path)
+# Get environment variables
 BASE_PATH="${BASE_PATH:-}"
+ENVIRONMENT="${ENVIRONMENT:-PROD}"
 
-echo "🔧 Configuring frontend with BASE_PATH='${BASE_PATH}'"
+echo "🔧 Configuring frontend with BASE_PATH='${BASE_PATH}' ENVIRONMENT='${ENVIRONMENT}'"
+
+# Adjust version display based on environment (hide RC in PROD)
+if [ "$ENVIRONMENT" = "PROD" ]; then
+  echo "📦 Production mode: masking RC suffix in version"
+  # Remove -rc.X suffix from version in nginx config
+  sed -i 's/-rc\.[0-9]*//g' "$NGINX_CONF"
+  # Update environment in version endpoint
+  sed -i 's/"environment":"development"/"environment":"production"/g' "$NGINX_CONF"
+elif [ "$ENVIRONMENT" = "STAGING" ]; then
+  sed -i 's/"environment":"development"/"environment":"staging"/g' "$NGINX_CONF"
+fi
 
 # If BASE_PATH is set, copy files to the base path subdirectory
 if [ -n "$BASE_PATH" ]; then

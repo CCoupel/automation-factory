@@ -38,6 +38,8 @@ spec:
         env:
         - name: BASE_PATH
           value: {{ .Values.ingress.basePath | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.frontend.environment | default "PROD" | quote }}
         livenessProbe:
           {{- toYaml .Values.frontend.livenessProbe | nindent 12 }}
         readinessProbe:
