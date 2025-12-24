@@ -33,8 +33,10 @@ import {
   Star as StarIcon,
   Save as SaveIcon,
   Highlight as HighlightIcon,
-  RestartAlt as ResetIcon
+  RestartAlt as ResetIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getHttpClient } from '../utils/httpClient'
 import { useUserPreferences } from '../contexts/UserPreferencesContext'
@@ -53,6 +55,7 @@ import { useUserPreferences } from '../contexts/UserPreferencesContext'
  * - Persist changes via API
  */
 const ConfigurationPage: React.FC = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { preferences, updatePreference, resetPreferences } = useUserPreferences()
   const [loading, setLoading] = useState(true)
@@ -188,11 +191,20 @@ const ConfigurationPage: React.FC = () => {
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-        <SettingsIcon color="primary" sx={{ fontSize: 32 }} />
-        <Typography variant="h4" component="h1">
-          Configuration
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <SettingsIcon color="primary" sx={{ fontSize: 32 }} />
+          <Typography variant="h4" component="h1">
+            Configuration
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/')}
+        >
+          Retour
+        </Button>
       </Box>
 
       {/* Alerts */}
