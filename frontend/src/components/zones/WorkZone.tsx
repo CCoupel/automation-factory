@@ -59,6 +59,10 @@ interface WorkZoneProps {
   onApplyCollaborationUpdate?: (handler: (update: PlaybookUpdate) => void) => void
   // Active play ID for collaboration
   onActivePlayIdChange?: (playId: string) => void
+  // Initial playbook ID from navigation (for quick restore)
+  initialPlaybookId?: string | null
+  // Callback when playbook ID changes
+  onPlaybookIdChange?: (id: string | null) => void
 }
 
 // Helper to create START modules for a play
@@ -94,7 +98,10 @@ const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock
   return [...missingStartModules, ...modules]
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange }: WorkZoneProps) => {
+// Session storage key for playbook cache
+const PLAYBOOK_CACHE_KEY = 'ansible-builder-playbook-cache'
+
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -266,10 +273,60 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // PLAYBOOK PERSISTENCE
   // =====================================================
   const { isAuthenticated } = useAuth()
-  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(null)
-  const [playbookName, setPlaybookName] = useState<string>('Untitled Playbook')
+
+  // Initialize from sessionStorage cache or initialPlaybookId prop
+  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(() => {
+    return initialPlaybookId || sessionStorage.getItem('currentPlaybookId')
+  })
+  const [playbookName, setPlaybookName] = useState<string>(() => {
+    return sessionStorage.getItem('currentPlaybookName') || 'Untitled Playbook'
+  })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+
+  // Track if we've already loaded from cache (to avoid redundant API calls)
+  const hasRestoredFromCache = useRef(false)
+
+  // Notify parent when playbook ID changes
+  useEffect(() => {
+    if (onPlaybookIdChange) {
+      onPlaybookIdChange(currentPlaybookId)
+    }
+    // Also update sessionStorage
+    if (currentPlaybookId) {
+      sessionStorage.setItem('currentPlaybookId', currentPlaybookId)
+    }
+  }, [currentPlaybookId, onPlaybookIdChange])
+
+  // Update sessionStorage when playbook name changes
+  useEffect(() => {
+    sessionStorage.setItem('currentPlaybookName', playbookName)
+  }, [playbookName])
+
+  // Cache playbook state to sessionStorage for quick restore on navigation
+  const saveToCache = useCallback(() => {
+    if (!currentPlaybookId) return
+    try {
+      const cacheData = {
+        id: currentPlaybookId,
+        name: playbookName,
+        plays: plays,
+        collapsedBlocks: Array.from(collapsedBlocks),
+        collapsedBlockSections: Array.from(collapsedBlockSections),
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem(PLAYBOOK_CACHE_KEY, JSON.stringify(cacheData))
+    } catch (e) {
+      console.warn('Failed to cache playbook:', e)
+    }
+  }, [currentPlaybookId, playbookName, plays, collapsedBlocks, collapsedBlockSections])
+
+  // Save to cache when state changes (debounced)
+  useEffect(() => {
+    if (!currentPlaybookId) return
+    const timer = setTimeout(saveToCache, 500)
+    return () => clearTimeout(timer)
+  }, [currentPlaybookId, saveToCache])
 
   // Serialize current state to PlaybookContent
   const serializePlaybookContent = useCallback((): PlaybookContent => {
@@ -703,9 +760,44 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }, [applyCollaborationUpdate, onApplyCollaborationUpdate])
 
-  // Load playbook on mount
+  // Load playbook on mount - try cache first for instant restore
   useEffect(() => {
     if (!isAuthenticated) return
+    if (hasRestoredFromCache.current) return // Skip if already restored
+
+    // Try to restore from cache first (for navigation back scenarios)
+    const tryRestoreFromCache = (): boolean => {
+      try {
+        const cached = sessionStorage.getItem(PLAYBOOK_CACHE_KEY)
+        if (!cached) return false
+
+        const cacheData = JSON.parse(cached)
+        // Cache is valid for 5 minutes (navigation scenarios)
+        const cacheAge = Date.now() - cacheData.timestamp
+        if (cacheAge > 5 * 60 * 1000) {
+          console.log('[WorkZone] Cache expired, will reload from API')
+          return false
+        }
+
+        // Restore from cache
+        console.log('[WorkZone] Restoring playbook from cache:', cacheData.name)
+        setCurrentPlaybookId(cacheData.id)
+        setPlaybookName(cacheData.name)
+        setPlays(cacheData.plays)
+        setCollapsedBlocks(new Set(cacheData.collapsedBlocks || []))
+        setCollapsedBlockSections(new Set(cacheData.collapsedBlockSections || []))
+        hasRestoredFromCache.current = true
+        return true
+      } catch (e) {
+        console.warn('[WorkZone] Failed to restore from cache:', e)
+        return false
+      }
+    }
+
+    // If cache restoration succeeded, skip API call
+    if (tryRestoreFromCache()) {
+      return
+    }
 
     const loadLastPlaybook = async () => {
       try {
@@ -722,14 +814,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           setPlaybookName(detailed.name)
 
           // Restore plays (reconstruct from content)
-          // Note: This is a simplified version. You may need to enhance this.
           const content = detailed.content
           if (content.plays && content.plays.length > 0) {
             const restoredPlays = content.plays.map(play => {
               // Get all modules for this play (single play mode for now)
               const playModules = content.modules.filter(m => {
                 // Include all modules for now (single play mode)
-                // TODO: When multiple plays are supported, filter by play association
                 return true
               })
 
@@ -762,6 +852,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           if (content.collapsedBlockSections) {
             setCollapsedBlockSections(new Set(content.collapsedBlockSections))
           }
+
+          hasRestoredFromCache.current = true
         }
       } catch (error) {
         console.error('Failed to load playbook:', error)

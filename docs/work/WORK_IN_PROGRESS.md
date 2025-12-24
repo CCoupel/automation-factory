@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-23**
+## 🚀 **Status Actuel - 2025-12-24**
 
 ### Versions Déployées
 
@@ -15,8 +15,8 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Tag Git :** `v1.13.0`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.14.0-rc.1`
-- **Frontend :** `1.14.0-rc.1-vite`
+- **Backend :** `1.14.0-rc.15`
+- **Frontend :** `1.14.0-rc.15-vite`
 - **URL :** http://192.168.1.217
 - **Status :** Phase 2 - Intégration Staging en cours
 
@@ -41,46 +41,68 @@ Ce document trace l'état actuel du développement et les versions déployées.
 | `module_move` | Déplacement module | `{moduleId, x, y}` |
 | `module_delete` | Suppression module | `{moduleId}` |
 | `module_config` | Config dans ConfigZone | `{moduleId, field, value}` |
+| `module_resize` | Redimensionnement module | `{moduleId, width, height}` |
 | `link_add` | Connexion modules | `{link}` |
 | `link_delete` | Suppression lien | `{linkId}` |
 | `play_update` | Modification play | `{playId, field, value}` |
 | `variable_update` | Modification variable | `{variable}` |
+| `block_collapse` | Collapse block | `{blockId, collapsed}` |
+| `section_collapse` | Collapse section | `{key, collapsed}` |
+
+### Fonctionnalités implémentées (rc.1 → rc.15)
+
+#### Synchronisation temps réel (rc.1 → rc.9)
+- [x] Hook `useCollaborationSync` pour debounce et envoi typé
+- [x] Intégration `sendUpdate` dans WorkZone (modules, liens)
+- [x] Intégration `sendUpdate` dans ConfigZone (paramètres)
+- [x] Application des updates reçus via `applyCollaborationUpdate`
+- [x] Support play_update pour attributs PLAY
+- [x] Support module_config pour tous les champs
+- [x] Support déplacement tâches dans blocks
+
+#### Highlight collaboratif (rc.10 → rc.11)
+- [x] Highlight éléments modifiés par autres utilisateurs
+- [x] Couleurs uniques par utilisateur (basé sur hash username)
+- [x] Highlight sur tous types d'éléments (modules, links, plays, variables)
+- [x] Animation CSS avec transition fluide
+- [x] Durée configurable (par défaut 1.5s)
+
+#### Préférences utilisateur (rc.12 → rc.15)
+- [x] Contexte `UserPreferencesContext` avec stockage localStorage
+- [x] Durée de highlight configurable (0.5s → 5s)
+- [x] Interface configuration en modal (au lieu d'une page séparée)
+- [x] Reset des préférences aux valeurs par défaut
+- [x] Cache sessionStorage pour restauration instantanée après navigation
+
+#### Configuration Dialog (rc.15)
+- [x] Conversion ConfigurationPage → ConfigurationDialog (modal)
+- [x] Accessible à tous les utilisateurs (pas seulement admin)
+- [x] 2 onglets pour admins : "Préférences" et "Namespaces"
+- [x] Pas de navigation = pas de rechargement du playbook
+- [x] Redirection route `/admin/configuration` vers `/`
 
 ### Phase actuelle : Phase 2 - Intégration Staging
 
-#### Backend (Phase 1 - Terminée)
+#### Backend (Terminé)
 - [x] Champ `version` existant sur modèle Playbook (optimistic locking)
-- [x] Modifier WebSocket endpoint pour broadcaster updates avec version
-- [x] Valider permissions (seuls les éditeurs peuvent envoyer)
+- [x] WebSocket endpoint pour broadcaster updates avec version
+- [x] Permissions validées (seuls les éditeurs peuvent envoyer)
 - [x] Fonction `check_playbook_access_async` pour vérifier accès WebSocket
 
-#### Frontend (Phase 1 - Terminée)
-- [x] Créer hook `useCollaborationSync` pour debounce et envoi typé
-- [x] Intégrer `sendUpdate` dans WorkZone (modules, liens)
-- [x] Intégrer `sendUpdate` dans ConfigZone (paramètres)
-- [x] Appliquer updates reçus au state local via `applyCollaborationUpdate`
-- [ ] Highlight éléments modifiés par autres utilisateurs (à faire v1.14.1)
+#### Frontend (Terminé)
+- [x] Hook `useCollaborationSync` pour debounce et envoi typé
+- [x] Intégration complète WorkZone et ConfigZone
+- [x] Highlight visuel des modifications collaboratives
+- [x] Préférences utilisateur persistantes
+- [x] Configuration en modal (UX améliorée)
 
-#### Tests Phase 1 (2025-12-23)
-- [x] Backend démarre sans erreur (62 routes)
-- [x] Frontend démarre sans erreur (11640 modules)
-- [x] Version affichée: 1.14.0-rc.1
-- [x] Build frontend: 798 kB bundle
-- [x] Imports OK: useCollaborationSync, CollaborationCallbacks
-
-#### Phase 2 - Staging (2025-12-23)
-- [x] Build Docker backend: `ansible-builder-backend:1.14.0-rc.1`
-- [x] Build Docker frontend: `ansible-builder-frontend:1.14.0-rc.1-vite`
-- [x] Mise à jour docker-compose.staging.yml
-- [x] Déploiement containers (backend, frontend recreated)
-- [x] Health check nginx: HTTP 200 OK
-- [x] Health check backend: 1.14.0-rc.1 (STAGING, is_rc=true)
-- [x] Health check frontend: HTTP 200 OK (Vite 156ms)
-- [x] WebSocket presence: `{"users":[], "count":0}` (OK)
-- [x] Login + Playbook CRUD: OK avec version field
-- [x] Ansible versions: 9 disponibles
-- [x] Ansible namespaces (v13): 54 namespaces
-- [ ] Validation utilisateur
+#### Tests Phase 2 - Staging (2025-12-24)
+- [x] Build Docker backend: `ansible-builder-backend:1.14.0-rc.15`
+- [x] Build Docker frontend: `ansible-builder-frontend:1.14.0-rc.15-vite`
+- [x] Déploiement containers OK
+- [x] Health checks passés
+- [x] Version affichée: 1.14.0-rc.15 (STAGING)
+- [ ] Validation utilisateur finale
 
 **En attente de validation utilisateur pour passer en Phase 3 (Production)**
 

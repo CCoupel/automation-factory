@@ -46,6 +46,7 @@ import ShareIcon from '@mui/icons-material/Share'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
 import ShareDialog from '../collaboration/ShareDialog'
+import ConfigurationDialog from '../dialogs/ConfigurationDialog'
 
 interface ConnectedUser {
   user_id: string
@@ -117,6 +118,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   // About dialog state
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false)
+
+  // Configuration dialog state
+  const [configDialogOpen, setConfigDialogOpen] = useState(false)
 
 
 
@@ -195,11 +199,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   /**
-   * Handle configuration page navigation (Admin only)
+   * Handle configuration dialog open
    */
-  const handleConfigurationPage = () => {
+  const handleOpenConfiguration = () => {
     handleMenuClose()
-    navigate('/admin/configuration')
+    setConfigDialogOpen(true)
   }
 
   /**
@@ -541,17 +545,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </MenuItem>
               )}
 
-              {/* Configuration (Admin only) */}
-              {user.role === 'admin' && (
-                <MenuItem onClick={handleConfigurationPage}>
-                  <ListItemIcon>
-                    <SettingsIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Configuration</ListItemText>
-                </MenuItem>
-              )}
+              {/* Configuration - Available to all users */}
+              <MenuItem onClick={handleOpenConfiguration}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Configuration</ListItemText>
+              </MenuItem>
 
-              {user.role === 'admin' && <Divider />}
+              <Divider />
 
               {/* About */}
               <MenuItem onClick={handleOpenAbout}>
@@ -839,6 +841,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           playbookName={playbookNameProp}
         />
       )}
+
+      {/* Configuration Dialog */}
+      <ConfigurationDialog
+        open={configDialogOpen}
+        onClose={() => setConfigDialogOpen(false)}
+      />
 
     </AppBar>
   )

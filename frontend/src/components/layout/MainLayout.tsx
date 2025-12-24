@@ -76,8 +76,12 @@ const MainLayout = () => {
 
   // Playbook save status
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [playbookName, setPlaybookName] = useState<string>('Untitled Playbook')
-  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(null)
+  const [playbookName, setPlaybookName] = useState<string>(() => {
+    return sessionStorage.getItem('currentPlaybookName') || 'Untitled Playbook'
+  })
+  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(() => {
+    return sessionStorage.getItem('currentPlaybookId')
+  })
 
   // Playbook manager dialog
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
@@ -161,6 +165,19 @@ const MainLayout = () => {
       disconnectFromPlaybookRef.current()
     }
   }, [currentPlaybookId])
+
+  // Persist playbook ID and name in sessionStorage for navigation
+  useEffect(() => {
+    if (currentPlaybookId) {
+      sessionStorage.setItem('currentPlaybookId', currentPlaybookId)
+    } else {
+      sessionStorage.removeItem('currentPlaybookId')
+    }
+  }, [currentPlaybookId])
+
+  useEffect(() => {
+    sessionStorage.setItem('currentPlaybookName', playbookName)
+  }, [playbookName])
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -414,6 +431,8 @@ const MainLayout = () => {
             collaborationCallbacks={collaborationCallbacks}
             onApplyCollaborationUpdate={(handler) => { applyCollaborationUpdateRef.current = handler }}
             onActivePlayIdChange={setActivePlayId}
+            initialPlaybookId={currentPlaybookId}
+            onPlaybookIdChange={setCurrentPlaybookId}
           />
         </Box>
 
