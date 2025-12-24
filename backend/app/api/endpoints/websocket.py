@@ -4,11 +4,13 @@ WebSocket endpoints for real-time collaboration
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import json
 import logging
 from typing import Optional
 
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.security import decode_access_token
 from app.models import Playbook, PlaybookShare, PlaybookRole
 from app.services.websocket_manager import websocket_manager
@@ -48,37 +50,43 @@ async def get_current_user_ws(
         return None
 
 
-def check_playbook_access(db: Session, playbook_id: str, user_id: str) -> Optional[str]:
+async def check_playbook_access_async(playbook_id: str, user_id: str) -> Optional[str]:
     """
-    Check if user has access to playbook and return their role
+    Check if user has access to playbook and return their role (async version)
 
     Args:
-        db: Database session
         playbook_id: The playbook ID
         user_id: The user ID
 
     Returns:
         Role string ('owner', 'editor', 'viewer') or None if no access
     """
-    # Check if user is owner
-    playbook = db.query(Playbook).filter(
-        Playbook.id == playbook_id,
-        Playbook.owner_id == user_id
-    ).first()
+    async with AsyncSessionLocal() as db:
+        # Check if user is owner
+        result = await db.execute(
+            select(Playbook).where(
+                Playbook.id == playbook_id,
+                Playbook.owner_id == user_id
+            )
+        )
+        playbook = result.scalar_one_or_none()
 
-    if playbook:
-        return PlaybookRole.OWNER.value
+        if playbook:
+            return PlaybookRole.OWNER.value
 
-    # Check if user has share access
-    share = db.query(PlaybookShare).filter(
-        PlaybookShare.playbook_id == playbook_id,
-        PlaybookShare.user_id == user_id
-    ).first()
+        # Check if user has share access
+        result = await db.execute(
+            select(PlaybookShare).where(
+                PlaybookShare.playbook_id == playbook_id,
+                PlaybookShare.user_id == user_id
+            )
+        )
+        share = result.scalar_one_or_none()
 
-    if share:
-        return share.role
+        if share:
+            return share.role
 
-    return None
+        return None
 
 
 @router.websocket("/ws/playbook/{playbook_id}")
@@ -105,29 +113,42 @@ async def playbook_websocket(
     - {"type": "pong"} - Response to ping
     - {"type": "error", "message": "..."} - Error message
     """
+    logger.info(f"[WS] Connection attempt - playbook={playbook_id}, token={'exists' if token else 'MISSING'}")
+
     # Authenticate user
     user = await get_current_user_ws(websocket, token)
     if not user:
+        logger.warning(f"[WS] Auth failed for playbook={playbook_id}")
         await websocket.close(code=4001, reason="Authentication required")
         return
 
     user_id = user["user_id"]
     username = user["username"]
-
-    # Check playbook access (need a DB session)
-    # Note: We need to get DB session outside of the websocket context
-    # For now, we'll accept the connection and check access on first message
-    # In production, consider using a separate auth check
+    logger.info(f"[WS] User authenticated: {username} ({user_id})")
 
     try:
+        # Check playbook access before connecting
+        user_role = await check_playbook_access_async(playbook_id, user_id)
+        logger.info(f"[WS] Access check - playbook={playbook_id}, user={user_id}, role={user_role}")
+        if not user_role:
+            logger.warning(f"[WS] Access denied for user={user_id} to playbook={playbook_id}")
+            await websocket.close(code=4003, reason="Access denied to this playbook")
+            return
+
         # Connect to room
         await websocket_manager.connect(websocket, playbook_id, user_id, username)
+
+        # Send initial role info to client
+        await websocket_manager.send_personal(
+            websocket,
+            {"type": "connected", "role": user_role, "playbook_id": playbook_id}
+        )
 
         # Main message loop
         while True:
             try:
                 data = await websocket.receive_json()
-                await handle_message(websocket, playbook_id, user_id, username, data)
+                await handle_message(websocket, playbook_id, user_id, username, user_role, data)
             except json.JSONDecodeError:
                 await websocket_manager.send_personal(
                     websocket,
@@ -147,6 +168,7 @@ async def handle_message(
     playbook_id: str,
     user_id: str,
     username: str,
+    user_role: str,
     data: dict
 ):
     """
@@ -157,6 +179,7 @@ async def handle_message(
         playbook_id: The playbook ID
         user_id: The user's ID
         username: The user's username
+        user_role: The user's role (owner, editor, viewer)
         data: The message data
     """
     msg_type = data.get("type")
@@ -168,6 +191,14 @@ async def handle_message(
         )
 
     elif msg_type == "update":
+        # Only owners and editors can send updates
+        if user_role == PlaybookRole.VIEWER.value:
+            await websocket_manager.send_personal(
+                websocket,
+                {"type": "error", "message": "Viewers cannot send updates"}
+            )
+            return
+
         # Broadcast update to other users
         update_data = data.get("data", {})
         update_type = data.get("update_type", "content")

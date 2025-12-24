@@ -3,12 +3,14 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
+import { useCollaborationSync } from '../../hooks/useCollaborationSync'
+import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
 import VarsZone from '../zones/VarsZone'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
-import WorkZone from '../zones/WorkZone'
+import WorkZone, { CollaborationCallbacks } from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
@@ -80,8 +82,62 @@ const MainLayout = () => {
   // Playbook manager dialog
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
 
+  // Active play ID (for collaboration - different from playbook ID)
+  const [activePlayId, setActivePlayId] = useState<string | null>(null)
+
+  // Force re-render counter for collaboration updates that affect refs
+  const [, forceRender] = useState(0)
+
   // Collaboration
-  const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected } = useCollaboration()
+  const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected, lastUpdate } = useCollaboration()
+  const {
+    sendModuleAdd,
+    sendModuleMove,
+    sendModuleDelete,
+    sendModuleConfig,
+    sendLinkAdd,
+    sendLinkDelete,
+    sendPlayUpdate,
+    sendVariableUpdate,
+    sendBlockCollapse,
+    sendSectionCollapse,
+    sendModuleResize
+  } = useCollaborationSync()
+
+  // Ref for applying collaboration updates to WorkZone
+  const applyCollaborationUpdateRef = useRef<((update: PlaybookUpdate) => void) | null>(null)
+
+  // Create collaboration callbacks object (memoized)
+  const collaborationCallbacks: CollaborationCallbacks = {
+    sendModuleAdd,
+    sendModuleMove,
+    sendModuleDelete,
+    sendModuleConfig,
+    sendModuleResize,
+    sendLinkAdd,
+    sendLinkDelete,
+    sendPlayUpdate,
+    sendVariableUpdate,
+    sendBlockCollapse,
+    sendSectionCollapse
+  }
+
+  // Apply received collaboration updates to WorkZone
+  useEffect(() => {
+    if (lastUpdate && applyCollaborationUpdateRef.current) {
+      console.log('[MainLayout] Received collaboration update:', lastUpdate.update_type)
+      applyCollaborationUpdateRef.current(lastUpdate)
+
+      // Force re-render for updates that affect refs (play_update, module_config)
+      // This ensures ConfigZone gets the updated playAttributes/selectedModule
+      if (lastUpdate.update_type === 'play_update') {
+        // Small delay to let WorkZone update its state first
+        setTimeout(() => {
+          forceRender(prev => prev + 1)
+        }, 50)
+      }
+    }
+  }, [lastUpdate])
 
   // Store functions in refs to avoid dependency issues
   const connectToPlaybookRef = useRef(connectToPlaybook)
@@ -95,10 +151,13 @@ const MainLayout = () => {
 
   // Connect to playbook collaboration when playbook ID changes
   useEffect(() => {
+    console.log('[MainLayout] currentPlaybookId changed to:', currentPlaybookId)
     if (currentPlaybookId) {
+      console.log('[MainLayout] Calling connectToPlaybook with:', currentPlaybookId)
       connectToPlaybookRef.current(currentPlaybookId)
     }
     return () => {
+      console.log('[MainLayout] Cleanup - disconnecting from playbook')
       disconnectFromPlaybookRef.current()
     }
   }, [currentPlaybookId])
@@ -352,6 +411,9 @@ const MainLayout = () => {
             onSavePlaybook={(callback) => { savePlaybookCallbackRef.current = callback }}
             onLoadPlaybook={(callback) => { loadPlaybookCallbackRef.current = callback }}
             onGetPlaybookContent={(callback) => { getPlaybookContentCallbackRef.current = callback }}
+            collaborationCallbacks={collaborationCallbacks}
+            onApplyCollaborationUpdate={(handler) => { applyCollaborationUpdateRef.current = handler }}
+            onActivePlayIdChange={setActivePlayId}
           />
         </Box>
 
@@ -404,6 +466,8 @@ const MainLayout = () => {
               onUpdateModule={(id, updates) => updateModuleCallbackRef.current?.(id, updates)}
               playAttributes={getPlayAttributesCallbackRef.current?.() || {}}
               onUpdatePlay={(updates) => updatePlayAttributesCallbackRef.current?.(updates)}
+              collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate }}
+              activePlayId={activePlayId || undefined}
             />
           </Box>
         )}
@@ -502,8 +566,10 @@ const MainLayout = () => {
         open={playbookManagerOpen}
         onClose={() => setPlaybookManagerOpen(false)}
         onSelectPlaybook={async (playbookId) => {
+          console.log('[MainLayout] onSelectPlaybook called with:', playbookId)
           if (loadPlaybookCallbackRef.current) {
             await loadPlaybookCallbackRef.current(playbookId)
+            console.log('[MainLayout] Playbook loaded, setting currentPlaybookId to:', playbookId)
             setCurrentPlaybookId(playbookId)
           }
         }}

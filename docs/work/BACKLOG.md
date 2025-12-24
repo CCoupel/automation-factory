@@ -98,6 +98,12 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ## 🔧 **Améliorations Techniques**
 
+### Tests
+- [ ] **Corriger les mocks des tests Ansible Services (v1.10.0)**
+  - [ ] `test_ansible_collections_service.py` : Mettre à jour les mocks HTML pour correspondre au format réel de docs.ansible.com
+  - [ ] `test_ansible_versions_service.py` : Corriger les mocks async
+  - [ ] `test_ansible_endpoints.py` : Aligner les mocks avec le service
+
 ### Backend
 - [ ] **Database migration SQLite → PostgreSQL**
 - [ ] **API Rate limiting**

@@ -197,7 +197,10 @@
       "Bash(KUBECONFIG=kubeconfig.txt kubectl rollout:*)",
       "Bash(KUBECONFIG=kubeconfig.txt kubectl exec:*)",
       "Bash(git mv:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0OGM2NDNjZS1lZGI3LTQzNjQtYTVjNy05OWExMTNlZjliZGQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzY2NDkzMzYzfQ._Oi_3caCLjyDJHWFqBCECCvJ2vVhkGl3_-qfAP_rJD8\":*)",
+      "Bash(PLAYBOOK_ID=\"d481fd18-3e95-430e-87ff-b70f378f325c\")"
     ],
     "deny": [],
     "ask": []

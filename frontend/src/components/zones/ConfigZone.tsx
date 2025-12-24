@@ -21,6 +21,12 @@ import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playb
 import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 
+// Collaboration callback type for config updates
+export interface CollaborationConfigCallback {
+  sendModuleConfig?: (data: { moduleId: string; field: string; value: unknown; element_id?: string }) => void
+  sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
+}
+
 interface ConfigZoneProps {
   selectedModule?: {
     id: string
@@ -65,6 +71,9 @@ interface ConfigZoneProps {
   }>) => void
   playAttributes?: PlayAttributes
   onUpdatePlay?: (updates: Partial<PlayAttributes>) => void
+  // Collaboration callbacks for real-time sync
+  collaborationCallbacks?: CollaborationConfigCallback
+  activePlayId?: string // For play update collaboration
 }
 
 // Configuration des modules (à déplacer vers un fichier de config plus tard)
@@ -124,7 +133,7 @@ const getTypeIcon = (type: string) => {
   }
 }
 
-const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay }: ConfigZoneProps) => {
+const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay, collaborationCallbacks, activePlayId }: ConfigZoneProps) => {
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
@@ -151,6 +160,10 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
   // Track if we're showing PLAY config (selectedModule is null)
   const [showingPlayConfig, setShowingPlayConfig] = useState(false)
 
+  // Debounce timer refs - must be declared before useEffects that reference them
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const playDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Legacy static config for modules without Galaxy schemas
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
 
@@ -169,6 +182,42 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
     }
   }, [selectedModule?.id, currentModuleId])
 
+  // Sync local state when module properties change from collaboration updates
+  // Only sync if no debounce timer is active (user is not typing)
+  useEffect(() => {
+    if (!selectedModule || selectedModule.id !== currentModuleId) return
+    // Only sync if user is not actively editing (no debounce timer)
+    if (debounceTimerRef.current) return
+
+    // Sync each field if different from local state
+    if (selectedModule.taskName !== undefined && selectedModule.taskName !== localTaskName) {
+      setLocalTaskName(selectedModule.taskName || '')
+    }
+    if (selectedModule.when !== undefined && selectedModule.when !== localWhen) {
+      setLocalWhen(selectedModule.when || '')
+    }
+    if (selectedModule.loop !== undefined && selectedModule.loop !== localLoop) {
+      setLocalLoop(selectedModule.loop || '')
+    }
+    const tagsStr = selectedModule.tags?.join(', ') || ''
+    if (tagsStr !== localTags) {
+      setLocalTags(tagsStr)
+    }
+    if (selectedModule.delegateTo !== undefined && selectedModule.delegateTo !== localDelegateTo) {
+      setLocalDelegateTo(selectedModule.delegateTo || '')
+    }
+    if (selectedModule.ignoreErrors !== localIgnoreErrors) {
+      setLocalIgnoreErrors(selectedModule.ignoreErrors || false)
+    }
+    if (selectedModule.become !== localTaskBecome) {
+      setLocalTaskBecome(selectedModule.become || false)
+    }
+    // Sync moduleParameters
+    if (JSON.stringify(selectedModule.moduleParameters) !== JSON.stringify(moduleParameters)) {
+      setModuleParameters(selectedModule.moduleParameters || {})
+    }
+  }, [selectedModule, currentModuleId])
+
   // Initialize PLAY local state when switching to PLAY config
   useEffect(() => {
     const isNowShowingPlay = !selectedModule
@@ -185,12 +234,32 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
     }
   }, [selectedModule, showingPlayConfig, playAttributes])
 
-  // Debounce timer refs
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const playDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Sync PLAY local state when playAttributes change from collaboration updates
+  // Only sync if user is not actively editing (no debounce timer)
+  useEffect(() => {
+    if (!showingPlayConfig || !playAttributes) return
+    // Only sync if user is not actively editing
+    if (playDebounceTimerRef.current) return
+
+    if (playAttributes.hosts !== undefined && playAttributes.hosts !== localHosts) {
+      setLocalHosts(playAttributes.hosts || '')
+    }
+    if (playAttributes.remoteUser !== undefined && playAttributes.remoteUser !== localRemoteUser) {
+      setLocalRemoteUser(playAttributes.remoteUser || '')
+    }
+    if (playAttributes.connection !== undefined && playAttributes.connection !== localConnection) {
+      setLocalConnection(playAttributes.connection || '')
+    }
+    if (playAttributes.gatherFacts !== undefined && playAttributes.gatherFacts !== localGatherFacts) {
+      setLocalGatherFacts(playAttributes.gatherFacts !== false)
+    }
+    if (playAttributes.become !== undefined && playAttributes.become !== localBecome) {
+      setLocalBecome(playAttributes.become || false)
+    }
+  }, [playAttributes, showingPlayConfig])
 
   // Debounced update for module - only propagate after user stops typing
-  const debouncedUpdate = (updates: Parameters<NonNullable<typeof onUpdateModule>>[1]) => {
+  const debouncedUpdate = (updates: Parameters<NonNullable<typeof onUpdateModule>>[1], field?: string) => {
     if (!selectedModule) return
 
     // Clear previous timer
@@ -201,11 +270,25 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
     // Set new timer - update parent after 300ms of no typing
     debounceTimerRef.current = setTimeout(() => {
       onUpdateModule?.(selectedModule.id, updates)
+      // Send collaboration update for module config change
+      if (field) {
+        // Get value from moduleParameters or from direct updates
+        const value = updates.moduleParameters
+          ? updates.moduleParameters[field]
+          : (updates as Record<string, unknown>)[field]
+        console.log('[ConfigZone] Sending module config update:', field, value)
+        collaborationCallbacks?.sendModuleConfig?.({
+          moduleId: selectedModule.id,
+          field,
+          value,
+          element_id: selectedModule.id
+        })
+      }
     }, 300)
   }
 
   // Debounced update for PLAY attributes
-  const debouncedPlayUpdate = (updates: Partial<PlayAttributes>) => {
+  const debouncedPlayUpdate = (updates: Partial<PlayAttributes>, field?: string) => {
     // Clear previous timer
     if (playDebounceTimerRef.current) {
       clearTimeout(playDebounceTimerRef.current)
@@ -214,6 +297,15 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
     // Set new timer - update parent after 300ms of no typing
     playDebounceTimerRef.current = setTimeout(() => {
       onUpdatePlay?.(updates)
+      // Send collaboration update for play attribute change
+      if (field && activePlayId) {
+        const value = updates[field as keyof PlayAttributes]
+        collaborationCallbacks?.sendPlayUpdate?.({
+          playId: activePlayId,
+          field,
+          value
+        })
+      }
     }, 300)
   }
 
@@ -301,74 +393,74 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
       }
     }
 
-    // Debounced update to parent
+    // Debounced update to parent (pass paramName for collaboration sync)
     debouncedUpdate({
       moduleParameters: updatedParams,
       validationState
-    })
+    }, paramName)
   }
 
   // Handlers for task attributes with immediate local state + debounced parent update
   const handleTaskNameChange = (value: string) => {
     setLocalTaskName(value)
-    debouncedUpdate({ taskName: value })
+    debouncedUpdate({ taskName: value }, 'taskName')
   }
 
   const handleWhenChange = (value: string) => {
     setLocalWhen(value)
-    debouncedUpdate({ when: value || undefined })
+    debouncedUpdate({ when: value || undefined }, 'when')
   }
 
   const handleLoopChange = (value: string) => {
     setLocalLoop(value)
-    debouncedUpdate({ loop: value || undefined })
+    debouncedUpdate({ loop: value || undefined }, 'loop')
   }
 
   const handleTagsChange = (value: string) => {
     setLocalTags(value)
     const tags = value ? value.split(',').map(t => t.trim()).filter(t => t) : undefined
-    debouncedUpdate({ tags })
+    debouncedUpdate({ tags }, 'tags')
   }
 
   const handleDelegateToChange = (value: string) => {
     setLocalDelegateTo(value)
-    debouncedUpdate({ delegateTo: value || undefined })
+    debouncedUpdate({ delegateTo: value || undefined }, 'delegateTo')
   }
 
   const handleIgnoreErrorsChange = (checked: boolean) => {
     setLocalIgnoreErrors(checked)
-    debouncedUpdate({ ignoreErrors: checked })
+    debouncedUpdate({ ignoreErrors: checked }, 'ignoreErrors')
   }
 
   const handleTaskBecomeChange = (checked: boolean) => {
     setLocalTaskBecome(checked)
-    debouncedUpdate({ become: checked })
+    debouncedUpdate({ become: checked }, 'become')
   }
 
   // Handlers for PLAY attributes with immediate local state + debounced parent update
   const handleHostsChange = (value: string) => {
     setLocalHosts(value)
-    debouncedPlayUpdate({ hosts: value || undefined })
+    debouncedPlayUpdate({ hosts: value || undefined }, 'hosts')
   }
 
   const handleRemoteUserChange = (value: string) => {
     setLocalRemoteUser(value)
-    debouncedPlayUpdate({ remoteUser: value || undefined })
+    debouncedPlayUpdate({ remoteUser: value || undefined }, 'remoteUser')
   }
 
   const handleConnectionChange = (value: string) => {
     setLocalConnection(value)
-    debouncedPlayUpdate({ connection: value || undefined })
+    debouncedPlayUpdate({ connection: value || undefined }, 'connection')
   }
 
   const handleGatherFactsChange = (checked: boolean) => {
     setLocalGatherFacts(checked)
-    debouncedPlayUpdate({ gatherFacts: checked })
+    debouncedPlayUpdate({ gatherFacts: checked }, 'gatherFacts')
   }
 
   const handleBecomeChange = (checked: boolean) => {
     setLocalBecome(checked)
-    debouncedPlayUpdate({ become: checked })
+    debouncedPlayUpdate({ become: checked }, 'become')
   }
   
   const renderParameterField = (param: ModuleParameter) => {

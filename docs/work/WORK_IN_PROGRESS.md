@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-22**
+## 🚀 **Status Actuel - 2025-12-23**
 
 ### Versions Déployées
 
@@ -15,10 +15,74 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Tag Git :** `v1.13.0`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.13.0-rc.4`
-- **Frontend :** `1.13.0-rc.4-vite`
+- **Backend :** `1.14.0-rc.1`
+- **Frontend :** `1.14.0-rc.1-vite`
 - **URL :** http://192.168.1.217
-- **Status :** Synced with production
+- **Status :** Phase 2 - Intégration Staging en cours
+
+---
+
+## 🚧 **Version 1.14.0 - En Développement**
+
+### Synchronisation Temps Réel des Playbooks
+
+**Objectif :** Permettre aux collaborateurs de voir les modifications des autres utilisateurs en temps réel.
+
+**Stratégie technique :**
+- Granularité fine des updates (par champ/élément)
+- Debounce 300ms pour optimisation réseau
+- Versioning pour gestion des conflits (optimistic locking)
+- Last-write-wins avec notification visuelle
+
+**Types d'updates :**
+| Type | Déclencheur | Data |
+|------|-------------|------|
+| `module_add` | Drag & drop module | `{module, position}` |
+| `module_move` | Déplacement module | `{moduleId, x, y}` |
+| `module_delete` | Suppression module | `{moduleId}` |
+| `module_config` | Config dans ConfigZone | `{moduleId, field, value}` |
+| `link_add` | Connexion modules | `{link}` |
+| `link_delete` | Suppression lien | `{linkId}` |
+| `play_update` | Modification play | `{playId, field, value}` |
+| `variable_update` | Modification variable | `{variable}` |
+
+### Phase actuelle : Phase 2 - Intégration Staging
+
+#### Backend (Phase 1 - Terminée)
+- [x] Champ `version` existant sur modèle Playbook (optimistic locking)
+- [x] Modifier WebSocket endpoint pour broadcaster updates avec version
+- [x] Valider permissions (seuls les éditeurs peuvent envoyer)
+- [x] Fonction `check_playbook_access_async` pour vérifier accès WebSocket
+
+#### Frontend (Phase 1 - Terminée)
+- [x] Créer hook `useCollaborationSync` pour debounce et envoi typé
+- [x] Intégrer `sendUpdate` dans WorkZone (modules, liens)
+- [x] Intégrer `sendUpdate` dans ConfigZone (paramètres)
+- [x] Appliquer updates reçus au state local via `applyCollaborationUpdate`
+- [ ] Highlight éléments modifiés par autres utilisateurs (à faire v1.14.1)
+
+#### Tests Phase 1 (2025-12-23)
+- [x] Backend démarre sans erreur (62 routes)
+- [x] Frontend démarre sans erreur (11640 modules)
+- [x] Version affichée: 1.14.0-rc.1
+- [x] Build frontend: 798 kB bundle
+- [x] Imports OK: useCollaborationSync, CollaborationCallbacks
+
+#### Phase 2 - Staging (2025-12-23)
+- [x] Build Docker backend: `ansible-builder-backend:1.14.0-rc.1`
+- [x] Build Docker frontend: `ansible-builder-frontend:1.14.0-rc.1-vite`
+- [x] Mise à jour docker-compose.staging.yml
+- [x] Déploiement containers (backend, frontend recreated)
+- [x] Health check nginx: HTTP 200 OK
+- [x] Health check backend: 1.14.0-rc.1 (STAGING, is_rc=true)
+- [x] Health check frontend: HTTP 200 OK (Vite 156ms)
+- [x] WebSocket presence: `{"users":[], "count":0}` (OK)
+- [x] Login + Playbook CRUD: OK avec version field
+- [x] Ansible versions: 9 disponibles
+- [x] Ansible namespaces (v13): 54 namespaces
+- [ ] Validation utilisateur
+
+**En attente de validation utilisateur pour passer en Phase 3 (Production)**
 
 ---
 
@@ -129,7 +193,7 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ## 📋 **Prochaines Priorités**
 
-- Finaliser v1.13.0 (Collaboration temps réel)
+- Finaliser v1.14.0 (Synchronisation temps réel des modifications)
 - Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
 
 ---
@@ -153,4 +217,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Dernière mise à jour : 2025-12-22 - v1.13.0 déployé en production*
+*Dernière mise à jour : 2025-12-23 - v1.14.0-rc.1 Phase 2 Intégration Staging*

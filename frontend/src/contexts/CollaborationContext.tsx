@@ -100,7 +100,9 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
 
   // Connect to a playbook room - stable callback
   const connectToPlaybook = useCallback((playbookId: string) => {
+    console.log('[Collab] connectToPlaybook called with:', playbookId)
     setCurrentPlaybookId(prev => {
+      console.log('[Collab] setCurrentPlaybookId - prev:', prev, 'new:', playbookId)
       if (playbookId !== prev) {
         return playbookId
       }

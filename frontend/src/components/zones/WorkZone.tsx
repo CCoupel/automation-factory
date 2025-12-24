@@ -26,6 +26,22 @@ import AddVariableDialog from '../dialogs/AddVariableDialog'
 import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes, ModuleSchema } from '../../types/playbook'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
+import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
+
+// Collaboration callback types for real-time sync
+export interface CollaborationCallbacks {
+  sendModuleAdd?: (data: { moduleId: string; module: ModuleBlock; position: { x: number; y: number } }) => void
+  sendModuleMove?: (data: { moduleId: string; x: number; y: number; parentId?: string; parentSection?: string }) => void
+  sendModuleDelete?: (data: { moduleId: string }) => void
+  sendModuleConfig?: (data: { moduleId: string; field: string; value: unknown; element_id?: string }) => void
+  sendModuleResize?: (data: { moduleId: string; width: number; height: number; x: number; y: number }) => void
+  sendLinkAdd?: (data: { link: Link }) => void
+  sendLinkDelete?: (data: { linkId: string }) => void
+  sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
+  sendVariableUpdate?: (data: { variable: PlayVariable & { id: string; type: string } }) => void
+  sendBlockCollapse?: (data: { blockId: string; collapsed: boolean }) => void
+  sendSectionCollapse?: (data: { key: string; collapsed: boolean }) => void
+}
 
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
@@ -37,9 +53,47 @@ interface WorkZoneProps {
   onSavePlaybook?: (saveHandler: () => Promise<void>) => void
   onLoadPlaybook?: (loadHandler: (playbookId: string) => Promise<void>) => void
   onGetPlaybookContent?: (getHandler: () => PlaybookContent) => void
+  // Collaboration props for real-time sync
+  collaborationCallbacks?: CollaborationCallbacks
+  onApplyCollaborationUpdate?: (handler: (update: PlaybookUpdate) => void) => void
+  // Active play ID for collaboration
+  onActivePlayIdChange?: (playId: string) => void
 }
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent }: WorkZoneProps) => {
+// Helper to create START modules for a play
+const createStartModulesForPlay = (playId: string): ModuleBlock[] => {
+  const sections = ['pre_tasks', 'tasks', 'post_tasks', 'handlers'] as const
+  return sections.map(section => ({
+    id: `${playId}-start-${section.replace('_', '-')}`,
+    collection: 'ansible.generic',
+    name: 'start',
+    description: `Start point for ${section.replace('_', ' ')}`,
+    taskName: 'START',
+    x: 50,
+    y: 20,
+    isPlay: true,
+    parentSection: section,
+  }))
+}
+
+// Helper to ensure START modules exist in a play's modules
+const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock[] => {
+  const requiredStartIds = [
+    `${playId}-start-pre-tasks`,
+    `${playId}-start-tasks`,
+    `${playId}-start-post-tasks`,
+    `${playId}-start-handlers`
+  ]
+
+  const existingStartIds = new Set(modules.filter(m => m.isPlay).map(m => m.id))
+  const missingStartModules = createStartModulesForPlay(playId).filter(
+    m => !existingStartIds.has(m.id)
+  )
+
+  return [...missingStartModules, ...modules]
+}
+
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -162,6 +216,30 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
   const [addVariableDialogOpen, setAddVariableDialogOpen] = useState(false)
 
+  // Ref to track last resized module for sync
+  const lastResizedModuleRef = useRef<{ id: string; width: number; height: number; x: number; y: number } | null>(null)
+
+  // State to track recently synced elements for visual highlight
+  const [highlightedElements, setHighlightedElements] = useState<Set<string>>(new Set())
+
+  // Function to highlight an element temporarily
+  const highlightElement = useCallback((elementId: string) => {
+    setHighlightedElements(prev => {
+      const newSet = new Set(prev)
+      newSet.add(elementId)
+      return newSet
+    })
+
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedElements(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(elementId)
+        return newSet
+      })
+    }, 2000)
+  }, [])
+
   // =====================================================
   // PLAYBOOK PERSISTENCE
   // =====================================================
@@ -255,25 +333,33 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       // Restore plays (reconstruct from content)
       const content = detailed.content
       if (content.plays && content.plays.length > 0) {
-        const restoredPlays = content.plays.map(play => ({
-          id: play.id,
-          name: play.name,
-          modules: content.modules.filter(m => {
+        const restoredPlays = content.plays.map(play => {
+          // Get all modules for this play (single play mode for now)
+          const playModules = content.modules.filter(m => {
             // Include all modules for now (single play mode)
             // TODO: When multiple plays are supported, filter by play association
             return true
-          }),
-          links: content.links, // Simplified
-          variables: content.variables.map(v => ({ key: v.name, value: v.value })),
-          attributes: {
-            hosts: play.hosts || 'all',
-            remoteUser: undefined,
-            gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
-            become: play.become || false,
-            connection: 'ssh',
-            roles: []
+          })
+
+          // Ensure START modules exist for each section
+          const modulesWithStarts = ensureStartModules(play.id, playModules)
+
+          return {
+            id: play.id,
+            name: play.name,
+            modules: modulesWithStarts,
+            links: content.links, // Simplified
+            variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+            attributes: {
+              hosts: play.hosts || 'all',
+              remoteUser: undefined,
+              gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
+              become: play.become || false,
+              connection: 'ssh',
+              roles: []
+            }
           }
-        }))
+        })
         setPlays(restoredPlays)
       }
 
@@ -328,6 +414,270 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }, [serializePlaybookContent, onGetPlaybookContent])
 
+  // Apply collaboration updates from other users
+  const applyCollaborationUpdate = useCallback((update: PlaybookUpdate) => {
+    const { update_type, data, username } = update
+    console.log(`[Collab] Applying ${update_type} from ${username}:`, data)
+
+    switch (update_type) {
+      case 'module_add': {
+        const { module } = data as { module: ModuleBlock }
+
+        // If it's a block, collapse rescue and always sections by default
+        if (module.isBlock) {
+          setCollapsedBlockSections(prev => {
+            const newSet = new Set(prev)
+            newSet.add(`${module.id}:rescue`)
+            newSet.add(`${module.id}:always`)
+            return newSet
+          })
+        }
+
+        // If the module has a parentId (task in block), update the parent's blockSections
+        const isBlockSection = (s?: string): s is 'normal' | 'rescue' | 'always' => {
+          return s === 'normal' || s === 'rescue' || s === 'always'
+        }
+
+        if (module.parentId && module.parentSection && isBlockSection(module.parentSection)) {
+          const section = module.parentSection
+          setModules(prev => {
+            // First add the module
+            const withNewModule = [...prev, module]
+            // Then update the parent block
+            return withNewModule.map(m => {
+              if (m.id === module.parentId && m.isBlock) {
+                const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+                if (!sections[section]?.includes(module.id)) {
+                  return {
+                    ...m,
+                    blockSections: {
+                      ...sections,
+                      [section]: [...(sections[section] || []), module.id]
+                    }
+                  }
+                }
+              }
+              return m
+            })
+          })
+        } else {
+          setModules(prev => [...prev, module])
+        }
+        // Highlight the added module
+        highlightElement(module.id)
+        break
+      }
+      case 'module_move': {
+        type ParentSectionType = 'normal' | 'rescue' | 'always' | 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
+        type BlockSectionType = 'normal' | 'rescue' | 'always'
+        const { moduleId, x, y, parentId, parentSection } = data as {
+          moduleId: string; x: number; y: number;
+          parentId?: string; parentSection?: ParentSectionType
+        }
+        setModules(prev => {
+          // Find the module being moved
+          const movedModule = prev.find(m => m.id === moduleId)
+          if (!movedModule) return prev
+
+          const oldParentId = movedModule.parentId
+          const oldSection = movedModule.parentSection as BlockSectionType | undefined
+
+          // Check if parentSection is a block section (normal/rescue/always) or a play section
+          const isBlockSection = (section?: string): section is BlockSectionType => {
+            return section === 'normal' || section === 'rescue' || section === 'always'
+          }
+
+          return prev.map(m => {
+            let updated = { ...m }
+            let hasChanges = false
+
+            // Remove from old parent's blockSections if it had one (only for block sections)
+            if (oldParentId && m.id === oldParentId && oldSection && isBlockSection(oldSection)) {
+              const sections = m.blockSections || { normal: [], rescue: [], always: [] }
+              if (sections[oldSection]?.includes(moduleId)) {
+                updated = {
+                  ...updated,
+                  blockSections: {
+                    ...sections,
+                    [oldSection]: sections[oldSection].filter(id => id !== moduleId)
+                  }
+                }
+                hasChanges = true
+              }
+            }
+
+            // Add to new parent's blockSections if moving into a block (only for block sections)
+            if (parentId && m.id === parentId && m.isBlock && parentSection && isBlockSection(parentSection)) {
+              const sections = updated.blockSections || { normal: [], rescue: [], always: [] }
+              if (!sections[parentSection]?.includes(moduleId)) {
+                updated = {
+                  ...updated,
+                  blockSections: {
+                    ...sections,
+                    [parentSection]: [...(sections[parentSection] || []), moduleId]
+                  }
+                }
+                hasChanges = true
+              }
+            }
+
+            // Update the moved module itself
+            if (m.id === moduleId) {
+              updated = {
+                ...updated,
+                x,
+                y,
+                ...(parentId !== undefined && { parentId }),
+                ...(parentSection !== undefined && { parentSection })
+              }
+              hasChanges = true
+            }
+
+            return hasChanges ? updated : m
+          })
+        })
+        // Highlight the moved module
+        highlightElement(moduleId)
+        break
+      }
+      case 'module_delete': {
+        const { moduleId } = data as { moduleId: string }
+        setModules(prev => prev.filter(m => m.id !== moduleId))
+        setLinks(prev => prev.filter(l => l.from !== moduleId && l.to !== moduleId))
+        break
+      }
+      case 'module_config': {
+        const { moduleId, field, value } = data as { moduleId: string; field: string; value: unknown }
+        // Direct module properties (not in moduleParameters)
+        const directFields = ['taskName', 'when', 'loop', 'tags', 'delegateTo', 'ignoreErrors', 'become']
+        setModules(prev => {
+          const newModules = prev.map(m => {
+            if (m.id === moduleId) {
+              if (directFields.includes(field)) {
+                // Update direct module property
+                return { ...m, [field]: value }
+              } else {
+                // Update moduleParameters
+                const updatedParams = { ...(m.moduleParameters || {}), [field]: value }
+                return { ...m, moduleParameters: updatedParams }
+              }
+            }
+            return m
+          })
+
+          // If this is the selected module, update selectedModule in MainLayout
+          if (selectedModuleId === moduleId) {
+            const updatedModule = newModules.find(m => m.id === moduleId)
+            if (updatedModule) {
+              onSelectModule({
+                id: updatedModule.id,
+                name: updatedModule.name,
+                collection: updatedModule.collection,
+                taskName: updatedModule.taskName || '',
+                when: updatedModule.when,
+                ignoreErrors: updatedModule.ignoreErrors,
+                become: updatedModule.become,
+                loop: updatedModule.loop,
+                delegateTo: updatedModule.delegateTo,
+                tags: updatedModule.tags,
+                isBlock: updatedModule.isBlock,
+                isPlay: updatedModule.isPlay,
+                moduleParameters: updatedModule.moduleParameters,
+                moduleSchema: updatedModule.moduleSchema,
+                validationState: updatedModule.validationState,
+              })
+            }
+          }
+
+          return newModules
+        })
+        // Highlight the configured module
+        highlightElement(moduleId)
+        break
+      }
+      case 'link_add': {
+        const { link } = data as { link: Link }
+        setLinks(prev => [...prev, link])
+        // Highlight both connected modules
+        highlightElement(link.from)
+        highlightElement(link.to)
+        break
+      }
+      case 'link_delete': {
+        const { linkId } = data as { linkId: string }
+        setLinks(prev => prev.filter(l => l.id !== linkId))
+        break
+      }
+      case 'play_update': {
+        const { playId, field, value } = data as { playId: string; field: string; value: unknown }
+        // Play attributes are stored in play.attributes
+        const attributeFields = ['hosts', 'remoteUser', 'connection', 'gatherFacts', 'become', 'roles']
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId) {
+            if (attributeFields.includes(field)) {
+              // Update play.attributes
+              return { ...p, attributes: { ...(p.attributes || {}), [field]: value } }
+            } else {
+              // Update direct play property (like 'name')
+              return { ...p, [field]: value }
+            }
+          }
+          return p
+        }))
+        break
+      }
+      case 'variable_update': {
+        const { variable } = data as { variable: { id: string; name: string; value: unknown } }
+        setPlays(prev => prev.map(p => {
+          const idx = p.variables.findIndex(v => v.key === variable.name)
+          if (idx >= 0) {
+            const newVars = [...p.variables]
+            newVars[idx] = { key: variable.name, value: String(variable.value) }
+            return { ...p, variables: newVars }
+          }
+          return p
+        }))
+        break
+      }
+      case 'block_collapse': {
+        const { blockId, collapsed } = data as { blockId: string; collapsed: boolean }
+        setCollapsedBlocks(prev => {
+          const newSet = new Set(prev)
+          if (collapsed) {
+            newSet.add(blockId)
+          } else {
+            newSet.delete(blockId)
+          }
+          return newSet
+        })
+        // Highlight the collapsed/expanded block
+        highlightElement(blockId)
+        break
+      }
+      case 'module_resize': {
+        const { moduleId, width, height, x, y } = data as { moduleId: string; width: number; height: number; x: number; y: number }
+        setModules(prev => prev.map(m =>
+          m.id === moduleId
+            ? { ...m, width, height, x, y }
+            : m
+        ))
+        // Highlight the resized module
+        highlightElement(moduleId)
+        break
+      }
+      // Note: section_collapse is NOT synced - each user can work on different sections independently
+      default:
+        console.warn(`[Collab] Unknown update type: ${update_type}`)
+    }
+  }, [selectedModuleId, onSelectModule, highlightElement])
+
+  // Expose collaboration update handler to parent
+  useEffect(() => {
+    if (onApplyCollaborationUpdate) {
+      onApplyCollaborationUpdate(applyCollaborationUpdate)
+    }
+  }, [applyCollaborationUpdate, onApplyCollaborationUpdate])
+
   // Load playbook on mount
   useEffect(() => {
     if (!isAuthenticated) return
@@ -350,25 +700,33 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           // Note: This is a simplified version. You may need to enhance this.
           const content = detailed.content
           if (content.plays && content.plays.length > 0) {
-            const restoredPlays = content.plays.map(play => ({
-              id: play.id,
-              name: play.name,
-              modules: content.modules.filter(m => {
+            const restoredPlays = content.plays.map(play => {
+              // Get all modules for this play (single play mode for now)
+              const playModules = content.modules.filter(m => {
                 // Include all modules for now (single play mode)
                 // TODO: When multiple plays are supported, filter by play association
                 return true
-              }),
-              links: content.links, // Simplified
-              variables: content.variables.map(v => ({ key: v.name, value: v.value })),
-              attributes: {
-                hosts: play.hosts || 'all',
-                remoteUser: undefined,
-                gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
-                become: play.become || false,
-                connection: 'ssh',
-                roles: []
+              })
+
+              // Ensure START modules exist for each section
+              const modulesWithStarts = ensureStartModules(play.id, playModules)
+
+              return {
+                id: play.id,
+                name: play.name,
+                modules: modulesWithStarts,
+                links: content.links, // Simplified
+                variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+                attributes: {
+                  hosts: play.hosts || 'all',
+                  remoteUser: undefined,
+                  gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
+                  become: play.become || false,
+                  connection: 'ssh',
+                  roles: []
+                }
               }
-            }))
+            })
             setPlays(restoredPlays)
           }
 
@@ -632,6 +990,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             }
             return m
           }))
+          // Send collaboration update for module move into block
+          collaborationCallbacks?.sendModuleMove?.({ moduleId: existingModuleId, x: relativeX, y: relativeY, parentId: blockId })
           setDraggedModuleId(null)
           return
         }
@@ -655,6 +1015,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             setModules(prev => prev.map(m =>
               m.id === blockId ? { ...m, children: [...(m.children || []), newModule.id] } : m
             ))
+            // Send collaboration update for new module
+            collaborationCallbacks?.sendModuleAdd?.({
+              moduleId: newModule.id,
+              module: newModule,
+              position: { x: relativeX, y: relativeY }
+            })
           }
         }
         return
@@ -733,6 +1099,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           return m
         }))
 
+        // Send collaboration update for module move
+        console.log('[WorkZone] Module moved, calling sendModuleMove. collaborationCallbacks:', collaborationCallbacks ? 'exists' : 'undefined', 'sendModuleMove:', collaborationCallbacks?.sendModuleMove ? 'exists' : 'undefined')
+        collaborationCallbacks?.sendModuleMove?.({ moduleId: existingModuleId, x, y })
+
         setDraggedModuleId(null)
       } else if (moduleData) {
         // Nouveau module depuis la palette
@@ -740,8 +1110,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         const isBlock = parsedData.name === 'block'
         const isPlay = parsedData.name === 'play'
 
+        const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
         const newModule: ModuleBlock = {
-          id: Date.now().toString(),
+          id: newModuleId,
           collection: parsedData.collection,
           name: parsedData.name,
           description: parsedData.description,
@@ -754,6 +1125,24 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           blockSections: isBlock ? { normal: [], rescue: [], always: [] } : undefined,
         }
         setModules([...modules, newModule])
+
+        // If it's a block, collapse rescue and always sections by default (local only - not synced)
+        if (isBlock) {
+          setCollapsedBlockSections(prev => {
+            const newSet = new Set(prev)
+            newSet.add(`${newModuleId}:rescue`)
+            newSet.add(`${newModuleId}:always`)
+            return newSet
+          })
+        }
+
+        // Send collaboration update for new module
+        console.log('[WorkZone] New module added, calling sendModuleAdd. collaborationCallbacks:', collaborationCallbacks ? 'exists' : 'undefined', 'sendModuleAdd:', collaborationCallbacks?.sendModuleAdd ? 'exists' : 'undefined')
+        collaborationCallbacks?.sendModuleAdd?.({
+          moduleId: newModule.id,
+          module: newModule,
+          position: { x, y }
+        })
       }
     }
   }
@@ -983,6 +1372,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           ? { ...m, width: newWidth, height: newHeight, x: newX, y: newY }
           : m
       ))
+
+      // Store dimensions for sync when resize ends
+      lastResizedModuleRef.current = {
+        id: resizingBlock.id,
+        width: newWidth,
+        height: newHeight,
+        x: newX,
+        y: newY
+      }
     }
 
     const handleResizeEnd = () => {
@@ -997,6 +1395,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       document.removeEventListener('mouseup', handleResizeEnd)
     }
   }, [resizingBlock, modules])
+
+  // Send resize sync when resizing ends
+  useEffect(() => {
+    if (resizingBlock === null && lastResizedModuleRef.current) {
+      const { id, width, height, x, y } = lastResizedModuleRef.current
+      collaborationCallbacks?.sendModuleResize?.({ moduleId: id, width, height, x, y })
+      lastResizedModuleRef.current = null
+    }
+  }, [resizingBlock, collaborationCallbacks])
 
   // Handler pour le drop dans une section de block
   const handleBlockSectionDrop = (blockId: string, section: 'normal' | 'rescue' | 'always', e: React.DragEvent) => {
@@ -1055,6 +1462,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         setModules(prev => prev.map(m =>
           m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
         ))
+        // Send collaboration update for module move (include parentId/parentSection to prevent removal)
+        collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: blockId, parentSection: section })
         return
       }
       // Sous-cas 1.2: Tâche externe (zone de travail ou autre section)
@@ -1111,6 +1520,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               return m
             })
           })
+          // Send collaboration update for module move into block section
+          collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: blockId, parentSection: section })
           return
         } else {
           // A des liens: créer un lien avec le block
@@ -1165,6 +1576,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             return m
           })
         })
+
+        // Send collaboration update for new module in block section
+        collaborationCallbacks?.sendModuleAdd?.({
+          moduleId: newModuleId,
+          module: newModule,
+          position: { x: relativeX, y: relativeY }
+        })
       }
     }
   }
@@ -1199,6 +1617,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
       updatedLinks.push(newLink)
 
+      // Send collaboration update for the new link
+      collaborationCallbacks?.sendLinkAdd?.({ link: newLink })
+
       return updatedLinks
     })
   }
@@ -1232,16 +1653,21 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   const deleteLink = (linkId: string) => {
     setLinks(links.filter(l => l.id !== linkId))
+    // Send collaboration update
+    collaborationCallbacks?.sendLinkDelete?.({ linkId })
   }
 
   const toggleBlockCollapse = (blockId: string) => {
     setCollapsedBlocks(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(blockId)) {
+      const wasCollapsed = newSet.has(blockId)
+      if (wasCollapsed) {
         newSet.delete(blockId)
       } else {
         newSet.add(blockId)
       }
+      // Send collaboration update
+      collaborationCallbacks?.sendBlockCollapse?.({ blockId, collapsed: !wasCollapsed })
       return newSet
     })
   }
@@ -1308,14 +1734,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         otherSections.forEach(s => {
           newSet.delete(`*:${s}`)
           newSet.add(`${blockId}:${s}`)
+          // Note: section_collapse is NOT synced - each user can work on different sections independently
         })
 
         // Ouvrir uniquement la section cliquée
         newSet.delete(wildcardKey)
         newSet.delete(key)
+        // Note: section_collapse is NOT synced - each user can work on different sections independently
       } else {
         // Si déjà ouverte, la fermer
         newSet.add(key)
+        // Note: section_collapse is NOT synced - each user can work on different sections independently
       }
 
       return newSet
@@ -1461,6 +1890,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         setModules(prev => prev.map(m =>
           m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
         ))
+        // Send collaboration update for module move (include parentSection for play sections)
+        collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentSection: section })
         return
       }
       // Sous-cas 1.2: Tâche/Block externe (autre section ou zone de travail)
@@ -1497,6 +1928,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
             return m
           }))
+          // Send collaboration update for module move to play section (out of block)
+          collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: undefined, parentSection: section })
           return
         } else {
           // A des liens: on ne peut pas déplacer une tâche/block avec des liens entre sections
@@ -1531,8 +1964,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - itemWidth))
         relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - itemHeight))
 
+        const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
         const newModule: ModuleBlock = {
-          id: `module-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          id: newModuleId,
           collection: parsedData.collection,
           name: parsedData.name,
           description: parsedData.description || '',
@@ -1545,6 +1979,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         }
 
         setModules([...modules, newModule])
+
+        // Send collaboration update for new module in play section
+        collaborationCallbacks?.sendModuleAdd?.({
+          moduleId: newModuleId,
+          module: newModule,
+          position: { x: relativeX, y: relativeY }
+        })
       }
     }
   }
@@ -1611,7 +2052,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         return m
       }).filter(m => m.id !== id))
     }
-  }, [modules, links, selectedModuleId, onSelectModule, setModules, setLinks])
+
+    // Send collaboration update
+    collaborationCallbacks?.sendModuleDelete?.({ moduleId: id })
+  }, [modules, links, selectedModuleId, onSelectModule, setModules, setLinks, collaborationCallbacks])
 
   // Exposer handleDelete au parent via callback
   useEffect(() => {
@@ -1690,6 +2134,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       onPlayAttributes(getPlayAttributes, updatePlayAttributes)
     }
   }, [getPlayAttributes, updatePlayAttributes, onPlayAttributes])
+
+  // Notify parent of active play ID changes (for collaboration)
+  useEffect(() => {
+    if (onActivePlayIdChange && currentPlay?.id) {
+      onActivePlayIdChange(currentPlay.id)
+    }
+  }, [currentPlay?.id, onActivePlayIdChange])
 
   // Obtenir le style du lien selon son type
   const getLinkStyle = (type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => {
@@ -2802,8 +3253,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
                       overflow: 'visible',
+                      // Highlight effect for synced elements
+                      ...(highlightedElements.has(module.id) && {
+                        boxShadow: '0 0 20px 5px rgba(76, 175, 80, 0.6)',
+                        animation: 'syncHighlight 2s ease-out',
+                        '@keyframes syncHighlight': {
+                          '0%': { boxShadow: '0 0 30px 10px rgba(76, 175, 80, 0.8)' },
+                          '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' }
+                        }
+                      }),
                       '&:hover': {
-                        boxShadow: 6,
+                        boxShadow: highlightedElements.has(module.id) ? '0 0 20px 5px rgba(76, 175, 80, 0.6)' : 6,
                       },
                     }}
                   >
@@ -2988,6 +3448,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     setModules(prev => prev.map(m =>
                                       m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
                                     ))
+                                    // Send collaboration update for module move (include parentId/parentSection to prevent removal)
+                                    collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'normal' })
                                     return
                                   }
                                   // Sous-cas 1.2: Tâche externe (zone de travail ou autre section)
@@ -3019,6 +3481,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                       // Ajouter à cette section
                                       addTaskToBlockSection(sourceId, module.id, 'normal', relativeX, relativeY)
+                                      // Send collaboration update for module move into block section
+                                      collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'normal' })
                                       return
                                     } else {
                                       // A des liens: créer un lien avec le block
@@ -3056,8 +3520,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - itemWidth))
                                     relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - itemHeight))
 
+                                    const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
                                     const newModule: ModuleBlock = {
-                                      id: Date.now().toString(),
+                                      id: newModuleId,
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
@@ -3085,6 +3550,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       }
                                       return m
                                     }))
+
+                                    // Send collaboration update
+                                    collaborationCallbacks?.sendModuleAdd?.({
+                                      moduleId: newModuleId,
+                                      module: newModule,
+                                      position: { x: relativeX, y: relativeY }
+                                    })
                                   }
                                 }
                               }}
@@ -3203,6 +3675,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     setModules(prev => prev.map(m =>
                                       m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
                                     ))
+                                    // Send collaboration update for module move (include parentId/parentSection to prevent removal)
+                                    collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'rescue' })
                                     return
                                   }
                                   // Sous-cas 1.2: Tâche externe (zone de travail ou autre section)
@@ -3234,6 +3708,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                       // Ajouter à cette section
                                       addTaskToBlockSection(sourceId, module.id, 'rescue', relativeX, relativeY)
+                                      // Send collaboration update for module move into block section
+                                      collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'rescue' })
                                       return
                                     } else {
                                       // A des liens: créer un lien avec le block
@@ -3265,8 +3741,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     adjustedX = Math.max(0, Math.min(adjustedX, sectionRect.width - itemWidth))
                                     adjustedY = Math.max(0, Math.min(adjustedY, sectionRect.height - itemHeight))
 
+                                    const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
                                     const newModule: ModuleBlock = {
-                                      id: Date.now().toString(),
+                                      id: newModuleId,
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
@@ -3294,6 +3771,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       }
                                       return m
                                     }))
+
+                                    // Send collaboration update
+                                    collaborationCallbacks?.sendModuleAdd?.({
+                                      moduleId: newModuleId,
+                                      module: newModule,
+                                      position: { x: adjustedX, y: adjustedY }
+                                    })
                                   }
                                 }
                               }}
@@ -3412,6 +3896,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     setModules(prev => prev.map(m =>
                                       m.id === sourceId ? { ...m, x: relativeX, y: relativeY } : m
                                     ))
+                                    // Send collaboration update for module move (include parentId/parentSection to prevent removal)
+                                    collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'always' })
                                     return
                                   }
                                   // Sous-cas 1.2: Tâche externe (zone de travail ou autre section)
@@ -3443,6 +3929,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                       // Ajouter à cette section
                                       addTaskToBlockSection(sourceId, module.id, 'always', relativeX, relativeY)
+                                      // Send collaboration update for module move into block section
+                                      collaborationCallbacks?.sendModuleMove?.({ moduleId: sourceId, x: relativeX, y: relativeY, parentId: module.id, parentSection: 'always' })
                                       return
                                     } else {
                                       // A des liens: créer un lien avec le block
@@ -3474,8 +3962,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                     adjustedX = Math.max(0, Math.min(adjustedX, sectionRect.width - itemWidth))
                                     adjustedY = Math.max(0, Math.min(adjustedY, sectionRect.height - itemHeight))
 
+                                    const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
                                     const newModule: ModuleBlock = {
-                                      id: Date.now().toString(),
+                                      id: newModuleId,
                                       collection: parsedData.collection,
                                       name: parsedData.name,
                                       description: parsedData.description,
@@ -3503,6 +3992,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                       }
                                       return m
                                     }))
+
+                                    // Send collaboration update
+                                    collaborationCallbacks?.sendModuleAdd?.({
+                                      moduleId: newModuleId,
+                                      module: newModule,
+                                      position: { x: adjustedX, y: adjustedY }
+                                    })
                                   }
                                 }
                               }}
@@ -3597,8 +4093,17 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       border: selectedModuleId === module.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
+                      // Highlight effect for synced elements
+                      ...(highlightedElements.has(module.id) && {
+                        boxShadow: '0 0 20px 5px rgba(76, 175, 80, 0.6)',
+                        animation: 'syncHighlight 2s ease-out',
+                        '@keyframes syncHighlight': {
+                          '0%': { boxShadow: '0 0 30px 10px rgba(76, 175, 80, 0.8)' },
+                          '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' }
+                        }
+                      }),
                       '&:hover': {
-                        boxShadow: 6,
+                        boxShadow: highlightedElements.has(module.id) ? '0 0 20px 5px rgba(76, 175, 80, 0.6)' : 6,
                       },
                     }}
                   >

@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.13.0-rc.4"
+__version__ = "1.14.0-rc.6"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,28 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.14.0": {
+        "title": "Synchronisation Temps Réel des Playbooks",
+        "release_date": "2025-12-22",
+        "features": [
+            "Synchronisation temps réel des modifications entre collaborateurs",
+            "Versioning des playbooks pour gestion des conflits",
+            "Updates granulaires (module, config, liens, plays, variables)",
+            "Debounce 300ms pour optimisation performance",
+            "Highlight visuel des éléments modifiés par autres utilisateurs"
+        ],
+        "improvements": [
+            "Réactivité améliorée lors de l'édition collaborative",
+            "Notification visuelle des modifications reçues",
+            "Gestion intelligente des conflits avec versioning"
+        ],
+        "technical": [
+            "Hook useCollaborationSync pour application des updates",
+            "Types d'updates: module_add, module_move, module_delete, module_config, link_*, play_*, variable_*",
+            "Debounce intégré pour réduction du trafic WebSocket",
+            "Version field sur Playbook pour détection de conflits"
+        ]
+    },
     "1.13.0": {
         "title": "Collaboration Multi-utilisateur Temps Réel",
         "release_date": "2025-12-22",

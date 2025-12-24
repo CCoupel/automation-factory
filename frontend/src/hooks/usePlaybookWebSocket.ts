@@ -83,12 +83,15 @@ export function usePlaybookWebSocket(
   const getWebSocketUrl = useCallback(() => {
     const token = localStorage.getItem('authToken')
     const currentPlaybookId = playbookIdRef.current
+    console.log('[WS] getWebSocketUrl - token:', token ? 'exists' : 'MISSING', 'playbookId:', currentPlaybookId)
     if (!token || !currentPlaybookId) return null
 
     // Use environment variable if available, otherwise derive from location
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsHost = window.location.host
 
+    const url = `${wsProtocol}//${wsHost}/ws/playbook/${currentPlaybookId}?token=${token.substring(0, 20)}...`
+    console.log('[WS] WebSocket URL:', url)
     return `${wsProtocol}//${wsHost}/ws/playbook/${currentPlaybookId}?token=${token}`
   }, [])
 
@@ -130,6 +133,11 @@ export function usePlaybookWebSocket(
 
         case 'pong':
           // Keep-alive response, no action needed
+          break
+
+        case 'connected':
+          // Initial connection confirmation with role info
+          console.log('[WS] Connected to playbook with role:', message.role)
           break
 
         case 'error':
@@ -222,26 +230,33 @@ export function usePlaybookWebSocket(
   }, [])
 
   const sendUpdate = useCallback((updateType: string, data: Record<string, unknown>) => {
+    console.log('[WS] sendUpdate called:', updateType, 'wsRef:', wsRef.current ? 'exists' : 'null', 'readyState:', wsRef.current?.readyState)
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
+      const message = {
         type: 'update',
         update_type: updateType,
         data
-      }))
+      }
+      console.log('[WS] Sending message:', JSON.stringify(message).substring(0, 200))
+      wsRef.current.send(JSON.stringify(message))
     } else {
-      console.warn('WebSocket not connected, cannot send update')
+      console.warn('[WS] WebSocket not connected, cannot send update. readyState:', wsRef.current?.readyState)
     }
   }, [])
 
   // Connect when playbook ID changes
   useEffect(() => {
+    console.log('[WS] useEffect triggered - playbookId:', playbookId)
     if (playbookId) {
+      console.log('[WS] Calling connect() for playbook:', playbookId)
       connect()
     } else {
+      console.log('[WS] No playbookId, calling disconnect()')
       disconnect()
     }
 
     return () => {
+      console.log('[WS] Cleanup - calling disconnect()')
       disconnect()
     }
   }, [playbookId]) // eslint-disable-line react-hooks/exhaustive-deps
