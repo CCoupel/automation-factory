@@ -27,9 +27,7 @@ import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes,
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
-
-// Configuration: Duration in ms for collaboration highlight effect
-const HIGHLIGHT_DURATION_MS = 1500
+import { useUserPreferences } from '../../contexts/UserPreferencesContext'
 
 // Collaboration callback types for real-time sync
 export interface CollaborationCallbacks {
@@ -104,6 +102,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const tasksSectionRef = useRef<HTMLDivElement>(null)
   const postTasksSectionRef = useRef<HTMLDivElement>(null)
   const handlersSectionRef = useRef<HTMLDivElement>(null)
+
+  // User preferences for highlight duration
+  const { preferences } = useUserPreferences()
 
   // Gestion des PLAYs avec onglets
   const [plays, setPlays] = useState<Play[]>([
@@ -258,8 +259,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         newMap.delete(elementId)
         return newMap
       })
-    }, HIGHLIGHT_DURATION_MS)
-  }, [getUserColor])
+    }, preferences.highlightDurationMs)
+  }, [getUserColor, preferences.highlightDurationMs])
 
   // =====================================================
   // PLAYBOOK PERSISTENCE

@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { AnsibleVersionProvider } from './contexts/AnsibleVersionContext'
 import { GalaxyCacheProvider } from './contexts/GalaxyCacheContext'
 import { CollaborationProvider } from './contexts/CollaborationContext'
+import { UserPreferencesProvider } from './contexts/UserPreferencesContext'
 import PrivateRoute from './components/auth/PrivateRoute'
 import LoginPage from './pages/LoginPage'
 import App from './App.tsx'
@@ -41,9 +42,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     path="/*"
                     element={
                       <PrivateRoute>
-                        <CollaborationProvider>
-                          <App />
-                        </CollaborationProvider>
+                        <UserPreferencesProvider>
+                          <CollaborationProvider>
+                            <App />
+                          </CollaborationProvider>
+                        </UserPreferencesProvider>
                       </PrivateRoute>
                     }
                   />

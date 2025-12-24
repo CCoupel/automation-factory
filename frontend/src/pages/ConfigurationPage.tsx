@@ -21,7 +21,9 @@ import {
   DialogContent,
   DialogActions,
   Chip,
-  Tooltip
+  Tooltip,
+  Slider,
+  Stack
 } from '@mui/material'
 import {
   Settings as SettingsIcon,
@@ -29,54 +31,55 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Star as StarIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Highlight as HighlightIcon,
+  RestartAlt as ResetIcon
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
 import { getHttpClient } from '../utils/httpClient'
+import { useUserPreferences } from '../contexts/UserPreferencesContext'
 
 /**
  * Configuration Page Component
- * 
- * Admin-only page for configuring application settings:
- * - Standard namespaces management
- * - System configuration options
- * 
+ *
+ * Page for configuring application settings:
+ * - User preferences (accessible to all users)
+ * - Standard namespaces management (admin only)
+ *
  * Features:
- * - Add/Remove standard namespaces
+ * - Highlight duration configuration
+ * - Add/Remove standard namespaces (admin)
  * - Real-time validation
  * - Persist changes via API
  */
 const ConfigurationPage: React.FC = () => {
   const { user } = useAuth()
+  const { preferences, updatePreference, resetPreferences } = useUserPreferences()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  
+
   // Standard namespaces state
   const [standardNamespaces, setStandardNamespaces] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  
+
   // Add namespace dialog state
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newNamespace, setNewNamespace] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      window.location.href = '/'
-    }
-  }, [user])
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin'
 
   /**
-   * Fetch current configuration
+   * Fetch current configuration (admin only)
    */
   useEffect(() => {
     const fetchConfiguration = async () => {
       try {
         setLoading(true)
         const http = getHttpClient()
-        
+
         // For now, we'll simulate fetching from an API
         // In the future, this will be a real API call
         const response = await http.get('/api/admin/configuration/standard-namespaces')
@@ -90,10 +93,13 @@ const ConfigurationPage: React.FC = () => {
       }
     }
 
-    if (user?.role === 'admin') {
+    if (isAdmin) {
       fetchConfiguration()
+    } else {
+      // Non-admin users don't need to load admin config
+      setLoading(false)
     }
-  }, [user])
+  }, [isAdmin])
 
   /**
    * Save configuration changes
@@ -171,16 +177,6 @@ const ConfigurationPage: React.FC = () => {
     setAddError(null)
   }
 
-  if (user?.role !== 'admin') {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Access denied. This page is only available to administrators.
-        </Alert>
-      </Box>
-    )
-  }
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -205,14 +201,69 @@ const ConfigurationPage: React.FC = () => {
           {error}
         </Alert>
       )}
-      
+
       {success && (
         <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
           {success}
         </Alert>
       )}
 
-      {/* Standard Namespaces Configuration */}
+      {/* User Preferences Section - Available to all users */}
+      <Card sx={{ mb: 4 }}>
+        <CardHeader
+          title="Préférences utilisateur"
+          subheader="Personnalisez votre expérience dans l'application"
+          action={
+            <Tooltip title="Réinitialiser les préférences par défaut">
+              <IconButton onClick={resetPreferences} size="small">
+                <ResetIcon />
+              </IconButton>
+            </Tooltip>
+          }
+        />
+        <CardContent>
+          {/* Highlight Duration Setting */}
+          <Box sx={{ mb: 3 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <HighlightIcon color="primary" fontSize="small" />
+              <Typography variant="subtitle2">
+                Durée de surbrillance collaborative
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Durée pendant laquelle un élément reste en surbrillance lorsqu'un collaborateur le modifie.
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 50 }}>
+                0.5s
+              </Typography>
+              <Slider
+                value={preferences.highlightDurationMs}
+                onChange={(_, value) => updatePreference('highlightDurationMs', value as number)}
+                min={500}
+                max={5000}
+                step={100}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${(value / 1000).toFixed(1)}s`}
+                sx={{ flex: 1 }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 50 }}>
+                5s
+              </Typography>
+              <Chip
+                label={`${(preferences.highlightDurationMs / 1000).toFixed(1)}s`}
+                size="small"
+                color="primary"
+                sx={{ minWidth: 60 }}
+              />
+            </Stack>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Standard Namespaces Configuration - Admin only */}
+      {isAdmin && (
+      <>
       <Card sx={{ mb: 4 }}>
         <CardHeader
           title="Standard Namespaces"
@@ -287,17 +338,6 @@ const ConfigurationPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Future configuration sections can be added here */}
-      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
-        <Typography variant="h6" color="text.secondary" gutterBottom>
-          Configuration supplémentaire
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          D'autres options de configuration seront ajoutées dans les futures versions :
-          paramètres système, intégrations, notifications, etc.
-        </Typography>
-      </Paper>
-
       {/* Add Namespace Dialog */}
       <Dialog
         open={addDialogOpen}
@@ -343,6 +383,8 @@ const ConfigurationPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </>
+      )}
     </Box>
   )
 }
