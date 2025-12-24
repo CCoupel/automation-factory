@@ -46,6 +46,8 @@ interface BlockSectionContentProps {
   setHoveredLinkId: (linkId: string | null) => void
   getModuleOrVirtual: (id: string) => ModuleBlock | undefined
   getModuleDimensions: (module: ModuleBlock) => { width: number; height: number }
+  // Highlighted elements for collaboration sync
+  highlightedElements?: Map<string, string>
 }
 
 const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
@@ -79,6 +81,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
   setHoveredLinkId,
   getModuleOrVirtual,
   getModuleDimensions,
+  highlightedElements,
 }) => {
   // Trouver le block parent
   const parentBlock = modules.find(m => m.id === blockId)
@@ -232,8 +235,16 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                 zIndex: draggedModuleId === task.id ? 10 : 1,
                 opacity: draggedModuleId === task.id ? 0.7 : 1,
                 overflow: 'visible',
+                // Highlight effect for synced elements (user's color)
+                ...(highlightedElements?.has(task.id) && {
+                  boxShadow: `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`,
+                  border: `3px solid ${highlightedElements.get(task.id)}`,
+                  transition: 'box-shadow 0.3s ease-in, border 0.3s ease-in',
+                }),
                 '&:hover': {
-                  boxShadow: 6,
+                  boxShadow: highlightedElements?.has(task.id)
+                    ? `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`
+                    : 6,
                 },
               }}
             >
@@ -370,6 +381,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         setHoveredLinkId={setHoveredLinkId}
                         getModuleOrVirtual={getModuleOrVirtual}
                         getModuleDimensions={getModuleDimensions}
+                        highlightedElements={highlightedElements}
                       />
                     </Box>
                   )}
@@ -435,6 +447,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         setHoveredLinkId={setHoveredLinkId}
                         getModuleOrVirtual={getModuleOrVirtual}
                         getModuleDimensions={getModuleDimensions}
+                        highlightedElements={highlightedElements}
                       />
                     </Box>
                   )}
@@ -500,6 +513,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         setHoveredLinkId={setHoveredLinkId}
                         getModuleOrVirtual={getModuleOrVirtual}
                         getModuleDimensions={getModuleDimensions}
+                        highlightedElements={highlightedElements}
                       />
                     </Box>
                   )}
@@ -556,8 +570,16 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
               border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
               zIndex: draggedModuleId === task.id ? 10 : 1,
               opacity: draggedModuleId === task.id ? 0.7 : 1,
+              // Highlight effect for synced elements (user's color)
+              ...(highlightedElements?.has(task.id) && {
+                boxShadow: `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`,
+                border: `3px solid ${highlightedElements.get(task.id)}`,
+                transition: 'box-shadow 0.3s ease-in, border 0.3s ease-in',
+              }),
               '&:hover': {
-                boxShadow: 6,
+                boxShadow: highlightedElements?.has(task.id)
+                  ? `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`
+                  : 6,
               },
             }}
           >

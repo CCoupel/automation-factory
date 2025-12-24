@@ -219,26 +219,44 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   // Ref to track last resized module for sync
   const lastResizedModuleRef = useRef<{ id: string; width: number; height: number; x: number; y: number } | null>(null)
 
-  // State to track recently synced elements for visual highlight
-  const [highlightedElements, setHighlightedElements] = useState<Set<string>>(new Set())
+  // State to track recently synced elements with their highlight color
+  const [highlightedElements, setHighlightedElements] = useState<Map<string, string>>(new Map())
 
-  // Function to highlight an element temporarily
-  const highlightElement = useCallback((elementId: string) => {
+  // Get consistent color for a user based on their ID (same as PresenceIndicator)
+  const getUserColor = useCallback((userId: string): string => {
+    const colors = [
+      '#f44336', '#e91e63', '#9c27b0', '#673ab7',
+      '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4',
+      '#009688', '#4caf50', '#8bc34a', '#cddc39',
+      '#ffc107', '#ff9800', '#ff5722', '#795548'
+    ]
+    let hash = 0
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return colors[Math.abs(hash) % colors.length]
+  }, [])
+
+  // Function to highlight an element temporarily with user's color
+  const highlightElement = useCallback((elementId: string, userId: string) => {
+    const color = getUserColor(userId)
+    console.log('[Highlight] Adding highlight to element:', elementId, 'with color:', color, 'from user:', userId)
     setHighlightedElements(prev => {
-      const newSet = new Set(prev)
-      newSet.add(elementId)
-      return newSet
+      const newMap = new Map(prev)
+      newMap.set(elementId, color)
+      return newMap
     })
 
-    // Remove highlight after 2 seconds
+    // Remove highlight after 3 seconds
     setTimeout(() => {
+      console.log('[Highlight] Removing highlight from element:', elementId)
       setHighlightedElements(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(elementId)
-        return newSet
+        const newMap = new Map(prev)
+        newMap.delete(elementId)
+        return newMap
       })
-    }, 2000)
-  }, [])
+    }, 3000)
+  }, [getUserColor])
 
   // =====================================================
   // PLAYBOOK PERSISTENCE
@@ -416,8 +434,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Apply collaboration updates from other users
   const applyCollaborationUpdate = useCallback((update: PlaybookUpdate) => {
-    const { update_type, data, username } = update
-    console.log(`[Collab] Applying ${update_type} from ${username}:`, data)
+    const { update_type, data, username, user_id } = update
+    console.log(`[Collab] Applying ${update_type} from ${username} (${user_id}):`, data)
 
     switch (update_type) {
       case 'module_add': {
@@ -463,8 +481,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         } else {
           setModules(prev => [...prev, module])
         }
-        // Highlight the added module
-        highlightElement(module.id)
+        // Highlight the added module with user's color
+        highlightElement(module.id, user_id)
         break
       }
       case 'module_move': {
@@ -536,8 +554,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             return hasChanges ? updated : m
           })
         })
-        // Highlight the moved module
-        highlightElement(moduleId)
+        // Highlight the moved module with user's color
+        highlightElement(moduleId, user_id)
         break
       }
       case 'module_delete': {
@@ -566,41 +584,44 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           })
 
           // If this is the selected module, update selectedModule in MainLayout
+          // Use setTimeout to avoid setState during render
           if (selectedModuleId === moduleId) {
             const updatedModule = newModules.find(m => m.id === moduleId)
             if (updatedModule) {
-              onSelectModule({
-                id: updatedModule.id,
-                name: updatedModule.name,
-                collection: updatedModule.collection,
-                taskName: updatedModule.taskName || '',
-                when: updatedModule.when,
-                ignoreErrors: updatedModule.ignoreErrors,
-                become: updatedModule.become,
-                loop: updatedModule.loop,
-                delegateTo: updatedModule.delegateTo,
-                tags: updatedModule.tags,
-                isBlock: updatedModule.isBlock,
-                isPlay: updatedModule.isPlay,
-                moduleParameters: updatedModule.moduleParameters,
-                moduleSchema: updatedModule.moduleSchema,
-                validationState: updatedModule.validationState,
-              })
+              setTimeout(() => {
+                onSelectModule({
+                  id: updatedModule.id,
+                  name: updatedModule.name,
+                  collection: updatedModule.collection,
+                  taskName: updatedModule.taskName || '',
+                  when: updatedModule.when,
+                  ignoreErrors: updatedModule.ignoreErrors,
+                  become: updatedModule.become,
+                  loop: updatedModule.loop,
+                  delegateTo: updatedModule.delegateTo,
+                  tags: updatedModule.tags,
+                  isBlock: updatedModule.isBlock,
+                  isPlay: updatedModule.isPlay,
+                  moduleParameters: updatedModule.moduleParameters,
+                  moduleSchema: updatedModule.moduleSchema,
+                  validationState: updatedModule.validationState,
+                })
+              }, 0)
             }
           }
 
           return newModules
         })
-        // Highlight the configured module
-        highlightElement(moduleId)
+        // Highlight the configured module with user's color
+        highlightElement(moduleId, user_id)
         break
       }
       case 'link_add': {
         const { link } = data as { link: Link }
         setLinks(prev => [...prev, link])
-        // Highlight both connected modules
-        highlightElement(link.from)
-        highlightElement(link.to)
+        // Highlight both connected modules with user's color
+        highlightElement(link.from, user_id)
+        highlightElement(link.to, user_id)
         break
       }
       case 'link_delete': {
@@ -650,8 +671,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           }
           return newSet
         })
-        // Highlight the collapsed/expanded block
-        highlightElement(blockId)
+        // Highlight the collapsed/expanded block with user's color
+        highlightElement(blockId, user_id)
         break
       }
       case 'module_resize': {
@@ -661,8 +682,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             ? { ...m, width, height, x, y }
             : m
         ))
-        // Highlight the resized module
-        highlightElement(moduleId)
+        // Highlight the resized module with user's color
+        highlightElement(moduleId, user_id)
         break
       }
       // Note: section_collapse is NOT synced - each user can work on different sections independently
@@ -2940,6 +2961,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               setHoveredLinkId={setHoveredLinkId}
               getModuleOrVirtual={getModuleOrVirtual}
               getModuleDimensions={getModuleDimensions}
+              highlightedElements={highlightedElements}
             />
 
             {/* Render links for this section */}
@@ -3010,6 +3032,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               setHoveredLinkId={setHoveredLinkId}
               getModuleOrVirtual={getModuleOrVirtual}
               getModuleDimensions={getModuleDimensions}
+              highlightedElements={highlightedElements}
             />
 
             {/* Render links for this section */}
@@ -3080,6 +3103,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               setHoveredLinkId={setHoveredLinkId}
               getModuleOrVirtual={getModuleOrVirtual}
               getModuleDimensions={getModuleDimensions}
+              highlightedElements={highlightedElements}
             />
 
             {/* Render links for this section */}
@@ -3150,6 +3174,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               setHoveredLinkId={setHoveredLinkId}
               getModuleOrVirtual={getModuleOrVirtual}
               getModuleDimensions={getModuleDimensions}
+              highlightedElements={highlightedElements}
             />
 
             {/* Render links for this section */}
@@ -3253,17 +3278,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
                       overflow: 'visible',
-                      // Highlight effect for synced elements
+                      // Highlight effect for synced elements (user's color)
                       ...(highlightedElements.has(module.id) && {
-                        boxShadow: '0 0 20px 5px rgba(76, 175, 80, 0.6)',
-                        animation: 'syncHighlight 2s ease-out',
-                        '@keyframes syncHighlight': {
-                          '0%': { boxShadow: '0 0 30px 10px rgba(76, 175, 80, 0.8)' },
-                          '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' }
-                        }
+                        boxShadow: `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`,
+                        border: `3px solid ${highlightedElements.get(module.id)}`,
+                        transition: 'box-shadow 0.3s ease-in, border 0.3s ease-in',
                       }),
                       '&:hover': {
-                        boxShadow: highlightedElements.has(module.id) ? '0 0 20px 5px rgba(76, 175, 80, 0.6)' : 6,
+                        boxShadow: highlightedElements.has(module.id)
+                          ? `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`
+                          : 6,
                       },
                     }}
                   >
@@ -4093,17 +4117,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       border: selectedModuleId === module.id ? `2px solid ${taskTheme.borderColor}` : 'none',
                       zIndex: draggedModuleId === module.id ? 10 : 1,
                       opacity: draggedModuleId === module.id ? 0.7 : 1,
-                      // Highlight effect for synced elements
+                      // Highlight effect for synced elements (user's color)
                       ...(highlightedElements.has(module.id) && {
-                        boxShadow: '0 0 20px 5px rgba(76, 175, 80, 0.6)',
-                        animation: 'syncHighlight 2s ease-out',
-                        '@keyframes syncHighlight': {
-                          '0%': { boxShadow: '0 0 30px 10px rgba(76, 175, 80, 0.8)' },
-                          '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' }
-                        }
+                        boxShadow: `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`,
+                        border: `3px solid ${highlightedElements.get(module.id)}`,
+                        transition: 'box-shadow 0.3s ease-in, border 0.3s ease-in',
                       }),
                       '&:hover': {
-                        boxShadow: highlightedElements.has(module.id) ? '0 0 20px 5px rgba(76, 175, 80, 0.6)' : 6,
+                        boxShadow: highlightedElements.has(module.id)
+                          ? `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`
+                          : 6,
                       },
                     }}
                   >
