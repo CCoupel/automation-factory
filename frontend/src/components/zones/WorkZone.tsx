@@ -28,6 +28,9 @@ import { playbookService, PlaybookContent } from '../../services/playbookService
 import { useAuth } from '../../contexts/AuthContext'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
 
+// Configuration: Duration in ms for collaboration highlight effect
+const HIGHLIGHT_DURATION_MS = 1500
+
 // Collaboration callback types for real-time sync
 export interface CollaborationCallbacks {
   sendModuleAdd?: (data: { moduleId: string; module: ModuleBlock; position: { x: number; y: number } }) => void
@@ -247,7 +250,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return newMap
     })
 
-    // Remove highlight after 3 seconds
+    // Remove highlight after configured duration
     setTimeout(() => {
       console.log('[Highlight] Removing highlight from element:', elementId)
       setHighlightedElements(prev => {
@@ -255,7 +258,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         newMap.delete(elementId)
         return newMap
       })
-    }, 3000)
+    }, HIGHLIGHT_DURATION_MS)
   }, [getUserColor])
 
   // =====================================================

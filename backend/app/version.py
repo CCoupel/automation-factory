@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.14.0-rc.10"
+__version__ = "1.14.0-rc.11"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
