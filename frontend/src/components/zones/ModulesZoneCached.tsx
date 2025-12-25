@@ -42,6 +42,7 @@ import {
   type Collection,
   type GenericElement,
 } from './modules-zone'
+import { ModulesTreeView } from './modules-zone/ModulesTreeView'
 
 interface ModulesZoneCachedProps {
   onCollapse?: () => void
@@ -594,7 +595,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
 
       {/* Content Area */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {activeTab === 0 ? (
+        {activeTab === 0 && (
           // Generic Zone
           <List dense>
             {filterItems(genericElements)
@@ -603,7 +604,15 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                 <GenericElementListItem key={index} element={element} />
               ))}
           </List>
-        ) : (
+        )}
+
+        {activeTab === 1 && (
+          // Modules Zone - TreeView
+          <ModulesTreeView searchQuery={searchQuery} />
+        )}
+
+        {activeTab === 99 && (
+          // Old Modules Zone - Disabled (kept for reference)
           // Modules Zone - Cached Data
           <Box sx={{ p: 2 }}>
             {/* Breadcrumb navigation */}

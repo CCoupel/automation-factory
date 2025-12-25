@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.14.2"
+__version__ = "1.14.3-rc.9"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,27 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.14.3": {
+        "title": "Vue Arborescente Elements (TreeView)",
+        "release_date": "2025-12-25",
+        "features": [
+            "Vue arborescente pour namespaces/collections/modules",
+            "Chargement paresseux (lazy loading) des données",
+            "Recherche et filtre des namespaces",
+            "Drag & drop des modules vers le playbook depuis TreeView"
+        ],
+        "improvements": [
+            "Navigation plus intuitive dans les collections Ansible",
+            "Meilleure visibilité de la hiérarchie namespace/collection/module",
+            "Indicateurs de chargement par nœud"
+        ],
+        "technical": [
+            "Composant ModulesTreeView avec MUI X Tree View",
+            "SimpleTreeView avec expansion contrôlée",
+            "Icônes différenciées par niveau (Folder/Widgets/Extension)",
+            "Intégration avec GalaxyCacheContext pour les données"
+        ]
+    },
     "1.14.0": {
         "title": "Synchronisation Temps Réel des Playbooks",
         "release_date": "2025-12-22",
