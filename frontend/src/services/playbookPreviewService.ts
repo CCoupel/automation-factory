@@ -98,8 +98,8 @@ function getAuthHeader(): { Authorization: string } | Record<string, never> {
  * Uses module direct properties for task attributes and moduleParameters for module params
  */
 function moduleToTask(module: ModuleBlock): AnsibleTask {
-  // Use moduleParameters for module-specific params, fallback to config for backwards compatibility
-  const params = module.moduleParameters || module.config || {}
+  // Use moduleParameters for module-specific params
+  const params = module.moduleParameters || {}
 
   const task: AnsibleTask = {
     name: module.taskName || module.name,
@@ -118,9 +118,9 @@ function moduleToTask(module: ModuleBlock): AnsibleTask {
     task.loop = module.loop
   }
 
-  // register - store result in variable (from config for now)
-  if (module.config?.register) {
-    task.register = module.config.register
+  // register - store result in variable
+  if (module.register) {
+    task.register = module.register
   }
 
   // ignore_errors - continue on failure
@@ -207,12 +207,12 @@ function buildBlockTask(
     }
   }
 
-  // Add block-level attributes
-  if (block.config?.when) {
-    ansibleBlock.when = block.config.when
+  // Add block-level attributes (same as regular tasks)
+  if (block.when) {
+    ansibleBlock.when = block.when
   }
-  if (block.config?.become !== undefined) {
-    ansibleBlock.become = block.config.become
+  if (block.become !== undefined) {
+    ansibleBlock.become = block.become
   }
 
   // Remove the temporary module marker

@@ -55,10 +55,9 @@ export interface ModuleBlock {
   become?: boolean           // Privilege escalation
   delegateTo?: string        // Delegate to another host
   tags?: string[]            // Task tags for selective execution
+  register?: string          // Store task result in a variable
   // Module parameters from Galaxy schema
   moduleParameters?: Record<string, any>
-  // Legacy config (deprecated, use moduleParameters instead)
-  config?: Record<string, any>
 }
 
 export interface Link {

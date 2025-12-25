@@ -83,6 +83,7 @@ export interface ModuleBlock {
   loop?: string
   delegateTo?: string
   tags?: string[]  // Task tags for selective execution
+  register?: string  // Store task result in a variable
 
   // Module configuration (NEW)
   moduleParameters?: Record<string, any>  // User-configured module parameters

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ansibleService } from '../services/ansibleService';
+import { ansibleApiService } from '../services/ansibleApiService';
 import { userPreferencesService } from '../services/userPreferencesService';
 
 interface Namespace {
@@ -48,9 +48,12 @@ export const useAnsibleNamespaces = (version: string) => {
         setLoading(true);
         setError(null);
 
-        const response = await ansibleService.getNamespaces(version);
+        // Set version on the service before fetching
+        ansibleApiService.setVersion(version);
+        const namespaces = await ansibleApiService.getAllNamespaces();
+
         // Transform API response to match Namespace interface (collections_count -> collection_count)
-        const transformedNamespaces: Namespace[] = response.namespaces.map(ns => ({
+        const transformedNamespaces: Namespace[] = namespaces.map(ns => ({
           name: ns.name,
           collection_count: ns.collections_count,
           collections: ns.collections,
