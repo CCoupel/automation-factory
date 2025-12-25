@@ -529,7 +529,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     }
   }
 
-  // Load collections for a namespace
+  // Load collections for a namespace (lazy loading on click)
   const loadCollections = async (namespace: string) => {
     if (collectionsData[namespace]) return
 
@@ -537,7 +537,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     try {
       const collections = await getCollections(namespace)
       if (collections) {
-        setCollectionsData(prev => ({ ...prev, [namespace]: collections }))
+        setCollectionsCacheData({ [namespace]: collections })
       }
     } catch (error) {
       console.error(`Failed to load collections for ${namespace}:`, error)
@@ -550,7 +550,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     }
   }
 
-  // Load modules for a collection
+  // Load modules for a collection (lazy loading on click)
   const loadModules = async (collectionId: string) => {
     if (modulesData[collectionId]) return
 
@@ -560,7 +560,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     try {
       const modules = await getModules(namespace, collection, 'latest')
       if (modules) {
-        setModulesData(prev => ({ ...prev, [collectionId]: modules }))
+        setModulesCacheData({ [collectionId]: modules })
       }
     } catch (error) {
       console.error(`Failed to load modules for ${collectionId}:`, error)
