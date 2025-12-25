@@ -9,16 +9,41 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.14.1` (ghcr.io/ccoupel/ansible-builder-backend:1.14.1) ✅
-- **Frontend :** `1.14.1` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.1) ✅
+- **Backend :** `1.14.2` (ghcr.io/ccoupel/ansible-builder-backend:1.14.2) ✅
+- **Frontend :** `1.14.2` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.2) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.14.1`
+- **Tag Git :** `v1.14.2`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.14.0-rc.16` (ansible-builder-backend:1.14.0-rc.16)
-- **Frontend :** `1.14.0-rc.16` (ansible-builder-frontend:1.14.0-rc.16) - nginx, plus de Vite
+- **Backend :** `1.14.3-test` (ansible-builder-backend:1.14.3-test)
+- **Frontend :** `1.14.3-test` (ansible-builder-frontend:1.14.3-test)
 - **URL :** http://192.168.1.217
 - **Status :** Build Once Deploy Everywhere validé
+
+---
+
+## ✅ **Version 1.14.2 - Déployée en Production (2025-12-25)**
+
+### Rationalisation du Code
+
+**Objectif :** Nettoyer le code obsolète et améliorer la maintenabilité.
+
+**Changements (~950 lignes supprimées) :**
+
+| Commit | Description | Impact |
+|--------|-------------|--------|
+| `46647df` | Suppression code obsolète | -570 lignes |
+| `29c5175` | Extraction composants ModulesZoneCached | -287 lignes |
+| `8743b68` | Consolidation types ModuleParameter/ModuleSchema | -30 lignes |
+| `62c47ca` | Suppression axiosConfig.ts inutilisé | -59 lignes |
+
+**Détails :**
+- Suppression de `ansibleService.ts` (dupliqué avec `ansibleApiService.ts`)
+- Suppression des endpoints `/api/collections/*` (remplacés par `/api/ansible/*`)
+- Migration du champ `config` déprécié vers `register` dans ModuleBlock
+- Extraction de 4 composants réutilisables dans `modules-zone/`
+- Consolidation des types dans `types/playbook.ts`
+- Suppression de `axiosConfig.ts` non utilisé
 
 ---
 
