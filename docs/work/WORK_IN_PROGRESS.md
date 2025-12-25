@@ -4,25 +4,25 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-24**
+## 🚀 **Status Actuel - 2025-12-25**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.13.0` (ghcr.io/ccoupel/ansible-builder-backend:1.13.0) ✅
-- **Frontend :** `1.13.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.13.0) ✅
+- **Backend :** `1.14.0` (ghcr.io/ccoupel/ansible-builder-backend:1.14.0) ✅
+- **Frontend :** `1.14.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.13.0`
+- **Tag Git :** `v1.14.0`
 
 **Staging (nginx reverse proxy) :**
 - **Backend :** `1.14.0-rc.15`
 - **Frontend :** `1.14.0-rc.15-vite`
 - **URL :** http://192.168.1.217
-- **Status :** Phase 2 - Intégration Staging en cours
+- **Status :** Phase 2 - Synchronisé avec production
 
 ---
 
-## 🚧 **Version 1.14.0 - En Développement**
+## ✅ **Version 1.14.0 - Déployée en Production (2025-12-25)**
 
 ### Synchronisation Temps Réel des Playbooks
 
@@ -102,9 +102,17 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - [x] Déploiement containers OK
 - [x] Health checks passés
 - [x] Version affichée: 1.14.0-rc.15 (STAGING)
-- [ ] Validation utilisateur finale
+- [x] Validation utilisateur finale
 
-**En attente de validation utilisateur pour passer en Phase 3 (Production)**
+#### Phase 3 - Production (2025-12-25)
+- [x] Tag images pour production (1.14.0-rc.15 → 1.14.0)
+- [x] Push images vers ghcr.io
+- [x] Déploiement Kubernetes via helm upgrade
+- [x] Smoke tests passés (58ms temps de réponse)
+- [x] Version affichée: 1.14.0 (PROD)
+- [x] Tag git v1.14.0 créé
+
+**Déploiement Production terminé avec succès**
 
 ---
 
@@ -239,4 +247,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Dernière mise à jour : 2025-12-23 - v1.14.0-rc.1 Phase 2 Intégration Staging*
+*Dernière mise à jour : 2025-12-25 - v1.14.0 Déployée en Production*

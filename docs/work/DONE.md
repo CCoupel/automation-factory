@@ -4,6 +4,43 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.14.0** - *2025-12-25*
+
+### 🔄 Synchronisation Temps Réel des Playbooks
+
+- **Synchronisation granulaire des modifications**
+  - Updates typés par champ/élément (module_add, module_move, module_config, etc.)
+  - Debounce 300ms pour optimisation réseau
+  - Hook `useCollaborationSync` pour envoi typé des modifications
+  - Application des updates via `applyCollaborationUpdate`
+
+- **Highlight collaboratif**
+  - Surbrillance éléments modifiés par autres utilisateurs
+  - Couleurs uniques par utilisateur (hash du username)
+  - Animation CSS fluide avec transitions
+  - Support tous types d'éléments (modules, links, plays, variables)
+
+- **Préférences utilisateur**
+  - Contexte `UserPreferencesContext` avec stockage localStorage
+  - Durée de highlight configurable (0.5s → 5s)
+  - Interface en modal accessible à tous les utilisateurs
+  - Reset des préférences aux valeurs par défaut
+
+- **Configuration Dialog (UX améliorée)**
+  - Conversion ConfigurationPage → ConfigurationDialog modal
+  - Accessible depuis le menu utilisateur (pas seulement admin)
+  - 2 onglets pour admins : "Préférences" et "Namespaces"
+  - Pas de navigation = pas de rechargement du playbook
+  - Cache sessionStorage pour restauration instantanée
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.14.0
+- **Tag Git** : v1.14.0
+- **Smoke tests** : ✅ Passés (58ms temps de réponse)
+
+---
+
 ## ✅ **Version 1.13.0** - *2025-12-22*
 
 ### 👥 Collaboration Multi-utilisateur Temps Réel
@@ -405,6 +442,6 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
-*Document maintenu automatiquement. Dernière mise à jour : 2025-12-20*
+*Document maintenu automatiquement. Dernière mise à jour : 2025-12-25*
 
 *Les versions listées correspondent aux dates de déploiement en production.*
