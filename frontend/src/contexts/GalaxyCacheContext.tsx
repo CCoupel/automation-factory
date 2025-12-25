@@ -8,6 +8,7 @@ interface GalaxyCacheContextType {
   popularNamespaces: Namespace[]
   allNamespaces: Namespace[]
   collectionsCache: Record<string, any[]>
+  modulesCache: Record<string, any[]>
 
   // Status
   isLoading: boolean
@@ -16,6 +17,7 @@ interface GalaxyCacheContextType {
   syncStatus: string
   error: string | null
   currentVersion: string
+  preloadComplete: boolean
 
   // Actions
   refreshCache: () => Promise<void>
@@ -23,6 +25,9 @@ interface GalaxyCacheContextType {
   enrichNamespaceOnDemand: (namespace: string) => Promise<any | null>
   getCollections: (namespace: string) => Promise<any[] | null>
   getModules: (namespace: string, collection: string, version: string) => Promise<any[] | null>
+  setCollectionsCacheData: (data: Record<string, any[]>) => void
+  setModulesCacheData: (data: Record<string, any[]>) => void
+  setPreloadComplete: (complete: boolean) => void
 }
 
 const GalaxyCacheContext = createContext<GalaxyCacheContextType | undefined>(undefined)
@@ -47,7 +52,9 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
   const [popularNamespaces, setPopularNamespaces] = useState<Namespace[]>([])
   const [allNamespaces, setAllNamespaces] = useState<Namespace[]>([])
   const [collectionsCache, setCollectionsCache] = useState<Record<string, any[]>>({})
+  const [modulesCache, setModulesCache] = useState<Record<string, any[]>>({})
   const [currentVersion, setCurrentVersion] = useState<string>(ansibleVersion)
+  const [preloadComplete, setPreloadComplete] = useState<boolean>(false)
 
   // Status state
   const [isLoading, setIsLoading] = useState(true)
@@ -270,22 +277,45 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
   
   const getModules = async (namespace: string, collection: string, version: string): Promise<any[] | null> => {
     try {
+      const cacheKey = `${namespace}.${collection}`
+
+      // Check if already cached
+      if (modulesCache[cacheKey]) {
+        console.log(`📚 Modules for ${cacheKey} found in cache`)
+        return modulesCache[cacheKey]
+      }
+
       console.log(`📥 Fetching modules for ${namespace}.${collection}:${version} from SMART service...`)
-      
+
       const modules = await ansibleApiService.getModules(namespace, collection)
-      
+
       if (modules) {
+        // Cache the result
+        setModulesCache(prev => ({
+          ...prev,
+          [cacheKey]: modules
+        }))
+
         console.log(`✅ Loaded ${modules.length} modules for ${namespace}.${collection}:${version}`)
         return modules
       }
-      
+
       console.warn(`⚠️ No cached modules found for ${namespace}.${collection}:${version}`)
       return null
-      
+
     } catch (error) {
       console.error(`❌ Failed to get modules for ${namespace}.${collection}:${version}:`, error)
       return null
     }
+  }
+
+  // Setters for TreeView preloading
+  const setCollectionsCacheData = (data: Record<string, any[]>) => {
+    setCollectionsCache(prev => ({ ...prev, ...data }))
+  }
+
+  const setModulesCacheData = (data: Record<string, any[]>) => {
+    setModulesCache(prev => ({ ...prev, ...data }))
   }
   
   const handleNotification = (notification: CacheNotification) => {
@@ -338,6 +368,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     popularNamespaces,
     allNamespaces,
     collectionsCache,
+    modulesCache,
 
     // Status
     isLoading,
@@ -346,6 +377,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     syncStatus,
     error,
     currentVersion,
+    preloadComplete,
 
     // Actions
     refreshCache,
@@ -353,6 +385,9 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     enrichNamespaceOnDemand,
     getCollections,
     getModules,
+    setCollectionsCacheData,
+    setModulesCacheData,
+    setPreloadComplete,
   }
   
   return (
