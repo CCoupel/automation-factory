@@ -2,9 +2,6 @@ import {
   Box,
   Typography,
   List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   TextField,
   InputAdornment,
   Tabs,
@@ -14,24 +11,17 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Breadcrumbs,
   Link,
   FormControl,
   Select,
   MenuItem,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
-import FolderIcon from '@mui/icons-material/Folder'
-import ExtensionIcon from '@mui/icons-material/Extension'
-import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import HomeIcon from '@mui/icons-material/Home'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import StarIcon from '@mui/icons-material/Star'
-import StarBorderIcon from '@mui/icons-material/StarBorder'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import SaveIcon from '@mui/icons-material/Save'
@@ -39,13 +29,19 @@ import { useState, useEffect } from 'react'
 import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { Namespace } from '../../services/ansibleApiService'
-import { isVersionCompatible, getIncompatibilityReason } from '../../utils/versionUtils'
-import { 
-  getUserFavorites, 
-  addFavorite, 
-  removeFavorite, 
-  isFavorite
+import {
+  getUserFavorites,
+  addFavorite,
+  removeFavorite,
 } from '../../services/userPreferencesService'
+import {
+  NamespaceListItem,
+  CollectionListItem,
+  ModuleListItem,
+  GenericElementListItem,
+  type Collection,
+  type GenericElement,
+} from './modules-zone'
 
 interface ModulesZoneCachedProps {
   onCollapse?: () => void
@@ -62,16 +58,6 @@ interface NavigationState {
   version?: string
 }
 
-interface Collection {
-  name: string
-  description?: string
-  latest_version: string
-  download_count: number
-  created_at: string
-  updated_at: string
-  requires_ansible?: string
-  deprecated?: boolean
-}
 
 const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   console.log('ModulesZoneCached v1.16.1 FIXED loaded at:', new Date().toISOString())
@@ -521,83 +507,6 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     )
   }
   
-  // Component for namespace list item
-  const NamespaceListItem = ({ namespace, onNavigate, showFavoriteButton = true }: { 
-    namespace: Namespace, 
-    onNavigate: (name: string) => void,
-    showFavoriteButton?: boolean 
-  }) => {
-    const isFav = favorites.includes(namespace.name)
-    
-    return (
-      <Tooltip
-        title={
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-              {namespace.name}
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Ansible namespace containing collections
-            </Typography>
-            <Typography variant="caption" display="block">
-              Collections: {namespace.collection_count || 0}
-            </Typography>
-            <Typography variant="caption" display="block">
-              Total downloads: {(namespace.total_downloads || 0).toLocaleString()}
-            </Typography>
-            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-              Click to browse collections
-            </Typography>
-          </Box>
-        }
-        placement="right"
-        arrow
-      >
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => onNavigate(namespace.name)}
-            sx={{
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-            }}
-          >
-            <FolderIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <ListItemText
-              primary={namespace.name}
-              secondary={`${namespace.collection_count || 0} collections • ${(namespace.total_downloads || 0).toLocaleString()} downloads`}
-              primaryTypographyProps={{
-                variant: 'body2',
-                fontWeight: 'medium',
-              }}
-              secondaryTypographyProps={{
-                variant: 'caption',
-              }}
-            />
-            {showFavoriteButton && (
-              <Tooltip title={isFav ? 'Remove from favorites' : 'Add to favorites'}>
-                <IconButton
-                  size="small"
-                  onClick={(e) => handleToggleFavorite(namespace.name, e)}
-                  sx={{ 
-                    mr: 1,
-                    color: isFav ? 'warning.main' : 'text.secondary',
-                    '&:hover': {
-                      color: isFav ? 'warning.dark' : 'warning.light',
-                    }
-                  }}
-                >
-                  {isFav ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-                </IconButton>
-              </Tooltip>
-            )}
-            <ChevronRightIcon />
-          </ListItemButton>
-        </ListItem>
-      </Tooltip>
-    )
-  }
-
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -691,67 +600,8 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
             {filterItems(genericElements)
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((element, index) => (
-              <Tooltip
-                key={index}
-                title={
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      {element.name}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      {element.description}
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Type: Generic Ansible construct
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Collection: ansible.generic
-                    </Typography>
-                    <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-                      Drag to add to playbook
-                    </Typography>
-                  </Box>
-                }
-                placement="right"
-                arrow
-              >
-                <ListItem disablePadding>
-                  <ListItemButton
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(
-                        'module',
-                        JSON.stringify({
-                          collection: 'ansible.generic',
-                          name: element.name,
-                          description: element.description,
-                        })
-                      )
-                    }}
-                    sx={{
-                      '&:hover': {
-                        bgcolor: 'secondary.light',
-                        color: 'white',
-                      },
-                    }}
-                  >
-                    <AccountTreeIcon sx={{ mr: 1, fontSize: 18 }} />
-                    <ListItemText
-                      primary={element.name}
-                      secondary={element.description}
-                      primaryTypographyProps={{
-                        variant: 'body2',
-                        fontWeight: 'medium',
-                      }}
-                      secondaryTypographyProps={{
-                        variant: 'caption',
-                        sx: { fontSize: '0.7rem' },
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              </Tooltip>
-            ))}
+                <GenericElementListItem key={index} element={element} />
+              ))}
           </List>
         ) : (
           // Modules Zone - Cached Data
@@ -890,7 +740,13 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                         <List dense>
                           {sortNamespaces(filterItems(favoriteNamespaces))
                             .map((namespace) => (
-                              <NamespaceListItem key={namespace.name} namespace={namespace} onNavigate={navigateToCollections} />
+                              <NamespaceListItem
+                                key={namespace.name}
+                                namespace={namespace}
+                                onNavigate={navigateToCollections}
+                                isFavorite={favorites.includes(namespace.name)}
+                                onToggleFavorite={handleToggleFavorite}
+                              />
                           ))}
                         </List>
                       </Box>
@@ -902,7 +758,13 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                         <List dense>
                           {sortNamespaces(filterItems(allNamespaces))
                             .map((namespace) => (
-                              <NamespaceListItem key={namespace.name} namespace={namespace} onNavigate={navigateToCollections} />
+                              <NamespaceListItem
+                                key={namespace.name}
+                                namespace={namespace}
+                                onNavigate={navigateToCollections}
+                                isFavorite={favorites.includes(namespace.name)}
+                                onToggleFavorite={handleToggleFavorite}
+                              />
                           ))}
                         </List>
                       </Box>
@@ -918,116 +780,20 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                         <CircularProgress size={24} />
                       </Box>
                     )}
-                    
+
                     <List dense>
                       {filterItems(collections)
                         .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((collection) => {
-                          const isIncompatible = collection.requires_ansible && 
-                            !isVersionCompatible(ansibleVersion, collection.requires_ansible)
-                          
-                          return (
-                            <Tooltip
-                              key={collection.name}
-                              title={
-                                <Box>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                    {collection.name}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{ mb: 1 }}>
-                                    {collection.description || 'No description available'}
-                                  </Typography>
-                                  <Typography variant="caption" display="block">
-                                    Latest version: {collection.latest_version}
-                                  </Typography>
-                                  {collection.requires_ansible && (
-                                    <Typography variant="caption" display="block">
-                                      Requires Ansible: {collection.requires_ansible}
-                                    </Typography>
-                                  )}
-                                  <Typography variant="caption" display="block">
-                                    Downloads: {collection.download_count.toLocaleString()}
-                                  </Typography>
-                                  <Typography variant="caption" display="block">
-                                    Created: {new Date(collection.created_at).toLocaleDateString()}
-                                  </Typography>
-                                  <Typography variant="caption" display="block">
-                                    Updated: {new Date(collection.updated_at).toLocaleDateString()}
-                                  </Typography>
-                                  {collection.deprecated && (
-                                    <Typography variant="caption" display="block" color="warning.main">
-                                      ⚠️ Deprecated
-                                    </Typography>
-                                  )}
-                                  {isIncompatible && (
-                                    <Typography variant="caption" display="block" color="error.main" sx={{ fontWeight: 'bold' }}>
-                                      ⚠️ {getIncompatibilityReason(ansibleVersion, collection.requires_ansible!)}
-                                    </Typography>
-                                  )}
-                                  <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-                                    Left click: browse versions • Right click: latest version
-                                  </Typography>
-                                </Box>
-                              }
-                              placement="right"
-                              arrow
-                            >
-                              <ListItem disablePadding>
-                                <ListItemButton
-                                  onClick={() => navigateToVersions(navigationState.namespace!, collection.name)}
-                                  onContextMenu={(e) => {
-                                    e.preventDefault()
-                                    navigateToModules(
-                                      navigationState.namespace!, 
-                                      collection.name, 
-                                      collection.latest_version
-                                    )
-                                  }}
-                                  disabled={isIncompatible}
-                                  sx={{
-                                    opacity: isIncompatible ? 0.4 : 1,
-                                    '&:hover': {
-                                      bgcolor: isIncompatible ? 'transparent' : 'action.hover',
-                                      cursor: isIncompatible ? 'not-allowed' : 'context-menu',
-                                    },
-                                  }}
-                                >
-                                  <ExtensionIcon sx={{ 
-                                    mr: 1, 
-                                    color: isIncompatible ? 'error.main' : 'secondary.main' 
-                                  }} />
-                                  <ListItemText
-                                    primary={collection.name}
-                                    secondary={
-                                      <>
-                                        <Typography component="span" variant="caption" display="block">
-                                          {collection.description || 'No description'}
-                                        </Typography>
-                                        <Typography component="span" variant="caption" color="text.secondary" display="block">
-                                          v{collection.latest_version} • {collection.download_count.toLocaleString()} downloads
-                                        </Typography>
-                                        {isIncompatible && (
-                                          <Typography component="span" variant="caption" color="error.main" display="block" sx={{ fontWeight: 'bold' }}>
-                                            ⚠️ Incompatible with Ansible {ansibleVersion}
-                                          </Typography>
-                                        )}
-                                      </>
-                                    }
-                                    primaryTypographyProps={{
-                                      variant: 'body2',
-                                      fontWeight: 'medium',
-                                      color: isIncompatible ? 'text.disabled' : 'text.primary'
-                                    }}
-                                    secondaryTypographyProps={{
-                                      component: 'div'
-                                    }}
-                                  />
-                                  <ChevronRightIcon sx={{ color: isIncompatible ? 'text.disabled' : 'inherit' }} />
-                                </ListItemButton>
-                              </ListItem>
-                            </Tooltip>
-                          )
-                        })}
+                        .map((collection) => (
+                          <CollectionListItem
+                            key={collection.name}
+                            collection={collection}
+                            namespace={navigationState.namespace!}
+                            ansibleVersion={ansibleVersion}
+                            onNavigateToVersions={navigateToVersions}
+                            onNavigateToModules={navigateToModules}
+                          />
+                        ))}
                     </List>
                   </Box>
                 )}
@@ -1040,72 +806,19 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
                         <CircularProgress size={24} />
                       </Box>
                     )}
-                    
+
                     <List dense>
                       {filterItems(modules)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map((module, index) => (
-                        <Tooltip
-                          key={`${module.name}-${index}`}
-                          title={
-                            <Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                {module.name}
-                              </Typography>
-                              <Typography variant="body2" sx={{ mb: 1 }}>
-                                {module.description || 'No description available'}
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                Type: {module.content_type}
-                              </Typography>
-                              <Typography variant="caption" display="block">
-                                Collection: {navigationState.namespace}.{navigationState.collection}
-                              </Typography>
-                              <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-                                Drag to add to playbook
-                              </Typography>
-                            </Box>
-                          }
-                          placement="right"
-                          arrow
-                        >
-                          <ListItem disablePadding>
-                            <ListItemButton
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData(
-                                  'module',
-                                  JSON.stringify({
-                                    collection: `${navigationState.namespace}.${navigationState.collection}`,
-                                    name: module.name,
-                                    description: module.description,
-                                  })
-                                )
-                              }}
-                              sx={{
-                                '&:hover': {
-                                  bgcolor: 'primary.light',
-                                  color: 'white',
-                                },
-                              }}
-                            >
-                              <ExtensionIcon sx={{ mr: 1, fontSize: 18 }} />
-                              <ListItemText
-                                primary={module.name}
-                                secondary={module.description || 'No description'}
-                                primaryTypographyProps={{
-                                  variant: 'body2',
-                                  fontWeight: 'medium',
-                                }}
-                                secondaryTypographyProps={{
-                                  variant: 'caption',
-                                  sx: { fontSize: '0.7rem' },
-                                }}
-                              />
-                            </ListItemButton>
-                          </ListItem>
-                        </Tooltip>
-                      ))}
+                          <ModuleListItem
+                            key={`${module.name}-${index}`}
+                            module={module}
+                            namespace={navigationState.namespace!}
+                            collection={navigationState.collection!}
+                            index={index}
+                          />
+                        ))}
                     </List>
                   </Box>
                 )}
