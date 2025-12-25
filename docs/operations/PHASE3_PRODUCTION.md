@@ -13,12 +13,14 @@ Ce document détaille les procédures spécifiques à la **Phase 3 : Production*
 - **Smoke tests** et validation rapide
 - **Finalisation documentation** et communication
 
-### Principe Clé : Images Identiques
+### Principe Clé : Build Once Deploy Everywhere
 ```
 ⚠️ IMPORTANT : Les images de production sont IDENTIQUES aux images de staging
 - Pas de rebuild en Phase 3
+- Staging et Production utilisent le même Dockerfile (nginx pour frontend)
 - Tag et push des images staging vers ghcr.io
 - Variable ENVIRONMENT contrôle l'affichage de version (STAGING → PROD)
+- Noms de services identiques : ansible-builder-backend, ansible-builder-frontend
 ```
 
 ### Critères d'Entrée
@@ -89,13 +91,14 @@ curl -s http://192.168.1.217/api/version
 docker -H tcp://192.168.1.217:2375 images | grep ansible-builder
 
 # Tag des images staging pour ghcr.io
-# Format: ansible-builder-backend:X.Y.Z-rc.n → ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
+# Format: ansible-builder-*:X.Y.Z-rc.n → ghcr.io/ccoupel/ansible-builder-*:X.Y.Z
+# NOTE: Plus de suffix -vite, même image nginx pour staging et production
 docker -H tcp://192.168.1.217:2375 tag \
   ansible-builder-backend:X.Y.Z-rc.n \
   ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
 
 docker -H tcp://192.168.1.217:2375 tag \
-  ansible-builder-frontend:X.Y.Z-rc.n-vite \
+  ansible-builder-frontend:X.Y.Z-rc.n \
   ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
 
 # Tag latest
@@ -287,12 +290,15 @@ curl -s https://coupel.net/ansible-builder/api/version
 | ENVIRONMENT | STAGING | PROD (défaut) |
 | Version affichée | X.Y.Z-rc.n | X.Y.Z |
 | is_rc | true | false |
-| Image | ansible-builder-*:X.Y.Z-rc.n | ghcr.io/ccoupel/ansible-builder-*:X.Y.Z |
+| Image backend | ansible-builder-backend:X.Y.Z-rc.n | ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z |
+| Image frontend | ansible-builder-frontend:X.Y.Z-rc.n | ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z |
+| Frontend server | nginx (port 80) | nginx (port 80) |
+| **Dockerfile** | **frontend/Dockerfile** | **frontend/Dockerfile** |
 | **Code** | **IDENTIQUE** | **IDENTIQUE** |
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-20*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-25*
 
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)

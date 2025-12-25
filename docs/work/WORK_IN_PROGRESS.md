@@ -9,16 +9,35 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.14.0` (ghcr.io/ccoupel/ansible-builder-backend:1.14.0) ✅
-- **Frontend :** `1.14.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.0) ✅
+- **Backend :** `1.14.1` (ghcr.io/ccoupel/ansible-builder-backend:1.14.1) ✅
+- **Frontend :** `1.14.1` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.1) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.14.0`
+- **Tag Git :** `v1.14.1`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.14.0-rc.15`
-- **Frontend :** `1.14.0-rc.15-vite`
+- **Backend :** `1.14.0-rc.16` (ansible-builder-backend:1.14.0-rc.16)
+- **Frontend :** `1.14.0-rc.16` (ansible-builder-frontend:1.14.0-rc.16) - nginx, plus de Vite
 - **URL :** http://192.168.1.217
-- **Status :** Phase 2 - Synchronisé avec production
+- **Status :** Build Once Deploy Everywhere validé
+
+---
+
+## ✅ **Version 1.14.1 - Déployée en Production (2025-12-25)**
+
+### Build Once Deploy Everywhere
+
+**Objectif :** Réduire les risques de déploiement en utilisant exactement la même image Docker en staging et en production.
+
+**Changements :**
+- Frontend staging utilise maintenant `Dockerfile` (nginx) au lieu de `Dockerfile.dev` (Vite)
+- Noms de services alignés sur Kubernetes : `ansible-builder-backend`, `ansible-builder-frontend`
+- Plus de suffix `-vite` sur les images frontend
+- Configuration nginx staging route vers port 80 au lieu de 5173
+
+**Avantages :**
+- Image testée en staging = image déployée en production
+- Pas de différence de comportement entre environnements
+- Promotion simple : retag de `rc.n` vers version finale
 
 ---
 

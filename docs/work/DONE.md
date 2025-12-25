@@ -4,6 +4,33 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.14.1** - *2025-12-25*
+
+### 🏗️ Build Once Deploy Everywhere
+
+- **Architecture unifiée staging/production**
+  - Frontend staging utilise Dockerfile production (nginx)
+  - Plus de Dockerfile.dev ni suffix -vite
+  - Même image Docker en staging et production
+
+- **Alignement des noms de services**
+  - `ansible-builder-backend` et `ansible-builder-frontend`
+  - Configuration docker-compose alignée sur Kubernetes
+  - Nginx staging route vers port 80
+
+- **Documentation mise à jour**
+  - PHASE2_INTEGRATION.md avec principe "Build Once Deploy Everywhere"
+  - PHASE3_PRODUCTION.md avec nouvelles procédures
+  - Suppression références Vite/Dockerfile.dev
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.14.1
+- **Tag Git** : v1.14.1
+- **Validation** : Même image (1.14.0-rc.16) déployée en staging et production
+
+---
+
 ## ✅ **Version 1.14.0** - *2025-12-25*
 
 ### 🔄 Synchronisation Temps Réel des Playbooks

@@ -8,12 +8,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Production :** Backend 1.13.0 / Frontend 1.13.0 ✅ **DEPLOYED**
+**Version Production :** Backend 1.14.1 / Frontend 1.14.1 ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/ansible-builder
-**Tag Git :** v1.13.0
-**Dernière mise à jour :** 2025-12-22
+**Tag Git :** v1.14.1
+**Dernière mise à jour :** 2025-12-25
 
-**Staging :** http://192.168.1.217 (synced with production)
+**Staging :** http://192.168.1.217 (Build Once Deploy Everywhere)
 
 ## 📚 **Documentation Organisée**
 
@@ -108,22 +108,22 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ---
 
-## 🏗️ **Architecture Phase 2 - Nginx Reverse Proxy (PERMANENT)**
+## 🏗️ **Architecture Phase 2 - Build Once Deploy Everywhere**
 
-**⚠️ IMPORTANT :** En Phase 2, TOUJOURS utiliser cette architecture nginx reverse proxy
+**⚠️ IMPORTANT :** Même image Docker en staging et production (nginx pour frontend)
 
 ### Structure
 ```
 nginx (port 80) → Point d'entrée unique
-├── / → frontend (Vite dev server, port 5173)
-└── /api/* → backend (FastAPI, port 8000)
+├── / → ansible-builder-frontend (nginx, port 80)
+└── /api/* → ansible-builder-backend (FastAPI, port 8000)
 ```
 
 ### Procédure de déploiement Phase 2
 ```bash
-# 1. Build images localement sur staging server
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z_n backend/
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z_n-vite -f frontend/Dockerfile.dev frontend/
+# 1. Build images localement sur staging server (Dockerfile PRODUCTION)
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
 
 # 2. Update docker-compose.staging.yml avec nouvelles versions
 
@@ -133,17 +133,18 @@ docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
 # 4. Validation santé OBLIGATOIRE
 curl -I http://192.168.1.217/health          # Nginx OK
 curl http://192.168.1.217/api/version        # Backend API OK
-curl -I http://192.168.1.217/                # Frontend OK (Vite)
+curl -I http://192.168.1.217/                # Frontend OK (nginx)
 ```
 
 ### Points clés PERMANENTS
-- **Images locales** : Build sur 192.168.1.217, PAS de push ghcr.io
-- **Frontend Vite** : TOUJOURS utiliser `Dockerfile.dev` (pas `Dockerfile`)
+- **Build Once Deploy Everywhere** : Même Dockerfile pour staging et production
+- **Images locales** : Build sur 192.168.1.217, PAS de push ghcr.io en Phase 2
+- **Frontend nginx** : TOUJOURS utiliser `frontend/Dockerfile` (pas Dockerfile.dev)
+- **Noms de services** : `ansible-builder-backend`, `ansible-builder-frontend` (alignés sur K8s)
 - **Nginx central** : Point d'entrée unique sur port 80
-- **Configuration inline** : nginx.conf dans docker-compose.staging.yml
 - **Validation santé** : TOUJOURS tester les 3 endpoints
 
-**Voir détails complets :** [Guide Déploiement Phase 2](docs/operations/DEPLOYMENT_GUIDE.md#phase-2--architecture-nginx-reverse-proxy-staging)
+**Voir détails complets :** [Phase 2 Intégration](docs/operations/PHASE2_INTEGRATION.md)
 
 ---
 
