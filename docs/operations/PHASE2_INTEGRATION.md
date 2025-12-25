@@ -391,11 +391,37 @@ docker --host=tcp://192.168.1.217:2375 stats --no-stream
 - **Config staging** finalisée
 - **Scripts tests E2E** fonctionnels
 
-### Rapports
+### Rapports de Tests
+> **Voir [TESTING_STRATEGY.md](TESTING_STRATEGY.md)** pour les templates de rapports et scripts E2E complets.
+
 - **Rapport E2E** avec résultats détaillés
 - **Rapport performance** staging
 - **Validation utilisateur** signée
 - **Métriques** comparatives
+
+**Template Rapport Phase 2:**
+```markdown
+## Rapport Tests Phase 2 - Version X.Y.Z-rc.n
+**Date:** YYYY-MM-DD
+**URL Staging:** http://192.168.1.217
+
+### Santé Services
+- Nginx: OK / FAIL
+- Frontend: OK / FAIL
+- Backend: OK / FAIL
+
+### Tests Fonctionnels
+- Namespaces: X namespaces
+- Collections: X collections
+- Modules: X modules
+- Schema: OK / FAIL
+- Error 404: OK / FAIL
+
+### Performance
+- Temps réponse API: Xs (cible <3s)
+
+### Conclusion: PASSE / ECHEC
+```
 
 ### Documentation
 - **Release notes** version RC
@@ -478,4 +504,5 @@ echo "RC X.Y.Z-rc.n ready for Phase 3 - USER APPROVED"
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)
 - [Phase 3 Production](PHASE3_PRODUCTION.md)
+- [Stratégie de Tests](TESTING_STRATEGY.md)
 - [Process Développement](../core/DEVELOPMENT_PROCESS.md)

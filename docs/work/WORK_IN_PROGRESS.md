@@ -9,16 +9,54 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.14.2` (ghcr.io/ccoupel/ansible-builder-backend:1.14.2) ✅
-- **Frontend :** `1.14.2` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.2) ✅
+- **Backend :** `1.14.3` (ghcr.io/ccoupel/ansible-builder-backend:1.14.3) ✅
+- **Frontend :** `1.14.3` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.3) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.14.2`
+- **Tag Git :** `v1.14.3`
 
 **Staging (nginx reverse proxy) :**
-- **Backend :** `1.14.3-test` (ansible-builder-backend:1.14.3-test)
-- **Frontend :** `1.14.3-test` (ansible-builder-frontend:1.14.3-test)
+- **Backend :** `1.14.3-rc.15` (ansible-builder-backend:1.14.3-rc.15)
+- **Frontend :** `1.14.3-rc.15` (ansible-builder-frontend:1.14.3-rc.15)
 - **URL :** http://192.168.1.217
-- **Status :** Build Once Deploy Everywhere validé
+- **Status :** Synced with production
+
+---
+
+## ✅ **Version 1.14.3 - Deployee en Production (2025-12-25)**
+
+### Vue Arborescente Elements (TreeView)
+
+**Objectif :** Ameliorer l'experience utilisateur en presentant les namespaces/collections/modules sous forme d'arbre expansible au lieu de niveaux de navigation separes.
+
+**Composant cree :**
+- `frontend/src/components/zones/modules-zone/ModulesTreeView.tsx` (~450 lignes)
+
+**Fonctionnalites implementees :**
+- [x] TreeView avec MUI X Tree View (`@mui/x-tree-view`)
+- [x] Chargement paresseux (lazy loading) des collections et modules
+- [x] Recherche/filtre des namespaces avec transitivite
+- [x] Drag & drop des modules vers le playbook
+- [x] Icones differenciees par niveau (Folder/Widgets/Extension)
+- [x] Indicateurs de chargement par noeud
+- [x] Onglets FAVORITES et ALL
+- [x] Preloading parallele (batch 10)
+- [x] 3 barres de progression distinctes
+- [x] Style gris pour elements transitifs
+
+**Intégration :**
+- Nouvel onglet "Tree" ajoute dans ModulesZoneCached
+- Coexiste avec les vues "Generic" et "Modules" existantes
+
+**Phase 3 - Production : COMPLETE**
+
+#### Tests valides
+- [x] Build TypeScript sans erreurs
+- [x] Expansion des namespaces charge les collections
+- [x] Expansion des collections charge les modules
+- [x] Drag & drop fonctionne depuis TreeView
+- [x] Recherche filtre correctement avec transitivite
+- [x] Performance avec 54 namespaces (preloading parallele)
+- [x] Smoke tests production passes
 
 ---
 
@@ -265,10 +303,10 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-## 📋 **Prochaines Priorités**
+## 📋 **Prochaines Priorites**
 
-- Finaliser v1.14.0 (Synchronisation temps réel des modifications)
-- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
+- v1.14.3 TreeView deployee en production
+- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complete
 
 ---
 
@@ -291,4 +329,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Dernière mise à jour : 2025-12-25 - v1.14.0 Déployée en Production*
+*Derniere mise a jour : 2025-12-25 - v1.14.3 Deployee en Production*

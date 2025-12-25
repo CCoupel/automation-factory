@@ -288,11 +288,30 @@ npm run tsc --noEmit
 - **Tests unitaires** pour nouveau code
 - **Documentation** code mise à jour
 
-### Rapports
+### Rapports de Tests
+> **Voir [TESTING_STRATEGY.md](TESTING_STRATEGY.md)** pour les templates de rapports et scripts de tests.
+
 - **Rapport tests unitaires** (coverage + résultats)
 - **Rapport tests API** (script + résultats)
 - **Screenshots** versions confirmées
 - **Métriques** performance locale
+
+**Template Rapport Phase 1:**
+```markdown
+## Rapport Tests Phase 1 - Version X.Y.Z_n
+**Date:** YYYY-MM-DD
+
+### Frontend
+- ESLint: X erreurs / X warnings
+- TypeScript: X erreurs
+- Build: OK / FAIL
+
+### Backend
+- pytest: X/X tests passés (X% coverage)
+- flake8: X erreurs
+
+### Conclusion: PASSE / ECHEC
+```
 
 ### Validation
 - **Checklist** complète signée
@@ -369,4 +388,5 @@ git commit -m "feat: [description] - Phase 1 complete
 *Voir aussi :*
 - [Phase 2 Intégration](PHASE2_INTEGRATION.md)
 - [Phase 3 Production](PHASE3_PRODUCTION.md)
+- [Stratégie de Tests](TESTING_STRATEGY.md)
 - [Process Développement](../core/DEVELOPMENT_PROCESS.md)

@@ -4,6 +4,44 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.14.3** - *2025-12-25*
+
+### 🌳 Vue Arborescente Elements (TreeView)
+
+- **Composant ModulesTreeView**
+  - TreeView avec MUI X Tree View (@mui/x-tree-view)
+  - Chargement paresseux (lazy loading) des collections et modules
+  - Recherche/filtre des namespaces avec transitivite
+  - Drag & drop des modules vers le playbook
+
+- **Onglets FAVORITES et ALL**
+  - Onglet FAVORITES pour namespaces favoris
+  - Onglet ALL avec tous les namespaces (54)
+  - Selection persistante entre onglets
+
+- **Preloading parallele**
+  - Chargement batch parallele (10 namespaces simultanes)
+  - 3 barres de progression distinctes (namespaces/collections/modules)
+  - Performance 10x amelioree vs chargement sequentiel
+
+- **Recherche recursive avec transitivite**
+  - Elements affiches si contiennent la chaine recherchee
+  - Ou si un enfant correspond (transitivite)
+  - Style gris pour elements affiches par transitivite
+
+- **Icones differenciees par niveau**
+  - Folder pour namespaces
+  - Widgets pour collections
+  - Extension pour modules
+
+### 📊 Metriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.14.3
+- **Tag Git** : v1.14.3
+- **Smoke tests** : Passes (HTTP 200, API OK)
+
+---
+
 ## ✅ **Version 1.14.1** - *2025-12-25*
 
 ### 🏗️ Build Once Deploy Everywhere

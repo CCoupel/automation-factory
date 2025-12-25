@@ -172,6 +172,8 @@ KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
 
 ### 4. Smoke Tests Production
 
+> **Voir [TESTING_STRATEGY.md](TESTING_STRATEGY.md)** pour les scripts de smoke tests complets.
+
 ```bash
 # Test 1: Accessibilité
 echo "=== Smoke Tests Production ==="
@@ -190,6 +192,22 @@ curl -s https://coupel.net/ansible-builder/api/ansible/versions | head -c 100
 
 # Test 4: Temps de réponse
 curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/ansible-builder/
+```
+
+**Template Rapport Smoke Tests:**
+```markdown
+## Rapport Smoke Tests Production - Version X.Y.Z
+**Date:** YYYY-MM-DD
+**URL:** https://coupel.net/ansible-builder
+
+### Smoke Tests
+- Site accessible: HTTP 200 / FAIL
+- Version API: X.Y.Z
+- Environment: PROD
+- Ansible API: OK / FAIL
+- Temps réponse: Xs
+
+### Conclusion: DEPLOIEMENT REUSSI / ROLLBACK REQUIS
 ```
 
 ### 5. Finalisation
@@ -303,4 +321,5 @@ curl -s https://coupel.net/ansible-builder/api/version
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)
 - [Phase 2 Intégration](PHASE2_INTEGRATION.md)
+- [Stratégie de Tests](TESTING_STRATEGY.md)
 - [Process Développement](../core/DEVELOPMENT_PROCESS.md)
