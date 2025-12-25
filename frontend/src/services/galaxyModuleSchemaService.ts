@@ -1,46 +1,16 @@
 /**
  * Galaxy Module Schema Service
- * 
+ *
  * Service for fetching and caching module schemas from Galaxy API
  * Provides module parameter definitions for dynamic configuration interface
  */
 
 import { getHttpClient } from '../utils/httpClient'
 import { ansibleApiService } from './ansibleApiService'
+import { ModuleParameter, ModuleSchema } from '../types/playbook'
 
-// Module parameter definition from Galaxy docs
-export interface ModuleParameter {
-  name: string
-  type: 'str' | 'int' | 'float' | 'bool' | 'list' | 'dict' | 'path' | 'any'
-  required: boolean
-  default?: any
-  description: string
-  choices?: string[]
-  aliases?: string[]
-  elements?: string // Type of elements for lists
-  version_added?: string
-  suboptions?: Record<string, ModuleParameter>
-}
-
-// Complete module schema from Galaxy API
-export interface ModuleSchema {
-  module_name: string
-  namespace: string
-  collection: string
-  version: string
-  description: string
-  short_description: string
-  author: string[]
-  parameters: Record<string, ModuleParameter>
-  examples?: any
-  notes?: string[]
-  requirements?: string[]
-  version_added?: string
-  filename?: string
-  parameter_count: number
-  required_parameters: number
-  optional_parameters: number
-}
+// Re-export types for backward compatibility
+export type { ModuleParameter, ModuleSchema }
 
 // In-memory cache for schemas (TTL: 30 minutes)
 class SchemaCache {
