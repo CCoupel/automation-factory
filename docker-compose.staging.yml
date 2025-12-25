@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # Backend FastAPI
-  backend:
-    image: ansible-builder-backend:1.14.0-rc.15
+  # Backend FastAPI (service name matches Kubernetes for "build once deploy everywhere")
+  ansible-builder-backend:
+    image: ansible-builder-backend:1.14.0-rc.16
     container_name: ansible-builder-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
@@ -17,15 +17,15 @@ services:
     external_links:
       - ansible-db:ansible-db
 
-  # Frontend Vite
-  frontend:
-    image: ansible-builder-frontend:1.14.0-rc.15-vite
+  # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
+  ansible-builder-frontend:
+    image: ansible-builder-frontend:1.14.0-rc.16
     container_name: ansible-builder-frontend-staging
     restart: unless-stopped
     networks:
       - ansiblebuilder_default
     depends_on:
-      - backend
+      - ansible-builder-backend
 
   # Nginx Reverse Proxy
   nginx:
@@ -37,8 +37,8 @@ services:
     networks:
       - ansiblebuilder_default
     depends_on:
-      - frontend
-      - backend
+      - ansible-builder-frontend
+      - ansible-builder-backend
     configs:
       - source: nginx_conf
         target: /etc/nginx/nginx.conf
@@ -69,7 +69,7 @@ configs:
               server_name localhost;
               
               location /api/ {
-                  proxy_pass http://backend:8000/api/;
+                  proxy_pass http://ansible-builder-backend:8000/api/;
                   proxy_http_version 1.1;
                   proxy_set_header Host $$host;
                   proxy_set_header X-Real-IP $$remote_addr;
@@ -93,7 +93,7 @@ configs:
 
               # WebSocket endpoint for real-time collaboration
               location /ws/ {
-                  proxy_pass http://backend:8000/ws/;
+                  proxy_pass http://ansible-builder-backend:8000/ws/;
                   proxy_http_version 1.1;
                   proxy_set_header Upgrade $$http_upgrade;
                   proxy_set_header Connection "upgrade";
@@ -112,16 +112,12 @@ configs:
               }
               
               location / {
-                  proxy_pass http://frontend:5173;
+                  proxy_pass http://ansible-builder-frontend:80;
                   proxy_http_version 1.1;
-                  proxy_set_header Upgrade $$http_upgrade;
-                  proxy_set_header Connection 'upgrade';
                   proxy_set_header Host $$host;
                   proxy_set_header X-Real-IP $$remote_addr;
                   proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
                   proxy_set_header X-Forwarded-Proto $$scheme;
-                  proxy_cache_bypass $$http_upgrade;
-                  proxy_read_timeout 86400;
               }
           }
       }

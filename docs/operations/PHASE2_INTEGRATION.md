@@ -25,6 +25,21 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 - ✅ **Validation utilisateur** signée
 - ✅ **Version RC** approuvée pour production
 
+### Principe "Build Once, Deploy Everywhere"
+⚠️ **IMPORTANT** : Les images Docker buildées en Phase 2 sont **identiques** à celles déployées en Phase 3.
+
+| Aspect | Staging | Production |
+|--------|---------|------------|
+| Backend Dockerfile | `backend/Dockerfile` | `backend/Dockerfile` |
+| Frontend Dockerfile | `frontend/Dockerfile` | `frontend/Dockerfile` |
+| Image tag | `X.Y.Z-rc.n` | `X.Y.Z` |
+| Serveur frontend | nginx (port 80) | nginx (port 80) |
+
+**Avantages :**
+- Réduction des risques : même image testée et déployée
+- Pas de différence de comportement staging/prod
+- Promotion simple : retag de `rc.n` vers version finale
+
 ---
 
 ## 🛠️ **Environnement d'Intégration**
@@ -85,16 +100,18 @@ echo '__version__ = "X.Y.Z-rc.n"' > backend/app/version.py
 #### Build Images Docker (Local sur Staging)
 ```bash
 # ⚠️ IMPORTANT: Build local sur 192.168.1.217, PAS de push ghcr.io
+# ⚠️ IMPORTANT: Utiliser Dockerfile PRODUCTION pour "build once, deploy everywhere"
 
 # Backend - build local
 docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n \
   -f backend/Dockerfile backend/
 
-# Frontend - build local  
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n-vite \
-  -f frontend/Dockerfile.dev frontend/
+# Frontend - build local avec Dockerfile PRODUCTION (nginx, pas Vite)
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n \
+  -f frontend/Dockerfile frontend/
 
 # PAS de push - images restent locales sur 192.168.1.217
+# La même image sera promue en production après validation
 ```
 
 #### Mise à jour Docker-Compose
@@ -104,9 +121,10 @@ services:
   backend:
     image: ansible-builder-backend:X.Y.Z-rc.n
   frontend:
-    image: ansible-builder-frontend:X.Y.Z-rc.n-vite
+    image: ansible-builder-frontend:X.Y.Z-rc.n  # Même image que production (nginx)
   nginx:
     # Configuration nginx reverse proxy inline
+    # Route vers frontend:80 (nginx) au lieu de frontend:5173 (Vite)
 ```
 
 ### 2. Déploiement Staging
@@ -134,7 +152,7 @@ sleep 30
 # Health checks via nginx reverse proxy
 curl -I http://192.168.1.217/health          # Nginx OK
 curl http://192.168.1.217/api/version        # Backend API OK
-curl -I http://192.168.1.217/                # Frontend OK (Vite)
+curl -I http://192.168.1.217/                # Frontend OK (nginx)
 
 # Vérification version RC
 VERSION=$(curl -s http://192.168.1.217/api/version | jq -r .version)
@@ -303,9 +321,9 @@ echo "✅ Performance tests complete"
 # 3. Nouveau build RC
 echo '__version__ = "X.Y.Z-rc.n+1"' > backend/app/version.py
 
-# 4. Redéploiement local
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n+1 backend/
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n+1-vite frontend/
+# 4. Redéploiement local (même Dockerfile pour staging et prod)
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n+1 -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n+1 -f frontend/Dockerfile frontend/
 
 # 5. Retest complet
 ```
@@ -455,7 +473,7 @@ echo "RC X.Y.Z-rc.n ready for Phase 3 - USER APPROVED"
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-14*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-25*
 
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)
