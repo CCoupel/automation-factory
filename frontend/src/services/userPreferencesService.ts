@@ -35,6 +35,18 @@ export interface InterfaceSettingResponse {
   interface_settings: Record<string, any>;
 }
 
+export interface FavoriteCollectionResponse {
+  success: boolean;
+  message: string;
+  favorite_collections: string[];
+}
+
+export interface FavoriteModuleResponse {
+  success: boolean;
+  message: string;
+  favorite_modules: string[];
+}
+
 /**
  * User Preferences Service
  * 
@@ -152,6 +164,99 @@ class UserPreferencesService {
     }
   }
 
+  // ==================== COLLECTION FAVORITES ====================
+
+  /**
+   * Get favorite collections from database
+   */
+  async getFavoriteCollections(): Promise<string[]> {
+    try {
+      const response = await this.httpClient.get<FavoriteCollectionResponse>('/user/favorites/collections');
+      return response.data.favorite_collections || [];
+    } catch (error: any) {
+      console.error('Failed to get favorite collections:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add collection to favorites
+   */
+  async addFavoriteCollection(collection: string): Promise<FavoriteCollectionResponse> {
+    try {
+      const response = await this.httpClient.post<FavoriteCollectionResponse>('/user/favorites/collections', { collection: collection.trim() });
+      this.invalidateCache();
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to add favorite collection:', error);
+      throw new Error(`Failed to add favorite: ${error.response?.data?.detail || error.message}`);
+    }
+  }
+
+  /**
+   * Remove collection from favorites
+   */
+  async removeFavoriteCollection(collection: string): Promise<FavoriteCollectionResponse> {
+    try {
+      const response = await this.httpClient.delete<FavoriteCollectionResponse>(`/user/favorites/collections/${encodeURIComponent(collection.trim())}`);
+      this.invalidateCache();
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to remove favorite collection:', error);
+      throw new Error(`Failed to remove favorite: ${error.response?.data?.detail || error.message}`);
+    }
+  }
+
+  // ==================== MODULE FAVORITES ====================
+
+  /**
+   * Get favorite modules from database
+   */
+  async getFavoriteModules(): Promise<string[]> {
+    try {
+      const response = await this.httpClient.get<FavoriteModuleResponse>('/user/favorites/modules');
+      return response.data.favorite_modules || [];
+    } catch (error: any) {
+      console.error('Failed to get favorite modules:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add module to favorites
+   */
+  async addFavoriteModule(module: string): Promise<FavoriteModuleResponse> {
+    try {
+      const response = await this.httpClient.post<FavoriteModuleResponse>('/user/favorites/modules', { module: module.trim() });
+      this.invalidateCache();
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to add favorite module:', error);
+      throw new Error(`Failed to add favorite: ${error.response?.data?.detail || error.message}`);
+    }
+  }
+
+  /**
+   * Remove module from favorites
+   */
+  async removeFavoriteModule(module: string): Promise<FavoriteModuleResponse> {
+    try {
+      const response = await this.httpClient.delete<FavoriteModuleResponse>(`/user/favorites/modules/${encodeURIComponent(module.trim())}`);
+      this.invalidateCache();
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to remove favorite module:', error);
+      throw new Error(`Failed to remove favorite: ${error.response?.data?.detail || error.message}`);
+    }
+  }
+
+  /**
+   * Invalidate cache (forces refresh on next request)
+   */
+  private invalidateCache(): void {
+    this.cacheTimestamp = 0;
+  }
+
   /**
    * Set interface setting
    */
@@ -207,6 +312,28 @@ export const userPreferencesService = new UserPreferencesService();
 
 // Export convenience functions for easier usage
 export const getUserFavorites = () => userPreferencesService.getFavoriteNamespaces();
-export const addFavorite = (type: 'namespace', namespace: string) => userPreferencesService.addFavoriteNamespace(namespace);
-export const removeFavorite = (type: 'namespace', namespace: string) => userPreferencesService.removeFavoriteNamespace(namespace);
+export const addFavorite = (type: 'namespace' | 'collection' | 'module', item: string) => {
+  switch (type) {
+    case 'namespace':
+      return userPreferencesService.addFavoriteNamespace(item);
+    case 'collection':
+      return userPreferencesService.addFavoriteCollection(item);
+    case 'module':
+      return userPreferencesService.addFavoriteModule(item);
+  }
+};
+export const removeFavorite = (type: 'namespace' | 'collection' | 'module', item: string) => {
+  switch (type) {
+    case 'namespace':
+      return userPreferencesService.removeFavoriteNamespace(item);
+    case 'collection':
+      return userPreferencesService.removeFavoriteCollection(item);
+    case 'module':
+      return userPreferencesService.removeFavoriteModule(item);
+  }
+};
 export const isFavorite = (type: 'namespace', namespace: string) => userPreferencesService.isFavoriteNamespace(namespace);
+
+// Collection and module favorites
+export const getCollectionFavorites = () => userPreferencesService.getFavoriteCollections();
+export const getModuleFavorites = () => userPreferencesService.getFavoriteModules();

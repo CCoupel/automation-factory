@@ -12,7 +12,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 **URL Production :** https://coupel.net/ansible-builder
 **Tag Git :** v1.15.0
 
-**Version Staging :** Backend 1.15.0-rc.4 / Frontend 1.15.0-rc.4 (synchronisé)
+**Version Staging :** Backend 1.16.0-rc.2 / Frontend 1.16.0-rc.2 ✅ Phase 2 validée
 **URL Staging :** http://192.168.1.217
 
 **Dernière mise à jour :** 2025-12-29
@@ -66,8 +66,14 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ### ✅ **OBLIGATIONS**
 - **TOUJOURS** demander "go" explicite entre phases
-- **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter  
+- **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter
 - **TOUJOURS** attendre réponse utilisateur avant continuer
+
+### 🗄️ **RÈGLE STOCKAGE DONNÉES**
+- **TOUJOURS** stocker les données utilisateur en base de données (pas fichiers `/tmp`)
+- **TOUJOURS** lier les données à l'utilisateur (multi-tenant)
+- **RAISON** : Scalabilité horizontale, persistence, multi-utilisateur
+- **Voir** : [Décisions Architecture](docs/core/ARCHITECTURE_DECISIONS.md#règle-critique--stockage-en-base-de-données)
 
 ## 📋 **Règles de Versioning**
 

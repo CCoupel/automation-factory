@@ -14,6 +14,8 @@ import {
   getUserFavorites,
   addFavorite,
   removeFavorite,
+  getCollectionFavorites,
+  getModuleFavorites,
 } from '../../../services/userPreferencesService'
 
 interface ModulesTreeViewProps {
@@ -33,23 +35,10 @@ interface ModuleData {
   content_type?: string
 }
 
-// Local storage keys for collection and module favorites
-const COLLECTION_FAVORITES_KEY = 'ansible_builder_favorite_collections'
-const MODULE_FAVORITES_KEY = 'ansible_builder_favorite_modules'
-
-// Helper functions for local storage favorites
-const getLocalFavorites = (key: string): string[] => {
-  try {
-    const stored = localStorage.getItem(key)
-    return stored ? JSON.parse(stored) : []
-  } catch {
-    return []
-  }
-}
-
-const setLocalFavorites = (key: string, favorites: string[]) => {
-  localStorage.setItem(key, JSON.stringify(favorites))
-}
+// All favorites are stored in the database via API for:
+// - Persistence across container restarts
+// - Multi-user support (each user has their own favorites)
+// - Horizontal scalability (multiple backend instances)
 
 export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: ModulesTreeViewProps) => {
   const {
@@ -142,18 +131,20 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     loadStandardNamespaces()
   }, [])
 
-  // Load all favorites on mount
+  // Load all favorites on mount (all from database API)
   useEffect(() => {
     const loadAllFavorites = async () => {
       setFavoritesLoading(true)
       try {
-        // Load namespace favorites from backend
-        const nsFavorites = await getUserFavorites()
+        // Load all favorites from backend API in parallel
+        const [nsFavorites, collFavorites, modFavorites] = await Promise.all([
+          getUserFavorites(),
+          getCollectionFavorites(),
+          getModuleFavorites()
+        ])
         setFavoriteNamespaces(nsFavorites || [])
-
-        // Load collection and module favorites from localStorage
-        setFavoriteCollections(getLocalFavorites(COLLECTION_FAVORITES_KEY))
-        setFavoriteModules(getLocalFavorites(MODULE_FAVORITES_KEY))
+        setFavoriteCollections(collFavorites || [])
+        setFavoriteModules(modFavorites || [])
       } catch (error) {
         console.error('Failed to load favorites:', error)
       } finally {
@@ -320,24 +311,36 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     }
   }
 
-  // Toggle collection favorite (localStorage)
-  const handleToggleCollectionFavorite = (e: React.MouseEvent, collectionId: string) => {
+  // Toggle collection favorite (database API)
+  const handleToggleCollectionFavorite = async (e: React.MouseEvent, collectionId: string) => {
     e.stopPropagation()
-    const newFavorites = isFavoriteCollection(collectionId)
-      ? favoriteCollections.filter(f => f !== collectionId)
-      : [...favoriteCollections, collectionId]
-    setFavoriteCollections(newFavorites)
-    setLocalFavorites(COLLECTION_FAVORITES_KEY, newFavorites)
+    try {
+      if (isFavoriteCollection(collectionId)) {
+        await removeFavorite('collection', collectionId)
+        setFavoriteCollections(prev => prev.filter(f => f !== collectionId))
+      } else {
+        await addFavorite('collection', collectionId)
+        setFavoriteCollections(prev => [...prev, collectionId])
+      }
+    } catch (error) {
+      console.error('Failed to toggle collection favorite:', error)
+    }
   }
 
-  // Toggle module favorite (localStorage)
-  const handleToggleModuleFavorite = (e: React.MouseEvent, moduleId: string) => {
+  // Toggle module favorite (database API)
+  const handleToggleModuleFavorite = async (e: React.MouseEvent, moduleId: string) => {
     e.stopPropagation()
-    const newFavorites = isFavoriteModule(moduleId)
-      ? favoriteModules.filter(f => f !== moduleId)
-      : [...favoriteModules, moduleId]
-    setFavoriteModules(newFavorites)
-    setLocalFavorites(MODULE_FAVORITES_KEY, newFavorites)
+    try {
+      if (isFavoriteModule(moduleId)) {
+        await removeFavorite('module', moduleId)
+        setFavoriteModules(prev => prev.filter(f => f !== moduleId))
+      } else {
+        await addFavorite('module', moduleId)
+        setFavoriteModules(prev => [...prev, moduleId])
+      }
+    } catch (error) {
+      console.error('Failed to toggle module favorite:', error)
+    }
   }
 
   // Search query for filtering

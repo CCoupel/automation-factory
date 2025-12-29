@@ -15,10 +15,90 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Tag Git :** `v1.15.0`
 
 **Staging (Docker Compose) :**
-- **Backend :** `1.15.0-rc.4` (192.168.1.217) ✅
-- **Frontend :** `1.15.0-rc.4` (192.168.1.217) ✅
+- **Backend :** `1.16.0-rc.2` (192.168.1.217) ✅
+- **Frontend :** `1.16.0-rc.2` (192.168.1.217) ✅
 - **URL :** http://192.168.1.217
-- **Status :** Synchronisé avec production
+- **Status :** Phase 2 validée - en attente Phase 3
+
+---
+
+## 🔄 **Version 1.16.0 - Phase 2 validée (2025-12-29)**
+
+### Types de Variables Personnalisables + Stockage DB Favoris
+
+**Objectifs :**
+1. Permettre aux administrateurs de configurer de nouveaux types de validation pour les variables
+2. Corriger le stockage des favoris (fichier `/tmp` → base de données)
+
+#### Fonctionnalités implémentées
+
+**Backend - Types Variables (rc.1) :**
+- [x] Modèle `CustomVariableType` avec pattern regexp OU filtre
+- [x] Service de validation avec SUPPORTED_FILTERS (from_json, from_yaml)
+- [x] Endpoints publics : GET /variable-types, POST /validate
+- [x] Endpoints admin : GET/POST/PUT/DELETE /variable-types/admin
+- [x] Types builtin immutables (string, int, bool, list, dict)
+
+**Backend - Stockage DB Favoris (rc.2) :**
+- [x] Migration user_favorites.py : fichier `/tmp` → base de données
+- [x] Nouveaux endpoints : GET/POST/DELETE /user/favorites/collections
+- [x] Nouveaux endpoints : GET/POST/DELETE /user/favorites/modules
+- [x] Stockage dans `user_preferences.galaxy_settings`
+- [x] Fix SQLAlchemy JSON change detection (dict.copy())
+
+**Frontend - Types Variables (rc.1) :**
+- [x] Service `variableTypesService.ts` avec cache 5 minutes
+- [x] AddVariableDialog avec types dynamiques depuis API
+- [x] ConfigurationDialog avec onglet "Types Variables" pour admins
+- [x] Interface CRUD pour types personnalisés
+
+**Frontend - Favoris DB (rc.2) :**
+- [x] Migration ModulesTreeView : localStorage → API
+- [x] Service userPreferencesService : ajout collection/module favorites
+- [x] Suppression helper functions localStorage
+
+#### Tests Phase 2 - Staging (2025-12-29)
+
+**E2E Tests (22 tests) :**
+| Test | Description | Status |
+|------|-------------|--------|
+| 1 | Health check nginx | ✅ HTTP 200 |
+| 2 | Backend version | ✅ 1.16.0-rc.1 |
+| 3 | Login utilisateur | ✅ Token JWT |
+| 4 | GET /variable-types | ✅ 5 builtin + custom |
+| 5 | Validate string type | ✅ Valid |
+| 6 | Validate int - valid | ✅ parsed_value: 42 |
+| 7 | Validate int - invalid | ✅ is_valid: false |
+| 8 | Admin guard (non-admin) | ✅ 403 Forbidden |
+| 9 | Admin GET /admin | ✅ Liste types |
+| 10 | Admin CREATE json type | ✅ is_filter: true |
+| 11 | Validate JSON - valid | ✅ parsed object |
+| 12 | Validate JSON - invalid | ✅ Error message |
+| 13 | Admin CREATE yaml type | ✅ is_filter: true |
+| 14 | Validate YAML - valid | ✅ parsed object |
+| 15 | Validate YAML - invalid | ✅ Error message |
+| 16 | Admin CREATE IP type | ✅ regexp pattern |
+| 17 | Validate IP - valid | ✅ Match |
+| 18 | Validate IP - invalid | ✅ Invalid format |
+| 19 | Admin UPDATE type | ✅ Updated |
+| 20 | Admin DELETE type | ✅ Deleted |
+| 21 | Frontend accessible | ✅ HTTP 200 |
+| 22 | Frontend content | ✅ HTML served |
+
+**Tests Performance (10 requêtes chacun) :**
+| Endpoint | Min | Max | Moyenne |
+|----------|-----|-----|---------|
+| /api/version | 4ms | 27ms | ~9ms |
+| /api/variable-types | 9ms | 21ms | ~13ms |
+| /api/variable-types/validate | 7ms | 27ms | ~15ms |
+| Frontend (/) | 4ms | 28ms | ~15ms |
+
+#### Prochaines étapes
+- [x] Tests E2E passés
+- [x] Tests performance passés
+- [x] Documentation mise à jour
+- [ ] Validation utilisateur
+- [ ] Phase 3 : Production
 
 ---
 
@@ -397,4 +477,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Derniere mise a jour : 2025-12-29 - v1.15.0 Déployée en Production*
+*Derniere mise a jour : 2025-12-29 - v1.16.0-rc.1 en test Phase 2*

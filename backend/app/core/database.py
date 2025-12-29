@@ -60,6 +60,7 @@ async def init_db():
         from app.models.user import User
         from app.models.user_preferences import UserPreferences
         from app.models.playbook import Playbook
+        from app.models.custom_variable_type import CustomVariableType
 
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

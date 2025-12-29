@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.15.0-rc.4"
+__version__ = "1.16.0-rc.2"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,28 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.16.0": {
+        "title": "Types de Variables Personnalisables",
+        "release_date": "2025-12-29",
+        "features": [
+            "Types de variables personnalisables par l'administrateur",
+            "Validation par regexp ou filtres Ansible (| from_json, | from_yaml)",
+            "Interface d'administration pour creer/modifier/supprimer les types",
+            "Types builtin immutables (string, int, bool, list, dict)",
+            "Activation/desactivation des types personnalises"
+        ],
+        "improvements": [
+            "Selection dynamique des types dans AddVariableDialog",
+            "Affichage des patterns de validation",
+            "Cache 5 minutes pour les types de variables"
+        ],
+        "technical": [
+            "Table custom_variable_types en base de donnees",
+            "API /variable-types avec endpoints admin",
+            "Service de validation regexp et filtres",
+            "Onglet Types Variables dans ConfigurationDialog"
+        ]
+    },
     "1.15.0": {
         "title": "Gestion des Variables Amelioree",
         "release_date": "2025-12-25",

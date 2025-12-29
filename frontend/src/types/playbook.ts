@@ -113,9 +113,15 @@ export interface Link {
 }
 
 /**
- * Variable types supported in Ansible
+ * Builtin variable types (cannot be overridden)
  */
-export type VariableType = 'string' | 'int' | 'bool' | 'list' | 'dict'
+export type BuiltinVariableType = 'string' | 'int' | 'bool' | 'list' | 'dict'
+
+/**
+ * Variable types supported in Ansible
+ * Can be a builtin type or a custom type name (string)
+ */
+export type VariableType = BuiltinVariableType | string
 
 /**
  * Represents a variable in a PLAY

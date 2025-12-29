@@ -176,6 +176,39 @@ nginx (port 80) → Point d'entrée unique
 - **Simplicité :** Pas de JOINs complexes
 - **Migration :** Compatible SQLite
 
+### ⚠️ RÈGLE CRITIQUE : Stockage en Base de Données
+
+**Décision :** TOUTES les données utilisateur doivent être stockées en base de données
+
+**Justification :**
+- **Persistence :** Les fichiers temporaires (`/tmp`) sont perdus au redémarrage des containers
+- **Multi-utilisateur :** Chaque utilisateur doit avoir ses propres données isolées
+- **Scalabilité horizontale :** Plusieurs instances backend peuvent coexister
+- **Haute disponibilité :** Pas de dépendance à l'état local du container
+
+**Données concernées :**
+| Type | Stockage | Table/Champ |
+|------|----------|-------------|
+| Utilisateurs | DB | `users` |
+| Playbooks | DB | `playbooks` |
+| Partages | DB | `playbook_shares` |
+| Audit log | DB | `playbook_audit_log` |
+| Types variables custom | DB | `custom_variable_types` |
+| Favoris namespaces | DB | `user_preferences.favorite_namespaces` |
+| Favoris collections | DB | `user_preferences.galaxy_settings.favorite_collections` |
+| Favoris modules | DB | `user_preferences.galaxy_settings.favorite_modules` |
+| Préférences interface | DB | `user_preferences.interface_settings` |
+
+**Exceptions acceptables (côté client uniquement) :**
+- Token JWT (`localStorage`) - régénéré au login
+- Thème sombre (`localStorage`) - préférence UI mineure
+- Cache playbook (`sessionStorage`) - cache temporaire de session
+
+**Interdit :**
+- ❌ Fichiers `/tmp` pour données persistantes
+- ❌ `localStorage` pour données multi-appareils
+- ❌ Variables globales backend pour état utilisateur
+
 ---
 
 ## 🚦 **Rejected Alternatives**

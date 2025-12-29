@@ -16,10 +16,14 @@ import {
   Checkbox,
   Typography,
   Tooltip,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Divider,
+  ListSubheader
 } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { PlayVariable, VariableType } from '../../types/playbook'
+import { variableTypesService, VariableTypeInfo } from '../../services/variableTypesService'
 
 interface AddVariableDialogProps {
   open: boolean
@@ -29,12 +33,13 @@ interface AddVariableDialogProps {
   editVariable?: PlayVariable  // For editing existing variable
 }
 
-const VARIABLE_TYPES: { value: VariableType; label: string; description: string }[] = [
-  { value: 'string', label: 'String', description: 'Text value (e.g., "hello", "/path/to/file")' },
-  { value: 'int', label: 'Integer', description: 'Whole number (e.g., 42, -10, 0)' },
-  { value: 'bool', label: 'Boolean', description: 'True or False value' },
-  { value: 'list', label: 'List', description: 'Array of values (e.g., [item1, item2])' },
-  { value: 'dict', label: 'Dictionary', description: 'Key-value pairs (e.g., {key: value})' },
+// Fallback builtin types if API call fails
+const FALLBACK_BUILTIN_TYPES: VariableTypeInfo[] = [
+  { name: 'string', label: 'String', description: 'Text value (e.g., "hello", "/path/to/file")', is_builtin: true },
+  { name: 'int', label: 'Integer', description: 'Whole number (e.g., 42, -10, 0)', is_builtin: true },
+  { name: 'bool', label: 'Boolean', description: 'True or False value', is_builtin: true },
+  { name: 'list', label: 'List', description: 'Array of values (e.g., [item1, item2])', is_builtin: true },
+  { name: 'dict', label: 'Dictionary', description: 'Key-value pairs (e.g., {key: value})', is_builtin: true },
 ]
 
 const AddVariableDialog: React.FC<AddVariableDialogProps> = ({
@@ -52,7 +57,31 @@ const AddVariableDialog: React.FC<AddVariableDialogProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [regexpError, setRegexpError] = useState<string | null>(null)
 
+  // Variable types from API
+  const [variableTypes, setVariableTypes] = useState<VariableTypeInfo[]>(FALLBACK_BUILTIN_TYPES)
+  const [loadingTypes, setLoadingTypes] = useState(false)
+
   const isEdit = !!editVariable
+
+  // Fetch variable types when dialog opens
+  useEffect(() => {
+    if (open) {
+      setLoadingTypes(true)
+      variableTypesService.getVariableTypesFlat()
+        .then(types => {
+          if (types.length > 0) {
+            setVariableTypes(types)
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load variable types:', err)
+          // Keep fallback types on error
+        })
+        .finally(() => {
+          setLoadingTypes(false)
+        })
+    }
+  }, [open])
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -183,17 +212,56 @@ const AddVariableDialog: React.FC<AddVariableDialogProps> = ({
               value={variableType}
               label="Variable Type *"
               onChange={(e) => setVariableType(e.target.value as VariableType)}
+              disabled={loadingTypes}
+              startAdornment={loadingTypes ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
             >
-              {VARIABLE_TYPES.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
+              {/* Builtin types */}
+              <ListSubheader>Builtin Types</ListSubheader>
+              {variableTypes.filter(t => t.is_builtin).map((type) => (
+                <MenuItem key={type.name} value={type.name}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography>{type.label}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      - {type.description}
+                      - {type.description || type.name}
                     </Typography>
                   </Box>
                 </MenuItem>
               ))}
+
+              {/* Custom types (if any) */}
+              {variableTypes.filter(t => !t.is_builtin).length > 0 && (
+                <>
+                  <Divider />
+                  <ListSubheader>Custom Types</ListSubheader>
+                  {variableTypes.filter(t => !t.is_builtin).map((type) => {
+                    const customType = type as VariableTypeInfo & { pattern?: string; is_filter?: boolean }
+                    const patternInfo = customType.is_filter
+                      ? `Filter: ${customType.pattern}`
+                      : customType.pattern
+                        ? `Pattern: ${customType.pattern}`
+                        : ''
+                    return (
+                      <MenuItem key={type.name} value={type.name}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography>{type.label}</Typography>
+                            {type.description && (
+                              <Typography variant="caption" color="text.secondary">
+                                - {type.description}
+                              </Typography>
+                            )}
+                          </Box>
+                          {patternInfo && (
+                            <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
+                              {patternInfo}
+                            </Typography>
+                          )}
+                        </Box>
+                      </MenuItem>
+                    )
+                  })}
+                </>
+              )}
             </Select>
           </FormControl>
 
