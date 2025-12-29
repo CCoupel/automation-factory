@@ -45,9 +45,9 @@ frontend/
 │   │   └── GalaxyCacheContext.tsx # Cache Galaxy
 │   ├── services/
 │   │   ├── playbookService.ts     # Service playbooks
-│   │   ├── galaxyService.ts       # Service Galaxy API
-│   │   ├── galaxySmartService.ts  # Service Galaxy SMART
-│   │   └── userPreferencesService.ts # Favoris utilisateur
+│   │   ├── ansibleApiService.ts   # Service API Ansible (v1.10.0)
+│   │   ├── variableTypesService.ts # Service types variables (v1.16.0)
+│   │   └── userPreferencesService.ts # Favoris utilisateur (DB)
 │   ├── utils/
 │   │   ├── httpClient.ts          # Client HTTP configuré
 │   │   ├── apiConfig.ts           # Configuration URLs
@@ -493,6 +493,229 @@ export function getFrontendBaseUrl(): string {
   
   return window.location.origin + window.location.pathname.replace(/\/$/, '')
 }
+```
+
+---
+
+## 🔧 **Service Types Variables (v1.16.0)**
+
+### variableTypesService.ts
+```typescript
+// services/variableTypesService.ts
+import { getHttpClient } from '../utils/httpClient'
+
+interface VariableType {
+  id: string
+  name: string
+  label: string
+  description?: string
+  pattern: string
+  is_filter: boolean  // true si pattern commence par '|'
+  is_builtin?: boolean
+  is_active: boolean
+}
+
+interface ValidateResult {
+  is_valid: boolean
+  message: string
+  parsed_value?: any
+}
+
+// Cache 5 minutes pour les types
+let typesCache: VariableType[] | null = null
+let cacheTimestamp = 0
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+export async function getVariableTypes(): Promise<VariableType[]> {
+  const now = Date.now()
+  if (typesCache && (now - cacheTimestamp) < CACHE_TTL) {
+    return typesCache
+  }
+
+  const http = getHttpClient()
+  const response = await http.get('/variable-types')
+  typesCache = response.data
+  cacheTimestamp = now
+  return typesCache!
+}
+
+export async function validateValue(
+  typeName: string,
+  value: string
+): Promise<ValidateResult> {
+  const http = getHttpClient()
+  const response = await http.post('/variable-types/validate', {
+    type_name: typeName,
+    value: value
+  })
+  return response.data
+}
+
+// Endpoints admin
+export async function adminGetAllTypes(): Promise<VariableType[]> {
+  const http = getHttpClient()
+  const response = await http.get('/variable-types/admin')
+  return response.data
+}
+
+export async function adminCreateType(data: {
+  name: string
+  label: string
+  description?: string
+  pattern: string
+}): Promise<VariableType> {
+  const http = getHttpClient()
+  const response = await http.post('/variable-types/admin', data)
+  typesCache = null  // Invalider cache
+  return response.data
+}
+
+export async function adminUpdateType(
+  typeId: string,
+  data: Partial<VariableType>
+): Promise<VariableType> {
+  const http = getHttpClient()
+  const response = await http.put(`/variable-types/admin/${typeId}`, data)
+  typesCache = null  // Invalider cache
+  return response.data
+}
+
+export async function adminDeleteType(typeId: string): Promise<void> {
+  const http = getHttpClient()
+  await http.delete(`/variable-types/admin/${typeId}`)
+  typesCache = null  // Invalider cache
+}
+```
+
+### Intégration AddVariableDialog
+```typescript
+// components/dialogs/AddVariableDialog.tsx
+const AddVariableDialog = ({ open, onClose, onAdd }) => {
+  const [variableTypes, setVariableTypes] = useState<VariableType[]>([])
+
+  // Charger les types au mount
+  useEffect(() => {
+    if (open) {
+      getVariableTypes().then(setVariableTypes)
+    }
+  }, [open])
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Add Variable</DialogTitle>
+      <DialogContent>
+        {/* Select avec types builtin + custom */}
+        <FormControl fullWidth>
+          <InputLabel>Type</InputLabel>
+          <Select value={type} onChange={(e) => setType(e.target.value)}>
+            {variableTypes.map((vt) => (
+              <MenuItem key={vt.name} value={vt.name}>
+                {vt.label}
+                {vt.is_filter && <Chip size="small" label="filter" />}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+### ConfigurationDialog - Onglet Admin Types
+```typescript
+// Dans ConfigurationDialog.tsx, onglet "Types Variables" (admin only)
+const VariableTypesTab = () => {
+  const [types, setTypes] = useState<VariableType[]>([])
+
+  useEffect(() => {
+    adminGetAllTypes().then(setTypes)
+  }, [])
+
+  return (
+    <Box>
+      <Typography variant="h6">Types de Variables Personnalisés</Typography>
+      <List>
+        {types.filter(t => !t.is_builtin).map((type) => (
+          <ListItem key={type.id}>
+            <ListItemText
+              primary={type.label}
+              secondary={type.pattern}
+            />
+            <ListItemSecondaryAction>
+              <IconButton onClick={() => handleEdit(type)}>
+                <EditIcon />
+              </IconButton>
+              <IconButton onClick={() => handleDelete(type.id)}>
+                <DeleteIcon />
+              </IconButton>
+            </ListItemSecondaryAction>
+          </ListItem>
+        ))}
+      </List>
+      <Button onClick={handleAddType}>Ajouter un type</Button>
+    </Box>
+  )
+}
+```
+
+---
+
+## 👤 **Service Préférences Utilisateur (DB Storage)**
+
+### userPreferencesService.ts
+```typescript
+// services/userPreferencesService.ts
+// IMPORTANT: Toutes les données stockées en base de données (pas localStorage)
+
+export async function getFavoriteNamespaces(): Promise<string[]> {
+  const http = getHttpClient()
+  const response = await http.get('/user/favorites')
+  return response.data.favorite_namespaces || []
+}
+
+export async function getFavoriteCollections(): Promise<string[]> {
+  const http = getHttpClient()
+  const response = await http.get('/user/favorites/collections')
+  return response.data.favorite_collections || []
+}
+
+export async function getFavoriteModules(): Promise<string[]> {
+  const http = getHttpClient()
+  const response = await http.get('/user/favorites/modules')
+  return response.data.favorite_modules || []
+}
+
+export async function addFavoriteNamespace(namespace: string): Promise<void> {
+  const http = getHttpClient()
+  await http.post('/user/favorites', { namespace })
+}
+
+export async function addFavoriteCollection(collection: string): Promise<void> {
+  const http = getHttpClient()
+  await http.post('/user/favorites/collections', { collection })
+}
+
+export async function addFavoriteModule(module: string): Promise<void> {
+  const http = getHttpClient()
+  await http.post('/user/favorites/modules', { module })
+}
+
+// Remove methods similar...
+```
+
+### Migration localStorage → API
+```typescript
+// components/zones/modules-zone/ModulesTreeView.tsx
+// AVANT (localStorage - ❌ non scalable)
+const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
+
+// APRÈS (API - ✅ scalable multi-instance)
+const [nsFavorites, collFavorites, modFavorites] = await Promise.all([
+  getFavoriteNamespaces(),
+  getFavoriteCollections(),
+  getFavoriteModules()
+])
 ```
 
 ---
@@ -1069,7 +1292,7 @@ const PlaybookEditor = () => {
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-12*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-29*
 
 *Voir aussi :*
 - [Spécifications Frontend](FRONTEND_SPECS.md)

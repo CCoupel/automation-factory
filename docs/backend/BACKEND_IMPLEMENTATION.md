@@ -22,12 +22,15 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── user.py                # Modèle utilisateur
 │   │   ├── playbook.py            # Modèle playbook
+│   │   ├── user_preferences.py    # Préférences utilisateur (favoris)
+│   │   ├── custom_variable_type.py # Types variables custom (v1.16.0)
 │   │   └── base.py                # Classe base SQLAlchemy
 │   ├── schemas/
 │   │   ├── __init__.py
 │   │   ├── user.py                # Schémas Pydantic utilisateur
 │   │   ├── playbook.py            # Schémas Pydantic playbook
-│   │   └── galaxy.py              # Schémas Galaxy API
+│   │   ├── galaxy.py              # Schémas Galaxy API
+│   │   └── variable_type.py       # Schémas types variables (v1.16.0)
 │   ├── api/
 │   │   ├── __init__.py
 │   │   ├── router.py              # Router principal
@@ -36,13 +39,15 @@ backend/
 │   │       ├── auth.py            # Authentification
 │   │       ├── playbooks.py       # Gestion playbooks
 │   │       ├── admin.py           # Administration
-│   │       ├── galaxy.py          # Galaxy API
-│   │       ├── galaxy_cache.py    # Galaxy cache
-│   │       ├── user_favorites.py  # Favoris utilisateur
+│   │       ├── ansible.py         # Ansible docs API (v1.10.0)
+│   │       ├── user_favorites.py  # Favoris utilisateur (DB storage)
+│   │       ├── variable_types.py  # Types variables (v1.16.0)
 │   │       └── admin_configuration.py # Config admin
 │   └── services/
 │       ├── __init__.py
-│       ├── galaxy_service_smart.py # Service Galaxy SMART
+│       ├── ansible_collections_service.py # Service docs Ansible
+│       ├── ansible_versions_service.py    # Service versions Ansible
+│       ├── variable_type_service.py       # Service validation types (v1.16.0)
 │       ├── playbook_service.py     # Service playbooks
 │       └── cache_service.py        # Service cache Redis
 ├── requirements.txt               # Dépendances Python
@@ -499,6 +504,151 @@ async def update_playbook(
 
 ---
 
+## 🔧 **Types de Variables Personnalisables (v1.16.0)**
+
+### Modèle CustomVariableType
+```python
+# models/custom_variable_type.py
+from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy.sql import func
+from app.core.database import Base
+import uuid
+
+class CustomVariableType(Base):
+    __tablename__ = "custom_variable_types"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(50), unique=True, nullable=False)  # ex: 'mail', 'ip', 'json'
+    label = Column(String(100), nullable=False)              # ex: 'Email Address'
+    description = Column(Text, nullable=True)
+    pattern = Column(String(500), nullable=False)            # regexp OU filtre
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(String, ForeignKey("users.id"), nullable=False)
+```
+
+### Service de Validation
+```python
+# services/variable_type_service.py
+import re
+import json
+import yaml
+
+BUILTIN_TYPES = {'string', 'int', 'bool', 'list', 'dict'}
+
+SUPPORTED_FILTERS = {
+    'from_json': lambda v: json.loads(v),
+    'from_yaml': lambda v: yaml.safe_load(v),
+}
+
+def validate_value(value: str, pattern: str) -> tuple[bool, str, Any]:
+    """
+    Valide une valeur contre un pattern.
+    - Si pattern commence par '|' : c'est un filtre Ansible
+    - Sinon : c'est une expression régulière
+    """
+    if pattern.startswith('|'):
+        filter_name = pattern[1:].strip()
+        if filter_name not in SUPPORTED_FILTERS:
+            return False, f"Filtre inconnu: {filter_name}", None
+        try:
+            parsed = SUPPORTED_FILTERS[filter_name](value)
+            return True, "Validation réussie", parsed
+        except Exception as e:
+            return False, f"Erreur de validation: {str(e)}", None
+    else:
+        # Validation regexp
+        try:
+            if re.fullmatch(pattern, value):
+                return True, "Match", value
+            return False, "Format invalide", None
+        except re.error as e:
+            return False, f"Regexp invalide: {str(e)}", None
+```
+
+### Endpoints API Variable Types
+```python
+# api/endpoints/variable_types.py
+
+# Endpoints publics (utilisateurs authentifiés)
+@router.get("/variable-types")
+async def get_variable_types(...) -> List[VariableTypeResponse]:
+    """Liste types builtin + custom actifs"""
+
+@router.post("/variable-types/validate")
+async def validate_value(...) -> ValidateValueResponse:
+    """Valide une valeur contre un type"""
+
+# Endpoints admin
+@router.get("/variable-types/admin")
+async def admin_get_all_types(...) -> List[VariableTypeResponse]:
+    """Liste tous les types custom (actifs + inactifs)"""
+
+@router.post("/variable-types/admin")
+async def admin_create_type(...) -> VariableTypeResponse:
+    """Crée un type custom"""
+
+@router.put("/variable-types/admin/{type_id}")
+async def admin_update_type(...) -> VariableTypeResponse:
+    """Modifie un type custom"""
+
+@router.delete("/variable-types/admin/{type_id}")
+async def admin_delete_type(...) -> dict:
+    """Supprime un type custom"""
+```
+
+### Types Prédéfinis Exemples
+| name | label | pattern |
+|------|-------|---------|
+| mail | Email | `^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$` |
+| ip | IP Address | `^(\d{1,3}\.){3}\d{1,3}$` |
+| url | URL | `^https?://.*` |
+| json | JSON | `\| from_json` |
+| yaml | YAML | `\| from_yaml` |
+
+---
+
+## 👤 **Favoris Utilisateur (DB Storage)**
+
+### Stockage en Base de Données
+```python
+# api/endpoints/user_favorites.py
+# IMPORTANT: Toutes les données stockées en DB, PAS de fichiers /tmp
+
+@router.get("/user/favorites")
+async def get_favorite_namespaces(...):
+    """Favoris namespaces depuis user_preferences.favorite_namespaces"""
+
+@router.get("/user/favorites/collections")
+async def get_favorite_collections(...):
+    """Favoris collections depuis user_preferences.galaxy_settings"""
+
+@router.get("/user/favorites/modules")
+async def get_favorite_modules(...):
+    """Favoris modules depuis user_preferences.galaxy_settings"""
+```
+
+### SQLAlchemy JSON Change Detection
+```python
+# IMPORTANT: SQLAlchemy ne détecte pas les modifications in-place des JSON
+# Solution: Toujours créer une copie avant modification
+
+# ❌ Ne fonctionne PAS
+preferences.galaxy_settings["favorite_collections"].append(collection)
+await db.commit()  # Changement non détecté !
+
+# ✅ Fonctionne
+galaxy_settings = dict(preferences.galaxy_settings or {})
+favorites = list(galaxy_settings.get("favorite_collections", []))
+favorites.append(collection)
+galaxy_settings["favorite_collections"] = favorites
+preferences.galaxy_settings = galaxy_settings.copy()  # Nouvelle référence
+await db.commit()  # Changement détecté ✓
+```
+
+---
+
 ## 🎯 **Cache Service Redis**
 
 ### Implementation Cache
@@ -717,7 +867,7 @@ logger.info("Namespace enriched", extra={
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-12*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-29*
 
 *Voir aussi :*
 - [Spécifications Backend](BACKEND_SPECS.md)
