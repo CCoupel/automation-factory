@@ -21,6 +21,7 @@ import DataArrayIcon from '@mui/icons-material/DataArray'
 import DataObjectIcon from '@mui/icons-material/DataObject'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import LockIcon from '@mui/icons-material/Lock'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
@@ -30,7 +31,8 @@ import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
-import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, PlayAttributes, ModuleSchema } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, PlayAttributes, ModuleSchema, isSystemBlock } from '../../types/playbook'
+import { generateAssertionsBlock, SYSTEM_ASSERTIONS_BLOCK_ID, updateAssertionsBlock } from '../../utils/assertionsGenerator'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
@@ -507,6 +509,32 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       onGetPlaybookContent(serializePlaybookContent)
     }
   }, [serializePlaybookContent, onGetPlaybookContent])
+
+  // Generate/update system assertions block when variables change
+  useEffect(() => {
+    const existingAssertionsBlock = modules.find(m => m.id === SYSTEM_ASSERTIONS_BLOCK_ID)
+    const newAssertionsBlock = updateAssertionsBlock(existingAssertionsBlock || null, currentPlay.variables)
+
+    if (newAssertionsBlock) {
+      // If block exists, update it; otherwise add it
+      if (existingAssertionsBlock) {
+        setModules(prev => prev.map(m =>
+          m.id === SYSTEM_ASSERTIONS_BLOCK_ID ? newAssertionsBlock : m
+        ))
+      } else {
+        // Add the assertions block to pre_tasks with proper parentSection
+        const assertionsWithSection = {
+          ...newAssertionsBlock,
+          parentSection: 'pre_tasks' as const
+        }
+        setModules(prev => [assertionsWithSection, ...prev])
+      }
+    } else if (existingAssertionsBlock) {
+      // No variables, remove the assertions block
+      setModules(prev => prev.filter(m => m.id !== SYSTEM_ASSERTIONS_BLOCK_ID))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlay.variables])
 
   // Apply collaboration updates from other users
   const applyCollaborationUpdate = useCallback((update: PlaybookUpdate) => {
@@ -1291,6 +1319,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }
 
   const handleModuleDragStart = (id: string, e: React.DragEvent) => {
+    // Empêcher le drag des blocs système
+    const module = modules.find(m => m.id === id)
+    if (module && isSystemBlock(module)) {
+      e.preventDefault()
+      return
+    }
+
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('existingModule', id)
 
@@ -2172,6 +2207,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
     // Ne pas supprimer la tâche PLAY obligatoire
     if (module?.isPlay) {
+      return
+    }
+
+    // Ne pas supprimer les blocs système (assertions)
+    if (module && isSystemBlock(module)) {
       return
     }
 
@@ -3472,15 +3512,22 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
               if (isBlock) {
                 // Rendu d'un Block ou PLAY
-                const blockTheme = module.isPlay ? getPlayTheme() : getBlockTheme(module.id)
+                const isSystem = isSystemBlock(module)
+                const blockTheme = module.isPlay ? getPlayTheme() : isSystem ? {
+                  // System block theme (locked, gray)
+                  bgColor: 'rgba(158, 158, 158, 0.15)',
+                  borderColor: '#9e9e9e',
+                  iconColor: '#757575',
+                  headerBgColor: 'rgba(158, 158, 158, 0.2)',
+                } : getBlockTheme(module.id)
 
                 return (
                   <Paper
                     key={module.id}
                     className="module-block"
                     data-block-id={module.id}
-                    elevation={selectedModuleId === module.id ? 6 : 3}
-                    onClick={() => onSelectModule({
+                    elevation={selectedModuleId === module.id ? 6 : (isSystem ? 1 : 3)}
+                    onClick={() => !isSystem && onSelectModule({
                       id: module.id,
                       name: module.name,
                       collection: module.collection,
@@ -3497,10 +3544,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       moduleSchema: module.moduleSchema,
                       validationState: module.validationState
                     })}
-                    draggable
-                    onDragStart={(e) => handleModuleDragStart(module.id, e)}
-                    onDragOver={(e) => handleModuleDragOver(module.id, e)}
-                    onDrop={(e) => handleModuleDropOnModule(module.id, e)}
+                    draggable={!isSystem}
+                    onDragStart={(e) => !isSystem && handleModuleDragStart(module.id, e)}
+                    onDragOver={(e) => !isSystem && handleModuleDragOver(module.id, e)}
+                    onDrop={(e) => !isSystem && handleModuleDropOnModule(module.id, e)}
                     sx={{
                       position: 'absolute',
                       left: module.x,
@@ -3508,12 +3555,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       width: dimensions.width,
                       height: dimensions.height,
                       p: 1,
-                      cursor: 'move',
+                      cursor: isSystem ? 'default' : 'move',
                       border: `2px solid ${blockTheme.borderColor}`,
                       borderRadius: module.isPlay ? '0 50% 50% 0' : 2,
                       bgcolor: blockTheme.bgColor,
                       zIndex: draggedModuleId === module.id ? 10 : 1,
-                      opacity: draggedModuleId === module.id ? 0.7 : 1,
+                      opacity: isSystem ? 0.85 : (draggedModuleId === module.id ? 0.7 : 1),
                       overflow: 'visible',
                       // Highlight effect for synced elements (user's color)
                       ...(highlightedElements.has(module.id) && {
@@ -3524,7 +3571,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       '&:hover': {
                         boxShadow: highlightedElements.has(module.id)
                           ? `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`
-                          : 6,
+                          : (isSystem ? 2 : 6),
                       },
                     }}
                   >
@@ -3552,28 +3599,44 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {module.isPlay ? (
                             <PlayArrowIcon sx={{ fontSize: 20, color: blockTheme.iconColor }} />
+                          ) : isSystem ? (
+                            <Tooltip title="Bloc système - Généré automatiquement">
+                              <LockIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
+                            </Tooltip>
                           ) : (
                             <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
                           )}
-                          <TextField
-                            fullWidth
-                            variant="standard"
-                            value={module.taskName}
-                            onChange={(e) => updateTaskName(module.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            sx={{
-                              '& .MuiInput-input': {
+                          {isSystem ? (
+                            <Typography
+                              sx={{
                                 fontWeight: 'bold',
                                 fontSize: '0.75rem',
-                                padding: '2px 0',
                                 color: blockTheme.iconColor,
-                              },
-                            }}
-                          />
+                              }}
+                            >
+                              {module.taskName}
+                            </Typography>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              variant="standard"
+                              value={module.taskName}
+                              onChange={(e) => updateTaskName(module.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              sx={{
+                                '& .MuiInput-input': {
+                                  fontWeight: 'bold',
+                                  fontSize: '0.75rem',
+                                  padding: '2px 0',
+                                  color: blockTheme.iconColor,
+                                },
+                              }}
+                            />
+                          )}
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {/* Bouton collapse/expand SEULEMENT pour les blocks, pas les PLAY */}
-                          {!module.isPlay && (
+                          {/* Bouton collapse/expand SEULEMENT pour les blocks normaux, pas les PLAY ni les systèmes */}
+                          {!module.isPlay && !isSystem && (
                             <IconButton
                               size="small"
                               onClick={(e) => {
@@ -3633,8 +3696,41 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                     </Box>
 
 
-                    {/* Contenu du block avec 3 sections - SEULEMENT pour les blocks, pas les PLAY */}
-                    {!module.isPlay && !collapsedBlocks.has(module.id) && (
+                    {/* Contenu du bloc système - Affiche les assertions en lecture seule */}
+                    {!module.isPlay && isSystem && (
+                      <Box sx={{
+                        position: 'absolute',
+                        top: 50,
+                        left: 8,
+                        right: 8,
+                        bottom: 8,
+                        overflow: 'auto',
+                        fontSize: '0.65rem',
+                        color: '#666'
+                      }}>
+                        {module.moduleParameters?.__assertionTasks?.map((task: { id: string; name: string; description: string; type: string }) => (
+                          <Box
+                            key={task.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 0.5,
+                              py: 0.25,
+                              borderBottom: '1px solid rgba(0,0,0,0.05)'
+                            }}
+                          >
+                            <CheckCircleIcon sx={{ fontSize: 12, color: task.type === 'set_fact' ? '#2196f3' : '#4caf50', mt: 0.25, flexShrink: 0 }} />
+                            <Box>
+                              <Typography sx={{ fontSize: '0.65rem', fontWeight: 'medium' }}>{task.name}</Typography>
+                              <Typography sx={{ fontSize: '0.6rem', color: '#888' }}>{task.description}</Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+
+                    {/* Contenu du block avec 3 sections - SEULEMENT pour les blocks normaux, pas les PLAY ni les systèmes */}
+                    {!module.isPlay && !isSystem && !collapsedBlocks.has(module.id) && (
                       <Box sx={{ position: 'absolute', top: 50, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column' }}>
                         {/* Section Tasks - Header toujours visible */}
                         <Box

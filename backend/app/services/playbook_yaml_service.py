@@ -9,6 +9,8 @@ import yaml
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
+from app.services.assertions_service import generate_assertions_block, variables_to_dict_format
+
 
 @dataclass
 class ValidationResult:
@@ -116,8 +118,14 @@ class PlaybookYamlService:
         if "gather_facts" in content:
             play["gather_facts"] = content["gather_facts"]
 
-        # Variables
-        if content.get("vars"):
+        # Variables - convert from PlayVariable format if available
+        if content.get("variables"):
+            # New format: list of PlayVariable objects
+            vars_dict = variables_to_dict_format(content["variables"])
+            if vars_dict:
+                play["vars"] = vars_dict
+        elif content.get("vars"):
+            # Legacy format: direct vars dict
             play["vars"] = content["vars"]
 
         if content.get("vars_files"):
@@ -127,9 +135,22 @@ class PlaybookYamlService:
         if content.get("roles"):
             play["roles"] = self._build_roles(content["roles"])
 
-        # Tasks sections
+        # Pre-tasks section with system assertions block
+        pre_tasks = []
+
+        # 1. Generate system assertions block (always first)
+        if content.get("variables"):
+            assertions_block = generate_assertions_block(content["variables"])
+            if assertions_block:
+                pre_tasks.append(assertions_block)
+
+        # 2. Add user pre_tasks
         if content.get("pre_tasks"):
-            play["pre_tasks"] = self._build_tasks(content["pre_tasks"])
+            user_pre_tasks = self._build_tasks(content["pre_tasks"])
+            pre_tasks.extend(user_pre_tasks)
+
+        if pre_tasks:
+            play["pre_tasks"] = pre_tasks
 
         if content.get("tasks"):
             play["tasks"] = self._build_tasks(content["tasks"])

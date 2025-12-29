@@ -58,6 +58,7 @@ export interface ModuleBlock {
   // Type flags
   isBlock?: boolean  // Indicates this is a block container
   isPlay?: boolean   // Indicates this is a START task (in a PLAY section)
+  isSystem?: boolean // Indicates this is a system-managed block (non-editable)
 
   // PLAY-specific attributes
   inventory?: string
@@ -179,6 +180,14 @@ export function isPlayStart(module: ModuleBlock): boolean {
  */
 export function isTask(module: ModuleBlock): boolean {
   return !module.isBlock && !module.isPlay
+}
+
+/**
+ * Type guard to check if a module is a system-managed block
+ * System blocks are non-editable and generated automatically
+ */
+export function isSystemBlock(module: ModuleBlock): boolean {
+  return module.isSystem === true
 }
 
 /**

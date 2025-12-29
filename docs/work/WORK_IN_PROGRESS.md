@@ -14,11 +14,50 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v1.16.0`
 
-**Staging (Docker Compose) :**
-- **Backend :** `1.16.0-rc.2` (192.168.1.217) ✅
-- **Frontend :** `1.16.0-rc.2` (192.168.1.217) ✅
-- **URL :** http://192.168.1.217
-- **Status :** Promu en production
+**Développement (Local) :**
+- **Backend :** `1.17.0_1` (Phase 1)
+- **Frontend :** `1.17.0_1` (Phase 1)
+- **Feature :** Bloc Assertions Système
+
+---
+
+## 🔄 **Version 1.17.0 - En Développement (Phase 1)**
+
+### Bloc Assertions Système
+
+**Objectif :** Générer automatiquement un bloc d'assertions dans pre_tasks pour valider les variables du playbook. Ce bloc est visible dans l'UI mais verrouillé (non modifiable par l'utilisateur).
+
+#### Fonctionnalités implémentées (v1.17.0_1)
+
+**Backend :**
+- [x] Service `assertions_service.py` pour génération YAML
+- [x] Génération default values (set_fact pour variables non-required)
+- [x] Génération required assertions
+- [x] Génération type assertions (int, bool, list, dict)
+- [x] Génération pattern assertions (regexp, filtres)
+- [x] Intégration dans `playbook_yaml_service.py` (premier bloc pre_tasks)
+
+**Frontend :**
+- [x] Flag `isSystem?: boolean` sur ModuleBlock
+- [x] Helper `isSystemBlock()` dans playbook.ts
+- [x] Générateur `assertionsGenerator.ts` pour affichage UI
+- [x] Intégration WorkZone :
+  - [x] useEffect régénération bloc sur changement variables
+  - [x] Protection delete pour blocs système
+  - [x] Protection drag pour blocs système
+  - [x] Thème gris + icône cadenas pour blocs système
+  - [x] Nom en lecture seule (Typography au lieu de TextField)
+  - [x] Affichage liste assertions en lecture seule
+
+**Tests Phase 1 :**
+- [x] Build TypeScript frontend sans erreurs
+- [x] Import backend assertions_service OK
+- [x] Génération YAML validée avec variables de test
+
+#### Prochaines étapes
+- [ ] Phase 2 : Déploiement staging
+- [ ] Tests E2E bloc assertions
+- [ ] Phase 3 : Production
 
 ---
 
