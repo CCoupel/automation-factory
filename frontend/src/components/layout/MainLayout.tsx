@@ -8,7 +8,6 @@ import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { useCollaborationSync } from '../../hooks/useCollaborationSync'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
-import VarsZone from '../zones/VarsZone'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import WorkZone, { CollaborationCallbacks } from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
@@ -50,7 +49,6 @@ const MainLayout = () => {
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
-  const [isVarsCollapsed, setIsVarsCollapsed] = useState(true) // Collapsed by default since Variables are in PLAY sections now
   const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
   const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{
     taskName?: string;
@@ -249,62 +247,6 @@ const MainLayout = () => {
         isCollaborationConnected={isConnected}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
       />
-
-      {/* Zone Vars - Barre haute 1 */}
-      {!isVarsCollapsed ? (
-        <Box
-          sx={{
-            height: '60px',
-            borderBottom: '1px solid #ddd',
-            flexShrink: 0,
-            position: 'relative',
-          }}
-        >
-          <VarsZone />
-          {/* Bouton de collapse */}
-          <Tooltip title="Hide Variables Zone" placement="bottom">
-            <IconButton
-              size="small"
-              onClick={() => setIsVarsCollapsed(true)}
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                bgcolor: 'background.paper',
-                boxShadow: 1,
-                '&:hover': {
-                  bgcolor: 'primary.light',
-                },
-              }}
-            >
-              <ExpandLessIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            height: '30px',
-            borderBottom: '1px solid #ddd',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'background.paper',
-            cursor: 'pointer',
-            '&:hover': {
-              bgcolor: 'action.hover',
-            },
-          }}
-          onClick={() => setIsVarsCollapsed(false)}
-        >
-          <Tooltip title="Show Variables Zone" placement="bottom">
-            <IconButton size="small">
-              <ExpandMoreIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
 
       {/* Zone Centrale - 3 colonnes */}
       <Box

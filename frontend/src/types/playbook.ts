@@ -113,11 +113,20 @@ export interface Link {
 }
 
 /**
+ * Variable types supported in Ansible
+ */
+export type VariableType = 'string' | 'int' | 'bool' | 'list' | 'dict'
+
+/**
  * Represents a variable in a PLAY
  */
 export interface PlayVariable {
   key: string
   value: string
+  type: VariableType
+  required: boolean
+  defaultValue?: string  // Only used when required is false
+  regexp?: string        // Validation pattern
 }
 
 /**

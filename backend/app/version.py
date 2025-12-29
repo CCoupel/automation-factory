@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.14.3-rc.15"
+__version__ = "1.15.0-rc.4"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,26 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.15.0": {
+        "title": "Gestion des Variables Amelioree",
+        "release_date": "2025-12-25",
+        "features": [
+            "Edition inline des variables",
+            "Support des types de variables (string, int, bool, list, dict)",
+            "Interface VarsZone connectee au playbook",
+            "Validation des noms et valeurs de variables"
+        ],
+        "improvements": [
+            "UX amelioree pour la gestion des variables",
+            "Icones de type pour chaque variable",
+            "Synchronisation temps reel des variables"
+        ],
+        "technical": [
+            "Composant VarsZone refactorise",
+            "Integration avec WorkZone state",
+            "Support collaboration WebSocket pour variables"
+        ]
+    },
     "1.14.3": {
         "title": "Vue Arborescente Elements (TreeView)",
         "release_date": "2025-12-25",

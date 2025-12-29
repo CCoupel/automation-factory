@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-25**
+## 🚀 **Status Actuel - 2025-12-26**
 
 ### Versions Déployées
 
@@ -14,11 +14,68 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v1.14.3`
 
-**Staging (nginx reverse proxy) :**
-- **Backend :** `1.14.3-rc.15` (ansible-builder-backend:1.14.3-rc.15)
-- **Frontend :** `1.14.3-rc.15` (ansible-builder-frontend:1.14.3-rc.15)
+**Staging (Docker Compose) :**
+- **Backend :** `1.15.0-rc.3` (192.168.1.217) ✅
+- **Frontend :** `1.15.0-rc.3` (192.168.1.217) ✅
 - **URL :** http://192.168.1.217
-- **Status :** Synced with production
+- **Status :** Phase 2 - En validation
+
+---
+
+## 🔄 **Version 1.15.0-rc.3 - En Staging (2025-12-26)**
+
+### Gestion des Variables Améliorée
+
+**Objectif :** Améliorer l'expérience utilisateur pour la gestion des variables avec édition inline, détection de types et interface moderne.
+
+#### Phase 1 (v1.15.0_1) - Complète
+**Fonctionnalités implémentées :**
+- [x] Edition inline des variables (double-click)
+- [x] Support 5 types de variables (string, int, bool, list, dict)
+- [x] Icônes par type (TextFieldsIcon, NumbersIcon, ToggleOnIcon, DataArrayIcon, DataObjectIcon)
+- [x] Couleurs par type (primary, secondary, success, warning, info)
+- [x] Validation des noms de variables (format identifier Ansible)
+- [x] Interface VarsZone connectée au state playbook
+- [x] Support collaboration WebSocket pour variables
+
+**Tests Phase 1 :**
+- [x] Build TypeScript sans erreurs
+- [x] Type detection: 14/14 tests
+- [x] Variable name validation: 11/11 tests
+
+**Rapport de tests :** [TEST_REPORT_v1.15.0_1.md](TEST_REPORT_v1.15.0_1.md)
+
+#### Phase 2 (rc.1 → rc.3) - En cours
+
+**rc.1 - Déploiement initial staging**
+- [x] Build Docker backend/frontend
+- [x] Déploiement sur 192.168.1.217
+- [x] Tests E2E: 10/10 passés
+
+**rc.2 - Amélioration interface variables**
+- [x] Dialogue AddVariableDialog enrichi :
+  - Nom de variable (obligatoire)
+  - Type de variable (obligatoire)
+  - Variable requise ? (checkbox)
+  - Valeur par défaut (si non requise)
+  - Expression régulière de validation
+- [x] Extension type PlayVariable avec nouveaux champs
+- [x] Homogénéité visuelle VarsZone ↔ variables Play (icônes, couleurs, chips)
+- [x] Correction conflit `type` → `action` dans CollaborationCallbacks
+
+**rc.3 - Simplification architecture**
+- [x] Suppression VarsZone globale (variables gérées par Play)
+- [x] Suppression fichier VarsZone.tsx
+- [x] Nettoyage MainLayout.tsx (imports, refs, callbacks)
+- [x] Nettoyage WorkZone.tsx (onVariables, callbacks externes)
+- [x] Correction nginx : proxy_pass port 80 → 5173 pour Vite
+
+**Tests Phase 2 :**
+- [x] Nginx health: HTTP 200 OK
+- [x] Backend API: 1.15.0-rc.3 (STAGING)
+- [x] Frontend: HTTP 200 OK
+
+**Prochaine étape :** Validation utilisateur puis Phase 3 - Production
 
 ---
 
@@ -329,4 +386,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Derniere mise a jour : 2025-12-25 - v1.14.3 Deployee en Production*
+*Derniere mise a jour : 2025-12-26 - v1.15.0-rc.3 Phase 2 En Staging*

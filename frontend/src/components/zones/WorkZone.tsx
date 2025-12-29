@@ -14,6 +14,13 @@ import SkipPreviousIcon from '@mui/icons-material/SkipPrevious'
 import PlaylistPlayIcon from '@mui/icons-material/PlaylistPlay'
 import SkipNextIcon from '@mui/icons-material/SkipNext'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
+import TextFieldsIcon from '@mui/icons-material/TextFields'
+import NumbersIcon from '@mui/icons-material/Numbers'
+import ToggleOnIcon from '@mui/icons-material/ToggleOn'
+import DataArrayIcon from '@mui/icons-material/DataArray'
+import DataObjectIcon from '@mui/icons-material/DataObject'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
@@ -23,7 +30,7 @@ import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
-import { ModuleBlock, Link, PlayVariable, PlaySectionName, Play, PlayAttributes, ModuleSchema } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, PlayAttributes, ModuleSchema } from '../../types/playbook'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
@@ -39,7 +46,7 @@ export interface CollaborationCallbacks {
   sendLinkAdd?: (data: { link: Link }) => void
   sendLinkDelete?: (data: { linkId: string }) => void
   sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
-  sendVariableUpdate?: (data: { variable: PlayVariable & { id: string; type: string } }) => void
+  sendVariableUpdate?: (data: { variable: PlayVariable & { id: string; action: 'add' | 'update' | 'delete' } }) => void
   sendBlockCollapse?: (data: { blockId: string; collapsed: boolean }) => void
   sendSectionCollapse?: (data: { key: string; collapsed: boolean }) => void
 }
@@ -170,8 +177,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       ],
       links: [],
       variables: [
-        { key: 'ansible_user', value: 'root' },
-        { key: 'ansible_port', value: '22' },
+        { key: 'ansible_user', value: 'root', type: 'string', required: true },
+        { key: 'ansible_port', value: '22', type: 'int', required: true },
       ],
       attributes: {
         hosts: 'all',
@@ -226,6 +233,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
   const [addVariableDialogOpen, setAddVariableDialogOpen] = useState(false)
+  const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null)
 
   // Ref to track last resized module for sync
   const lastResizedModuleRef = useRef<{ id: string; width: number; height: number; x: number; y: number } | null>(null)
@@ -428,7 +436,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             name: play.name,
             modules: modulesWithStarts,
             links: content.links, // Simplified
-            variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+            variables: content.variables.map(v => ({
+              key: v.name,
+              value: v.value,
+              type: (v as any).type || 'string',
+              required: (v as any).required !== undefined ? (v as any).required : true,
+              ...(v as any).defaultValue && { defaultValue: (v as any).defaultValue },
+              ...(v as any).regexp && { regexp: (v as any).regexp }
+            })),
             attributes: {
               hosts: play.hosts || 'all',
               remoteUser: undefined,
@@ -714,7 +729,11 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           const idx = p.variables.findIndex(v => v.key === variable.name)
           if (idx >= 0) {
             const newVars = [...p.variables]
-            newVars[idx] = { key: variable.name, value: String(variable.value) }
+            newVars[idx] = {
+              ...newVars[idx],
+              key: variable.name,
+              value: String(variable.value)
+            }
             return { ...p, variables: newVars }
           }
           return p
@@ -831,7 +850,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                 name: play.name,
                 modules: modulesWithStarts,
                 links: content.links, // Simplified
-                variables: content.variables.map(v => ({ key: v.name, value: v.value })),
+                variables: content.variables.map(v => ({
+              key: v.name,
+              value: v.value,
+              type: (v as any).type || 'string',
+              required: (v as any).required !== undefined ? (v as any).required : true,
+              ...(v as any).defaultValue && { defaultValue: (v as any).defaultValue },
+              ...(v as any).regexp && { regexp: (v as any).regexp }
+            })),
                 attributes: {
                   hosts: play.hosts || 'all',
                   remoteUser: undefined,
@@ -2488,18 +2514,40 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   // Gestion des variables
   const addVariable = () => {
+    setEditingVariableIndex(null)
     setAddVariableDialogOpen(true)
   }
 
-  const handleAddVariableFromDialog = (key: string, value: string) => {
-    setPlays(prevPlays => {
-      const updatedPlays = [...prevPlays]
-      updatedPlays[activePlayIndex] = {
-        ...updatedPlays[activePlayIndex],
-        variables: [...updatedPlays[activePlayIndex].variables, { key, value }]
-      }
-      return updatedPlays
-    })
+  const editVariable = (index: number) => {
+    setEditingVariableIndex(index)
+    setAddVariableDialogOpen(true)
+  }
+
+  const handleAddVariableFromDialog = (variable: Omit<PlayVariable, 'value'> & { value?: string }) => {
+    const newVariable: PlayVariable = {
+      key: variable.key,
+      value: variable.value || variable.defaultValue || '',
+      type: variable.type,
+      required: variable.required,
+      ...(variable.defaultValue && { defaultValue: variable.defaultValue }),
+      ...(variable.regexp && { regexp: variable.regexp })
+    }
+
+    if (editingVariableIndex !== null) {
+      // Update existing variable
+      updateVariable(editingVariableIndex, newVariable)
+    } else {
+      // Add new variable
+      setPlays(prevPlays => {
+        const updatedPlays = [...prevPlays]
+        updatedPlays[activePlayIndex] = {
+          ...updatedPlays[activePlayIndex],
+          variables: [...updatedPlays[activePlayIndex].variables, newVariable]
+        }
+        return updatedPlays
+      })
+    }
+    setEditingVariableIndex(null)
   }
 
   const deleteVariable = (index: number) => {
@@ -2512,6 +2560,31 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return updatedPlays
     })
   }
+
+  // Update an existing variable
+  const updateVariable = useCallback((index: number, variable: PlayVariable) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const newVariables = [...updatedPlays[activePlayIndex].variables]
+      newVariables[index] = variable
+      updatedPlays[activePlayIndex] = {
+        ...updatedPlays[activePlayIndex],
+        variables: newVariables
+      }
+      return updatedPlays
+    })
+
+    // Send collaboration update
+    if (collaborationCallbacks?.sendVariableUpdate) {
+      collaborationCallbacks.sendVariableUpdate({
+        variable: {
+          ...variable,
+          id: `var-${index}`,
+          action: 'update'
+        }
+      })
+    }
+  }, [activePlayIndex, collaborationCallbacks])
 
   // Gestion des roles
   const [newRole, setNewRole] = useState('')
@@ -2755,15 +2828,83 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           {isVariablesOpen && (
             <Box ref={variablesSectionRef} sx={{ px: 3, py: 1.5, bgcolor: `${getPlaySectionColor('variables')}08` }}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {currentPlay.variables.map((variable, index) => (
-                  <Chip
-                    key={index}
-                    label={`${variable.key}: ${variable.value}`}
-                    onDelete={() => deleteVariable(index)}
-                    color="primary"
-                    variant="outlined"
-                  />
-                ))}
+                {currentPlay.variables.map((variable, index) => {
+                  // Helper to get type icon
+                  const getTypeIcon = (type: VariableType) => {
+                    switch (type) {
+                      case 'int': return <NumbersIcon fontSize="small" />
+                      case 'bool': return <ToggleOnIcon fontSize="small" />
+                      case 'list': return <DataArrayIcon fontSize="small" />
+                      case 'dict': return <DataObjectIcon fontSize="small" />
+                      default: return <TextFieldsIcon fontSize="small" />
+                    }
+                  }
+                  // Helper to get type color
+                  const getTypeColor = (type: VariableType): 'primary' | 'secondary' | 'success' | 'warning' | 'info' => {
+                    switch (type) {
+                      case 'int': return 'secondary'
+                      case 'bool': return 'success'
+                      case 'list': return 'warning'
+                      case 'dict': return 'info'
+                      default: return 'primary'
+                    }
+                  }
+                  // Build tooltip
+                  const tooltipParts = [
+                    `Type: ${variable.type || 'string'}`,
+                    `Required: ${variable.required ? 'Yes' : 'No'}`
+                  ]
+                  if (!variable.required && variable.defaultValue) {
+                    tooltipParts.push(`Default: ${variable.defaultValue}`)
+                  }
+                  if (variable.regexp) {
+                    tooltipParts.push(`Pattern: ${variable.regexp}`)
+                  }
+
+                  return (
+                    <Tooltip key={index} title={tooltipParts.join(' | ')} placement="top">
+                      <Chip
+                        icon={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 0.5 }}>
+                            {getTypeIcon(variable.type || 'string')}
+                            {variable.required ? (
+                              <CheckCircleIcon sx={{ fontSize: 12, color: 'success.main' }} />
+                            ) : (
+                              <RadioButtonUncheckedIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                            )}
+                          </Box>
+                        }
+                        label={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="body2" component="span" sx={{ fontWeight: 500 }}>
+                              {variable.key}
+                            </Typography>
+                            {variable.value && (
+                              <>
+                                <Typography variant="body2" component="span" color="text.secondary">:</Typography>
+                                <Typography variant="body2" component="span" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {variable.value}
+                                </Typography>
+                              </>
+                            )}
+                          </Box>
+                        }
+                        onClick={() => editVariable(index)}
+                        onDelete={() => deleteVariable(index)}
+                        color={getTypeColor(variable.type || 'string')}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          cursor: 'pointer',
+                          '& .MuiChip-icon': {
+                            marginLeft: '4px',
+                            marginRight: '-4px'
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  )
+                })}
                 <Chip
                   label="Add Variable"
                   onClick={addVariable}
@@ -4293,12 +4434,16 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         )}
       </Box>
 
-      {/* Add Variable Dialog */}
+      {/* Add/Edit Variable Dialog */}
       <AddVariableDialog
         open={addVariableDialogOpen}
-        onClose={() => setAddVariableDialogOpen(false)}
+        onClose={() => {
+          setAddVariableDialogOpen(false)
+          setEditingVariableIndex(null)
+        }}
         onAdd={handleAddVariableFromDialog}
         existingKeys={currentPlay.variables.map(v => v.key)}
+        editVariable={editingVariableIndex !== null ? currentPlay.variables[editingVariableIndex] : undefined}
       />
     </Box>
   )
