@@ -4,6 +4,40 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.15.0** - *2025-12-29*
+
+### 📝 Gestion des Variables Améliorée
+
+- **Interface variables enrichie**
+  - Support 5 types de variables : string, int, bool, list, dict
+  - Icônes par type (TextFields, Numbers, ToggleOn, DataArray, DataObject)
+  - Couleurs par type (primary, secondary, success, warning, info)
+  - Indicateur requis/optionnel sur chaque variable
+
+- **Dialogue AddVariable complet**
+  - Nom de variable (obligatoire, validé format Ansible)
+  - Type de variable (obligatoire)
+  - Variable requise ? (checkbox)
+  - Valeur par défaut (si non requise)
+  - Expression régulière de validation
+
+- **Édition des variables**
+  - Clic sur chip de variable ouvre le dialogue en mode édition
+  - Modification de tous les paramètres (sauf le nom)
+  - Mise à jour temps réel via collaboration WebSocket
+
+- **Simplification architecture**
+  - Suppression VarsZone globale (variables gérées par Play)
+  - Nettoyage du code (~200 lignes supprimées)
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.15.0
+- **Tag Git** : v1.15.0
+- **Smoke tests** : Passés (21ms temps de réponse)
+
+---
+
 ## ✅ **Version 1.14.3** - *2025-12-25*
 
 ### 🌳 Vue Arborescente Elements (TreeView)

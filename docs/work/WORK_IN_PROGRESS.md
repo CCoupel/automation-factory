@@ -4,25 +4,25 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-26**
+## 🚀 **Status Actuel - 2025-12-29**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.14.3` (ghcr.io/ccoupel/ansible-builder-backend:1.14.3) ✅
-- **Frontend :** `1.14.3` (ghcr.io/ccoupel/ansible-builder-frontend:1.14.3) ✅
+- **Backend :** `1.15.0` (ghcr.io/ccoupel/ansible-builder-backend:1.15.0) ✅
+- **Frontend :** `1.15.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.15.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.14.3`
+- **Tag Git :** `v1.15.0`
 
 **Staging (Docker Compose) :**
-- **Backend :** `1.15.0-rc.3` (192.168.1.217) ✅
-- **Frontend :** `1.15.0-rc.3` (192.168.1.217) ✅
+- **Backend :** `1.15.0-rc.4` (192.168.1.217) ✅
+- **Frontend :** `1.15.0-rc.4` (192.168.1.217) ✅
 - **URL :** http://192.168.1.217
-- **Status :** Phase 2 - En validation
+- **Status :** Synchronisé avec production
 
 ---
 
-## 🔄 **Version 1.15.0-rc.3 - En Staging (2025-12-26)**
+## ✅ **Version 1.15.0 - Déployée en Production (2025-12-29)**
 
 ### Gestion des Variables Améliorée
 
@@ -70,12 +70,23 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - [x] Nettoyage WorkZone.tsx (onVariables, callbacks externes)
 - [x] Correction nginx : proxy_pass port 80 → 5173 pour Vite
 
+**rc.4 - Édition des variables**
+- [x] Clic sur chip de variable ouvre le dialogue en mode édition
+- [x] Nouveau state `editingVariableIndex` dans WorkZone
+- [x] Fonction `editVariable(index)` pour ouvrir le dialogue
+- [x] `handleAddVariableFromDialog` gère add ET update
+- [x] Cursor pointer sur les chips de variables
+
 **Tests Phase 2 :**
 - [x] Nginx health: HTTP 200 OK
-- [x] Backend API: 1.15.0-rc.3 (STAGING)
+- [x] Backend API: 1.15.0-rc.4 (STAGING)
 - [x] Frontend: HTTP 200 OK
+- [x] Commit: cc476d6
 
-**Prochaine étape :** Validation utilisateur puis Phase 3 - Production
+**Phase 3 - Production :** ✅ Déployée le 2025-12-29
+- Smoke tests: HTTP 200 OK
+- Version API: 1.15.0 (is_rc: false)
+- Temps de réponse: 21ms
 
 ---
 
@@ -386,4 +397,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Derniere mise a jour : 2025-12-26 - v1.15.0-rc.3 Phase 2 En Staging*
+*Derniere mise a jour : 2025-12-29 - v1.15.0 Déployée en Production*
