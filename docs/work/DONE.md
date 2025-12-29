@@ -4,6 +4,37 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.16.0** - *2025-12-29*
+
+### 🔧 Types de Variables Personnalisables
+
+- **Types de validation personnalisés**
+  - Interface admin pour créer/modifier/supprimer des types custom
+  - Validation par expression régulière (ex: email, IP, URL)
+  - Validation par filtres Ansible (ex: `| from_json`, `| from_yaml`)
+  - Types builtin immutables (string, int, bool, list, dict)
+  - Activation/désactivation des types personnalisés
+
+- **API Variable Types complète**
+  - `GET /variable-types` : Liste types builtin + custom actifs
+  - `POST /variable-types/validate` : Validation valeur contre type
+  - Endpoints admin pour CRUD des types custom
+  - Cache 5 minutes pour optimisation performance
+
+- **Stockage favoris en base de données**
+  - Migration favoris namespaces vers base de données
+  - Nouveaux favoris collections et modules en base
+  - Suppression stockage fichier /tmp (scalabilité)
+  - Suppression localStorage pour données multi-appareils
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.16.0
+- **Tag Git** : v1.16.0
+- **Smoke tests** : Passés (pods Running, API OK)
+
+---
+
 ## ✅ **Version 1.15.0** - *2025-12-29*
 
 ### 📝 Gestion des Variables Améliorée

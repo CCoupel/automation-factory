@@ -9,20 +9,20 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.15.0` (ghcr.io/ccoupel/ansible-builder-backend:1.15.0) ✅
-- **Frontend :** `1.15.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.15.0) ✅
+- **Backend :** `1.16.0` (ghcr.io/ccoupel/ansible-builder-backend:1.16.0) ✅
+- **Frontend :** `1.16.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.16.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.15.0`
+- **Tag Git :** `v1.16.0`
 
 **Staging (Docker Compose) :**
 - **Backend :** `1.16.0-rc.2` (192.168.1.217) ✅
 - **Frontend :** `1.16.0-rc.2` (192.168.1.217) ✅
 - **URL :** http://192.168.1.217
-- **Status :** Phase 2 validée - en attente Phase 3
+- **Status :** Promu en production
 
 ---
 
-## 🔄 **Version 1.16.0 - Phase 2 validée (2025-12-29)**
+## ✅ **Version 1.16.0 - Déployée en Production (2025-12-29)**
 
 ### Types de Variables Personnalisables + Stockage DB Favoris
 
@@ -93,12 +93,18 @@ Ce document trace l'état actuel du développement et les versions déployées.
 | /api/variable-types/validate | 7ms | 27ms | ~15ms |
 | Frontend (/) | 4ms | 28ms | ~15ms |
 
-#### Prochaines étapes
+#### Phase 3 - Production (2025-12-29)
 - [x] Tests E2E passés
 - [x] Tests performance passés
 - [x] Documentation mise à jour
-- [ ] Validation utilisateur
-- [ ] Phase 3 : Production
+- [x] Validation utilisateur
+- [x] Tag images : 1.16.0-rc.2 → 1.16.0
+- [x] Push ghcr.io/ccoupel/ansible-builder-backend:1.16.0
+- [x] Push ghcr.io/ccoupel/ansible-builder-frontend:1.16.0
+- [x] Déploiement Kubernetes : kubectl set image
+- [x] Rollout status : pods Running
+- [x] Smoke tests : API v1.16.0, frontend OK
+- [x] Tag git : v1.16.0
 
 ---
 
@@ -477,4 +483,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Derniere mise a jour : 2025-12-29 - v1.16.0-rc.1 en test Phase 2*
+*Derniere mise a jour : 2025-12-29 - v1.16.0 déployée en production*
