@@ -4,6 +4,42 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.17.0** - *2025-12-30*
+
+### 🔒 Bloc Assertions Système
+
+- **SystemBlock - Blocs non-modifiables**
+  - Type dérivé avec `isSystem`, `systemType`, `sourceVariable`
+  - Style visuel distinct : thème gris, icône cadenas
+  - Sections Rescue/Always masquées (uniquement Normal)
+  - Tooltip "Bloc système - Généré automatiquement"
+
+- **Génération automatique assertions**
+  - UN BLOC PAR VARIABLE pour organisation visuelle
+  - Assertions : required, type (int/bool/list/dict), pattern (regexp/filter)
+  - Valeurs par défaut avec set_fact
+  - Support types custom avec regexp ou filtres
+
+- **Liens auto-générés**
+  - Liens entre blocs : START pre_tasks → Bloc1 → Bloc2 → ...
+  - Liens internes : Block-START → Task1 → Task2 → ...
+  - Synchronisation avec le state du playbook
+
+- **Contraintes de comportement**
+  - Repositionnement bloc et tâches internes : autorisé
+  - Drop externe sur bloc : bloqué
+  - Drag tâches vers l'extérieur : bloqué
+  - Création liens internes : autorisée
+  - Édition nom/paramètres : bloquée
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.17.0
+- **Tag Git** : v1.17.0
+- **Smoke tests** : Passés (HTTP 200, 0.1s)
+
+---
+
 ## ✅ **Version 1.16.0** - *2025-12-29*
 
 ### 🔧 Types de Variables Personnalisables

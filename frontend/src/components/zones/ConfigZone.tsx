@@ -9,6 +9,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import LockIcon from '@mui/icons-material/Lock'
 // Type icons
 import TextFieldsIcon from '@mui/icons-material/TextFields'
 import ToggleOnIcon from '@mui/icons-material/ToggleOn'
@@ -41,6 +42,7 @@ interface ConfigZoneProps {
     tags?: string[]
     isBlock?: boolean
     isPlay?: boolean
+    isSystem?: boolean
     moduleParameters?: Record<string, any>
     moduleSchema?: ModuleSchema
     validationState?: {
@@ -49,6 +51,7 @@ interface ConfigZoneProps {
       warnings: string[]
       lastValidated?: Date
     }
+    description?: string
   } | null
   onCollapse?: () => void
   onDelete?: (id: string) => void
@@ -710,8 +713,8 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
           {selectedModule ? 'Configure the selected task' : 'Configure the current PLAY'}
         </Typography>
 
-        {/* Bouton de suppression - pas pour les tâches START */}
-        {selectedModule && onDelete && !selectedModule.isPlay && (
+        {/* Bouton de suppression - pas pour les tâches START ni système */}
+        {selectedModule && onDelete && !selectedModule.isPlay && !selectedModule.isSystem && (
           <Box sx={{ mt: 2 }}>
             <Button
               variant="outlined"
@@ -724,6 +727,22 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
               Delete Task
             </Button>
           </Box>
+        )}
+
+        {/* System lock indicator */}
+        {selectedModule?.isSystem && (
+          <Alert
+            severity="info"
+            icon={<LockIcon />}
+            sx={{ mt: 2 }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              Élément système verrouillé
+            </Typography>
+            <Typography variant="caption">
+              Cet élément est généré automatiquement et ne peut pas être modifié.
+            </Typography>
+          </Alert>
         )}
       </Box>
 
@@ -807,6 +826,70 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
               </Box>
             </AccordionDetails>
           </Accordion>
+        ) : selectedModule.isSystem ? (
+          /* Read-only view for system modules */
+          <Box sx={{ p: 2 }}>
+            <Accordion defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LockIcon sx={{ color: '#757575', fontSize: 18 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#757575' }}>
+                    Détails (lecture seule)
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Nom</Typography>
+                    <Typography variant="body2">{selectedModule.taskName}</Typography>
+                  </Box>
+                  <Divider />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Module</Typography>
+                    <Typography variant="body2">{selectedModule.collection}.{selectedModule.name}</Typography>
+                  </Box>
+                  {selectedModule.description && (
+                    <>
+                      <Divider />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Description</Typography>
+                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{selectedModule.description}</Typography>
+                      </Box>
+                    </>
+                  )}
+                  {selectedModule.moduleParameters && Object.keys(selectedModule.moduleParameters).length > 0 && (
+                    <>
+                      <Divider />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Paramètres</Typography>
+                        {Object.entries(selectedModule.moduleParameters).map(([key, value]) => (
+                          <Box key={key} sx={{ ml: 1, mt: 0.5 }}>
+                            <Typography variant="body2">
+                              <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </>
+                  )}
+                  {selectedModule.tags && selectedModule.tags.length > 0 && (
+                    <>
+                      <Divider />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Tags</Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                          {selectedModule.tags.map(tag => (
+                            <Chip key={tag} label={tag} size="small" variant="outlined" />
+                          ))}
+                        </Box>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          </Box>
         ) : (
           <>
             {/* Section 1: Attributs de la Tâche */}

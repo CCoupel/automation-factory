@@ -11,6 +11,7 @@ from app.api.endpoints.websocket import router as websocket_router
 from app.version import __version__
 from app.services.cache_scheduler_service import cache_scheduler
 from app.services.sse_manager import sse_manager
+from app.services.variable_type_service import ensure_default_types
 
 async def create_default_user():
     """Create default admin user for testing if not exists"""
@@ -60,7 +61,15 @@ async def lifespan(app: FastAPI):
         
         # Create default admin user for testing
         await create_default_user()
-        
+
+        # Create default custom variable types (JSON, YAML)
+        async with AsyncSessionLocal() as session:
+            created_types = await ensure_default_types(session)
+            if created_types:
+                print(f"Created default variable types: {', '.join(created_types)}")
+            else:
+                print("Default variable types already exist")
+
         # Start Ansible cache scheduler
         print("Starting Ansible cache scheduler...")
 

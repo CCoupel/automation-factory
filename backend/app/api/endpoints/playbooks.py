@@ -29,6 +29,7 @@ from app.schemas.playbook import (
 )
 from app.services.playbook_yaml_service import playbook_yaml_service
 from app.services.ansible_lint_service import ansible_lint_service
+from app.services.variable_type_service import get_all_custom_types
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
 
@@ -547,7 +548,8 @@ async def validate_playbook(
 @router.post("/preview", response_model=PlaybookYamlResponse)
 async def preview_playbook(
     preview_data: PlaybookPreviewRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Generate YAML preview without saving
@@ -561,7 +563,19 @@ async def preview_playbook(
     Returns:
         Generated YAML string
     """
-    yaml_output = playbook_yaml_service.json_to_yaml(preview_data.content)
+    # Fetch custom types for assertions
+    custom_types_db = await get_all_custom_types(db)
+    custom_types = [
+        {
+            'name': ct.name,
+            'label': ct.label,
+            'pattern': ct.pattern,
+            'is_filter': ct.is_filter
+        }
+        for ct in custom_types_db
+    ]
+
+    yaml_output = playbook_yaml_service.json_to_yaml(preview_data.content, custom_types)
 
     return PlaybookYamlResponse(
         yaml=yaml_output,

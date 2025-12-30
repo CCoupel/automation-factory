@@ -321,3 +321,54 @@ async def delete_custom_type(
     await db.commit()
 
     return True
+
+
+# Default custom types to be created at startup
+DEFAULT_CUSTOM_TYPES = [
+    {
+        'name': 'json',
+        'label': 'JSON',
+        'description': 'Valid JSON string that will be parsed',
+        'pattern': '| from_json'
+    },
+    {
+        'name': 'yaml',
+        'label': 'YAML',
+        'description': 'Valid YAML string that will be parsed',
+        'pattern': '| from_yaml'
+    }
+]
+
+
+async def ensure_default_types(db: AsyncSession) -> list[str]:
+    """
+    Ensure default custom types exist in the database.
+    Creates them if they don't exist.
+
+    Args:
+        db: Database session
+
+    Returns:
+        List of created type names
+    """
+    created = []
+
+    for type_def in DEFAULT_CUSTOM_TYPES:
+        existing = await get_custom_type_by_name(db, type_def['name'])
+        if not existing:
+            try:
+                custom_type = CustomVariableType(
+                    name=type_def['name'],
+                    label=type_def['label'],
+                    description=type_def['description'],
+                    pattern=type_def['pattern'],
+                    created_by='system'
+                )
+                db.add(custom_type)
+                await db.commit()
+                created.append(type_def['name'])
+            except Exception as e:
+                print(f"Error creating default type {type_def['name']}: {e}")
+                await db.rollback()
+
+    return created

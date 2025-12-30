@@ -9,16 +9,15 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.16.0` (ghcr.io/ccoupel/ansible-builder-backend:1.16.0) ✅
-- **Frontend :** `1.16.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.16.0) ✅
+- **Backend :** `1.17.0` (ghcr.io/ccoupel/ansible-builder-backend:1.17.0) ✅
+- **Frontend :** `1.17.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.17.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.16.0`
+- **Tag Git :** `v1.17.0`
 
 **Staging (Docker) :**
 - **Backend :** `1.17.0-rc.18`
 - **Frontend :** `1.17.0-rc.18`
 - **URL :** http://192.168.1.217
-- **Feature :** Bloc Assertions Système (Phase 2)
 
 ---
 
@@ -93,18 +92,21 @@ interface SystemBlock extends ModuleBlock {
 #### Tests Phase 2 - Staging (2025-12-30)
 - [x] Build Docker backend/frontend : rc.18
 - [x] Déploiement containers OK
-- [x] Health checks passés
-- [x] Version affichée : 1.17.0-rc.18 (STAGING)
+- [x] Health checks passés (Nginx 200, Backend 1.17.0-rc.18, Frontend 200)
+- [x] API Ansible versions : 9 versions disponibles
 - [x] Blocs système visibles avec icône cadenas
 - [x] Repositionnement blocs OK
 - [x] Repositionnement tâches internes OK
 - [x] Liens auto-générés visibles
 - [x] Drop externe bloqué
+- [x] Drag externe bloqué
+- [x] Commit pushé : 697b303
+
+#### Phase 2 : COMPLÈTE ✅
 
 #### Prochaines étapes
-- [ ] Tests E2E complets bloc assertions
 - [ ] Validation utilisateur finale
-- [ ] Phase 3 : Production
+- [ ] Phase 3 : Production (tag + push ghcr.io + deploy k8s)
 
 ---
 

@@ -228,40 +228,36 @@ const AddVariableDialog: React.FC<AddVariableDialogProps> = ({
                 </MenuItem>
               ))}
 
-              {/* Custom types (if any) */}
-              {variableTypes.filter(t => !t.is_builtin).length > 0 && (
-                <>
-                  <Divider />
-                  <ListSubheader>Custom Types</ListSubheader>
-                  {variableTypes.filter(t => !t.is_builtin).map((type) => {
-                    const customType = type as VariableTypeInfo & { pattern?: string; is_filter?: boolean }
-                    const patternInfo = customType.is_filter
-                      ? `Filter: ${customType.pattern}`
-                      : customType.pattern
-                        ? `Pattern: ${customType.pattern}`
-                        : ''
-                    return (
-                      <MenuItem key={type.name} value={type.name}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography>{type.label}</Typography>
-                            {type.description && (
-                              <Typography variant="caption" color="text.secondary">
-                                - {type.description}
-                              </Typography>
-                            )}
-                          </Box>
-                          {patternInfo && (
-                            <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
-                              {patternInfo}
-                            </Typography>
-                          )}
-                        </Box>
-                      </MenuItem>
-                    )
-                  })}
-                </>
-              )}
+              {/* Custom types (if any) - rendered without fragment for MUI Select compatibility */}
+              {variableTypes.some(t => !t.is_builtin) && <Divider key="custom-divider" />}
+              {variableTypes.some(t => !t.is_builtin) && <ListSubheader key="custom-header">Custom Types</ListSubheader>}
+              {variableTypes.filter(t => !t.is_builtin).map((type) => {
+                const customType = type as VariableTypeInfo & { pattern?: string; is_filter?: boolean }
+                const patternInfo = customType.is_filter
+                  ? `Filter: ${customType.pattern}`
+                  : customType.pattern
+                    ? `Pattern: ${customType.pattern}`
+                    : ''
+                return (
+                  <MenuItem key={`custom-${type.name}`} value={type.name}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography>{type.label}</Typography>
+                        {type.description && (
+                          <Typography variant="caption" color="text.secondary">
+                            - {type.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      {patternInfo && (
+                        <Typography variant="caption" color="text.disabled" sx={{ fontFamily: 'monospace' }}>
+                          {patternInfo}
+                        </Typography>
+                      )}
+                    </Box>
+                  </MenuItem>
+                )
+              })}
             </Select>
           </FormControl>
 

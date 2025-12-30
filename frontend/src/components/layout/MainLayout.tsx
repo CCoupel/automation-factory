@@ -28,6 +28,7 @@ interface SelectedModule {
   delegateTo?: string
   isBlock?: boolean
   isPlay?: boolean
+  isSystem?: boolean
   moduleParameters?: Record<string, any>
   moduleSchema?: ModuleSchema
   validationState?: {
@@ -36,6 +37,7 @@ interface SelectedModule {
     warnings: string[]
     lastValidated?: Date
   }
+  description?: string
 }
 
 const MainLayout = () => {
