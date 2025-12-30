@@ -2,13 +2,14 @@ import { Box, Paper, IconButton, TextField, Typography, Tooltip, Badge } from '@
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import LockIcon from '@mui/icons-material/Lock'
 import React from 'react'
 import BlockSectionContent from './BlockSectionContent'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
 import StartTaskWithBadge from '../common/StartTaskWithBadge'
 import ResizeHandles from '../common/ResizeHandles'
-import { ModuleBlock, Link } from '../../types/playbook'
+import { ModuleBlock, Link, isSystemBlock } from '../../types/playbook'
 
 interface PlaySectionContentProps {
   sectionName: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
@@ -106,14 +107,21 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
         .map(task => {
           // Si c'est un block, rendre avec ses 3 sections
           if (task.isBlock) {
-            const blockTheme = getBlockTheme(task.id)
+            const isSystem = isSystemBlock(task)
+            // System blocks have a special grey theme
+            const blockTheme = isSystem ? {
+              bgColor: 'rgba(158, 158, 158, 0.15)',
+              borderColor: '#9e9e9e',
+              iconColor: '#757575',
+              headerBgColor: 'rgba(158, 158, 158, 0.2)',
+            } : getBlockTheme(task.id)
             const dimensions = getBlockDimensions(task)
 
             return (
               <Paper
                 key={task.id}
                 data-task-id={task.id}
-                elevation={selectedModuleId === task.id ? 6 : 3}
+                elevation={selectedModuleId === task.id ? 6 : (isSystem ? 1 : 3)}
                 onClick={() => onSelectModule({
                   id: task.id,
                   name: task.name,
@@ -130,7 +138,28 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                 draggable={true}
                 onDragStart={(e) => handleModuleDragStart(task.id, e)}
                 onDragOver={(e) => handleModuleDragOver(task.id, e)}
-                onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+                onDrop={(e) => {
+                  // Pour les blocs système, autoriser les liens depuis START ou autres blocs de la même section
+                  if (isSystem) {
+                    const sourceId = e.dataTransfer.getData('existingModule')
+                    if (sourceId) {
+                      const sourceModule = modules.find(m => m.id === sourceId)
+                      // Autoriser si la source est un START de la même section PLAY
+                      const isPlayStart = sourceModule?.isPlay && sourceModule?.parentSection === sectionName
+                      // Ou si la source est dans la même section PLAY (bloc vers bloc)
+                      const isSamePlaySection = sourceModule?.parentSection === sectionName && !sourceModule?.parentId
+                      if (isPlayStart || isSamePlaySection) {
+                        handleModuleDropOnModule(task.id, e)
+                        return
+                      }
+                    }
+                    // Bloquer les drops depuis l'extérieur
+                    e.preventDefault()
+                    e.stopPropagation()
+                    return
+                  }
+                  handleModuleDropOnModule(task.id, e)
+                }}
                 sx={{
                   position: 'absolute',
                   left: task.x,
@@ -143,7 +172,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                   borderRadius: 2,
                   bgcolor: blockTheme.bgColor,
                   zIndex: draggedModuleId === task.id ? 10 : 1,
-                  opacity: draggedModuleId === task.id ? 0.7 : 1,
+                  opacity: isSystem ? 0.85 : (draggedModuleId === task.id ? 0.7 : 1),
                   overflow: 'visible',
                   // Highlight effect for synced elements (user's color)
                   ...(highlightedElements?.has(task.id) && {
@@ -154,7 +183,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                   '&:hover': {
                     boxShadow: highlightedElements?.has(task.id)
                       ? `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`
-                      : 6,
+                      : (isSystem ? 2 : 6),
                   },
                 }}
               >
@@ -162,22 +191,40 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1, pb: 0.5, borderBottom: `1px solid ${blockTheme.borderColor}` }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
-                      <TextField
-                        fullWidth
-                        variant="standard"
-                        value={task.taskName}
-                        onChange={(e) => updateTaskName(task.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        sx={{
-                          '& .MuiInput-input': {
+                      {isSystem ? (
+                        <Tooltip title="Bloc système - Généré automatiquement">
+                          <LockIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
+                        </Tooltip>
+                      ) : (
+                        <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
+                      )}
+                      {isSystem ? (
+                        <Typography
+                          sx={{
                             fontWeight: 'bold',
                             fontSize: '0.75rem',
-                            padding: '2px 0',
                             color: blockTheme.iconColor,
-                          },
-                        }}
-                      />
+                          }}
+                        >
+                          {task.taskName}
+                        </Typography>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          variant="standard"
+                          value={task.taskName}
+                          onChange={(e) => updateTaskName(task.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          sx={{
+                            '& .MuiInput-input': {
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              padding: '2px 0',
+                              color: blockTheme.iconColor,
+                            },
+                          }}
+                        />
+                      )}
                     </Box>
                     <IconButton
                       size="small"
@@ -195,18 +242,20 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                     </IconButton>
                   </Box>
 
-                  {/* Icônes d'attributs */}
-                  <TaskAttributeIcons
-                    attributes={{
-                      when: task.when,
-                      ignoreErrors: task.ignoreErrors,
-                      become: task.become,
-                      loop: task.loop,
-                      delegateTo: task.delegateTo
-                    }}
-                    size="small"
-                    sx={{ pl: 3, mt: 0.5 }}
-                  />
+                  {/* Icônes d'attributs - seulement pour les blocs utilisateur */}
+                  {!isSystem && (
+                    <TaskAttributeIcons
+                      attributes={{
+                        when: task.when,
+                        ignoreErrors: task.ignoreErrors,
+                        become: task.become,
+                        loop: task.loop,
+                        delegateTo: task.delegateTo
+                      }}
+                      size="small"
+                      sx={{ pl: 3, mt: 0.5 }}
+                    />
+                  )}
                 </Box>
 
                 {/* Sections du block (normal, rescue, always) */}
@@ -241,10 +290,13 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       <Box
                         sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('normal')}08`, p: 0.5 }}
                         onDragOver={(e) => {
+                          // Toujours autoriser le dragOver - handleBlockSectionDrop gère la logique
                           e.preventDefault()
-                          // Ne pas bloquer la propagation
                         }}
-                        onDrop={(e) => handleBlockSectionDrop(task.id, 'normal', e)}
+                        onDrop={(e) => {
+                          // Laisser handleBlockSectionDrop gérer le repositionnement interne vs drop externe
+                          handleBlockSectionDrop(task.id, 'normal', e)
+                        }}
                       >
                         <BlockSectionContent
                           blockId={task.id}
@@ -296,172 +348,176 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                       </Box>
                     )}
 
-                    {/* Section Rescue */}
-                    <Box
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleBlockSection(task.id, 'rescue')
-                      }}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        p: 0.5,
-                        bgcolor: `${getSectionColor('rescue')}15`,
-                        cursor: 'pointer',
-                        borderBottom: '1px solid #ddd',
-                        flexShrink: 0,
-                        '&:hover': { bgcolor: `${getSectionColor('rescue')}25` }
-                      }}
-                    >
-                      {isSectionCollapsed(task.id, 'rescue') ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor('rescue'), fontSize: '0.7rem' }}>
-                        Rescue ({task.blockSections?.rescue.length || 0})
-                      </Typography>
-                    </Box>
+                    {/* Sections Rescue et Always - uniquement pour les blocs non-système */}
+                    {!isSystem && (
+                      <>
+                        {/* Section Rescue */}
+                        <Box
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleBlockSection(task.id, 'rescue')
+                          }}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            p: 0.5,
+                            bgcolor: `${getSectionColor('rescue')}15`,
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #ddd',
+                            flexShrink: 0,
+                            '&:hover': { bgcolor: `${getSectionColor('rescue')}25` }
+                          }}
+                        >
+                          {isSectionCollapsed(task.id, 'rescue') ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor('rescue'), fontSize: '0.7rem' }}>
+                            Rescue ({task.blockSections?.rescue.length || 0})
+                          </Typography>
+                        </Box>
 
-                    {/* Contenu section Rescue */}
-                    {!isSectionCollapsed(task.id, 'rescue') && (
-                      <Box
-                        sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}
-                        onDragOver={(e) => {
-                          e.preventDefault()
-                          // Ne pas bloquer la propagation
-                        }}
-                        onDrop={(e) => handleBlockSectionDrop(task.id, 'rescue', e)}
-                      >
-                        <BlockSectionContent
-                          blockId={task.id}
-                          section="rescue"
-                          modules={modules}
-                          selectedModuleId={selectedModuleId}
-                          draggedModuleId={draggedModuleId}
-                          collapsedBlocks={collapsedBlocks}
-                          collapsedBlockSections={collapsedBlockSections}
-                          resizingBlock={resizingBlock}
-                          getStartChainCount={getStartChainCount}
-                          onSelectModule={onSelectModule}
-                          updateTaskName={updateTaskName}
-                          toggleBlockCollapse={toggleBlockCollapse}
-                          toggleBlockSection={toggleBlockSection}
-                          isSectionCollapsed={isSectionCollapsed}
-                          handleModuleDragStart={handleModuleDragStart}
-                          handleModuleDragOver={handleModuleDragOver}
-                          handleModuleDropOnModule={handleModuleDropOnModule}
-                          handleBlockSectionDrop={handleBlockSectionDrop}
-                          handleResizeStart={handleResizeStart}
-                          getBlockTheme={getBlockTheme}
-                          getBlockDimensions={getBlockDimensions}
-                          getSectionColor={getSectionColor}
-                          links={links}
-                          getLinkStyle={getLinkStyle}
-                          deleteLink={deleteLink}
-                          hoveredLinkId={hoveredLinkId}
-                          setHoveredLinkId={setHoveredLinkId}
-                          getModuleOrVirtual={getModuleOrVirtual}
-                          getModuleDimensions={getModuleDimensions}
-                          highlightedElements={highlightedElements}
-                        />
+                        {/* Contenu section Rescue */}
+                        {!isSectionCollapsed(task.id, 'rescue') && (
+                          <Box
+                            sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('rescue')}08`, p: 0.5 }}
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                              // Ne pas bloquer la propagation
+                            }}
+                            onDrop={(e) => handleBlockSectionDrop(task.id, 'rescue', e)}
+                          >
+                            <BlockSectionContent
+                              blockId={task.id}
+                              section="rescue"
+                              modules={modules}
+                              selectedModuleId={selectedModuleId}
+                              draggedModuleId={draggedModuleId}
+                              collapsedBlocks={collapsedBlocks}
+                              collapsedBlockSections={collapsedBlockSections}
+                              resizingBlock={resizingBlock}
+                              getStartChainCount={getStartChainCount}
+                              onSelectModule={onSelectModule}
+                              updateTaskName={updateTaskName}
+                              toggleBlockCollapse={toggleBlockCollapse}
+                              toggleBlockSection={toggleBlockSection}
+                              isSectionCollapsed={isSectionCollapsed}
+                              handleModuleDragStart={handleModuleDragStart}
+                              handleModuleDragOver={handleModuleDragOver}
+                              handleModuleDropOnModule={handleModuleDropOnModule}
+                              handleBlockSectionDrop={handleBlockSectionDrop}
+                              handleResizeStart={handleResizeStart}
+                              getBlockTheme={getBlockTheme}
+                              getBlockDimensions={getBlockDimensions}
+                              getSectionColor={getSectionColor}
+                              links={links}
+                              getLinkStyle={getLinkStyle}
+                              deleteLink={deleteLink}
+                              hoveredLinkId={hoveredLinkId}
+                              setHoveredLinkId={setHoveredLinkId}
+                              getModuleOrVirtual={getModuleOrVirtual}
+                              getModuleDimensions={getModuleDimensions}
+                              highlightedElements={highlightedElements}
+                            />
 
-                        {/* Render links for this block section */}
-                        <SectionLinks
-                          links={links}
-                          modules={modules}
-                          sectionType="block"
-                          sectionName="rescue"
-                          parentId={task.id}
-                          getLinkStyle={getLinkStyle}
-                          deleteLink={deleteLink}
-                          hoveredLinkId={hoveredLinkId}
-                          setHoveredLinkId={setHoveredLinkId}
-                          getModuleOrVirtual={getModuleOrVirtual}
-                          getModuleDimensions={getModuleDimensions}
-                        />
-                      </Box>
-                    )}
+                            {/* Render links for this block section */}
+                            <SectionLinks
+                              links={links}
+                              modules={modules}
+                              sectionType="block"
+                              sectionName="rescue"
+                              parentId={task.id}
+                              getLinkStyle={getLinkStyle}
+                              deleteLink={deleteLink}
+                              hoveredLinkId={hoveredLinkId}
+                              setHoveredLinkId={setHoveredLinkId}
+                              getModuleOrVirtual={getModuleOrVirtual}
+                              getModuleDimensions={getModuleDimensions}
+                            />
+                          </Box>
+                        )}
 
-                    {/* Section Always */}
-                    <Box
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleBlockSection(task.id, 'always')
-                      }}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        p: 0.5,
-                        bgcolor: `${getSectionColor('always')}15`,
-                        cursor: 'pointer',
-                        borderBottom: '1px solid #ddd',
-                        flexShrink: 0,
-                        '&:hover': { bgcolor: `${getSectionColor('always')}25` }
-                      }}
-                    >
-                      {isSectionCollapsed(task.id, 'always') ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor('always'), fontSize: '0.7rem' }}>
-                        Always ({task.blockSections?.always.length || 0})
-                      </Typography>
-                    </Box>
+                        {/* Section Always */}
+                        <Box
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleBlockSection(task.id, 'always')
+                          }}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            p: 0.5,
+                            bgcolor: `${getSectionColor('always')}15`,
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #ddd',
+                            flexShrink: 0,
+                            '&:hover': { bgcolor: `${getSectionColor('always')}25` }
+                          }}
+                        >
+                          {isSectionCollapsed(task.id, 'always') ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
+                          <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor('always'), fontSize: '0.7rem' }}>
+                            Always ({task.blockSections?.always.length || 0})
+                          </Typography>
+                        </Box>
 
-                    {/* Contenu section Always */}
-                    {!isSectionCollapsed(task.id, 'always') && (
-                      <Box
-                        sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}
-                        onDragOver={(e) => {
-                          e.preventDefault()
-                          // Ne pas bloquer la propagation
-                        }}
-                        onDrop={(e) => handleBlockSectionDrop(task.id, 'always', e)}
-                      >
-                        <BlockSectionContent
-                          blockId={task.id}
-                          section="always"
-                          modules={modules}
-                          selectedModuleId={selectedModuleId}
-                          draggedModuleId={draggedModuleId}
-                          collapsedBlocks={collapsedBlocks}
-                          collapsedBlockSections={collapsedBlockSections}
-                          resizingBlock={resizingBlock}
-                          getStartChainCount={getStartChainCount}
-                          onSelectModule={onSelectModule}
-                          updateTaskName={updateTaskName}
-                          toggleBlockCollapse={toggleBlockCollapse}
-                          toggleBlockSection={toggleBlockSection}
-                          isSectionCollapsed={isSectionCollapsed}
-                          handleModuleDragStart={handleModuleDragStart}
-                          handleModuleDragOver={handleModuleDragOver}
-                          handleModuleDropOnModule={handleModuleDropOnModule}
-                          handleBlockSectionDrop={handleBlockSectionDrop}
-                          handleResizeStart={handleResizeStart}
-                          getBlockTheme={getBlockTheme}
-                          getBlockDimensions={getBlockDimensions}
-                          getSectionColor={getSectionColor}
-                          links={links}
-                          getLinkStyle={getLinkStyle}
-                          deleteLink={deleteLink}
-                          hoveredLinkId={hoveredLinkId}
-                          setHoveredLinkId={setHoveredLinkId}
-                          getModuleOrVirtual={getModuleOrVirtual}
-                          getModuleDimensions={getModuleDimensions}
-                          highlightedElements={highlightedElements}
-                        />
+                        {/* Contenu section Always */}
+                        {!isSectionCollapsed(task.id, 'always') && (
+                          <Box
+                            sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor('always')}08`, p: 0.5 }}
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                            }}
+                            onDrop={(e) => handleBlockSectionDrop(task.id, 'always', e)}
+                          >
+                            <BlockSectionContent
+                              blockId={task.id}
+                              section="always"
+                              modules={modules}
+                              selectedModuleId={selectedModuleId}
+                              draggedModuleId={draggedModuleId}
+                              collapsedBlocks={collapsedBlocks}
+                              collapsedBlockSections={collapsedBlockSections}
+                              resizingBlock={resizingBlock}
+                              getStartChainCount={getStartChainCount}
+                              onSelectModule={onSelectModule}
+                              updateTaskName={updateTaskName}
+                              toggleBlockCollapse={toggleBlockCollapse}
+                              toggleBlockSection={toggleBlockSection}
+                              isSectionCollapsed={isSectionCollapsed}
+                              handleModuleDragStart={handleModuleDragStart}
+                              handleModuleDragOver={handleModuleDragOver}
+                              handleModuleDropOnModule={handleModuleDropOnModule}
+                              handleBlockSectionDrop={handleBlockSectionDrop}
+                              handleResizeStart={handleResizeStart}
+                              getBlockTheme={getBlockTheme}
+                              getBlockDimensions={getBlockDimensions}
+                              getSectionColor={getSectionColor}
+                              links={links}
+                              getLinkStyle={getLinkStyle}
+                              deleteLink={deleteLink}
+                              hoveredLinkId={hoveredLinkId}
+                              setHoveredLinkId={setHoveredLinkId}
+                              getModuleOrVirtual={getModuleOrVirtual}
+                              getModuleDimensions={getModuleDimensions}
+                              highlightedElements={highlightedElements}
+                            />
 
-                        {/* Render links for this block section */}
-                        <SectionLinks
-                          links={links}
-                          modules={modules}
-                          sectionType="block"
-                          sectionName="always"
-                          parentId={task.id}
-                          getLinkStyle={getLinkStyle}
-                          deleteLink={deleteLink}
-                          hoveredLinkId={hoveredLinkId}
-                          setHoveredLinkId={setHoveredLinkId}
-                          getModuleOrVirtual={getModuleOrVirtual}
-                          getModuleDimensions={getModuleDimensions}
-                        />
-                      </Box>
+                            {/* Render links for this block section */}
+                            <SectionLinks
+                              links={links}
+                              modules={modules}
+                              sectionType="block"
+                              sectionName="always"
+                              parentId={task.id}
+                              getLinkStyle={getLinkStyle}
+                              deleteLink={deleteLink}
+                              hoveredLinkId={hoveredLinkId}
+                              setHoveredLinkId={setHoveredLinkId}
+                              getModuleOrVirtual={getModuleOrVirtual}
+                              getModuleDimensions={getModuleDimensions}
+                            />
+                          </Box>
+                        )}
+                      </>
                     )}
                   </Box>
                 )}

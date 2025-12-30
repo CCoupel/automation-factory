@@ -44,7 +44,19 @@ export interface ModuleSchema {
 }
 
 /**
+ * System block types
+ */
+export type SystemBlockType = 'assertions'
+
+/**
  * Represents a module, task, or block in the playbook
+ *
+ * This is a unified interface that can represent:
+ * - User blocks/tasks (editable, created by user)
+ * - System blocks (non-editable, auto-generated for assertions)
+ * - System tasks (tasks inside system blocks)
+ *
+ * Use type guards (isSystemBlock, isSystemBlockContainer, etc.) to check the type at runtime.
  */
 export interface ModuleBlock {
   id: string
@@ -56,9 +68,9 @@ export interface ModuleBlock {
   y: number
 
   // Type flags
-  isBlock?: boolean  // Indicates this is a block container
-  isPlay?: boolean   // Indicates this is a START task (in a PLAY section)
-  isSystem?: boolean // Indicates this is a system-managed block (non-editable)
+  isBlock?: boolean   // Indicates this is a block container
+  isPlay?: boolean    // Indicates this is a START task (in a PLAY section)
+  isSystem?: boolean  // Indicates this is a system-managed block/task (non-editable)
 
   // PLAY-specific attributes
   inventory?: string
@@ -83,13 +95,13 @@ export interface ModuleBlock {
   become?: boolean
   loop?: string
   delegateTo?: string
-  tags?: string[]  // Task tags for selective execution
-  register?: string  // Store task result in a variable
+  tags?: string[]   // Task tags for selective execution
+  register?: string // Store task result in a variable
 
-  // Module configuration (NEW)
+  // Module configuration
   moduleParameters?: Record<string, any>  // User-configured module parameters
-  moduleSchema?: ModuleSchema            // Galaxy API schema for this module
-  
+  moduleSchema?: ModuleSchema             // Galaxy API schema for this module
+
   // Validation state
   validationState?: {
     isValid: boolean
@@ -101,6 +113,68 @@ export interface ModuleBlock {
   // Custom dimensions (for blocks)
   width?: number
   height?: number
+
+  // ============================================
+  // SystemBlock specific properties
+  // ============================================
+  // These properties are only set when isSystem === true
+
+  /**
+   * Type of system block (e.g., 'assertions')
+   * Only present when isSystem === true
+   */
+  systemType?: SystemBlockType
+
+  /**
+   * Source variable for assertion blocks
+   * Only present when isSystem === true && systemType === 'assertions'
+   */
+  sourceVariable?: string
+}
+
+/**
+ * SystemBlock characteristics (documentation interface)
+ *
+ * A SystemBlock is a ModuleBlock with:
+ * - isSystem: true
+ * - isBlock: true
+ * - systemType: SystemBlockType (e.g., 'assertions')
+ * - sourceVariable: string (the variable being validated)
+ * - parentSection: 'pre_tasks' (always in pre_tasks)
+ * - blockSections.rescue: [] (always empty)
+ * - blockSections.always: [] (always empty)
+ *
+ * Behavior:
+ * - Visible but locked (padlock icon)
+ * - Cannot be modified by user
+ * - No drag-in (cannot add elements)
+ * - No drag-out (cannot remove elements)
+ * - Internal repositioning allowed
+ * - Collapsed by default
+ * - Only 'normal' section displayed (no rescue/always)
+ * - Grey/muted visual style
+ */
+export type SystemBlock = ModuleBlock & {
+  isSystem: true
+  isBlock: true
+  systemType: SystemBlockType
+  sourceVariable: string
+}
+
+/**
+ * SystemTask characteristics (documentation interface)
+ *
+ * A SystemTask is a ModuleBlock with:
+ * - isSystem: true
+ * - isBlock: false or undefined
+ * - parentId: string (ID of parent SystemBlock)
+ * - parentSection: 'normal'
+ */
+export type SystemTask = ModuleBlock & {
+  isSystem: true
+  isBlock?: false
+  parentId: string
+  parentSection: 'normal'
 }
 
 /**
@@ -162,7 +236,7 @@ export interface Play {
 }
 
 /**
- * Type guard to check if a module is a block
+ * Type guard to check if a module is a block (user or system)
  */
 export function isBlock(module: ModuleBlock): boolean {
   return module.isBlock === true
@@ -176,18 +250,40 @@ export function isPlayStart(module: ModuleBlock): boolean {
 }
 
 /**
- * Type guard to check if a module is a regular task
+ * Type guard to check if a module is a regular task (not block, not play)
  */
 export function isTask(module: ModuleBlock): boolean {
   return !module.isBlock && !module.isPlay
 }
 
 /**
- * Type guard to check if a module is a system-managed block
- * System blocks are non-editable and generated automatically
+ * Type guard to check if a module is a system-managed block or task
+ * Returns true for both SystemBlock containers and SystemTask
  */
-export function isSystemBlock(module: ModuleBlock): boolean {
+export function isSystemBlock(module: ModuleBlock): module is SystemBlock | SystemTask {
   return module.isSystem === true
+}
+
+/**
+ * Type guard to specifically check for SystemBlock container (not SystemTask)
+ * A SystemBlock is a block that contains system tasks
+ */
+export function isSystemBlockContainer(module: ModuleBlock): module is SystemBlock {
+  return module.isSystem === true && module.isBlock === true
+}
+
+/**
+ * Type guard to specifically check for SystemTask (task inside a SystemBlock)
+ */
+export function isSystemTask(module: ModuleBlock): module is SystemTask {
+  return module.isSystem === true && !module.isBlock
+}
+
+/**
+ * Type guard to check if a module is user-editable (not a system block/task)
+ */
+export function isUserBlock(module: ModuleBlock): boolean {
+  return !module.isSystem
 }
 
 /**

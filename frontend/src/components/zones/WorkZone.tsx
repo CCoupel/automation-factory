@@ -32,7 +32,8 @@ import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
 import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, PlayAttributes, ModuleSchema, isSystemBlock } from '../../types/playbook'
-import { generateAssertionsBlock, SYSTEM_ASSERTIONS_BLOCK_ID, updateAssertionsBlock } from '../../utils/assertionsGenerator'
+import { generateAssertionsBlocks, SYSTEM_ASSERTIONS_BLOCK_PREFIX, SYSTEM_TASK_PREFIX, SYSTEM_LINK_PREFIX, updateAssertionsBlocks, isSystemAssertionsId, isSystemLink, CustomTypeInfo } from '../../utils/assertionsGenerator'
+import { variableTypesService } from '../../services/variableTypesService'
 import { playbookService, PlaybookContent } from '../../services/playbookService'
 import { useAuth } from '../../contexts/AuthContext'
 import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
@@ -54,7 +55,7 @@ export interface CollaborationCallbacks {
 }
 
 interface WorkZoneProps {
-  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } } | null) => void
+  onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date }; isSystem?: boolean; description?: string } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
   onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
@@ -226,6 +227,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [gridEnabled, setGridEnabled] = useState(false)
   const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null)
   const [collapsedBlocks, setCollapsedBlocks] = useState<Set<string>>(new Set())
+  const [customTypes, setCustomTypes] = useState<CustomTypeInfo[]>([])
   const [editingTabIndex, setEditingTabIndex] = useState<number | null>(null)
   // Toutes les sections sont collapsed par défaut
   const [collapsedBlockSections, setCollapsedBlockSections] = useState<Set<string>>(new Set(['*:rescue', '*:always'])) // Format: "blockId:section" - Tasks ouverte par défaut
@@ -366,7 +368,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         playbookName: playbookName
       },
       variables: plays.flatMap(play =>
-        play.variables.map(v => ({ name: v.key, value: v.value }))
+        play.variables.map(v => ({
+          name: v.key,
+          value: v.value,
+          type: v.type,
+          required: v.required,
+          defaultValue: v.defaultValue,
+          regexp: v.regexp
+        }))
       )
     }
   }, [plays, collapsedBlocks, collapsedBlockSections, playbookName])
@@ -510,31 +519,78 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }, [serializePlaybookContent, onGetPlaybookContent])
 
-  // Generate/update system assertions block when variables change
+  // Fetch custom variable types for assertions generation
   useEffect(() => {
-    const existingAssertionsBlock = modules.find(m => m.id === SYSTEM_ASSERTIONS_BLOCK_ID)
-    const newAssertionsBlock = updateAssertionsBlock(existingAssertionsBlock || null, currentPlay.variables)
+    variableTypesService.getVariableTypesFlat()
+      .then(types => {
+        // Extract custom types with their patterns
+        const custom = types
+          .filter(t => !t.is_builtin)
+          .map(t => ({
+            name: t.name,
+            label: t.label,
+            pattern: (t as { pattern?: string }).pattern || '',
+            is_filter: (t as { is_filter?: boolean }).is_filter || false,
+          }))
+        setCustomTypes(custom)
+      })
+      .catch(err => {
+        console.error('Failed to load custom variable types:', err)
+      })
+  }, [])
 
-    if (newAssertionsBlock) {
-      // If block exists, update it; otherwise add it
-      if (existingAssertionsBlock) {
-        setModules(prev => prev.map(m =>
-          m.id === SYSTEM_ASSERTIONS_BLOCK_ID ? newAssertionsBlock : m
-        ))
-      } else {
-        // Add the assertions block to pre_tasks with proper parentSection
-        const assertionsWithSection = {
-          ...newAssertionsBlock,
-          parentSection: 'pre_tasks' as const
-        }
-        setModules(prev => [assertionsWithSection, ...prev])
-      }
-    } else if (existingAssertionsBlock) {
-      // No variables, remove the assertions block
-      setModules(prev => prev.filter(m => m.id !== SYSTEM_ASSERTIONS_BLOCK_ID))
+  // Generate/update system assertions blocks when variables or custom types change
+  // Creates ONE BLOCK PER VARIABLE for better visual organization
+  useEffect(() => {
+    // Get existing system blocks (to preserve positions)
+    const existingSystemBlocks = modules.filter(m => m.id.startsWith(SYSTEM_ASSERTIONS_BLOCK_PREFIX))
+
+    console.log('[SystemBlocks] Variables:', currentPlay.variables)
+    console.log('[SystemBlocks] Existing system blocks:', existingSystemBlocks.length)
+
+    const result = updateAssertionsBlocks(
+      existingSystemBlocks,
+      currentPlay.variables,
+      currentPlay.id,
+      customTypes
+    )
+
+    console.log('[SystemBlocks] Generation result:', result)
+
+    if (result) {
+      const { blocks, tasks, links: systemLinks } = result
+
+      console.log('[SystemBlocks] Generated blocks:', blocks.map(b => ({ id: b.id, isSystem: b.isSystem, isBlock: b.isBlock, systemType: b.systemType })))
+      console.log('[SystemBlocks] Generated tasks:', tasks.map(t => ({ id: t.id, isSystem: t.isSystem, parentId: t.parentId })))
+
+      // Remove all existing system assertion blocks and tasks
+      const cleanedModules = modules.filter(m => !isSystemAssertionsId(m.id))
+
+      // Remove existing system links and add new ones
+      const cleanedLinks = links.filter(l => !isSystemLink(l.id))
+
+      // Add all blocks and their tasks
+      const newModules = [...blocks, ...tasks, ...cleanedModules]
+      console.log('[SystemBlocks] Total modules after merge:', newModules.length, 'System blocks:', newModules.filter(m => m.isSystem).length)
+
+      setModules(newModules)
+      setLinks([...systemLinks, ...cleanedLinks])
+
+      // Ensure system blocks ARE collapsed by default
+      setCollapsedBlocks(prev => {
+        const newSet = new Set(prev)
+        blocks.forEach(block => {
+          newSet.add(block.id)
+        })
+        return newSet
+      })
+    } else if (existingSystemBlocks.length > 0) {
+      // No variables, remove all assertions blocks, tasks, and system links
+      setModules(prev => prev.filter(m => !isSystemAssertionsId(m.id)))
+      setLinks(prev => prev.filter(l => !isSystemLink(l.id)))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlay.variables])
+  }, [currentPlay.variables, currentPlay.id, customTypes])
 
   // Apply collaboration updates from other users
   const applyCollaborationUpdate = useCallback((update: PlaybookUpdate) => {
@@ -1213,6 +1269,13 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
           // Si c'est une tâche ou un block dans une section de block
           if (movedModule.parentId && movedModule.parentSection && !movedModule.isPlay) {
+            // Vérifier si le parent est un bloc système
+            const parentBlock = prev.find(m => m.id === movedModule.parentId)
+            if (parentBlock?.isSystem) {
+              // Bloquer le drop-out depuis un bloc système
+              return prev
+            }
+
             if (hasLinks) {
               // A des liens: ne pas permettre le déplacement
               return prev
@@ -1319,12 +1382,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }
 
   const handleModuleDragStart = (id: string, e: React.DragEvent) => {
-    // Empêcher le drag des blocs système
-    const module = modules.find(m => m.id === id)
-    if (module && isSystemBlock(module)) {
-      e.preventDefault()
-      return
-    }
+    // Les tâches système sont repositionnables mais pas modifiables
+    // On permet le drag même pour les tâches dans les blocs système
 
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('existingModule', id)
@@ -1338,6 +1397,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     // Stocker l'offset pour l'utiliser lors du drop
     e.dataTransfer.setData('dragOffsetX', offsetX.toString())
     e.dataTransfer.setData('dragOffsetY', offsetY.toString())
+
+    // Ajouter l'info du parent système pour valider les drops
+    const sourceModule = modules.find(m => m.id === id)
+    if (sourceModule?.parentId) {
+      const parentBlock = modules.find(m => m.id === sourceModule.parentId)
+      if (parentBlock?.isSystem) {
+        e.dataTransfer.setData('systemParentId', sourceModule.parentId)
+      }
+    }
 
     setDraggedModuleId(id)
 
@@ -1593,10 +1661,29 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return
     }
 
+    // Vérifier si le block cible ou source est un bloc système
+    const targetBlock = modules.find(m => m.id === blockId)
+    const sourceModule = sourceId ? modules.find(m => m.id === sourceId) : null
+    const isTargetSystemBlock = targetBlock?.isSystem === true
+    const isSourceFromSystemBlock = sourceModule?.parentId ? modules.find(m => m.id === sourceModule.parentId)?.isSystem === true : false
+
+    // Bloquer les drops vers les blocs système (sauf repositionnement interne)
+    const isInternalReposition = sourceModule?.parentId === blockId && sourceModule?.parentSection === section
+    if (isTargetSystemBlock && !isInternalReposition) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+
+    // Bloquer les drops DEPUIS les blocs système (pas de sortie des tâches)
+    if (isSourceFromSystemBlock && sourceModule?.parentId !== blockId) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+
     // Cas spécial: START de section PLAY droppé dans une section de block
     if (sourceId) {
-      const sourceModule = modules.find(m => m.id === sourceId)
-
       // Si c'est un START de section PLAY (isPlay = true), créer un lien avec le block
       if (sourceModule && sourceModule.isPlay) {
         e.preventDefault()
@@ -2032,6 +2119,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const handlePlaySectionDrop = (section: 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers', e: React.DragEvent) => {
     const sourceId = e.dataTransfer.getData('existingModule')
     const moduleData = e.dataTransfer.getData('module')
+    const systemParentId = e.dataTransfer.getData('systemParentId')
+
+    // Bloquer les drops de tâches provenant d'un bloc système
+    if (systemParentId) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
 
     // Calculer la position relative à la section
     const sectionElem = e.currentTarget as HTMLElement
@@ -3513,7 +3608,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
               if (isBlock) {
                 // Rendu d'un Block ou PLAY
                 const isSystem = isSystemBlock(module)
-                const blockTheme = module.isPlay ? getPlayTheme() : isSystem ? {
+                const blockTheme = module.isPlay ? getPlayTheme() : module.isSystem ? {
                   // System block theme (locked, gray)
                   bgColor: 'rgba(158, 158, 158, 0.15)',
                   borderColor: '#9e9e9e',
@@ -3526,8 +3621,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                     key={module.id}
                     className="module-block"
                     data-block-id={module.id}
-                    elevation={selectedModuleId === module.id ? 6 : (isSystem ? 1 : 3)}
-                    onClick={() => !isSystem && onSelectModule({
+                    elevation={selectedModuleId === module.id ? 6 : (module.isSystem ? 1 : 3)}
+                    onClick={() => onSelectModule({
                       id: module.id,
                       name: module.name,
                       collection: module.collection,
@@ -3542,12 +3637,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       isPlay: module.isPlay,
                       moduleParameters: module.moduleParameters,
                       moduleSchema: module.moduleSchema,
-                      validationState: module.validationState
+                      validationState: module.validationState,
+                      isSystem: isSystem,
+                      description: module.description
                     })}
-                    draggable={!isSystem}
-                    onDragStart={(e) => !isSystem && handleModuleDragStart(module.id, e)}
-                    onDragOver={(e) => !isSystem && handleModuleDragOver(module.id, e)}
-                    onDrop={(e) => !isSystem && handleModuleDropOnModule(module.id, e)}
+                    draggable
+                    onDragStart={(e) => handleModuleDragStart(module.id, e)}
+                    onDragOver={(e) => handleModuleDragOver(module.id, e)}
+                    onDrop={(e) => !module.isSystem && handleModuleDropOnModule(module.id, e)}
                     sx={{
                       position: 'absolute',
                       left: module.x,
@@ -3555,12 +3652,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       width: dimensions.width,
                       height: dimensions.height,
                       p: 1,
-                      cursor: isSystem ? 'default' : 'move',
+                      cursor: 'move',
                       border: `2px solid ${blockTheme.borderColor}`,
                       borderRadius: module.isPlay ? '0 50% 50% 0' : 2,
                       bgcolor: blockTheme.bgColor,
                       zIndex: draggedModuleId === module.id ? 10 : 1,
-                      opacity: isSystem ? 0.85 : (draggedModuleId === module.id ? 0.7 : 1),
+                      opacity: module.isSystem ? 0.85 : (draggedModuleId === module.id ? 0.7 : 1),
                       overflow: 'visible',
                       // Highlight effect for synced elements (user's color)
                       ...(highlightedElements.has(module.id) && {
@@ -3571,7 +3668,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       '&:hover': {
                         boxShadow: highlightedElements.has(module.id)
                           ? `0 0 25px 8px ${highlightedElements.get(module.id)}99, 0 0 50px 15px ${highlightedElements.get(module.id)}66`
-                          : (isSystem ? 2 : 6),
+                          : (module.isSystem ? 2 : 6),
                       },
                     }}
                   >
@@ -3599,14 +3696,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {module.isPlay ? (
                             <PlayArrowIcon sx={{ fontSize: 20, color: blockTheme.iconColor }} />
-                          ) : isSystem ? (
+                          ) : module.isSystem ? (
                             <Tooltip title="Bloc système - Généré automatiquement">
                               <LockIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
                             </Tooltip>
                           ) : (
                             <AccountTreeIcon sx={{ fontSize: 18, color: blockTheme.iconColor }} />
                           )}
-                          {isSystem ? (
+                          {module.isSystem ? (
                             <Typography
                               sx={{
                                 fontWeight: 'bold',
@@ -3635,8 +3732,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           )}
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {/* Bouton collapse/expand SEULEMENT pour les blocks normaux, pas les PLAY ni les systèmes */}
-                          {!module.isPlay && !isSystem && (
+                          {/* Bouton collapse/expand pour tous les blocks (y compris système), pas les PLAY */}
+                          {!module.isPlay && (
                             <IconButton
                               size="small"
                               onClick={(e) => {
@@ -3696,41 +3793,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                     </Box>
 
 
-                    {/* Contenu du bloc système - Affiche les assertions en lecture seule */}
-                    {!module.isPlay && isSystem && (
-                      <Box sx={{
-                        position: 'absolute',
-                        top: 50,
-                        left: 8,
-                        right: 8,
-                        bottom: 8,
-                        overflow: 'auto',
-                        fontSize: '0.65rem',
-                        color: '#666'
-                      }}>
-                        {module.moduleParameters?.__assertionTasks?.map((task: { id: string; name: string; description: string; type: string }) => (
-                          <Box
-                            key={task.id}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 0.5,
-                              py: 0.25,
-                              borderBottom: '1px solid rgba(0,0,0,0.05)'
-                            }}
-                          >
-                            <CheckCircleIcon sx={{ fontSize: 12, color: task.type === 'set_fact' ? '#2196f3' : '#4caf50', mt: 0.25, flexShrink: 0 }} />
-                            <Box>
-                              <Typography sx={{ fontSize: '0.65rem', fontWeight: 'medium' }}>{task.name}</Typography>
-                              <Typography sx={{ fontSize: '0.6rem', color: '#888' }}>{task.description}</Typography>
-                            </Box>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-
-                    {/* Contenu du block avec 3 sections - SEULEMENT pour les blocks normaux, pas les PLAY ni les systèmes */}
-                    {!module.isPlay && !isSystem && !collapsedBlocks.has(module.id) && (
+                    {/* Contenu du block avec 3 sections - Pour tous les blocks (y compris système), pas les PLAY */}
+                    {!module.isPlay && !collapsedBlocks.has(module.id) && (
                       <Box sx={{ position: 'absolute', top: 50, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column' }}>
                         {/* Section Tasks - Header toujours visible */}
                         <Box
@@ -3776,6 +3840,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                                   return
                                 }
 
+                                // Bloquer les drops sur les blocs système (sauf repositionnement interne)
+                                const sourceModule = sourceId ? modules.find(m => m.id === sourceId) : null
+                                const isInternalReposition = sourceModule?.parentId === module.id && sourceModule?.parentSection === 'normal'
+                                if (module.isSystem && !isInternalReposition) {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  return
+                                }
+
                                 // Calculer la position relative à la section
                                 const sectionElem = e.currentTarget as HTMLElement
                                 const sectionRect = sectionElem.getBoundingClientRect()
@@ -3795,11 +3868,10 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
                                 // Cas 1: Module existant déplacé
                                 if (sourceId) {
-                                  const sourceModule = modules.find(m => m.id === sourceId)
                                   if (!sourceModule) return
 
                                   // Sous-cas 1.1: Même section - repositionnement
-                                  if (sourceModule.parentId === module.id && sourceModule.parentSection === 'normal') {
+                                  if (isInternalReposition) {
                                     e.preventDefault()
                                     e.stopPropagation()
                                     setModules(prev => prev.map(m =>
@@ -3954,12 +4026,15 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                           </Box>
                         )}
 
-                        {/* Section Rescue - Header toujours visible */}
-                        <Box
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleBlockSection(module.id, 'rescue')
-                          }}
+                        {/* Sections Rescue et Always - uniquement pour les blocks non-système */}
+                        {!module.isSystem && (
+                          <>
+                            {/* Section Rescue - Header toujours visible */}
+                            <Box
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleBlockSection(module.id, 'rescue')
+                              }}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -4395,6 +4470,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             </Box>
                           </Box>
                         )}
+                          </>
+                        )}
                       </Box>
                     )}
 
@@ -4433,12 +4510,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                       isPlay: module.isPlay,
                       moduleParameters: module.moduleParameters,
                       moduleSchema: module.moduleSchema,
-                      validationState: module.validationState
+                      validationState: module.validationState,
+                      isSystem: module.isSystem,
+                      description: module.description
                     })}
                     draggable
                     onDragStart={(e) => handleModuleDragStart(module.id, e)}
                     onDragOver={(e) => handleModuleDragOver(module.id, e)}
-                    onDrop={(e) => handleModuleDropOnModule(module.id, e)}
+                    onDrop={(e) => !module.isSystem && handleModuleDropOnModule(module.id, e)}
                     sx={{
                       position: 'absolute',
                       left: module.x,

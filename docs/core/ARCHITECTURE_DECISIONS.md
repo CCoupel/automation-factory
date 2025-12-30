@@ -138,6 +138,58 @@ nginx (port 80) → Point d'entrée unique
 
 ---
 
+## 🔒 **SystemBlock - Blocs Système Non-Modifiables**
+
+### Décision : Type dérivé avec contraintes de comportement
+**Décision :** Créer un `SystemBlock` comme type dérivé de `ModuleBlock` avec des contraintes spécifiques de comportement (drag/drop/edit).
+
+**Justification :**
+- **Visibilité :** Les blocs d'assertions doivent être visibles pour comprendre la validation
+- **Protection :** L'utilisateur ne doit pas pouvoir modifier les règles auto-générées
+- **Cohérence :** Même rendu visuel que les blocs normaux mais avec style distinct
+
+### Propriétés SystemBlock
+```typescript
+interface SystemBlock extends ModuleBlock {
+  isSystem: true
+  isBlock: true
+  systemType: 'assertions'  // Type de bloc système
+  sourceVariable: string    // Variable source pour les assertions
+}
+```
+
+### Contraintes de Comportement
+| Action | Bloc Système | Tâches Internes |
+|--------|--------------|-----------------|
+| Repositionner le bloc | ✅ Autorisé | - |
+| Repositionner les tâches internes | - | ✅ Autorisé |
+| Drop externe sur le bloc | ❌ Bloqué | ❌ Bloqué |
+| Drag vers l'extérieur | ❌ Bloqué | ❌ Bloqué |
+| Création de liens internes | ✅ Autorisé | ✅ Autorisé |
+| Liens depuis START | ✅ Autorisé | ✅ Autorisé |
+| Édition nom/paramètres | ❌ Bloqué | ❌ Bloqué |
+| Suppression | ❌ Bloqué | ❌ Bloqué |
+
+### Style Visuel
+- **Thème gris** : `rgba(158, 158, 158, 0.15)` pour le fond
+- **Icône cadenas** : `LockIcon` au lieu de `AccountTreeIcon`
+- **Opacité réduite** : 0.85 pour distinction visuelle
+- **Sections masquées** : Pas de Rescue/Always (uniquement Normal)
+- **Tooltip** : "Bloc système - Généré automatiquement"
+
+### Génération Automatique des Liens
+Le `assertionsGenerator.ts` génère automatiquement :
+1. **Liens entre blocs** : START pre_tasks → Bloc1 → Bloc2 → ...
+2. **Liens internes** : Block-START → Tâche1 → Tâche2 → ...
+
+```
+__system_link_start_to_var1 : play-1-start-pre-tasks → __system_var_var1
+__system_link___system_var_var1_task_0 : __system_var_var1-normal-start → task1
+__system_link___system_var_var1_task_1 : task1 → task2
+```
+
+---
+
 ## 🔧 **Patterns de Code**
 
 ### Component Composition

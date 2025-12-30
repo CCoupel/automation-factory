@@ -58,18 +58,23 @@ class PlaybookYamlService:
         self.yaml_dumper = yaml.SafeDumper
         self.yaml_dumper.default_flow_style = False
 
-    def json_to_yaml(self, playbook_content: Dict[str, Any]) -> str:
+    def json_to_yaml(
+        self,
+        playbook_content: Dict[str, Any],
+        custom_types: Optional[List[Dict[str, Any]]] = None
+    ) -> str:
         """
         Convert playbook JSON structure to Ansible YAML format.
 
         Args:
             playbook_content: Playbook structure as dictionary
+            custom_types: Optional list of custom type definitions for assertions
 
         Returns:
             YAML string formatted for Ansible
         """
         # Build the play structure
-        play = self._build_play(playbook_content)
+        play = self._build_play(playbook_content, custom_types)
 
         # Wrap in a list (Ansible playbooks are lists of plays)
         playbook = [play]
@@ -87,12 +92,17 @@ class PlaybookYamlService:
         # Add YAML document start marker
         return "---\n" + yaml_output
 
-    def _build_play(self, content: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_play(
+        self,
+        content: Dict[str, Any],
+        custom_types: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """
         Build a single play structure from JSON content.
 
         Args:
             content: Play content as dictionary
+            custom_types: Optional list of custom type definitions for assertions
 
         Returns:
             Ansible play structure
@@ -140,7 +150,7 @@ class PlaybookYamlService:
 
         # 1. Generate system assertions block (always first)
         if content.get("variables"):
-            assertions_block = generate_assertions_block(content["variables"])
+            assertions_block = generate_assertions_block(content["variables"], custom_types)
             if assertions_block:
                 pre_tasks.append(assertions_block)
 

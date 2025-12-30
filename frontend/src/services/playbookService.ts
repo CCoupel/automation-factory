@@ -30,6 +30,18 @@ export interface PlaybookContent {
   variables: Variable[]
 }
 
+/**
+ * System block type (for system-managed blocks)
+ */
+export type SystemBlockType = 'assertions'
+
+/**
+ * Module/Block/Task structure for API serialization
+ * This is a flattened interface that can represent:
+ * - UserBlock (regular user-editable blocks/tasks)
+ * - SystemBlock (system-managed assertion blocks)
+ * - SystemTask (tasks inside system blocks)
+ */
 export interface ModuleBlock {
   id: string
   collection: string
@@ -38,8 +50,11 @@ export interface ModuleBlock {
   taskName?: string
   x: number
   y: number
+  width?: number
+  height?: number
   isBlock?: boolean
   isPlay?: boolean
+  isSystem?: boolean         // System-managed block (non-editable, e.g. assertions)
   parentId?: string
   parentSection?: 'normal' | 'rescue' | 'always' | 'variables' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
   playId?: string // ID of the play this module belongs to
@@ -58,6 +73,9 @@ export interface ModuleBlock {
   register?: string          // Store task result in a variable
   // Module parameters from Galaxy schema
   moduleParameters?: Record<string, any>
+  // SystemBlock specific properties
+  systemType?: SystemBlockType  // Type of system block (e.g. 'assertions')
+  sourceVariable?: string       // Source variable for assertion blocks
 }
 
 export interface Link {
@@ -81,6 +99,10 @@ export interface Variable {
   name: string
   value: string
   description?: string
+  type?: string              // Variable type (string, int, bool, list, dict, or custom)
+  required?: boolean         // Whether the variable is required
+  defaultValue?: string      // Default value if not required
+  regexp?: string            // Validation pattern (regexp or filter like | from_json)
 }
 
 /**

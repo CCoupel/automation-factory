@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.17.0_1"
+__version__ = "1.17.0-rc.18"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -16,22 +16,22 @@ VERSION_FEATURES = {
         "title": "Bloc Assertions Système",
         "release_date": "2025-12-29",
         "features": [
-            "Génération automatique d'un bloc assertions dans pre_tasks",
+            "Génération automatique d'un bloc assertions PAR VARIABLE dans pre_tasks",
             "Validation des variables required, types, patterns et valeurs par défaut",
-            "Bloc système visible mais verrouillé (non modifiable)",
+            "Blocs système visibles mais verrouillés (non modifiables)",
             "Icône cadenas et style grisé pour les blocs système",
-            "Affichage en lecture seule des assertions générées"
+            "Support des types custom avec regexp ou filtres (| from_json)"
         ],
         "improvements": [
-            "Assertions exécutées en premier dans pre_tasks",
+            "UN BLOC PAR VARIABLE pour meilleure organisation visuelle",
+            "Assertions exécutées en premier dans pre_tasks via liens",
             "Support des types int, bool, list, dict avec expressions Jinja2",
-            "Support des patterns regexp et filtres Ansible",
-            "Initialisation automatique des valeurs par défaut"
+            "Positionnement automatique avec espacement correct"
         ],
         "technical": [
             "Service assertions_service.py pour génération YAML",
+            "assertionsGenerator.ts avec multi-blocs et liens automatiques",
             "Flag isSystem sur ModuleBlock pour blocs non-modifiables",
-            "assertionsGenerator.ts pour affichage UI",
             "Protection drag/delete/edit dans WorkZone"
         ]
     },

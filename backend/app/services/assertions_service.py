@@ -17,8 +17,14 @@ TYPE_ASSERTIONS = {
     # string doesn't need validation - everything is string by default
 }
 
+# Builtin type names
+BUILTIN_TYPES = {'string', 'int', 'bool', 'list', 'dict'}
 
-def generate_assertions_block(variables: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+
+def generate_assertions_block(
+    variables: List[Dict[str, Any]],
+    custom_types: Optional[List[Dict[str, Any]]] = None
+) -> Optional[Dict[str, Any]]:
     """
     Generate an Ansible assertion block from playbook variables.
 
@@ -26,7 +32,8 @@ def generate_assertions_block(variables: List[Dict[str, Any]]) -> Optional[Dict[
     1. Default value initialization (for non-required variables with defaults)
     2. Required variable assertions
     3. Type assertions (int, bool, list, dict)
-    4. Pattern assertions (regexp validation)
+    4. Custom type assertions (based on custom type patterns)
+    5. Pattern assertions (regexp validation on variable)
 
     Args:
         variables: List of variable definitions with keys:
@@ -36,6 +43,11 @@ def generate_assertions_block(variables: List[Dict[str, Any]]) -> Optional[Dict[
             - required: Whether the variable is required
             - defaultValue: Default value (optional, for non-required vars)
             - regexp: Validation pattern (optional)
+        custom_types: Optional list of custom type definitions with keys:
+            - name: Type name
+            - label: Display label
+            - pattern: Validation pattern (regexp or filter like "| from_json")
+            - is_filter: Whether pattern is a filter
 
     Returns:
         Ansible block structure or None if no variables
@@ -54,12 +66,16 @@ def generate_assertions_block(variables: List[Dict[str, Any]]) -> Optional[Dict[
     if required_task:
         tasks.append(required_task)
 
-    # 3. Assert variable types
+    # 3. Assert builtin variable types
     type_task = _generate_type_assertions(variables)
     if type_task:
         tasks.append(type_task)
 
-    # 4. Assert patterns (regexp)
+    # 4. Assert custom variable types
+    custom_type_tasks = _generate_custom_type_assertions(variables, custom_types or [])
+    tasks.extend(custom_type_tasks)
+
+    # 5. Assert patterns (regexp directly on variable)
     pattern_tasks = _generate_pattern_assertions(variables)
     tasks.extend(pattern_tasks)
 
@@ -210,11 +226,88 @@ def _generate_type_assertions(variables: List[Dict[str, Any]]) -> Optional[Dict[
     }
 
 
+def _generate_custom_type_assertions(
+    variables: List[Dict[str, Any]],
+    custom_types: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Generate assertions for custom variable types.
+
+    Creates one assertion per variable with a custom type,
+    using the pattern from the custom type definition.
+    Also creates conversion tasks for filter-based types.
+    """
+    tasks = []
+
+    # Create a lookup dict for custom types by name
+    custom_type_lookup = {ct['name']: ct for ct in custom_types}
+
+    for var in variables:
+        key = var['key']
+        var_type = var.get('type', 'string')
+
+        # Skip builtin types
+        if var_type in BUILTIN_TYPES:
+            continue
+
+        # Look up custom type definition
+        custom_type = custom_type_lookup.get(var_type)
+        if not custom_type or not custom_type.get('pattern'):
+            continue
+
+        pattern = custom_type['pattern']
+        label = custom_type.get('label', var_type)
+        is_filter = custom_type.get('is_filter', pattern.startswith('|'))
+
+        if is_filter:
+            # Filter validation (e.g., '| from_json')
+            filter_name = pattern[1:].strip() if pattern.startswith('|') else pattern.strip()
+            assertion = f"{key} | {filter_name} is defined"
+            description = f"valid {label}"
+        else:
+            # Regexp validation
+            escaped_pattern = pattern.replace("'", "\\'")
+            assertion = f"{key} is regex('{escaped_pattern}')"
+            description = f"valid {label}"
+
+        # Only check if variable is defined (for non-required vars)
+        if not var.get('required'):
+            full_assertion = f"({key} is not defined) or ({assertion})"
+        else:
+            full_assertion = assertion
+
+        # Add assertion task
+        tasks.append({
+            'name': f"Assert '{key}' is {description}",
+            'ansible.builtin.assert': {
+                'that': [full_assertion],
+                'fail_msg': f"Variable '{key}' must be a valid {label}"
+            }
+        })
+
+        # Add conversion task for filter-based types
+        if is_filter:
+            filter_name = pattern[1:].strip() if pattern.startswith('|') else pattern.strip()
+            convert_task = {
+                'name': f"Convert '{key}' using {filter_name}",
+                'ansible.builtin.set_fact': {
+                    key: f"{{{{ {key} | {filter_name} }}}}"
+                }
+            }
+            # Add when clause for non-required variables
+            if not var.get('required'):
+                convert_task['when'] = f"{key} is defined"
+            tasks.append(convert_task)
+
+    return tasks
+
+
 def _generate_pattern_assertions(variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Generate pattern (regexp) validation assertions.
 
     Creates one assertion per variable with a regexp pattern.
+    Also creates conversion tasks for filter-based patterns.
     """
     tasks = []
 
@@ -226,7 +319,9 @@ def _generate_pattern_assertions(variables: List[Dict[str, Any]]) -> List[Dict[s
             continue
 
         # Check if pattern is a filter (starts with '|')
-        if pattern.startswith('|'):
+        is_filter = pattern.startswith('|')
+
+        if is_filter:
             # Filter validation (e.g., '| from_json')
             filter_name = pattern[1:].strip()
             assertion = f"{key} | {filter_name} is defined"
@@ -244,6 +339,7 @@ def _generate_pattern_assertions(variables: List[Dict[str, Any]]) -> List[Dict[s
         else:
             full_assertion = assertion
 
+        # Add assertion task
         tasks.append({
             'name': f"Assert '{key}' matches {description}",
             'ansible.builtin.assert': {
@@ -251,6 +347,20 @@ def _generate_pattern_assertions(variables: List[Dict[str, Any]]) -> List[Dict[s
                 'fail_msg': f"Variable '{key}' does not match {description}"
             }
         })
+
+        # Add conversion task for filter-based patterns
+        if is_filter:
+            filter_name = pattern[1:].strip()
+            convert_task = {
+                'name': f"Convert '{key}' using {filter_name}",
+                'ansible.builtin.set_fact': {
+                    key: f"{{{{ {key} | {filter_name} }}}}"
+                }
+            }
+            # Add when clause for non-required variables
+            if not var.get('required'):
+                convert_task['when'] = f"{key} is defined"
+            tasks.append(convert_task)
 
     return tasks
 

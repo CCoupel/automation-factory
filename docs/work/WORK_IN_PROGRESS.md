@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-29**
+## 🚀 **Status Actuel - 2025-12-30**
 
 ### Versions Déployées
 
@@ -14,22 +14,44 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v1.16.0`
 
-**Développement (Local) :**
-- **Backend :** `1.17.0_1` (Phase 1)
-- **Frontend :** `1.17.0_1` (Phase 1)
-- **Feature :** Bloc Assertions Système
+**Staging (Docker) :**
+- **Backend :** `1.17.0-rc.18`
+- **Frontend :** `1.17.0-rc.18`
+- **URL :** http://192.168.1.217
+- **Feature :** Bloc Assertions Système (Phase 2)
 
 ---
 
-## 🔄 **Version 1.17.0 - En Développement (Phase 1)**
+## 🔄 **Version 1.17.0 - En Phase 2 (Staging)**
 
 ### Bloc Assertions Système
 
 **Objectif :** Générer automatiquement un bloc d'assertions dans pre_tasks pour valider les variables du playbook. Ce bloc est visible dans l'UI mais verrouillé (non modifiable par l'utilisateur).
 
-#### Fonctionnalités implémentées (v1.17.0_1)
+#### Architecture SystemBlock (décision v1.17.0-rc.13)
 
-**Backend :**
+**Type dérivé avec contraintes :**
+```typescript
+interface SystemBlock extends ModuleBlock {
+  isSystem: true
+  isBlock: true
+  systemType: 'assertions'
+  sourceVariable: string
+}
+```
+
+**Contraintes de comportement :**
+| Action | Bloc | Tâches Internes |
+|--------|------|-----------------|
+| Repositionner | ✅ | ✅ |
+| Drop externe | ❌ | ❌ |
+| Drag externe | ❌ | ❌ |
+| Liens internes | ✅ | ✅ |
+| Édition | ❌ | ❌ |
+
+#### Fonctionnalités implémentées
+
+**Backend (v1.17.0_1) :**
 - [x] Service `assertions_service.py` pour génération YAML
 - [x] Génération default values (set_fact pour variables non-required)
 - [x] Génération required assertions
@@ -37,26 +59,51 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - [x] Génération pattern assertions (regexp, filtres)
 - [x] Intégration dans `playbook_yaml_service.py` (premier bloc pre_tasks)
 
-**Frontend :**
-- [x] Flag `isSystem?: boolean` sur ModuleBlock
-- [x] Helper `isSystemBlock()` dans playbook.ts
-- [x] Générateur `assertionsGenerator.ts` pour affichage UI
-- [x] Intégration WorkZone :
-  - [x] useEffect régénération bloc sur changement variables
-  - [x] Protection delete pour blocs système
-  - [x] Protection drag pour blocs système
-  - [x] Thème gris + icône cadenas pour blocs système
-  - [x] Nom en lecture seule (Typography au lieu de TextField)
-  - [x] Affichage liste assertions en lecture seule
+**Frontend - Types (rc.13) :**
+- [x] Type `SystemBlock` et `SystemTask` dans playbook.ts
+- [x] Type guards : `isSystemBlock()`, `isSystemBlockContainer()`, `isSystemTask()`
+- [x] Propriétés : `systemType`, `sourceVariable`
 
-**Tests Phase 1 :**
-- [x] Build TypeScript frontend sans erreurs
-- [x] Import backend assertions_service OK
-- [x] Génération YAML validée avec variables de test
+**Frontend - Générateur (rc.18) :**
+- [x] `assertionsGenerator.ts` : UN BLOC PAR VARIABLE
+- [x] Génération automatique des liens entre blocs
+- [x] Génération automatique des liens internes (START → tâches)
+- [x] Préservation des positions existantes
+
+**Frontend - Rendu UI (rc.13-rc.14) :**
+- [x] `PlaySectionContent.tsx` : Style système (gris, cadenas)
+- [x] `BlockSectionContent.tsx` : Style tâches système
+- [x] Sections Rescue/Always masquées pour blocs système
+- [x] Tooltip "Bloc système - Généré automatiquement"
+
+**Frontend - Comportement Drag/Drop (rc.14-rc.18) :**
+- [x] Bloc système repositionnable dans pre_tasks
+- [x] Tâches internes repositionnables dans le bloc
+- [x] Drop externe bloqué (pas d'ajout d'éléments)
+- [x] Drag externe bloqué (pas de sortie d'éléments)
+- [x] Création de liens internes autorisée
+- [x] Liens depuis START autorisés
+
+**Frontend - WorkZone (rc.13-rc.18) :**
+- [x] useEffect régénération blocs sur changement variables
+- [x] Nettoyage des blocs système quand pas de variables
+- [x] Synchronisation des liens système
+- [x] Info `systemParentId` dans drag data pour validation
+
+#### Tests Phase 2 - Staging (2025-12-30)
+- [x] Build Docker backend/frontend : rc.18
+- [x] Déploiement containers OK
+- [x] Health checks passés
+- [x] Version affichée : 1.17.0-rc.18 (STAGING)
+- [x] Blocs système visibles avec icône cadenas
+- [x] Repositionnement blocs OK
+- [x] Repositionnement tâches internes OK
+- [x] Liens auto-générés visibles
+- [x] Drop externe bloqué
 
 #### Prochaines étapes
-- [ ] Phase 2 : Déploiement staging
-- [ ] Tests E2E bloc assertions
+- [ ] Tests E2E complets bloc assertions
+- [ ] Validation utilisateur finale
 - [ ] Phase 3 : Production
 
 ---
@@ -522,4 +569,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Derniere mise a jour : 2025-12-29 - v1.16.0 déployée en production*
+*Dernière mise à jour : 2025-12-30 - v1.17.0-rc.18 en staging*

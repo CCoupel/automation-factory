@@ -4,11 +4,12 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import RepeatIcon from '@mui/icons-material/Repeat'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import LockIcon from '@mui/icons-material/Lock'
 import TaskAttributeIcons from '../common/TaskAttributeIcons'
 import SectionLinks from '../common/SectionLinks'
 import StartTaskWithBadge from '../common/StartTaskWithBadge'
 import ResizeHandles from '../common/ResizeHandles'
-import { ModuleBlock, Link } from '../../types/playbook'
+import { ModuleBlock, Link, isSystemBlock } from '../../types/playbook'
 
 interface BlockSectionContentProps {
   blockId: string
@@ -195,6 +196,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
 
         // Si c'est un block imbriqué
         if (task.isBlock) {
+          const isNestedBlockSystem = task.isSystem || isSystemBlock(parentBlock)
           const blockTheme = getBlockTheme(task.id)
           const blockDims = getBlockDimensions(task)
 
@@ -202,7 +204,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
             <Paper
               key={taskId}
               data-task-id={task.id}
-              elevation={selectedModuleId === task.id ? 6 : 3}
+              elevation={selectedModuleId === task.id ? 6 : (isNestedBlockSystem ? 1 : 3)}
               onClick={(e) => {
                 e.stopPropagation()
                 onSelectModule({
@@ -216,13 +218,34 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                   loop: task.loop,
                   delegateTo: task.delegateTo,
                   isBlock: task.isBlock,
-                  isPlay: task.isPlay
+                  isPlay: task.isPlay,
+                  isSystem: isNestedBlockSystem,
+                  description: task.description
                 })
               }}
-              draggable
+              draggable={true}
               onDragStart={(e) => handleModuleDragStart(task.id, e)}
               onDragOver={(e) => handleModuleDragOver(task.id, e)}
-              onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+              onDrop={(e) => {
+                // Pour les blocs système, autoriser les liens internes
+                if (isNestedBlockSystem) {
+                  const sourceId = e.dataTransfer.getData('existingModule')
+                  if (sourceId) {
+                    const sourceModule = modules.find(m => m.id === sourceId)
+                    // Autoriser si la source est dans le même bloc parent
+                    const isSameParentBlock = sourceModule?.parentId === blockId
+                    const isStartTask = sourceId.endsWith('-start') && sourceId.startsWith(blockId)
+                    if (isSameParentBlock || isStartTask) {
+                      handleModuleDropOnModule(task.id, e)
+                      return
+                    }
+                  }
+                  e.preventDefault()
+                  e.stopPropagation()
+                  return
+                }
+                handleModuleDropOnModule(task.id, e)
+              }}
               sx={{
                 position: 'absolute',
                 left: task.x || 10,
@@ -534,13 +557,17 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
         }
 
         // Sinon c'est une tâche simple
+        // Check if task or parent is system (locked)
+        const isTaskSystem = task.isSystem || isSystemBlock(parentBlock)
+
         return (
           <Paper
             key={taskId}
             data-task-id={task.id}
-            elevation={selectedModuleId === task.id ? 6 : 3}
+            elevation={selectedModuleId === task.id ? 6 : (isTaskSystem ? 1 : 3)}
             onClick={(e) => {
               e.stopPropagation()
+              // Allow selection even for system tasks (for viewing)
               onSelectModule({
                 id: task.id,
                 name: task.name,
@@ -552,13 +579,36 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                 loop: task.loop,
                 delegateTo: task.delegateTo,
                 isBlock: task.isBlock,
-                isPlay: task.isPlay
+                isPlay: task.isPlay,
+                isSystem: isTaskSystem,
+                description: task.description
               })
             }}
-            draggable
+            draggable={true}
             onDragStart={(e) => handleModuleDragStart(task.id, e)}
             onDragOver={(e) => handleModuleDragOver(task.id, e)}
-            onDrop={(e) => handleModuleDropOnModule(task.id, e)}
+            onDrop={(e) => {
+              // Pour les tâches système, autoriser les liens internes au bloc
+              if (isTaskSystem) {
+                const sourceId = e.dataTransfer.getData('existingModule')
+                if (sourceId) {
+                  const sourceModule = modules.find(m => m.id === sourceId)
+                  // Autoriser si la source est dans le même bloc système (lien interne)
+                  // ou si c'est le START de la section
+                  const isSameBlock = sourceModule?.parentId === blockId
+                  const isStartTask = sourceId.endsWith('-start') && sourceId.startsWith(blockId)
+                  if (isSameBlock || isStartTask) {
+                    handleModuleDropOnModule(task.id, e)
+                    return
+                  }
+                }
+                // Bloquer les drops externes sur les tâches système
+                e.preventDefault()
+                e.stopPropagation()
+                return
+              }
+              handleModuleDropOnModule(task.id, e)
+            }}
             sx={{
               position: 'absolute',
               left: task.x || 10,
@@ -567,9 +617,12 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
               minHeight: 60,
               p: 0.75,
               cursor: 'move',
-              border: selectedModuleId === task.id ? `2px solid ${taskTheme.borderColor}` : 'none',
+              border: selectedModuleId === task.id
+                ? `2px solid ${taskTheme.borderColor}`
+                : (isTaskSystem ? '1px solid #9e9e9e' : 'none'),
+              bgcolor: isTaskSystem ? 'rgba(158, 158, 158, 0.08)' : undefined,
               zIndex: draggedModuleId === task.id ? 10 : 1,
-              opacity: draggedModuleId === task.id ? 0.7 : 1,
+              opacity: isTaskSystem ? 0.9 : (draggedModuleId === task.id ? 0.7 : 1),
               // Highlight effect for synced elements (user's color)
               ...(highlightedElements?.has(task.id) && {
                 boxShadow: `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`,
@@ -579,49 +632,77 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
               '&:hover': {
                 boxShadow: highlightedElements?.has(task.id)
                   ? `0 0 25px 8px ${highlightedElements.get(task.id)}99, 0 0 50px 15px ${highlightedElements.get(task.id)}66`
-                  : 6,
+                  : (isTaskSystem ? 2 : 6),
               },
             }}
           >
             {/* ID et nom de la tâche */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-              <Box
-                sx={{
-                  minWidth: 18,
-                  height: 18,
-                  px: 0.5,
-                  borderRadius: '4px',
-                  bgcolor: taskTheme.numberBgColor,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  fontSize: '0.6rem',
-                  flexShrink: 0,
-                }}
-              >
-                {task.collection === 'ansible.builtin' ? 'B' : task.collection === 'ansible.posix' ? 'P' : 'C'}
-              </Box>
-              <TextField
-                fullWidth
-                variant="standard"
-                value={task.taskName}
-                onChange={(e) => updateTaskName(task.id, e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                sx={{
-                  '& .MuiInput-input': {
+              {isTaskSystem ? (
+                <Tooltip title="Tâche système - Non modifiable">
+                  <LockIcon sx={{ fontSize: 14, color: '#757575', flexShrink: 0 }} />
+                </Tooltip>
+              ) : (
+                <Box
+                  sx={{
+                    minWidth: 18,
+                    height: 18,
+                    px: 0.5,
+                    borderRadius: '4px',
+                    bgcolor: taskTheme.numberBgColor,
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '0.6rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  {task.collection === 'ansible.builtin' ? 'B' : task.collection === 'ansible.posix' ? 'P' : 'C'}
+                </Box>
+              )}
+              {isTaskSystem ? (
+                <Typography
+                  variant="body2"
+                  sx={{
                     fontSize: '0.7rem',
-                    padding: '0px',
-                  },
-                }}
-              />
+                    color: '#757575',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {task.taskName}
+                </Typography>
+              ) : (
+                <TextField
+                  fullWidth
+                  variant="standard"
+                  value={task.taskName}
+                  onChange={(e) => updateTaskName(task.id, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  sx={{
+                    '& .MuiInput-input': {
+                      fontSize: '0.7rem',
+                      padding: '0px',
+                    },
+                  }}
+                />
+              )}
             </Box>
 
             {/* Module name */}
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.65rem', mb: 0.5 }}>
               {task.name}
             </Typography>
+
+            {/* Description for system tasks */}
+            {isTaskSystem && task.description && (
+              <Typography variant="caption" sx={{ color: '#9e9e9e', display: 'block', fontSize: '0.6rem', fontStyle: 'italic' }}>
+                {task.description}
+              </Typography>
+            )}
 
             {/* Icônes d'attributs */}
             <TaskAttributeIcons
