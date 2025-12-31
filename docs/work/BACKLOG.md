@@ -39,15 +39,23 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
   - [x] Chargement paresseux des données
   - [x] Drag & drop modules vers playbook
 
-### P4 - Next Priority (Version 1.15.x)
-- [ ] **Variables Typées & Validation**
-  - [ ] Définition du type de donnée (string, int, bool, list, dict)
-  - [ ] Attribut mandatory (obligatoire/optionnel)
-  - [ ] Valeur par défaut configurable
-  - [ ] Génération automatique d'assertions `ansible.builtin.assert`
-  - [ ] Validation des variables d'entrée du playbook
+### ✅ P4 - Complété (Version 1.15.x - 1.18.0)
+- [x] **Variables Typées & Validation** (v1.15.0 - v1.17.0)
+  - [x] Définition du type de donnée (string, int, bool, list, dict)
+  - [x] Attribut mandatory (obligatoire/optionnel)
+  - [x] Valeur par défaut configurable
+  - [x] Génération automatique d'assertions `ansible.builtin.assert`
+  - [x] Validation des variables d'entrée du playbook
+  - [x] Types personnalisables par admin (v1.16.0)
+  - [x] Bloc assertions système visible et verrouillé (v1.17.0)
+- [x] **Rationalisation du Code** (v1.18.0)
+  - [x] Service centralisé contrôle d'accès playbooks
+  - [x] Service unifié gestion des favoris
+  - [x] Gestion d'erreurs API standardisée
+  - [x] Composants réutilisables (DraggableListItem)
+  - [x] Élimination ~800 lignes de code dupliqué
 
-### P5 - Medium Priority (Version 2.0.x)
+### P5 - Next Priority (Version 2.0.x)
 - [ ] **Gestion des Rôles Ansible**
   - [ ] Collecte et affichage des rôles disponibles
   - [ ] Drag & drop des rôles dans la section roles
@@ -398,6 +406,6 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-25*
+*Document maintenu à jour. Dernière mise à jour : 2025-12-31*
 
 *Pour ajouter des items au backlog, créer une issue GitHub ou contacter l'équipe de développement.*

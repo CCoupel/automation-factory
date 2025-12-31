@@ -4,6 +4,34 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 1.18.0** - *2025-12-31*
+
+### 🔧 Rationalisation du Code
+
+- **Backend - Services centralisés**
+  - `playbook_access_service.py` : Contrôle d'accès unifié (3 fichiers → 1 service)
+  - `favorites_service.py` : Gestion générique des favoris (namespaces/collections/modules)
+  - Élimination de ~150 lignes de code dupliqué
+  - `user_favorites.py` réduit de 369 → 277 lignes
+
+- **Frontend - Utilitaires partagés**
+  - `apiErrorHandler.ts` : Gestion d'erreurs API centralisée
+  - `DraggableListItem.tsx` : Composant draggable partagé
+  - `constants/moduleConfigs.ts` : Configurations modules extraites
+  - `collaborationService.ts` réduit de 297 → 202 lignes (-32%)
+
+- **Nettoyage**
+  - Suppression `main-cached.tsx` (obsolète)
+  - Élimination totale : ~350 lignes de duplication
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 1.18.0
+- **Tag Git** : v1.18.0
+- **Impact** : Code plus maintenable, prêt pour nouvelles fonctionnalités
+
+---
+
 ## ✅ **Version 1.17.0** - *2025-12-30*
 
 ### 🔒 Bloc Assertions Système

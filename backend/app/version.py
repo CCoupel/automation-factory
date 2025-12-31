@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "1.17.0-rc.18"
+__version__ = "1.18.0"
 __description__ = "Ansible Builder API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
@@ -12,6 +12,30 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "1.18.0": {
+        "title": "Rationalisation du Code",
+        "release_date": "2025-12-31",
+        "features": [
+            "Élimination de la duplication de code (~800 lignes supprimées)",
+            "Service centralisé de contrôle d'accès playbooks",
+            "Service unifié de gestion des favoris",
+            "Gestion d'erreurs API standardisée (apiErrorHandler)",
+            "Composant DraggableListItem réutilisable"
+        ],
+        "improvements": [
+            "Réduction de 32% du code dans collaborationService.ts",
+            "Réduction de 25% du code dans user_favorites.py",
+            "Architecture plus maintenable et extensible",
+            "Logs d'audit unifiés pour toutes les actions"
+        ],
+        "technical": [
+            "playbook_access_service.py: Contrôle d'accès + audit centralisés",
+            "favorites_service.py: CRUD générique namespaces/collections/modules",
+            "apiErrorHandler.ts: withApiErrorHandling wrapper",
+            "DraggableListItem.tsx: Base pour ModuleListItem et GenericElementListItem",
+            "constants/moduleConfigs.ts: Extraction configurations modules"
+        ]
+    },
     "1.17.0": {
         "title": "Bloc Assertions Système",
         "release_date": "2025-12-29",
