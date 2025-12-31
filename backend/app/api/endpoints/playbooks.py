@@ -30,97 +30,12 @@ from app.schemas.playbook import (
 from app.services.playbook_yaml_service import playbook_yaml_service
 from app.services.ansible_lint_service import ansible_lint_service
 from app.services.variable_type_service import get_all_custom_types
+from app.services.playbook_access_service import (
+    check_playbook_access,
+    log_playbook_action
+)
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
-
-
-# === Helper Functions ===
-
-async def check_playbook_access(
-    playbook_id: str,
-    user_id: str,
-    db: AsyncSession,
-    required_role: Optional[str] = None
-) -> Tuple[Playbook, str]:
-    """
-    Check if user has access to a playbook and return the playbook with their role.
-
-    Args:
-        playbook_id: The playbook ID
-        user_id: The user ID
-        db: Database session
-        required_role: Minimum required role ('owner', 'editor', 'viewer')
-
-    Returns:
-        Tuple of (Playbook, role string)
-
-    Raises:
-        HTTPException 404: Playbook not found
-        HTTPException 403: Not authorized or insufficient role
-    """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Check if owner
-    if playbook.owner_id == user_id:
-        return playbook, PlaybookRole.OWNER.value
-
-    # Check if shared with user
-    share_result = await db.execute(
-        select(PlaybookShare).where(
-            and_(
-                PlaybookShare.playbook_id == playbook_id,
-                PlaybookShare.user_id == user_id
-            )
-        )
-    )
-    share = share_result.scalar_one_or_none()
-
-    if not share:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
-
-    # Check required role if specified
-    if required_role:
-        role_hierarchy = {
-            PlaybookRole.OWNER.value: 3,
-            PlaybookRole.EDITOR.value: 2,
-            PlaybookRole.VIEWER.value: 1
-        }
-        if role_hierarchy.get(share.role, 0) < role_hierarchy.get(required_role, 0):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires at least '{required_role}' role"
-            )
-
-    return playbook, share.role
-
-
-async def log_playbook_action(
-    db: AsyncSession,
-    playbook_id: str,
-    user_id: str,
-    action: AuditAction,
-    details: dict = None
-):
-    """Log an action to the audit log"""
-    audit_entry = PlaybookAuditLog(
-        playbook_id=playbook_id,
-        user_id=user_id,
-        action=action.value,
-        details=details
-    )
-    db.add(audit_entry)
 
 
 @router.get("", response_model=List[PlaybookResponse])

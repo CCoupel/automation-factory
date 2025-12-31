@@ -9,37 +9,23 @@ All user data must be stored in database for:
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.models.user_preferences import UserPreferences
+from app.services.favorites_service import (
+    get_favorites,
+    add_favorite,
+    remove_favorite,
+    get_all_preferences,
+    update_preferences,
+)
 
 router = APIRouter(prefix="/user", tags=["user-favorites"])
 
 
-async def get_or_create_preferences(db: AsyncSession, user_id: str) -> UserPreferences:
-    """Get user preferences or create if not exists"""
-    result = await db.execute(
-        select(UserPreferences).where(UserPreferences.user_id == user_id)
-    )
-    preferences = result.scalar_one_or_none()
-
-    if not preferences:
-        preferences = UserPreferences(
-            user_id=user_id,
-            favorite_namespaces=[],
-            interface_settings={},
-            galaxy_settings={}
-        )
-        db.add(preferences)
-        await db.commit()
-        await db.refresh(preferences)
-
-    return preferences
-
+# === Namespace Favorites ===
 
 @router.get("/favorites")
 async def get_favorite_namespaces(
@@ -48,12 +34,11 @@ async def get_favorite_namespaces(
 ) -> Dict[str, Any]:
     """Get user's favorite namespaces from database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-
+        favorites = await get_favorites(db, current_user.id, "namespace")
         return {
             "success": True,
             "message": "Favorites retrieved successfully",
-            "favorite_namespaces": preferences.favorite_namespaces or []
+            "favorite_namespaces": favorites
         }
     except Exception as e:
         raise HTTPException(
@@ -69,28 +54,17 @@ async def add_favorite_namespace(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """Add namespace to user's favorites in database"""
+    namespace = request.get("namespace", "").strip()
+    if not namespace:
+        raise HTTPException(status_code=400, detail="Namespace is required")
+
     try:
-        namespace = request.get("namespace", "").strip()
-        if not namespace:
-            raise HTTPException(status_code=400, detail="Namespace is required")
-
-        preferences = await get_or_create_preferences(db, current_user.id)
-
-        # Add to favorites if not already present
-        current_favorites = preferences.favorite_namespaces or []
-        if namespace not in current_favorites:
-            current_favorites.append(namespace)
-            preferences.favorite_namespaces = current_favorites
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await add_favorite(db, current_user.id, "namespace", namespace)
         return {
             "success": True,
             "message": f"Namespace '{namespace}' added to favorites",
-            "favorite_namespaces": preferences.favorite_namespaces
+            "favorite_namespaces": favorites
         }
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -106,20 +80,11 @@ async def remove_favorite_namespace(
 ) -> Dict[str, Any]:
     """Remove namespace from user's favorites in database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-
-        # Remove from favorites if present
-        current_favorites = preferences.favorite_namespaces or []
-        if namespace in current_favorites:
-            current_favorites.remove(namespace)
-            preferences.favorite_namespaces = current_favorites
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await remove_favorite(db, current_user.id, "namespace", namespace)
         return {
             "success": True,
             "message": f"Namespace '{namespace}' removed from favorites",
-            "favorite_namespaces": preferences.favorite_namespaces
+            "favorite_namespaces": favorites
         }
     except Exception as e:
         raise HTTPException(
@@ -128,6 +93,8 @@ async def remove_favorite_namespace(
         )
 
 
+# === Collection Favorites ===
+
 @router.get("/favorites/collections")
 async def get_favorite_collections(
     current_user: User = Depends(get_current_user),
@@ -135,13 +102,11 @@ async def get_favorite_collections(
 ) -> Dict[str, Any]:
     """Get user's favorite collections from database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = preferences.galaxy_settings or {}
-
+        favorites = await get_favorites(db, current_user.id, "collection")
         return {
             "success": True,
             "message": "Favorite collections retrieved successfully",
-            "favorite_collections": galaxy_settings.get("favorite_collections", [])
+            "favorite_collections": favorites
         }
     except Exception as e:
         raise HTTPException(
@@ -157,30 +122,17 @@ async def add_favorite_collection(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """Add collection to user's favorites in database"""
+    collection = request.get("collection", "").strip()
+    if not collection:
+        raise HTTPException(status_code=400, detail="Collection is required")
+
     try:
-        collection = request.get("collection", "").strip()
-        if not collection:
-            raise HTTPException(status_code=400, detail="Collection is required")
-
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = dict(preferences.galaxy_settings or {})
-        favorites = list(galaxy_settings.get("favorite_collections", []))
-
-        if collection not in favorites:
-            favorites.append(collection)
-            galaxy_settings["favorite_collections"] = favorites
-            # Create new dict to trigger SQLAlchemy change detection
-            preferences.galaxy_settings = galaxy_settings.copy()
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await add_favorite(db, current_user.id, "collection", collection)
         return {
             "success": True,
             "message": f"Collection '{collection}' added to favorites",
             "favorite_collections": favorites
         }
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -196,18 +148,7 @@ async def remove_favorite_collection(
 ) -> Dict[str, Any]:
     """Remove collection from user's favorites in database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = dict(preferences.galaxy_settings or {})
-        favorites = list(galaxy_settings.get("favorite_collections", []))
-
-        if collection in favorites:
-            favorites.remove(collection)
-            galaxy_settings["favorite_collections"] = favorites
-            # Create new dict to trigger SQLAlchemy change detection
-            preferences.galaxy_settings = galaxy_settings.copy()
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await remove_favorite(db, current_user.id, "collection", collection)
         return {
             "success": True,
             "message": f"Collection '{collection}' removed from favorites",
@@ -220,6 +161,8 @@ async def remove_favorite_collection(
         )
 
 
+# === Module Favorites ===
+
 @router.get("/favorites/modules")
 async def get_favorite_modules(
     current_user: User = Depends(get_current_user),
@@ -227,13 +170,11 @@ async def get_favorite_modules(
 ) -> Dict[str, Any]:
     """Get user's favorite modules from database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = preferences.galaxy_settings or {}
-
+        favorites = await get_favorites(db, current_user.id, "module")
         return {
             "success": True,
             "message": "Favorite modules retrieved successfully",
-            "favorite_modules": galaxy_settings.get("favorite_modules", [])
+            "favorite_modules": favorites
         }
     except Exception as e:
         raise HTTPException(
@@ -249,30 +190,17 @@ async def add_favorite_module(
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """Add module to user's favorites in database"""
+    module = request.get("module", "").strip()
+    if not module:
+        raise HTTPException(status_code=400, detail="Module is required")
+
     try:
-        module = request.get("module", "").strip()
-        if not module:
-            raise HTTPException(status_code=400, detail="Module is required")
-
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = dict(preferences.galaxy_settings or {})
-        favorites = list(galaxy_settings.get("favorite_modules", []))
-
-        if module not in favorites:
-            favorites.append(module)
-            galaxy_settings["favorite_modules"] = favorites
-            # Create new dict to trigger SQLAlchemy change detection
-            preferences.galaxy_settings = galaxy_settings.copy()
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await add_favorite(db, current_user.id, "module", module)
         return {
             "success": True,
             "message": f"Module '{module}' added to favorites",
             "favorite_modules": favorites
         }
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -288,18 +216,7 @@ async def remove_favorite_module(
 ) -> Dict[str, Any]:
     """Remove module from user's favorites in database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-        galaxy_settings = dict(preferences.galaxy_settings or {})
-        favorites = list(galaxy_settings.get("favorite_modules", []))
-
-        if module in favorites:
-            favorites.remove(module)
-            galaxy_settings["favorite_modules"] = favorites
-            # Create new dict to trigger SQLAlchemy change detection
-            preferences.galaxy_settings = galaxy_settings.copy()
-            await db.commit()
-            await db.refresh(preferences)
-
+        favorites = await remove_favorite(db, current_user.id, "module", module)
         return {
             "success": True,
             "message": f"Module '{module}' removed from favorites",
@@ -312,6 +229,8 @@ async def remove_favorite_module(
         )
 
 
+# === General Preferences ===
+
 @router.get("/preferences")
 async def get_user_preferences(
     current_user: User = Depends(get_current_user),
@@ -319,11 +238,10 @@ async def get_user_preferences(
 ) -> Dict[str, Any]:
     """Get all user preferences from database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-
+        preferences = await get_all_preferences(db, current_user.id)
         return {
             "success": True,
-            "preferences": preferences.to_dict()
+            "preferences": preferences
         }
     except Exception as e:
         raise HTTPException(
@@ -333,34 +251,24 @@ async def get_user_preferences(
 
 
 @router.put("/preferences")
-async def update_user_preferences(
+async def update_user_preferences_endpoint(
     request: dict,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
     """Update user preferences in database"""
     try:
-        preferences = await get_or_create_preferences(db, current_user.id)
-
-        # Update interface settings if provided
-        if "interface_settings" in request:
-            preferences.interface_settings = request["interface_settings"]
-
-        # Update galaxy settings if provided
-        if "galaxy_settings" in request:
-            preferences.galaxy_settings = request["galaxy_settings"]
-
-        # Update favorite namespaces if provided
-        if "favorite_namespaces" in request:
-            preferences.favorite_namespaces = request["favorite_namespaces"]
-
-        await db.commit()
-        await db.refresh(preferences)
-
+        preferences = await update_preferences(
+            db=db,
+            user_id=current_user.id,
+            interface_settings=request.get("interface_settings"),
+            galaxy_settings=request.get("galaxy_settings"),
+            favorite_namespaces=request.get("favorite_namespaces")
+        )
         return {
             "success": True,
             "message": "Preferences updated successfully",
-            "preferences": preferences.to_dict()
+            "preferences": preferences
         }
     except Exception as e:
         raise HTTPException(

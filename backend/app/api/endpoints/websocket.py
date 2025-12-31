@@ -14,6 +14,7 @@ from app.core.database import get_db, AsyncSessionLocal
 from app.core.security import decode_access_token
 from app.models import Playbook, PlaybookShare, PlaybookRole
 from app.services.websocket_manager import websocket_manager
+from app.services.playbook_access_service import check_playbook_access_standalone
 
 logger = logging.getLogger(__name__)
 
@@ -47,45 +48,6 @@ async def get_current_user_ws(
         }
     except Exception as e:
         logger.warning(f"WebSocket auth failed: {e}")
-        return None
-
-
-async def check_playbook_access_async(playbook_id: str, user_id: str) -> Optional[str]:
-    """
-    Check if user has access to playbook and return their role (async version)
-
-    Args:
-        playbook_id: The playbook ID
-        user_id: The user ID
-
-    Returns:
-        Role string ('owner', 'editor', 'viewer') or None if no access
-    """
-    async with AsyncSessionLocal() as db:
-        # Check if user is owner
-        result = await db.execute(
-            select(Playbook).where(
-                Playbook.id == playbook_id,
-                Playbook.owner_id == user_id
-            )
-        )
-        playbook = result.scalar_one_or_none()
-
-        if playbook:
-            return PlaybookRole.OWNER.value
-
-        # Check if user has share access
-        result = await db.execute(
-            select(PlaybookShare).where(
-                PlaybookShare.playbook_id == playbook_id,
-                PlaybookShare.user_id == user_id
-            )
-        )
-        share = result.scalar_one_or_none()
-
-        if share:
-            return share.role
-
         return None
 
 
@@ -128,7 +90,7 @@ async def playbook_websocket(
 
     try:
         # Check playbook access before connecting
-        user_role = await check_playbook_access_async(playbook_id, user_id)
+        user_role = await check_playbook_access_standalone(playbook_id, user_id)
         logger.info(f"[WS] Access check - playbook={playbook_id}, user={user_id}, role={user_role}")
         if not user_role:
             logger.warning(f"[WS] Access denied for user={user_id} to playbook={playbook_id}")

@@ -1,12 +1,9 @@
-import {
-  Box,
-  Typography,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Tooltip,
-} from '@mui/material'
+/**
+ * ModuleListItem - Galaxy module list item with drag support
+ */
+
 import ExtensionIcon from '@mui/icons-material/Extension'
+import { DraggableListItem } from './DraggableListItem'
 
 export interface ModuleInfo {
   name: string
@@ -25,67 +22,27 @@ export const ModuleListItem = ({
   module,
   namespace,
   collection,
-  index,
 }: ModuleListItemProps) => {
   return (
-    <Tooltip
-      title={
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            {module.name}
-          </Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            {module.description || 'No description available'}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Type: {module.content_type}
-          </Typography>
-          <Typography variant="caption" display="block">
-            Collection: {namespace}.{collection}
-          </Typography>
-          <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-            Drag to add to playbook
-          </Typography>
-        </Box>
-      }
-      placement="right"
-      arrow
-    >
-      <ListItem disablePadding>
-        <ListItemButton
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData(
-              'module',
-              JSON.stringify({
-                collection: `${namespace}.${collection}`,
-                name: module.name,
-                description: module.description,
-              })
-            )
-          }}
-          sx={{
-            '&:hover': {
-              bgcolor: 'primary.light',
-              color: 'white',
-            },
-          }}
-        >
-          <ExtensionIcon sx={{ mr: 1, fontSize: 18 }} />
-          <ListItemText
-            primary={module.name}
-            secondary={module.description || 'No description'}
-            primaryTypographyProps={{
-              variant: 'body2',
-              fontWeight: 'medium',
-            }}
-            secondaryTypographyProps={{
-              variant: 'caption',
-              sx: { fontSize: '0.7rem' },
-            }}
-          />
-        </ListItemButton>
-      </ListItem>
-    </Tooltip>
+    <DraggableListItem
+      dragData={{
+        collection: `${namespace}.${collection}`,
+        name: module.name,
+        description: module.description,
+      }}
+      tooltip={{
+        title: module.name,
+        description: module.description || 'No description available',
+        details: [
+          { label: 'Type', value: module.content_type || 'module' },
+          { label: 'Collection', value: `${namespace}.${collection}` },
+        ],
+        hint: 'Drag to add to playbook',
+      }}
+      primary={module.name}
+      secondary={module.description || 'No description'}
+      icon={<ExtensionIcon sx={{ mr: 1, fontSize: 18 }} />}
+      hoverBgColor="primary.light"
+    />
   )
 }

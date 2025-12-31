@@ -24,97 +24,12 @@ from app.schemas.collaboration import (
     ShareUserInfo, AuditLogResponse, AuditLogListResponse, AuditLogUserInfo,
     SharedPlaybookResponse, SharedPlaybooksListResponse
 )
+from app.services.playbook_access_service import (
+    check_playbook_access,
+    log_playbook_action
+)
 
 router = APIRouter(prefix="/playbooks", tags=["collaboration"])
-
-
-# === Helper Functions ===
-
-async def get_playbook_with_access_check(
-    playbook_id: str,
-    user_id: str,
-    db: AsyncSession,
-    required_role: str = None
-) -> tuple[Playbook, str]:
-    """
-    Get playbook and verify user has access.
-
-    Args:
-        playbook_id: Playbook ID
-        user_id: Current user ID
-        db: Database session
-        required_role: If specified, require at least this role (owner > editor > viewer)
-
-    Returns:
-        Tuple of (playbook, role)
-
-    Raises:
-        HTTPException 404: Playbook not found
-        HTTPException 403: Not authorized
-    """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Check if owner
-    if playbook.owner_id == user_id:
-        return playbook, PlaybookRole.OWNER.value
-
-    # Check if shared with user
-    share_result = await db.execute(
-        select(PlaybookShare).where(
-            and_(
-                PlaybookShare.playbook_id == playbook_id,
-                PlaybookShare.user_id == user_id
-            )
-        )
-    )
-    share = share_result.scalar_one_or_none()
-
-    if not share:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this playbook"
-        )
-
-    # Check required role
-    if required_role:
-        role_hierarchy = {
-            PlaybookRole.OWNER.value: 3,
-            PlaybookRole.EDITOR.value: 2,
-            PlaybookRole.VIEWER.value: 1
-        }
-        if role_hierarchy.get(share.role, 0) < role_hierarchy.get(required_role, 0):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires at least '{required_role}' role"
-            )
-
-    return playbook, share.role
-
-
-async def log_audit_action(
-    db: AsyncSession,
-    playbook_id: str,
-    user_id: str,
-    action: AuditAction,
-    details: dict = None
-):
-    """Log an action to the audit log"""
-    audit_entry = PlaybookAuditLog(
-        playbook_id=playbook_id,
-        user_id=user_id,
-        action=action.value,
-        details=details
-    )
-    db.add(audit_entry)
 
 
 # === Share Endpoints ===
@@ -212,7 +127,7 @@ async def create_share(
     db.add(share)
 
     # Log audit action
-    await log_audit_action(
+    await log_playbook_action(
         db, playbook_id, current_user.id, AuditAction.SHARE,
         {"shared_with_username": target_user.username, "shared_with_id": target_user.id, "role": share_data.role}
     )
@@ -371,7 +286,7 @@ async def update_share(
     share.role = share_data.role
 
     # Log audit action
-    await log_audit_action(
+    await log_playbook_action(
         db, playbook_id, current_user.id, AuditAction.ROLE_CHANGE,
         {"user_id": share.user_id, "old_role": old_role, "new_role": share_data.role}
     )
@@ -446,7 +361,7 @@ async def delete_share(
         )
 
     # Log audit action
-    await log_audit_action(
+    await log_playbook_action(
         db, playbook_id, current_user.id, AuditAction.UNSHARE,
         {"user_id": share.user_id, "role": share.role}
     )

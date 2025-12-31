@@ -21,6 +21,7 @@ import AllInclusiveIcon from '@mui/icons-material/AllInclusive'
 import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playbook'
 import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
+import { moduleConfigs } from '../../constants/moduleConfigs'
 
 // Collaboration callback type for config updates
 export interface CollaborationConfigCallback {
@@ -77,30 +78,6 @@ interface ConfigZoneProps {
   // Collaboration callbacks for real-time sync
   collaborationCallbacks?: CollaborationConfigCallback
   activePlayId?: string // For play update collaboration
-}
-
-// Configuration des modules (à déplacer vers un fichier de config plus tard)
-const moduleConfigs: Record<string, Array<{ name: string; type: string; required: boolean; description: string; default?: string }>> = {
-  copy: [
-    { name: 'src', type: 'text', required: true, description: 'Source file path' },
-    { name: 'dest', type: 'text', required: true, description: 'Destination file path' },
-    { name: 'owner', type: 'text', required: false, description: 'File owner' },
-    { name: 'group', type: 'text', required: false, description: 'File group' },
-    { name: 'mode', type: 'text', required: false, description: 'File permissions', default: '0644' },
-    { name: 'backup', type: 'select', required: false, description: 'Create a backup file', default: 'no' },
-  ],
-  service: [
-    { name: 'name', type: 'text', required: true, description: 'Service name' },
-    { name: 'state', type: 'select', required: true, description: 'Service state', default: 'started' },
-    { name: 'enabled', type: 'select', required: false, description: 'Enable on boot', default: 'yes' },
-  ],
-  file: [
-    { name: 'path', type: 'text', required: true, description: 'File or directory path' },
-    { name: 'state', type: 'select', required: false, description: 'File state', default: 'file' },
-    { name: 'owner', type: 'text', required: false, description: 'File owner' },
-    { name: 'group', type: 'text', required: false, description: 'File group' },
-    { name: 'mode', type: 'text', required: false, description: 'File permissions' },
-  ],
 }
 
 /**
