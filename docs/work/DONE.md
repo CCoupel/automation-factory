@@ -4,6 +4,52 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.0.0** - *2026-01-01*
+
+### 🎭 Galaxy Roles Integration
+
+- **Support Galaxy API v1 + v3**
+  - API v1 pour rôles standalone/legacy (36,000+ rôles)
+  - Format `author.role_name` (ex: `geerlingguy.docker`)
+  - API v3 pour rôles dans collections
+  - Format `namespace.collection.role`
+
+- **Support Galaxy Privée**
+  - AAP (Automation Hub) ou Galaxy NG
+  - Authentication par token
+  - Configuration `GALAXY_PRIVATE_URL` et `GALAXY_PRIVATE_TOKEN`
+  - Option `GALAXY_PUBLIC_ENABLED` pour désactiver Galaxy publique
+
+- **Interface RolesTreeView refaite**
+  - Onglets Standalone / Collections
+  - Toggle source Public/Private
+  - Chargement paresseux des auteurs et rôles
+  - Recherche intégrée
+  - Drag & drop vers zone de travail
+
+- **Gestion des rôles dans playbook**
+  - Drag & drop rôles depuis la palette
+  - Ajout multiple du même rôle autorisé
+  - Réordonnancement par drag & drop
+  - Toggle activer/désactiver (icône œil)
+  - Style visuel pour rôles désactivés (grisé, barré)
+  - Panel configuration avec support variables
+  - Rôles désactivés exclus de la génération YAML
+
+- **Types et génération YAML**
+  - Type `RoleDefinition` avec propriété `enabled`
+  - Sérialisation correcte des rôles avec variables
+  - Filtrage des rôles désactivés dans le YAML
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 2.0.0
+- **Tag Git** : v2.0.0
+- **Rôles disponibles** : 36,726 standalone + collections
+- **Smoke tests** : Passés
+
+---
+
 ## ✅ **Version 1.18.0** - *2025-12-31*
 
 ### 🔧 Rationalisation du Code

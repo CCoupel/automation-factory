@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # Galaxy Configuration
+    GALAXY_PUBLIC_URL: str = "https://galaxy.ansible.com"
+    GALAXY_PUBLIC_ENABLED: bool = True  # Set to False to disable public Galaxy
+    GALAXY_PRIVATE_URL: str = ""  # Empty = no private Galaxy configured
+    GALAXY_PRIVATE_TOKEN: str = ""  # Token for private Galaxy authentication
+    GALAXY_PREFERRED_SOURCE: str = "public"  # public | private | both
+
     class Config:
         env_file = ".env"
         case_sensitive = True

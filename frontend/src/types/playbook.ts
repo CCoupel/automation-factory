@@ -44,6 +44,81 @@ export interface ModuleSchema {
 }
 
 /**
+ * Role parameter/variable definition
+ */
+export interface RoleParameter {
+  name: string
+  type: 'str' | 'int' | 'float' | 'bool' | 'list' | 'dict' | 'path' | 'any'
+  required: boolean
+  default?: any
+  description: string
+}
+
+/**
+ * Role entry point definition
+ */
+export interface RoleEntryPoint {
+  name: string
+  description: string
+}
+
+/**
+ * Role schema from Ansible documentation
+ */
+export interface RoleSchema {
+  role: string
+  description: string
+  entry_points: RoleEntryPoint[]
+  defaults: RoleParameter[]
+  requirements: string[]
+  examples: string[]
+}
+
+/**
+ * Role definition with optional configuration
+ *
+ * Roles can be:
+ * - Simple string: "namespace.collection.role_name"
+ * - Object with parameters: { role: "...", vars: {...}, when: "...", tags: [...] }
+ */
+export interface RoleDefinition {
+  role: string                    // FQCN: "namespace.collection.role_name"
+  name?: string                   // Display name / alias
+  vars?: Record<string, any>      // Role variables
+  when?: string                   // Conditional execution
+  tags?: string[]                 // Tags for selective execution
+  become?: boolean                // Privilege escalation
+  become_user?: string            // Become user
+  delegate_to?: string            // Delegation
+  // Schema info (populated from API)
+  schema?: RoleSchema
+  namespace?: string
+  collection?: string
+}
+
+/**
+ * Draggable role item data (for drag & drop from palette)
+ */
+export interface DraggableRoleData {
+  type: 'role'
+  role: string                    // Role name
+  collection: string              // "namespace.collection"
+  description?: string
+}
+
+/**
+ * Check if an object is a DraggableRoleData
+ */
+export function isDraggableRoleData(data: unknown): data is DraggableRoleData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as DraggableRoleData).type === 'role'
+  )
+}
+
+/**
  * System block types
  */
 export type SystemBlockType = 'assertions'
@@ -219,7 +294,34 @@ export interface PlayAttributes {
   gatherFacts?: boolean   // Whether to gather facts (default: true)
   become?: boolean        // Privilege escalation
   connection?: string     // Connection type (ssh, local, etc.)
-  roles?: string[]        // List of roles to apply
+  roles?: (string | RoleDefinition)[]  // List of roles (string or configured)
+}
+
+/**
+ * Helper to get role display name
+ */
+export function getRoleDisplayName(role: string | RoleDefinition): string {
+  if (typeof role === 'string') {
+    return role
+  }
+  return role.name || role.role
+}
+
+/**
+ * Helper to get role FQCN
+ */
+export function getRoleFQCN(role: string | RoleDefinition): string {
+  if (typeof role === 'string') {
+    return role
+  }
+  return role.role
+}
+
+/**
+ * Helper to check if role has configuration
+ */
+export function isConfiguredRole(role: string | RoleDefinition): role is RoleDefinition {
+  return typeof role === 'object' && role !== null
 }
 
 /**

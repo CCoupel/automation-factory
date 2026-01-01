@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "1.18.0"
-__description__ = "Ansible Builder API with dynamic Ansible documentation integration"
+__version__ = "2.0.0"
+__description__ = "Ansible Builder API with Galaxy Roles Integration"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -12,6 +12,38 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "2.0.0": {
+        "title": "Galaxy Roles Integration",
+        "release_date": "2026-01-01",
+        "features": [
+            "Galaxy API v1 for standalone/legacy roles (author.role_name format)",
+            "Galaxy API v3 for collection roles (namespace.collection.role format)",
+            "Private Galaxy support (AAP Automation Hub or Galaxy NG)",
+            "Configuration to disable public Galaxy",
+            "Drag & drop roles to playbook with duplicates allowed",
+            "Role enable/disable toggle with visual indicator",
+            "Role reordering via drag & drop",
+            "Role configuration panel with variables support",
+            "Source toggle between public and private Galaxy"
+        ],
+        "improvements": [
+            "36,000+ standalone roles available from Galaxy v1 API",
+            "Collection roles extracted from Galaxy v3 docs-blob",
+            "Token-based authentication for private Galaxy",
+            "Caching with 30-minute TTL for role lists",
+            "Disabled roles excluded from YAML generation",
+            "Roles with vars properly serialized in playbook"
+        ],
+        "technical": [
+            "galaxy_roles_service.py: Unified v1+v3 API access",
+            "galaxy_roles.py: REST endpoints /api/galaxy-roles/*",
+            "galaxyRolesApiService.ts: Frontend API client with caching",
+            "RolesTreeView.tsx: Complete refactor with tabs and source toggle",
+            "GALAXY_PUBLIC_ENABLED config to disable public Galaxy",
+            "RoleDefinition type with enabled property",
+            "playbookPreviewService.ts: Role filtering and YAML generation"
+        ]
+    },
     "1.18.0": {
         "title": "Rationalisation du Code",
         "release_date": "2025-12-31",

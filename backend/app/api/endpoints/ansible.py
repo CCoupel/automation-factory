@@ -10,6 +10,7 @@ import logging
 from app.services.ansible_versions_service import ansible_versions_service
 from app.services.ansible_collections_service import ansible_collections_service
 from app.services.cache_scheduler_service import cache_scheduler
+# Note: Roles endpoints moved to /api/galaxy-roles/* (galaxy_roles.py)
 from app.services.sse_manager import sse_manager
 
 logger = logging.getLogger(__name__)
@@ -354,3 +355,8 @@ async def cache_notifications():
             "Access-Control-Allow-Origin": "*"
         }
     )
+
+
+# ========== Roles Endpoints ==========
+# Note: Roles endpoints have been moved to /api/galaxy-roles/* in galaxy_roles.py
+# This provides better separation and supports both Galaxy v1 (standalone) and v3 (collection) roles

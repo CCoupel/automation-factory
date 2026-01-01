@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { getApiBaseUrl } from '../utils/apiConfig'
-import { PlaybookContent, ModuleBlock, Link } from './playbookService'
+import { PlaybookContent, ModuleBlock, Link, RoleDefinition } from './playbookService'
 
 /**
  * YAML preview response from backend
@@ -62,7 +62,7 @@ interface AnsiblePlaybook {
   gather_facts?: boolean
   vars?: Record<string, any>
   vars_files?: string[]
-  roles?: string[]
+  roles?: RoleDefinition[]  // Can be strings or objects with role + vars
   pre_tasks?: AnsibleTask[]
   tasks?: AnsibleTask[]
   post_tasks?: AnsibleTask[]
@@ -316,13 +316,43 @@ function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlaybook[] {
 
   // Handle each play
   for (const play of content.plays || []) {
+    // Use play.attributes if available (contains updated values), fallback to direct properties
+    const attrs = play.attributes || {}
+
     const ansiblePlay: AnsiblePlaybook = {
       name: play.name || 'Untitled Play',
-      hosts: play.hosts || 'all',
-      become: play.become,
-      gather_facts: play.gatherFacts,
-      remote_user: play.remoteUser,
-      connection: play.connection
+      hosts: attrs.hosts || play.hosts || 'all',
+      become: attrs.become ?? play.become,
+      gather_facts: attrs.gatherFacts ?? play.gatherFacts,
+      remote_user: attrs.remoteUser || play.remoteUser,
+      connection: attrs.connection || play.connection
+    }
+
+    // Add roles from play.attributes.roles
+    // Filter out disabled roles and clean up enabled property (not valid in Ansible YAML)
+    if (attrs.roles && attrs.roles.length > 0) {
+      const enabledRoles = attrs.roles
+        .filter(role => {
+          // String roles are always enabled
+          if (typeof role === 'string') return true
+          // Object roles: enabled defaults to true if not specified
+          return role.enabled !== false
+        })
+        .map(role => {
+          // String roles stay as strings
+          if (typeof role === 'string') return role
+          // Object roles: remove enabled property, keep only role and vars
+          const { enabled, ...cleanRole } = role
+          // If no vars, simplify to string format
+          if (!cleanRole.vars || Object.keys(cleanRole.vars).length === 0) {
+            return cleanRole.role
+          }
+          return cleanRole
+        })
+
+      if (enabledRoles.length > 0) {
+        ansiblePlay.roles = enabledRoles
+      }
     }
 
     // Add variables

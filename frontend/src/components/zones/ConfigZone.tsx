@@ -78,6 +78,13 @@ interface ConfigZoneProps {
   // Collaboration callbacks for real-time sync
   collaborationCallbacks?: CollaborationConfigCallback
   activePlayId?: string // For play update collaboration
+  // Role configuration
+  selectedRole?: {
+    index: number
+    role: string
+    vars?: Record<string, any>
+  } | null
+  onUpdateRole?: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
 }
 
 /**
@@ -113,7 +120,159 @@ const getTypeIcon = (type: string) => {
   }
 }
 
-const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay, collaborationCallbacks, activePlayId }: ConfigZoneProps) => {
+/**
+ * Role Configuration Section Component
+ */
+interface RoleConfigSectionProps {
+  selectedRole: {
+    index: number
+    role: string
+    vars?: Record<string, any>
+  }
+  onUpdateRole?: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
+}
+
+const RoleConfigSection = ({ selectedRole, onUpdateRole }: RoleConfigSectionProps) => {
+  const [localVars, setLocalVars] = useState<Record<string, any>>(selectedRole.vars || {})
+  const [newVarName, setNewVarName] = useState('')
+  const [newVarValue, setNewVarValue] = useState('')
+
+  // Sync local vars when selectedRole changes
+  useEffect(() => {
+    setLocalVars(selectedRole.vars || {})
+  }, [selectedRole.index, selectedRole.vars])
+
+  const handleAddVariable = () => {
+    if (!newVarName.trim()) return
+
+    let parsedValue: any = newVarValue
+    // Try to parse JSON values
+    try {
+      parsedValue = JSON.parse(newVarValue)
+    } catch {
+      // Keep as string if not valid JSON
+    }
+
+    const updatedVars = { ...localVars, [newVarName.trim()]: parsedValue }
+    setLocalVars(updatedVars)
+    onUpdateRole?.(selectedRole.index, { vars: updatedVars })
+    setNewVarName('')
+    setNewVarValue('')
+  }
+
+  const handleRemoveVariable = (varName: string) => {
+    const updatedVars = { ...localVars }
+    delete updatedVars[varName]
+    setLocalVars(updatedVars)
+    onUpdateRole?.(selectedRole.index, { vars: updatedVars })
+  }
+
+  const handleUpdateVariable = (varName: string, value: string) => {
+    let parsedValue: any = value
+    try {
+      parsedValue = JSON.parse(value)
+    } catch {
+      // Keep as string
+    }
+
+    const updatedVars = { ...localVars, [varName]: parsedValue }
+    setLocalVars(updatedVars)
+    onUpdateRole?.(selectedRole.index, { vars: updatedVars })
+  }
+
+  return (
+    <Box sx={{ p: 2 }}>
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AssignmentIcon sx={{ color: '#4caf50', fontSize: 18 }} />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Role: {selectedRole.role}
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Existing variables */}
+            {Object.entries(localVars).length > 0 ? (
+              Object.entries(localVars).map(([varName, varValue]) => (
+                <Box key={varName} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                  <TextField
+                    label={varName}
+                    fullWidth
+                    size="small"
+                    multiline={typeof varValue === 'object'}
+                    rows={typeof varValue === 'object' ? 3 : 1}
+                    value={typeof varValue === 'object' ? JSON.stringify(varValue, null, 2) : String(varValue)}
+                    onChange={(e) => handleUpdateVariable(varName, e.target.value)}
+                  />
+                  <Tooltip title="Remove variable">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveVariable(varName)}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ))
+            ) : (
+              <Alert severity="info" sx={{ mb: 1 }}>
+                No variables defined for this role. Add variables below.
+              </Alert>
+            )}
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* Add new variable */}
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+              Add Variable
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                label="Variable name"
+                size="small"
+                value={newVarName}
+                onChange={(e) => setNewVarName(e.target.value)}
+                sx={{ flex: 1 }}
+                placeholder="my_variable"
+              />
+              <TextField
+                label="Value"
+                size="small"
+                value={newVarValue}
+                onChange={(e) => setNewVarValue(e.target.value)}
+                sx={{ flex: 2 }}
+                placeholder="value or JSON"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddVariable()
+                  }
+                }}
+              />
+              <Tooltip title="Add variable">
+                <IconButton
+                  color="primary"
+                  onClick={handleAddVariable}
+                  disabled={!newVarName.trim()}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Typography variant="caption" color="text.secondary">
+              Tip: For complex values (lists, dicts), enter valid JSON (e.g., ["item1", "item2"] or {`{"key": "value"}`})
+            </Typography>
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+    </Box>
+  )
+}
+
+const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay, collaborationCallbacks, activePlayId, selectedRole, onUpdateRole }: ConfigZoneProps) => {
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
@@ -687,7 +846,7 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
           )}
         </Box>
         <Typography variant="caption" color="text.secondary">
-          {selectedModule ? 'Configure the selected task' : 'Configure the current PLAY'}
+          {selectedRole ? 'Configure role variables' : selectedModule ? 'Configure the selected task' : 'Configure the current PLAY'}
         </Typography>
 
         {/* Bouton de suppression - pas pour les tâches START ni système */}
@@ -725,7 +884,13 @@ const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, play
 
       {/* Config Form */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {!selectedModule ? (
+        {selectedRole ? (
+          /* Role Configuration */
+          <RoleConfigSection
+            selectedRole={selectedRole}
+            onUpdateRole={onUpdateRole}
+          />
+        ) : !selectedModule ? (
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

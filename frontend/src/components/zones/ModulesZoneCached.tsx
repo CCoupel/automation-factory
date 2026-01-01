@@ -43,6 +43,7 @@ import {
   type GenericElement,
 } from './modules-zone'
 import { ModulesTreeView } from './modules-zone/ModulesTreeView'
+import { RolesTreeView } from './modules-zone/RolesTreeView'
 
 interface ModulesZoneCachedProps {
   onCollapse?: () => void
@@ -574,13 +575,14 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
         >
           <Tab label="Generic" />
           <Tab label="Modules" />
+          <Tab label="Roles" />
         </Tabs>
 
 
         <TextField
           fullWidth
           size="small"
-          placeholder={activeTab === 0 ? "Search generic..." : "Search modules..."}
+          placeholder={activeTab === 0 ? "Search generic..." : activeTab === 1 ? "Search modules..." : "Search roles..."}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
@@ -609,6 +611,11 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
         {activeTab === 1 && (
           // Modules Zone - TreeView
           <ModulesTreeView searchQuery={searchQuery} />
+        )}
+
+        {activeTab === 2 && (
+          // Roles Zone - TreeView
+          <RolesTreeView searchQuery={searchQuery} />
         )}
 
         {activeTab === 99 && (

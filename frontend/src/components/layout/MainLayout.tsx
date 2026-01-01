@@ -40,8 +40,16 @@ interface SelectedModule {
   description?: string
 }
 
+// Selected role for configuration
+interface SelectedRole {
+  index: number
+  role: string
+  vars?: Record<string, any>
+}
+
 const MainLayout = () => {
   const [selectedModule, setSelectedModule] = useState<SelectedModule | null>(null)
+  const [selectedRole, setSelectedRole] = useState<SelectedRole | null>(null)
   const [systemZoneHeight, setSystemZoneHeight] = useState(200)
   const [modulesZoneWidth, setModulesZoneWidth] = useState(280)
   const [configZoneWidth, setConfigZoneWidth] = useState(320)
@@ -70,6 +78,8 @@ const MainLayout = () => {
   }>) => void) | null>(null)
   const getPlayAttributesCallbackRef = useRef<(() => PlayAttributes) | null>(null)
   const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
+  const updateRoleCallbackRef = useRef<((index: number, updates: { role?: string; vars?: Record<string, any> }) => void) | null>(null)
+  const getRolesCallbackRef = useRef<(() => (string | { role: string; vars?: Record<string, any> })[]) | null>(null)
   const savePlaybookCallbackRef = useRef<(() => Promise<void>) | null>(null)
   const loadPlaybookCallbackRef = useRef<((playbookId: string) => Promise<void>) | null>(null)
   const getPlaybookContentCallbackRef = useRef<(() => PlaybookContent) | null>(null)
@@ -357,13 +367,25 @@ const MainLayout = () => {
             </Tooltip>
           )}
           <WorkZone
-            onSelectModule={setSelectedModule}
+            onSelectModule={(module) => {
+              setSelectedModule(module)
+              if (module) setSelectedRole(null) // Deselect role when module is selected
+            }}
             selectedModuleId={selectedModule?.id || null}
             onDeleteModule={(callback) => { deleteModuleCallbackRef.current = callback }}
             onUpdateModule={(callback) => { updateModuleCallbackRef.current = callback }}
             onPlayAttributes={(getCallback, updateCallback) => {
               getPlayAttributesCallbackRef.current = getCallback
               updatePlayAttributesCallbackRef.current = updateCallback
+            }}
+            onSelectRole={(role) => {
+              setSelectedRole(role)
+              if (role) setSelectedModule(null) // Deselect module when role is selected
+            }}
+            selectedRoleIndex={selectedRole?.index ?? null}
+            onRoleCallbacks={(getCallback, updateCallback) => {
+              getRolesCallbackRef.current = getCallback
+              updateRoleCallbackRef.current = updateCallback
             }}
             onSaveStatusChange={(status, name) => {
               setSaveStatus(status)
@@ -431,6 +453,8 @@ const MainLayout = () => {
               onUpdatePlay={(updates) => updatePlayAttributesCallbackRef.current?.(updates)}
               collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate }}
               activePlayId={activePlayId || undefined}
+              selectedRole={selectedRole}
+              onUpdateRole={(index, updates) => updateRoleCallbackRef.current?.(index, updates)}
             />
           </Box>
         )}

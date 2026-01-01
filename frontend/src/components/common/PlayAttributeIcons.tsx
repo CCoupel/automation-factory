@@ -6,6 +6,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment'
 import SecurityIcon from '@mui/icons-material/Security'
 import CableIcon from '@mui/icons-material/Cable'
 import ExtensionIcon from '@mui/icons-material/Extension'
+import { RoleDefinition, getRoleDisplayName } from '../../types/playbook'
 
 /**
  * Props for PlayAttributeIcons component
@@ -20,7 +21,7 @@ interface PlayAttributeIconsProps {
     gatherFacts?: boolean
     become?: boolean
     connection?: string
-    roles?: string[]
+    roles?: (string | RoleDefinition)[]
   }
 
   /**
@@ -84,7 +85,7 @@ const PlayAttributeIcons: React.FC<PlayAttributeIconsProps> = ({
       </Tooltip>
 
       {/* Roles */}
-      <Tooltip title={attributes.roles && attributes.roles.length > 0 ? `Roles: ${attributes.roles.join(', ')}` : 'Roles: none'}>
+      <Tooltip title={attributes.roles && attributes.roles.length > 0 ? `Roles: ${attributes.roles.map(r => getRoleDisplayName(r)).join(', ')}` : 'Roles: none'}>
         <ExtensionIcon sx={{ fontSize, color: attributes.roles && attributes.roles.length > 0 ? '#4caf50' : '#ccc' }} />
       </Tooltip>
     </Box>

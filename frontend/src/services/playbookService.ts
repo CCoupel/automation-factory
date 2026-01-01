@@ -85,6 +85,24 @@ export interface Link {
   type: 'normal' | 'rescue' | 'always' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
 }
 
+/**
+ * Role definition - can be a simple string or object with vars and enabled state
+ * Note: enabled defaults to true if not specified
+ */
+export type RoleDefinition = string | { role: string; vars?: Record<string, any>; enabled?: boolean }
+
+/**
+ * Play attributes (stored in play.attributes)
+ */
+export interface PlayAttributes {
+  hosts?: string
+  remoteUser?: string
+  connection?: string
+  gatherFacts?: boolean
+  become?: boolean
+  roles?: RoleDefinition[]
+}
+
 export interface Play {
   id: string
   name: string
@@ -93,6 +111,7 @@ export interface Play {
   become?: boolean
   remoteUser?: string     // SSH user (remote_user in YAML)
   connection?: string     // Connection type (ssh, local, docker, etc.)
+  attributes?: PlayAttributes  // Extended attributes including roles
 }
 
 export interface Variable {

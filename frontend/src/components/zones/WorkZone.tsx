@@ -22,6 +22,8 @@ import DataObjectIcon from '@mui/icons-material/DataObject'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import LockIcon from '@mui/icons-material/Lock'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
@@ -54,12 +56,26 @@ export interface CollaborationCallbacks {
   sendSectionCollapse?: (data: { key: string; collapsed: boolean }) => void
 }
 
+// Selected role interface
+interface SelectedRole {
+  index: number
+  role: string
+  vars?: Record<string, any>
+}
+
 interface WorkZoneProps {
   onSelectModule: (module: { id: string; name: string; collection: string; taskName: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; isBlock?: boolean; isPlay?: boolean; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date }; isSystem?: boolean; description?: string } | null) => void
   selectedModuleId: string | null
   onDeleteModule?: (deleteHandler: (id: string) => void) => void
   onUpdateModule?: (updateHandler: (id: string, updates: Partial<{ taskName?: string; when?: string; ignoreErrors?: boolean; become?: boolean; loop?: string; delegateTo?: string; tags?: string[]; moduleParameters?: Record<string, any>; moduleSchema?: ModuleSchema; validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date } }>) => void) => void
   onPlayAttributes?: (getHandler: () => PlayAttributes, updateHandler: (updates: Partial<PlayAttributes>) => void) => void
+  // Role selection props
+  onSelectRole?: (role: SelectedRole | null) => void
+  selectedRoleIndex?: number | null
+  onRoleCallbacks?: (
+    getHandler: () => (string | { role: string; vars?: Record<string, any> })[],
+    updateHandler: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
+  ) => void
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', playbookName: string) => void
   onSavePlaybook?: (saveHandler: () => Promise<void>) => void
   onLoadPlaybook?: (loadHandler: (playbookId: string) => Promise<void>) => void
@@ -111,7 +127,7 @@ const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock
 // Session storage key for playbook cache
 const PLAYBOOK_CACHE_KEY = 'ansible-builder-playbook-cache'
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSelectRole, selectedRoleIndex, onRoleCallbacks, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -360,7 +376,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         gatherFacts: play.attributes?.gatherFacts,
         become: play.attributes?.become,
         remoteUser: play.attributes?.remoteUser,
-        connection: play.attributes?.connection
+        connection: play.attributes?.connection,
+        // Include full attributes object for roles support
+        attributes: play.attributes
       })),
       collapsedBlocks: Array.from(collapsedBlocks),
       collapsedBlockSections: Array.from(collapsedBlockSections),
@@ -2413,6 +2431,52 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     }
   }, [getPlayAttributes, updatePlayAttributes, onPlayAttributes])
 
+  // Get current roles
+  const getRoles = useCallback(() => {
+    return plays[activePlayIndex]?.attributes?.roles || []
+  }, [plays, activePlayIndex])
+
+  // Update a role at a specific index
+  const updateRole = useCallback((index: number, updates: { role?: string; vars?: Record<string, any> }) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const currentRoles = [...(updatedPlays[activePlayIndex].attributes?.roles || [])]
+
+      if (index >= 0 && index < currentRoles.length) {
+        const currentRole = currentRoles[index]
+        const currentRoleName = typeof currentRole === 'string' ? currentRole : currentRole.role
+        const currentVars = typeof currentRole === 'string' ? {} : (currentRole.vars || {})
+
+        // Build the new role object
+        const newVars = updates.vars !== undefined ? updates.vars : currentVars
+        const newRoleName = updates.role !== undefined ? updates.role : currentRoleName
+
+        // If no vars, store as string; otherwise as object
+        if (Object.keys(newVars).length === 0) {
+          currentRoles[index] = newRoleName
+        } else {
+          currentRoles[index] = { role: newRoleName, vars: newVars }
+        }
+
+        updatedPlays[activePlayIndex] = {
+          ...updatedPlays[activePlayIndex],
+          attributes: {
+            ...updatedPlays[activePlayIndex].attributes,
+            roles: currentRoles
+          }
+        }
+      }
+      return updatedPlays
+    })
+  }, [activePlayIndex])
+
+  // Expose role callbacks to parent
+  useEffect(() => {
+    if (onRoleCallbacks) {
+      onRoleCallbacks(getRoles, updateRole)
+    }
+  }, [getRoles, updateRole, onRoleCallbacks])
+
   // Notify parent of active play ID changes (for collaboration)
   useEffect(() => {
     if (onActivePlayIdChange && currentPlay?.id) {
@@ -2722,25 +2786,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }, [activePlayIndex, collaborationCallbacks])
 
   // Gestion des roles
-  const [newRole, setNewRole] = useState('')
   const [draggedRoleIndex, setDraggedRoleIndex] = useState<number | null>(null)
-
-  const addRole = () => {
-    if (!newRole.trim()) return
-    setPlays(prevPlays => {
-      const updatedPlays = [...prevPlays]
-      const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
-      updatedPlays[activePlayIndex] = {
-        ...updatedPlays[activePlayIndex],
-        attributes: {
-          ...updatedPlays[activePlayIndex].attributes,
-          roles: [...currentRoles, newRole.trim()]
-        }
-      }
-      return updatedPlays
-    })
-    setNewRole('')
-  }
 
   const deleteRole = (index: number) => {
     setPlays(prevPlays => {
@@ -2751,6 +2797,36 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         attributes: {
           ...updatedPlays[activePlayIndex].attributes,
           roles: currentRoles.filter((_, i) => i !== index)
+        }
+      }
+      return updatedPlays
+    })
+  }
+
+  const toggleRoleEnabled = (index: number) => {
+    setPlays(prevPlays => {
+      const updatedPlays = [...prevPlays]
+      const currentRoles = [...(updatedPlays[activePlayIndex].attributes?.roles || [])]
+
+      if (index >= 0 && index < currentRoles.length) {
+        const currentRole = currentRoles[index]
+        const roleName = typeof currentRole === 'string' ? currentRole : currentRole.role
+        const roleVars = typeof currentRole === 'string' ? undefined : currentRole.vars
+        const currentEnabled = typeof currentRole === 'string' ? true : ((currentRole as { enabled?: boolean }).enabled !== false)
+
+        // Toggle enabled state - always use object format when toggling
+        currentRoles[index] = {
+          role: roleName,
+          ...(roleVars && Object.keys(roleVars).length > 0 && { vars: roleVars }),
+          enabled: !currentEnabled
+        } as { role: string; vars?: Record<string, any>; enabled?: boolean }
+
+        updatedPlays[activePlayIndex] = {
+          ...updatedPlays[activePlayIndex],
+          attributes: {
+            ...updatedPlays[activePlayIndex].attributes,
+            roles: currentRoles
+          }
         }
       }
       return updatedPlays
@@ -2795,6 +2871,60 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
   const handleRoleDragEnd = () => {
     setDraggedRoleIndex(null)
+  }
+
+  // Handle role drop from RolesTreeView
+  const handleRoleDropFromPalette = (e: React.DragEvent) => {
+    e.preventDefault()
+    const roleData = e.dataTransfer.getData('role')
+    if (!roleData) return
+
+    try {
+      const parsed = JSON.parse(roleData)
+      let roleName = ''
+
+      // Handle standalone roles (Galaxy v1 API)
+      if (parsed.type === 'standalone-role' && parsed.fqrn) {
+        // Standalone role: author.role_name (e.g., geerlingguy.docker)
+        roleName = parsed.fqrn
+      }
+      // Handle collection roles (Galaxy v3 API)
+      else if (parsed.type === 'collection-role' && parsed.fqcn) {
+        // Collection role: namespace.collection.role_name
+        roleName = parsed.fqcn
+      }
+      // Legacy format support
+      else if (parsed.type === 'role' && parsed.collection && parsed.role) {
+        roleName = `${parsed.collection}.${parsed.role}`
+      }
+
+      if (roleName) {
+        setPlays(prevPlays => {
+          const updatedPlays = [...prevPlays]
+          const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
+          // Allow duplicates - same role can be added multiple times
+          updatedPlays[activePlayIndex] = {
+            ...updatedPlays[activePlayIndex],
+            attributes: {
+              ...updatedPlays[activePlayIndex].attributes,
+              roles: [...currentRoles, roleName]
+            }
+          }
+          return updatedPlays
+        })
+      }
+    } catch (error) {
+      console.error('Failed to parse role data:', error)
+    }
+  }
+
+  // Handle drag over for role drop zone
+  const handleRoleDropZoneDragOver = (e: React.DragEvent) => {
+    const roleData = e.dataTransfer.types.includes('role')
+    if (roleData) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
   }
 
   // Mettre à jour le nom du PLAY et synchroniser avec la tâche PLAY
@@ -3230,53 +3360,110 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
 
         {/* Tab Content: Roles */}
         {activeSectionTab === 'roles' && (
-          <Box sx={{ flex: 1, px: 3, py: 2, bgcolor: '#4caf5008', overflow: 'auto' }}>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
-              {(currentPlay.attributes?.roles || []).map((role, index) => (
-                <Chip
-                  key={`${role}-${index}`}
-                  label={role}
-                  size="small"
-                  onDelete={() => deleteRole(index)}
-                  color="success"
-                  variant="outlined"
-                  draggable
-                  onDragStart={(e) => handleRoleDragStart(index, e)}
-                  onDragOver={(e) => handleRoleDragOver(index, e)}
-                  onDrop={(e) => handleRoleDrop(index, e)}
-                  onDragEnd={handleRoleDragEnd}
-                  sx={{
-                    cursor: 'move',
-                    opacity: draggedRoleIndex === index ? 0.5 : 1,
-                    transition: 'opacity 0.2s',
-                    '&:hover': { boxShadow: 2 },
-                  }}
-                />
-              ))}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                size="small"
-                placeholder="Role name"
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    addRole()
-                  }
-                }}
-                sx={{ flex: 1, maxWidth: 300 }}
-              />
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                variant="outlined"
-                color="success"
-                onClick={addRole}
-                disabled={!newRole.trim()}
-              >
-                Add Role
-              </Button>
+          <Box
+            sx={{
+              flex: 1,
+              px: 3,
+              py: 2,
+              bgcolor: '#4caf5008',
+              overflow: 'auto',
+              border: '2px dashed transparent',
+              transition: 'border-color 0.2s',
+              '&:hover': { borderColor: 'rgba(76, 175, 80, 0.3)' }
+            }}
+            onDrop={handleRoleDropFromPalette}
+            onDragOver={handleRoleDropZoneDragOver}
+          >
+            {(currentPlay.attributes?.roles || []).length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Drag roles from the Roles panel to add them here
+                </Typography>
+              </Box>
+            )}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+              {(currentPlay.attributes?.roles || []).map((role, index) => {
+                const roleLabel = typeof role === 'string' ? role : role.role
+                const roleVars = typeof role === 'string' ? undefined : role.vars
+                const isEnabled = typeof role === 'string' ? true : ((role as { enabled?: boolean }).enabled !== false)
+                const isSelected = selectedRoleIndex === index
+                return (
+                  <Chip
+                    key={`${roleLabel}-${index}`}
+                    avatar={
+                      <Tooltip title={isEnabled ? 'Désactiver ce rôle' : 'Activer ce rôle'}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleRoleEnabled(index)
+                          }}
+                          sx={{
+                            p: 0,
+                            ml: 0.5,
+                            width: 20,
+                            height: 20,
+                            minWidth: 20,
+                            color: isEnabled ? '#4caf50' : '#bdbdbd',
+                            '&:hover': {
+                              bgcolor: 'transparent',
+                              color: isEnabled ? '#388e3c' : '#9e9e9e'
+                            }
+                          }}
+                        >
+                          {isEnabled ? <VisibilityIcon sx={{ fontSize: 16 }} /> : <VisibilityOffIcon sx={{ fontSize: 16 }} />}
+                        </IconButton>
+                      </Tooltip>
+                    }
+                    label={roleLabel}
+                    size="small"
+                    onClick={() => {
+                      if (onSelectRole) {
+                        onSelectRole(isSelected ? null : { index, role: roleLabel, vars: roleVars })
+                      }
+                    }}
+                    onDelete={() => {
+                      deleteRole(index)
+                      // Deselect if this role was selected
+                      if (isSelected && onSelectRole) {
+                        onSelectRole(null)
+                      }
+                    }}
+                    color={isSelected ? 'primary' : (isEnabled ? 'success' : 'default')}
+                    variant={isSelected ? 'filled' : 'outlined'}
+                    draggable
+                    onDragStart={(e) => handleRoleDragStart(index, e)}
+                    onDragOver={(e) => handleRoleDragOver(index, e)}
+                    onDrop={(e) => handleRoleDrop(index, e)}
+                    onDragEnd={handleRoleDragEnd}
+                    sx={{
+                      cursor: 'pointer',
+                      opacity: draggedRoleIndex === index ? 0.5 : (isEnabled ? 1 : 0.6),
+                      transition: 'all 0.2s',
+                      '&:hover': { boxShadow: 2 },
+                      maxWidth: 300,
+                      '& .MuiChip-label': {
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        textDecoration: isEnabled ? 'none' : 'line-through',
+                        color: isEnabled ? 'inherit' : '#9e9e9e'
+                      },
+                      '& .MuiChip-avatar': {
+                        ml: 0,
+                        mr: -0.5
+                      },
+                      ...(isSelected && {
+                        boxShadow: 3,
+                        transform: 'scale(1.05)'
+                      }),
+                      ...(!isEnabled && {
+                        borderColor: '#bdbdbd',
+                        bgcolor: 'rgba(0,0,0,0.04)'
+                      })
+                    }}
+                  />
+                )
+              })}
             </Box>
           </Box>
         )}

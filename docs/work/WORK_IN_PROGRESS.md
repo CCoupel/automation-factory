@@ -4,551 +4,91 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2025-12-30**
+## 🚀 **Status Actuel - 2026-01-01**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `1.17.0` (ghcr.io/ccoupel/ansible-builder-backend:1.17.0) ✅
-- **Frontend :** `1.17.0` (ghcr.io/ccoupel/ansible-builder-frontend:1.17.0) ✅
+- **Backend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-backend:2.0.0) ✅
+- **Frontend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-frontend:2.0.0) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v1.17.0`
+- **Tag Git :** `v2.0.0`
 
 **Staging (Docker) :**
-- **Backend :** `1.17.0-rc.18`
-- **Frontend :** `1.17.0-rc.18`
+- **Backend :** `2.0.0-rc.1`
+- **Frontend :** `2.0.0-rc.3-vite`
 - **URL :** http://192.168.1.217
 
 ---
 
-## 🔄 **Version 1.17.0 - En Phase 2 (Staging)**
+## ✅ **Version 2.0.0 - Déployée en Production (2026-01-01)**
 
-### Bloc Assertions Système
+### Galaxy Roles Integration
 
-**Objectif :** Générer automatiquement un bloc d'assertions dans pre_tasks pour valider les variables du playbook. Ce bloc est visible dans l'UI mais verrouillé (non modifiable par l'utilisateur).
-
-#### Architecture SystemBlock (décision v1.17.0-rc.13)
-
-**Type dérivé avec contraintes :**
-```typescript
-interface SystemBlock extends ModuleBlock {
-  isSystem: true
-  isBlock: true
-  systemType: 'assertions'
-  sourceVariable: string
-}
-```
-
-**Contraintes de comportement :**
-| Action | Bloc | Tâches Internes |
-|--------|------|-----------------|
-| Repositionner | ✅ | ✅ |
-| Drop externe | ❌ | ❌ |
-| Drag externe | ❌ | ❌ |
-| Liens internes | ✅ | ✅ |
-| Édition | ❌ | ❌ |
+**Objectif :** Permettre l'intégration des rôles Ansible Galaxy (standalone v1 et collections v3) dans les playbooks avec support Galaxy privée.
 
 #### Fonctionnalités implémentées
 
-**Backend (v1.17.0_1) :**
-- [x] Service `assertions_service.py` pour génération YAML
-- [x] Génération default values (set_fact pour variables non-required)
-- [x] Génération required assertions
-- [x] Génération type assertions (int, bool, list, dict)
-- [x] Génération pattern assertions (regexp, filtres)
-- [x] Intégration dans `playbook_yaml_service.py` (premier bloc pre_tasks)
-
-**Frontend - Types (rc.13) :**
-- [x] Type `SystemBlock` et `SystemTask` dans playbook.ts
-- [x] Type guards : `isSystemBlock()`, `isSystemBlockContainer()`, `isSystemTask()`
-- [x] Propriétés : `systemType`, `sourceVariable`
-
-**Frontend - Générateur (rc.18) :**
-- [x] `assertionsGenerator.ts` : UN BLOC PAR VARIABLE
-- [x] Génération automatique des liens entre blocs
-- [x] Génération automatique des liens internes (START → tâches)
-- [x] Préservation des positions existantes
-
-**Frontend - Rendu UI (rc.13-rc.14) :**
-- [x] `PlaySectionContent.tsx` : Style système (gris, cadenas)
-- [x] `BlockSectionContent.tsx` : Style tâches système
-- [x] Sections Rescue/Always masquées pour blocs système
-- [x] Tooltip "Bloc système - Généré automatiquement"
-
-**Frontend - Comportement Drag/Drop (rc.14-rc.18) :**
-- [x] Bloc système repositionnable dans pre_tasks
-- [x] Tâches internes repositionnables dans le bloc
-- [x] Drop externe bloqué (pas d'ajout d'éléments)
-- [x] Drag externe bloqué (pas de sortie d'éléments)
-- [x] Création de liens internes autorisée
-- [x] Liens depuis START autorisés
-
-**Frontend - WorkZone (rc.13-rc.18) :**
-- [x] useEffect régénération blocs sur changement variables
-- [x] Nettoyage des blocs système quand pas de variables
-- [x] Synchronisation des liens système
-- [x] Info `systemParentId` dans drag data pour validation
-
-#### Tests Phase 2 - Staging (2025-12-30)
-- [x] Build Docker backend/frontend : rc.18
-- [x] Déploiement containers OK
-- [x] Health checks passés (Nginx 200, Backend 1.17.0-rc.18, Frontend 200)
-- [x] API Ansible versions : 9 versions disponibles
-- [x] Blocs système visibles avec icône cadenas
-- [x] Repositionnement blocs OK
-- [x] Repositionnement tâches internes OK
-- [x] Liens auto-générés visibles
-- [x] Drop externe bloqué
-- [x] Drag externe bloqué
-- [x] Commit pushé : 697b303
-
-#### Phase 2 : COMPLÈTE ✅
-
-#### Prochaines étapes
-- [ ] Validation utilisateur finale
-- [ ] Phase 3 : Production (tag + push ghcr.io + deploy k8s)
-
----
-
-## ✅ **Version 1.16.0 - Déployée en Production (2025-12-29)**
-
-### Types de Variables Personnalisables + Stockage DB Favoris
-
-**Objectifs :**
-1. Permettre aux administrateurs de configurer de nouveaux types de validation pour les variables
-2. Corriger le stockage des favoris (fichier `/tmp` → base de données)
-
-#### Fonctionnalités implémentées
-
-**Backend - Types Variables (rc.1) :**
-- [x] Modèle `CustomVariableType` avec pattern regexp OU filtre
-- [x] Service de validation avec SUPPORTED_FILTERS (from_json, from_yaml)
-- [x] Endpoints publics : GET /variable-types, POST /validate
-- [x] Endpoints admin : GET/POST/PUT/DELETE /variable-types/admin
-- [x] Types builtin immutables (string, int, bool, list, dict)
-
-**Backend - Stockage DB Favoris (rc.2) :**
-- [x] Migration user_favorites.py : fichier `/tmp` → base de données
-- [x] Nouveaux endpoints : GET/POST/DELETE /user/favorites/collections
-- [x] Nouveaux endpoints : GET/POST/DELETE /user/favorites/modules
-- [x] Stockage dans `user_preferences.galaxy_settings`
-- [x] Fix SQLAlchemy JSON change detection (dict.copy())
-
-**Frontend - Types Variables (rc.1) :**
-- [x] Service `variableTypesService.ts` avec cache 5 minutes
-- [x] AddVariableDialog avec types dynamiques depuis API
-- [x] ConfigurationDialog avec onglet "Types Variables" pour admins
-- [x] Interface CRUD pour types personnalisés
-
-**Frontend - Favoris DB (rc.2) :**
-- [x] Migration ModulesTreeView : localStorage → API
-- [x] Service userPreferencesService : ajout collection/module favorites
-- [x] Suppression helper functions localStorage
-
-#### Tests Phase 2 - Staging (2025-12-29)
-
-**E2E Tests (22 tests) :**
-| Test | Description | Status |
-|------|-------------|--------|
-| 1 | Health check nginx | ✅ HTTP 200 |
-| 2 | Backend version | ✅ 1.16.0-rc.1 |
-| 3 | Login utilisateur | ✅ Token JWT |
-| 4 | GET /variable-types | ✅ 5 builtin + custom |
-| 5 | Validate string type | ✅ Valid |
-| 6 | Validate int - valid | ✅ parsed_value: 42 |
-| 7 | Validate int - invalid | ✅ is_valid: false |
-| 8 | Admin guard (non-admin) | ✅ 403 Forbidden |
-| 9 | Admin GET /admin | ✅ Liste types |
-| 10 | Admin CREATE json type | ✅ is_filter: true |
-| 11 | Validate JSON - valid | ✅ parsed object |
-| 12 | Validate JSON - invalid | ✅ Error message |
-| 13 | Admin CREATE yaml type | ✅ is_filter: true |
-| 14 | Validate YAML - valid | ✅ parsed object |
-| 15 | Validate YAML - invalid | ✅ Error message |
-| 16 | Admin CREATE IP type | ✅ regexp pattern |
-| 17 | Validate IP - valid | ✅ Match |
-| 18 | Validate IP - invalid | ✅ Invalid format |
-| 19 | Admin UPDATE type | ✅ Updated |
-| 20 | Admin DELETE type | ✅ Deleted |
-| 21 | Frontend accessible | ✅ HTTP 200 |
-| 22 | Frontend content | ✅ HTML served |
-
-**Tests Performance (10 requêtes chacun) :**
-| Endpoint | Min | Max | Moyenne |
-|----------|-----|-----|---------|
-| /api/version | 4ms | 27ms | ~9ms |
-| /api/variable-types | 9ms | 21ms | ~13ms |
-| /api/variable-types/validate | 7ms | 27ms | ~15ms |
-| Frontend (/) | 4ms | 28ms | ~15ms |
-
-#### Phase 3 - Production (2025-12-29)
-- [x] Tests E2E passés
-- [x] Tests performance passés
-- [x] Documentation mise à jour
-- [x] Validation utilisateur
-- [x] Tag images : 1.16.0-rc.2 → 1.16.0
-- [x] Push ghcr.io/ccoupel/ansible-builder-backend:1.16.0
-- [x] Push ghcr.io/ccoupel/ansible-builder-frontend:1.16.0
-- [x] Déploiement Kubernetes : kubectl set image
-- [x] Rollout status : pods Running
-- [x] Smoke tests : API v1.16.0, frontend OK
-- [x] Tag git : v1.16.0
-
----
-
-## ✅ **Version 1.15.0 - Déployée en Production (2025-12-29)**
-
-### Gestion des Variables Améliorée
-
-**Objectif :** Améliorer l'expérience utilisateur pour la gestion des variables avec édition inline, détection de types et interface moderne.
-
-#### Phase 1 (v1.15.0_1) - Complète
-**Fonctionnalités implémentées :**
-- [x] Edition inline des variables (double-click)
-- [x] Support 5 types de variables (string, int, bool, list, dict)
-- [x] Icônes par type (TextFieldsIcon, NumbersIcon, ToggleOnIcon, DataArrayIcon, DataObjectIcon)
-- [x] Couleurs par type (primary, secondary, success, warning, info)
-- [x] Validation des noms de variables (format identifier Ansible)
-- [x] Interface VarsZone connectée au state playbook
-- [x] Support collaboration WebSocket pour variables
-
-**Tests Phase 1 :**
-- [x] Build TypeScript sans erreurs
-- [x] Type detection: 14/14 tests
-- [x] Variable name validation: 11/11 tests
-
-**Rapport de tests :** [TEST_REPORT_v1.15.0_1.md](TEST_REPORT_v1.15.0_1.md)
-
-#### Phase 2 (rc.1 → rc.3) - En cours
-
-**rc.1 - Déploiement initial staging**
-- [x] Build Docker backend/frontend
-- [x] Déploiement sur 192.168.1.217
-- [x] Tests E2E: 10/10 passés
-
-**rc.2 - Amélioration interface variables**
-- [x] Dialogue AddVariableDialog enrichi :
-  - Nom de variable (obligatoire)
-  - Type de variable (obligatoire)
-  - Variable requise ? (checkbox)
-  - Valeur par défaut (si non requise)
-  - Expression régulière de validation
-- [x] Extension type PlayVariable avec nouveaux champs
-- [x] Homogénéité visuelle VarsZone ↔ variables Play (icônes, couleurs, chips)
-- [x] Correction conflit `type` → `action` dans CollaborationCallbacks
-
-**rc.3 - Simplification architecture**
-- [x] Suppression VarsZone globale (variables gérées par Play)
-- [x] Suppression fichier VarsZone.tsx
-- [x] Nettoyage MainLayout.tsx (imports, refs, callbacks)
-- [x] Nettoyage WorkZone.tsx (onVariables, callbacks externes)
-- [x] Correction nginx : proxy_pass port 80 → 5173 pour Vite
-
-**rc.4 - Édition des variables**
-- [x] Clic sur chip de variable ouvre le dialogue en mode édition
-- [x] Nouveau state `editingVariableIndex` dans WorkZone
-- [x] Fonction `editVariable(index)` pour ouvrir le dialogue
-- [x] `handleAddVariableFromDialog` gère add ET update
-- [x] Cursor pointer sur les chips de variables
-
-**Tests Phase 2 :**
-- [x] Nginx health: HTTP 200 OK
-- [x] Backend API: 1.15.0-rc.4 (STAGING)
-- [x] Frontend: HTTP 200 OK
-- [x] Commit: cc476d6
-
-**Phase 3 - Production :** ✅ Déployée le 2025-12-29
-- Smoke tests: HTTP 200 OK
-- Version API: 1.15.0 (is_rc: false)
-- Temps de réponse: 21ms
-
----
-
-## ✅ **Version 1.14.3 - Deployee en Production (2025-12-25)**
-
-### Vue Arborescente Elements (TreeView)
-
-**Objectif :** Ameliorer l'experience utilisateur en presentant les namespaces/collections/modules sous forme d'arbre expansible au lieu de niveaux de navigation separes.
-
-**Composant cree :**
-- `frontend/src/components/zones/modules-zone/ModulesTreeView.tsx` (~450 lignes)
-
-**Fonctionnalites implementees :**
-- [x] TreeView avec MUI X Tree View (`@mui/x-tree-view`)
-- [x] Chargement paresseux (lazy loading) des collections et modules
-- [x] Recherche/filtre des namespaces avec transitivite
-- [x] Drag & drop des modules vers le playbook
-- [x] Icones differenciees par niveau (Folder/Widgets/Extension)
-- [x] Indicateurs de chargement par noeud
-- [x] Onglets FAVORITES et ALL
-- [x] Preloading parallele (batch 10)
-- [x] 3 barres de progression distinctes
-- [x] Style gris pour elements transitifs
-
-**Intégration :**
-- Nouvel onglet "Tree" ajoute dans ModulesZoneCached
-- Coexiste avec les vues "Generic" et "Modules" existantes
-
-**Phase 3 - Production : COMPLETE**
-
-#### Tests valides
-- [x] Build TypeScript sans erreurs
-- [x] Expansion des namespaces charge les collections
-- [x] Expansion des collections charge les modules
-- [x] Drag & drop fonctionne depuis TreeView
-- [x] Recherche filtre correctement avec transitivite
-- [x] Performance avec 54 namespaces (preloading parallele)
-- [x] Smoke tests production passes
-
----
-
-## ✅ **Version 1.14.2 - Déployée en Production (2025-12-25)**
-
-### Rationalisation du Code
-
-**Objectif :** Nettoyer le code obsolète et améliorer la maintenabilité.
-
-**Changements (~950 lignes supprimées) :**
-
-| Commit | Description | Impact |
-|--------|-------------|--------|
-| `46647df` | Suppression code obsolète | -570 lignes |
-| `29c5175` | Extraction composants ModulesZoneCached | -287 lignes |
-| `8743b68` | Consolidation types ModuleParameter/ModuleSchema | -30 lignes |
-| `62c47ca` | Suppression axiosConfig.ts inutilisé | -59 lignes |
-
-**Détails :**
-- Suppression de `ansibleService.ts` (dupliqué avec `ansibleApiService.ts`)
-- Suppression des endpoints `/api/collections/*` (remplacés par `/api/ansible/*`)
-- Migration du champ `config` déprécié vers `register` dans ModuleBlock
-- Extraction de 4 composants réutilisables dans `modules-zone/`
-- Consolidation des types dans `types/playbook.ts`
-- Suppression de `axiosConfig.ts` non utilisé
-
----
-
-## ✅ **Version 1.14.1 - Déployée en Production (2025-12-25)**
-
-### Build Once Deploy Everywhere
-
-**Objectif :** Réduire les risques de déploiement en utilisant exactement la même image Docker en staging et en production.
-
-**Changements :**
-- Frontend staging utilise maintenant `Dockerfile` (nginx) au lieu de `Dockerfile.dev` (Vite)
-- Noms de services alignés sur Kubernetes : `ansible-builder-backend`, `ansible-builder-frontend`
-- Plus de suffix `-vite` sur les images frontend
-- Configuration nginx staging route vers port 80 au lieu de 5173
-
-**Avantages :**
-- Image testée en staging = image déployée en production
-- Pas de différence de comportement entre environnements
-- Promotion simple : retag de `rc.n` vers version finale
-
----
-
-## ✅ **Version 1.14.0 - Déployée en Production (2025-12-25)**
-
-### Synchronisation Temps Réel des Playbooks
-
-**Objectif :** Permettre aux collaborateurs de voir les modifications des autres utilisateurs en temps réel.
-
-**Stratégie technique :**
-- Granularité fine des updates (par champ/élément)
-- Debounce 300ms pour optimisation réseau
-- Versioning pour gestion des conflits (optimistic locking)
-- Last-write-wins avec notification visuelle
-
-**Types d'updates :**
-| Type | Déclencheur | Data |
-|------|-------------|------|
-| `module_add` | Drag & drop module | `{module, position}` |
-| `module_move` | Déplacement module | `{moduleId, x, y}` |
-| `module_delete` | Suppression module | `{moduleId}` |
-| `module_config` | Config dans ConfigZone | `{moduleId, field, value}` |
-| `module_resize` | Redimensionnement module | `{moduleId, width, height}` |
-| `link_add` | Connexion modules | `{link}` |
-| `link_delete` | Suppression lien | `{linkId}` |
-| `play_update` | Modification play | `{playId, field, value}` |
-| `variable_update` | Modification variable | `{variable}` |
-| `block_collapse` | Collapse block | `{blockId, collapsed}` |
-| `section_collapse` | Collapse section | `{key, collapsed}` |
-
-### Fonctionnalités implémentées (rc.1 → rc.15)
-
-#### Synchronisation temps réel (rc.1 → rc.9)
-- [x] Hook `useCollaborationSync` pour debounce et envoi typé
-- [x] Intégration `sendUpdate` dans WorkZone (modules, liens)
-- [x] Intégration `sendUpdate` dans ConfigZone (paramètres)
-- [x] Application des updates reçus via `applyCollaborationUpdate`
-- [x] Support play_update pour attributs PLAY
-- [x] Support module_config pour tous les champs
-- [x] Support déplacement tâches dans blocks
-
-#### Highlight collaboratif (rc.10 → rc.11)
-- [x] Highlight éléments modifiés par autres utilisateurs
-- [x] Couleurs uniques par utilisateur (basé sur hash username)
-- [x] Highlight sur tous types d'éléments (modules, links, plays, variables)
-- [x] Animation CSS avec transition fluide
-- [x] Durée configurable (par défaut 1.5s)
-
-#### Préférences utilisateur (rc.12 → rc.15)
-- [x] Contexte `UserPreferencesContext` avec stockage localStorage
-- [x] Durée de highlight configurable (0.5s → 5s)
-- [x] Interface configuration en modal (au lieu d'une page séparée)
-- [x] Reset des préférences aux valeurs par défaut
-- [x] Cache sessionStorage pour restauration instantanée après navigation
-
-#### Configuration Dialog (rc.15)
-- [x] Conversion ConfigurationPage → ConfigurationDialog (modal)
-- [x] Accessible à tous les utilisateurs (pas seulement admin)
-- [x] 2 onglets pour admins : "Préférences" et "Namespaces"
-- [x] Pas de navigation = pas de rechargement du playbook
-- [x] Redirection route `/admin/configuration` vers `/`
-
-### Phase actuelle : Phase 2 - Intégration Staging
-
-#### Backend (Terminé)
-- [x] Champ `version` existant sur modèle Playbook (optimistic locking)
-- [x] WebSocket endpoint pour broadcaster updates avec version
-- [x] Permissions validées (seuls les éditeurs peuvent envoyer)
-- [x] Fonction `check_playbook_access_async` pour vérifier accès WebSocket
-
-#### Frontend (Terminé)
-- [x] Hook `useCollaborationSync` pour debounce et envoi typé
-- [x] Intégration complète WorkZone et ConfigZone
-- [x] Highlight visuel des modifications collaboratives
-- [x] Préférences utilisateur persistantes
-- [x] Configuration en modal (UX améliorée)
-
-#### Tests Phase 2 - Staging (2025-12-24)
-- [x] Build Docker backend: `ansible-builder-backend:1.14.0-rc.15`
-- [x] Build Docker frontend: `ansible-builder-frontend:1.14.0-rc.15-vite`
+**Backend - Galaxy Roles Service :**
+- [x] `galaxy_roles_service.py` : Accès unifié API v1 + v3
+- [x] API v1 pour rôles standalone (36,000+ rôles, format author.role_name)
+- [x] API v3 pour rôles dans collections (format namespace.collection.role)
+- [x] Support Galaxy privée (AAP Automation Hub / Galaxy NG)
+- [x] Configuration `GALAXY_PUBLIC_ENABLED` pour désactiver Galaxy publique
+- [x] Token-based authentication pour Galaxy privée
+- [x] Cache 30 minutes pour listes de rôles
+
+**Backend - Endpoints :**
+- [x] `GET /api/galaxy-roles/standalone` : Liste rôles standalone
+- [x] `GET /api/galaxy-roles/standalone/{namespace}/{name}` : Détails rôle
+- [x] `GET /api/galaxy-roles/collections/{ns}/{coll}/roles` : Rôles d'une collection
+- [x] `GET /api/galaxy-roles/config` : Configuration Galaxy
+
+**Frontend - RolesTreeView :**
+- [x] Refonte complète avec onglets Standalone/Collections
+- [x] Toggle source (Public/Private) si Galaxy privée configurée
+- [x] Chargement paresseux des auteurs et rôles
+- [x] Recherche dans les rôles
+- [x] Drag & drop vers zone de travail
+
+**Frontend - Gestion des rôles dans playbook :**
+- [x] Drag & drop rôles depuis palette
+- [x] Ajout multiple du même rôle autorisé
+- [x] Réordonnancement par drag & drop
+- [x] Toggle activer/désactiver rôle (icône œil)
+- [x] Style visuel pour rôles désactivés (grisé, barré)
+- [x] Configuration des variables par rôle
+- [x] Rôles désactivés exclus de la génération YAML
+
+**Frontend - Types et Services :**
+- [x] `RoleDefinition` type avec `enabled` property
+- [x] `galaxyRolesApiService.ts` : Client API avec cache
+- [x] `playbookPreviewService.ts` : Génération YAML avec roles
+
+#### Tests Phase 2 - Staging (2026-01-01)
+- [x] Build Docker backend: `ansible-builder-backend:2.0.0-rc.1`
+- [x] Build Docker frontend: `ansible-builder-frontend:2.0.0-rc.3-vite`
 - [x] Déploiement containers OK
 - [x] Health checks passés
-- [x] Version affichée: 1.14.0-rc.15 (STAGING)
-- [x] Validation utilisateur finale
+- [x] 36,726 rôles standalone disponibles
+- [x] Drag & drop rôles fonctionne
+- [x] Toggle enabled/disabled fonctionne
+- [x] Génération YAML avec roles OK
+- [x] Validation utilisateur approuvée
 
-#### Phase 3 - Production (2025-12-25)
-- [x] Tag images pour production (1.14.0-rc.15 → 1.14.0)
-- [x] Push images vers ghcr.io
-- [x] Déploiement Kubernetes via helm upgrade
-- [x] Smoke tests passés (58ms temps de réponse)
-- [x] Version affichée: 1.14.0 (PROD)
-- [x] Tag git v1.14.0 créé
-
-**Déploiement Production terminé avec succès**
-
----
-
-## ✅ **Version 1.13.0 - Déployée en Production (2025-12-22)**
-
-### Collaboration Multi-utilisateur Temps Réel
-
-**Système de rôles (3 niveaux) :**
-- Propriétaire : Gestion complète + droits utilisateurs
-- Éditeur : Modification sans gestion des droits
-- Visualiseur : Lecture seule
-
-**Partage de playbooks :**
-- Partage par username (pas d'email)
-- Interface de gestion des collaborateurs
-- Table `playbook_shares` (playbook_id, user_id, role)
-
-**WebSockets temps réel :**
-- Synchronisation instantanée des modifications
-- ConnectionManager pour gérer les connexions par playbook
-- Messages : join, leave, update, presence
-
-**UI Temps réel :**
-- Avatars des utilisateurs connectés dans AppHeader
-- Highlight des modifications reçues (flash 2s)
-- Indicateur "X utilisateurs connectés"
-
-**Gestion des playbooks partagés :**
-- Séparation playbooks personnels / partagés avec onglets
-- Indicateur de partage sur les playbooks personnels (chip "Partagé (N)")
-- Affichage propriétaire et rôle pour playbooks partagés
-- Sécurisation suppression : transfert propriété ou suppression définitive
-- Option conserver accès éditeur après transfert
-
-**Audit Log :**
-- Table `playbook_audit_log`
-- Traçage : create, update, delete, share, unshare, transfer_ownership
-- Historique consultable par playbook
-
-### Phase actuelle : Phase 2 - Intégration Staging
-
-#### Implémentation Backend (Terminée)
-- [x] Modèles SQLAlchemy : PlaybookShare, PlaybookAuditLog
-- [x] Ajout colonne `version` sur Playbook (optimistic locking)
-- [x] WebSocketManager pour les rooms par playbook
-- [x] Endpoint WebSocket `/ws/playbook/{playbook_id}`
-- [x] Endpoints REST collaboration :
-  - `POST /playbooks/{id}/shares` - Partager avec un utilisateur
-  - `GET /playbooks/{id}/shares` - Liste des partages
-  - `PUT /playbooks/{id}/shares/{share_id}` - Modifier rôle
-  - `DELETE /playbooks/{id}/shares/{share_id}` - Retirer partage
-  - `GET /playbooks/shared-with-me` - Playbooks partagés avec moi
-  - `GET /playbooks/{id}/audit-log` - Journal d'audit
-- [x] Mise à jour endpoints existants pour accès partagés
-
-#### Implémentation Frontend (Terminée)
-- [x] Hook `usePlaybookWebSocket.ts` pour connexions temps réel
-- [x] Service `collaborationService.ts` pour API REST
-- [x] Contexte `CollaborationContext.tsx` pour état global
-- [x] Composant `PresenceIndicator.tsx` - Avatars utilisateurs connectés
-- [x] Composant `ShareDialog.tsx` - Dialog de partage
-- [x] Intégration dans MainLayout et AppHeader
-
-#### Tests Phase 1 (2025-12-22)
-- [x] Backend: 9/9 imports réussis (models, services, schemas, routers)
-- [x] Backend: 61 routes enregistrées dont 8 nouvelles (collaboration)
-- [x] Frontend: Build TypeScript réussi (11637 modules)
-- [x] Frontend: Bundle production généré (782 kB)
-- [x] Corrections: `NodeJS.Timeout` → `ReturnType<typeof setTimeout>`
-
-#### Tests Phase 2 - Staging (2025-12-22)
-- [x] Build Docker backend: `ansible-builder-backend:1.13.0-rc.4`
-- [x] Build Docker frontend: `ansible-builder-frontend:1.13.0-rc.4-vite`
-- [x] Configuration nginx: WebSocket `/ws/` proxy ajouté
-- [x] Déploiement: 3 containers démarrés (backend, frontend, nginx)
-- [x] Health check nginx: HTTP 200 OK
-- [x] Backend version: `1.13.0-rc.4` (STAGING, is_rc=true)
-- [x] Frontend accessible: HTTP 200 OK
-- [x] API shares (non-auth): 403 Forbidden (attendu)
-- [x] API shared-with-me (non-auth): 403 Forbidden (attendu)
-- [x] WebSocket presence: `{"users":[], "count":0}` (attendu)
-- [x] API Ansible versions: 9 versions disponibles
-- [x] Logs backend: OK, pas d'erreurs
-
-#### Tests fonctionnels validés (2025-12-22)
-- [x] Affichage version: rc.X affiché en staging, masqué en prod
-- [x] Suppression playbook non partagé: confirmation simple OK
-- [x] Partage playbook: par username, fonctionne
-- [x] Liste playbooks: onglets "Mes playbooks" / "Partagés avec moi"
-- [x] Indicateur partage: chip "Partagé (N)" avec tooltip des usernames
-- [x] Affichage rôle: badge Éditeur/Lecteur pour playbooks partagés
-- [x] Suppression playbook partagé: dialog avec options transfert/supprimer
-- [x] Transfert propriété: fonctionne avec option conserver accès éditeur
-- [x] Cascade delete: plus d'erreur IntegrityError sur audit_log
-
-#### Prochaines étapes
-- [x] Tests fonctionnels utilisateur validés
-- [x] Validation utilisateur OK
-- [x] Phase 3 : Production déployée
+#### Phase 3 - Production
+- [ ] Tag images pour production
+- [ ] Push ghcr.io
+- [ ] Déploiement Kubernetes
+- [ ] Smoke tests
+- [ ] Tag git v2.0.0
 
 ---
 
-## ✅ **Version 1.12.2 - Déployée en Production (2025-12-22)**
+## 📋 **Prochaines Priorités**
 
-Voir [DONE.md](DONE.md) pour les détails.
-
----
-
-## 📋 **Prochaines Priorites**
-
-- v1.14.3 TreeView deployee en production
-- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complete
+- v2.0.0 Galaxy Roles en cours de déploiement production
+- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
 
 ---
 
@@ -571,4 +111,4 @@ Voir [DONE.md](DONE.md) pour les détails.
 
 ---
 
-*Dernière mise à jour : 2025-12-30 - v1.17.0-rc.18 en staging*
+*Dernière mise à jour : 2026-01-01 - v2.0.0 en cours de déploiement production*
