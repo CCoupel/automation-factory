@@ -76,18 +76,21 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - [x] Génération YAML avec roles OK
 - [x] Validation utilisateur approuvée
 
-#### Phase 3 - Production
-- [ ] Tag images pour production
-- [ ] Push ghcr.io
-- [ ] Déploiement Kubernetes
-- [ ] Smoke tests
-- [ ] Tag git v2.0.0
+#### Phase 3 - Production (2026-01-01) ✅
+- [x] Build images production (backend:2.0.0, frontend:2.0.0)
+- [x] Tag images pour ghcr.io
+- [x] Push ghcr.io (backend + frontend + latest)
+- [x] Mise à jour custom-values.yaml
+- [x] Déploiement Kubernetes via Helm (Revision 86)
+- [x] Smoke tests passés (HTTP 200, 33ms)
+- [x] Version API: 2.0.0, environment: PROD, is_rc: false
+- [x] Tag git v2.0.0 créé et pushé
 
 ---
 
 ## 📋 **Prochaines Priorités**
 
-- v2.0.0 Galaxy Roles en cours de déploiement production
+- v2.0.0 Galaxy Roles déployée en production ✅
 - Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
 
 ---
@@ -111,4 +114,4 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-*Dernière mise à jour : 2026-01-01 - v2.0.0 en cours de déploiement production*
+*Dernière mise à jour : 2026-01-01 - v2.0.0 déployée en production via Helm (Revision 86)*
