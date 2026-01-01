@@ -134,40 +134,43 @@ frontend:
     tag: "X.Y.Z"
 ```
 
-### 3. Déploiement Production
+### 3. Déploiement Production via Helm
 
-#### Option A : Kubectl (Recommandé - évite conflits Helm)
+#### ⚠️ OBLIGATOIRE : Utiliser Helm pour le déploiement
+
+L'application est gérée via Helm chart. **TOUJOURS** utiliser `helm upgrade` pour maintenir la cohérence de la release Helm.
+
 ```bash
-# Mise à jour des images
-KUBECONFIG=kubeconfig.txt kubectl set image \
-  deployment/ansible-builder-backend \
-  backend=ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z \
-  -n ansible-builder
-
-KUBECONFIG=kubeconfig.txt kubectl set image \
-  deployment/ansible-builder-frontend \
-  frontend=ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z \
-  -n ansible-builder
-
-# Attente rollout
-KUBECONFIG=kubeconfig.txt kubectl rollout status \
-  deployment/ansible-builder-backend -n ansible-builder --timeout=120s
-
-KUBECONFIG=kubeconfig.txt kubectl rollout status \
-  deployment/ansible-builder-frontend -n ansible-builder --timeout=120s
-```
-
-#### Option B : Helm (si pas de conflits)
-```bash
+# Déploiement production via Helm (OBLIGATOIRE)
 KUBECONFIG=kubeconfig.txt helm upgrade ansible-builder ./helm/ansible-builder \
   --namespace ansible-builder \
   --values custom-values.yaml \
   --timeout 300s
 ```
 
+**Résultat attendu :**
+```
+Release "ansible-builder" has been upgraded. Happy Helming!
+NAME: ansible-builder
+NAMESPACE: ansible-builder
+STATUS: deployed
+REVISION: XX
+```
+
 #### Vérification Pods
 ```bash
+# Vérifier que les pods sont Running
 KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
+
+# Vérifier la release Helm
+KUBECONFIG=kubeconfig.txt helm list -n ansible-builder
+```
+
+#### ❌ NE PAS UTILISER kubectl set image
+```bash
+# ⚠️ INTERDIT - Casse la cohérence Helm
+# kubectl set image deployment/ansible-builder-backend ...
+# kubectl set image deployment/ansible-builder-frontend ...
 ```
 
 ### 4. Smoke Tests Production
@@ -264,9 +267,9 @@ git push --tags
 - [ ] **Tag latest** mis à jour
 
 ### Déploiement
-- [ ] **custom-values.yaml** mis à jour
-- [ ] **kubectl set image** ou **helm upgrade** réussi
-- [ ] **Rollout** terminé sans erreur
+- [ ] **custom-values.yaml** mis à jour avec nouveaux tags
+- [ ] **helm upgrade** réussi (OBLIGATOIRE - pas kubectl set image)
+- [ ] **Release Helm** nouvelle revision créée
 - [ ] **Pods** Running
 
 ### Validation
@@ -284,18 +287,30 @@ git push --tags
 
 ## 🚨 **Rollback**
 
-### Procédure Rapide
+### Procédure Rapide via Helm (Recommandé)
 ```bash
-# Rollback vers version précédente
+# Voir l'historique des releases
+KUBECONFIG=kubeconfig.txt helm history ansible-builder -n ansible-builder
+
+# Rollback vers la revision précédente
+KUBECONFIG=kubeconfig.txt helm rollback ansible-builder -n ansible-builder
+
+# Ou rollback vers une revision spécifique
+KUBECONFIG=kubeconfig.txt helm rollback ansible-builder <REVISION> -n ansible-builder
+
+# Vérification
+KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
+curl -s https://coupel.net/ansible-builder/api/version
+```
+
+### Alternative : Rollback manuel (si Helm échoue)
+```bash
+# Uniquement si helm rollback ne fonctionne pas
 KUBECONFIG=kubeconfig.txt kubectl rollout undo \
   deployment/ansible-builder-backend -n ansible-builder
 
 KUBECONFIG=kubeconfig.txt kubectl rollout undo \
   deployment/ansible-builder-frontend -n ansible-builder
-
-# Vérification
-KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
-curl -s https://coupel.net/ansible-builder/api/version
 ```
 
 ---
@@ -316,7 +331,7 @@ curl -s https://coupel.net/ansible-builder/api/version
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-25*
+*Document maintenu à jour. Dernière mise à jour : 2026-01-01*
 
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)
