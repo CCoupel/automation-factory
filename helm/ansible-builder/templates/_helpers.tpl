@@ -93,10 +93,16 @@ Create the name of the service account to use
 
 {{/*
 PostgreSQL host
+For CloudNativePG, the read-write service is named {cluster}-rw
+For standard StatefulSet, the service is named {fullname}-postgresql
 */}}
 {{- define "ansible-builder.postgresql.host" -}}
 {{- if .Values.postgresql.enabled }}
+{{- if index .Values "cloudnative-pg" "enabled" }}
+{{- printf "%s-postgresql-rw" (include "ansible-builder.fullname" .) }}
+{{- else }}
 {{- printf "%s-postgresql" (include "ansible-builder.fullname" .) }}
+{{- end }}
 {{- else }}
 {{- .Values.postgresql.external.host }}
 {{- end }}

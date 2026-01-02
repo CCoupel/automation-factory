@@ -4,15 +4,17 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-01-01**
+## 🚀 **Status Actuel - 2026-01-02**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
 - **Backend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-backend:2.0.0) ✅
 - **Frontend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-frontend:2.0.0) ✅
+- **Database :** PostgreSQL 16 (StatefulSet) ✅
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v2.0.0`
+- **Helm Revision :** 93
 
 **Staging (Docker) :**
 - **Backend :** `2.0.0-rc.1`
@@ -88,9 +90,41 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
+## ✅ **Migration PostgreSQL - 2026-01-02**
+
+### Objectif
+Remplacer SQLite par PostgreSQL pour une meilleure scalabilité et fiabilité en production.
+
+### Implémentation
+- [x] Création template Helm `postgresql-statefulset.yaml` avec initContainer
+- [x] Support CloudNativePG (désactivé pour MooseFS) et StatefulSet standard
+- [x] Mise à jour helpers pour switch entre CNPG et StatefulSet
+- [x] Configuration custom-values.yaml avec credentials sécurisés
+- [x] InitContainer pour fixer permissions sur volumes MooseFS
+- [x] Correction UID postgres (70 pour postgres:16-alpine)
+- [x] Déploiement via Helm (Revision 93)
+- [x] Tests inscription/login validés
+
+### Configuration Production
+```yaml
+postgresql:
+  enabled: true
+  auth:
+    username: ansible
+    database: ansible_builder
+  storage:
+    size: 5Gi
+backend:
+  env:
+    DATABASE_TYPE: "postgresql"
+```
+
+---
+
 ## 📋 **Prochaines Priorités**
 
 - v2.0.0 Galaxy Roles déployée en production ✅
+- PostgreSQL en production ✅
 - Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
 
 ---
@@ -114,4 +148,4 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-*Dernière mise à jour : 2026-01-01 - v2.0.0 déployée en production via Helm (Revision 86)*
+*Dernière mise à jour : 2026-01-02 - Migration PostgreSQL en production via Helm (Revision 93)*

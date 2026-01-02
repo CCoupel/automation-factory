@@ -48,10 +48,10 @@ backend:
     # Database configuration
     DATABASE_TYPE: "postgresql"
 
-    # JWT configuration
-    JWT_SECRET_KEY: "changeme-in-production"
-    JWT_ALGORITHM: "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+    # JWT configuration (matches backend config.py variable names)
+    SECRET_KEY: "changeme-in-production"
+    ALGORITHM: "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
 
     # CORS configuration
     CORS_ORIGINS: "http://localhost:5173,http://localhost:5174,http://localhost:5175"
@@ -147,26 +147,36 @@ ingress:
       hosts:
         - ansible-builder.example.com
 
+# CloudNativePG Operator (must be installed separately in cnpg-system namespace)
+cloudnative-pg:
+  enabled: false  # Set to true to use CloudNativePG for PostgreSQL
+
 # PostgreSQL configuration
 postgresql:
-  enabled: true
+  enabled: false  # Set to true to deploy PostgreSQL
+  # CloudNativePG specific settings (used when cloudnative-pg.enabled = true)
+  instances: 1  # Number of PostgreSQL instances (1 = single, 2+ = HA)
+  storage:
+    size: 10Gi
+    storageClass: ""  # Use default storage class if empty
   auth:
     username: ansible
     password: changeme-in-production
     database: ansible_builder
     existingSecret: ""
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  # Bitnami subchart settings (legacy - subchart disabled in Chart.yaml)
   primary:
     persistence:
       enabled: true
       size: 10Gi
       storageClass: ""
-    resources:
-      limits:
-        cpu: 1000m
-        memory: 1Gi
-      requests:
-        cpu: 500m
-        memory: 512Mi
 
   # External PostgreSQL (if postgresql.enabled = false)
   external:

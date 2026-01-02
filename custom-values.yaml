@@ -1,7 +1,26 @@
-postgresql:
-  enabled: false
+# CloudNativePG - Disabled due to MooseFS permission issues
+# Using standard PostgreSQL StatefulSet instead
 cloudnative-pg:
   enabled: false
+
+# PostgreSQL configuration via CloudNativePG
+postgresql:
+  enabled: true
+  instances: 1  # Single instance (change to 2+ for HA)
+  storage:
+    size: 5Gi  # 5GB should be sufficient for playbooks
+  auth:
+    username: ansible
+    password: "AnsibleBuilder2026!Prod"  # Strong password for production
+    database: ansible_builder
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
 backend:
   replicaCount: 1
   image:
@@ -9,17 +28,17 @@ backend:
     tag: "2.0.0"
     pullPolicy: Always
   env:
-    DATABASE_TYPE: "sqlite"
-    SQLITE_DB_PATH: "/tmp/ansible_builder.db"
-    SECRET_KEY: "changeme-in-production-sqlite-fallback"
+    DATABASE_TYPE: "postgresql"
+    SECRET_KEY: "AnsibleBuilder2026!JWTSecretKey"
     ALGORITHM: "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
   autoscaling:
     enabled: false
     minReplicas: 1
     maxReplicas: 1
+
 autoscaling:
-    enabled: false
+  enabled: false
 frontend:
   replicaCount: 1
   image:

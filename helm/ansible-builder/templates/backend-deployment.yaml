@@ -63,15 +63,15 @@ spec:
               name: {{ include "ansible-builder.fullname" . }}-backend
               key: redis-password
         {{- end }}
-        - name: JWT_SECRET_KEY
+        - name: SECRET_KEY
           valueFrom:
             secretKeyRef:
               name: {{ include "ansible-builder.fullname" . }}-backend
-              key: jwt-secret-key
-        - name: JWT_ALGORITHM
-          value: {{ .Values.backend.env.JWT_ALGORITHM | quote }}
-        - name: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-          value: {{ .Values.backend.env.JWT_ACCESS_TOKEN_EXPIRE_MINUTES | quote }}
+              key: secret-key
+        - name: ALGORITHM
+          value: {{ .Values.backend.env.ALGORITHM | quote }}
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          value: {{ .Values.backend.env.ACCESS_TOKEN_EXPIRE_MINUTES | quote }}
         - name: CORS_ORIGINS
           valueFrom:
             configMapKeyRef:
