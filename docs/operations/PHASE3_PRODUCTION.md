@@ -253,6 +253,65 @@ git tag vX.Y.Z
 git push --tags
 ```
 
+#### C. Mise à jour Site Marketing
+
+**⚠️ OBLIGATOIRE** : Mettre à jour le site marketing (ccoupel.bitbucket.io) avec la nouvelle version.
+
+**Fichiers à modifier dans `marketing/` :**
+
+1. **index.html** - Section Versions (timeline)
+   - Ajouter la nouvelle version en haut de la timeline
+   - Marquer la nouvelle version comme "Actuelle" / "Current"
+   - Retirer le tag "Actuelle" de l'ancienne version
+
+2. **translations.js** - Traductions FR/EN
+   - Ajouter les traductions pour la nouvelle version :
+     - `versions.vXYZ.date` (FR/EN)
+     - `versions.vXYZ.title` (FR/EN)
+     - `versions.vXYZ.f1`, `f2`, etc. pour chaque feature (FR/EN)
+
+3. **index.html** - Section Roadmap (optionnel)
+   - Retirer les fonctionnalités implémentées de la roadmap
+   - Ajouter les nouvelles fonctionnalités prévues
+
+**Procédure :**
+```bash
+# 1. Modifier les fichiers dans marketing/
+cd marketing
+
+# 2. Commit et push le submodule
+git add index.html translations.js
+git commit -m "feat: Add version X.Y.Z to changelog and update roadmap"
+git push origin main
+
+# 3. Mettre à jour la référence du submodule dans le repo principal
+cd ..
+git add marketing
+git commit -m "chore: Update marketing submodule - version X.Y.Z"
+git push
+```
+
+**Template nouvelle version (index.html) :**
+```html
+<div class="timeline-item current">
+    <div class="timeline-marker">
+        <span class="marker-dot"></span>
+    </div>
+    <div class="timeline-content">
+        <div class="version-header">
+            <span class="version-badge">vX.Y.Z</span>
+            <span class="version-date" data-i18n="versions.vXYZ.date">Mois YYYY</span>
+            <span class="version-tag current-tag" data-i18n="versions.current">Actuelle</span>
+        </div>
+        <h3 data-i18n="versions.vXYZ.title">Titre Feature</h3>
+        <ul class="version-features">
+            <li data-i18n="versions.vXYZ.f1">Feature 1</li>
+            <li data-i18n="versions.vXYZ.f2">Feature 2</li>
+        </ul>
+    </div>
+</div>
+```
+
 ---
 
 ## ✅ **Checklist Validation Phase 3**
@@ -282,6 +341,12 @@ git push --tags
 - [ ] **DONE.md** mis à jour
 - [ ] **WORK_IN_PROGRESS.md** nettoyé
 - [ ] **Git tag** vX.Y.Z créé et pushé
+
+### Site Marketing (ccoupel.bitbucket.io)
+- [ ] **index.html** - Nouvelle version ajoutée au changelog
+- [ ] **translations.js** - Traductions FR/EN ajoutées
+- [ ] **Roadmap** mise à jour (optionnel)
+- [ ] **Submodule** marketing commité et pushé
 
 ---
 
@@ -331,7 +396,7 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo \
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2026-01-01*
+*Document maintenu à jour. Dernière mise à jour : 2026-01-02*
 
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)
