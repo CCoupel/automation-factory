@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.0.0"
-__description__ = "Ansible Builder API with Galaxy Roles Integration"
+__version__ = "2.1.0-rc.2"
+__description__ = "Ansible Builder API with Diagram Export/Import"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -12,6 +12,32 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "2.1.0": {
+        "title": "Diagram Export/Import",
+        "release_date": "2026-01-03",
+        "features": [
+            "Export diagram as JSON (.abd format) - full backup with positions",
+            "Export diagram as Mermaid (.md) - for documentation",
+            "Export diagram as SVG - vector image for presentations",
+            "Import diagram from .abd file with validation",
+            "Format versioning for future compatibility",
+            "Integrity checks (checksum, counts) on import"
+        ],
+        "improvements": [
+            "Proprietary .abd format with migration support",
+            "Feature detection for compatibility warnings",
+            "UI state preservation (collapsed blocks, viewport)",
+            "Validation feedback with errors and warnings"
+        ],
+        "technical": [
+            "AnsibleBuilderDiagram type with header/metadata/content/integrity",
+            "Backend exporters (abd_exporter, mermaid_exporter, svg_exporter)",
+            "API endpoints /api/export/{abd,mermaid,svg}",
+            "playbook_export_service.py for consistent traversal",
+            "diagramExportApiService.ts for frontend API calls",
+            "ImportDiagramDialog.tsx with file selection and feedback"
+        ]
+    },
     "2.0.0": {
         "title": "Galaxy Roles Integration",
         "release_date": "2026-01-01",

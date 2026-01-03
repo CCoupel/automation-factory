@@ -6,7 +6,7 @@ Note: Legacy Galaxy endpoints (/api/galaxy/*) have been removed.
 """
 
 from fastapi import APIRouter
-from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles
+from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export
 from app.version import __version__
 
 # Create main API router
@@ -23,3 +23,4 @@ api_router.include_router(ansible.router)  # Ansible documentation API
 api_router.include_router(collaboration.router)  # Playbook sharing and collaboration
 api_router.include_router(variable_types.router)  # Custom variable types management
 api_router.include_router(galaxy_roles.router)  # Galaxy roles API (v1 standalone + v3 collection)
+api_router.include_router(playbook_export.router)  # Diagram export (ABD, Mermaid, SVG)

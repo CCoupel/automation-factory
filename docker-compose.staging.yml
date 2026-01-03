@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Backend FastAPI (service name matches Kubernetes for "build once deploy everywhere")
   ansible-builder-backend:
-    image: ansible-builder-backend:2.0.0-rc.1
+    image: ansible-builder-backend:2.1.0-rc.2
     container_name: ansible-builder-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
@@ -19,7 +19,7 @@ services:
 
   # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
   ansible-builder-frontend:
-    image: ansible-builder-frontend:2.0.0-rc.3-vite
+    image: ansible-builder-frontend:2.1.0-rc.2-vite
     container_name: ansible-builder-frontend-staging
     restart: unless-stopped
     networks:

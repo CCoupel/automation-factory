@@ -252,7 +252,19 @@
       "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl get pods:*)",
       "Bash(python -m ruff check:*)",
       "Bash(timeout 20 python:*)",
-      "Bash(timeout 30 python:*)"
+      "Bash(timeout 30 python:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl rollout:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" helm upgrade:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl logs:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl describe:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl delete:*)",
+      "Bash(git submodule add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Create marketing website for Ansible Builder\n\n- Modern landing page with hero section\n- Features section highlighting drag & drop, validation, variables\n- Galaxy integration showcase with tree view demo\n- Collaboration section with real-time sync features\n- Demo section with step-by-step guide\n- CTA and footer with links\n- Responsive design with mobile menu\n- Smooth scroll and scroll animations\n- CSS custom properties for theming\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Add version history and roadmap sections\n\n- Version history timeline with v2.0.0, v1.17.0, v1.15.0, v1.14.0, v1.13.0\n- Roadmap section with upcoming features \\(v2.1 to v2.6+\\)\n- Timeline CSS with alternating layout on desktop\n- Roadmap cards with gradient top border\n- Updated navigation and footer links\n- Responsive design for both sections\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Add installation section with deployment instructions\n\n- Add installation section with tabs for Docker, Kubernetes, and Standalone\n- Remove version numbers from roadmap features\n- Add CSS styles for installation tabs, code blocks, and copy button\n- Add JavaScript for tab switching and clipboard copy functionality\n- Update navigation and footer links with Installation section\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(python -m json.tool:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl patch:*)",
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" helm version:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,6 +4,58 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.1.0** - *2026-01-03*
+
+### 📤 Diagram Export/Import
+
+- **Export ABD (Ansible Builder Diagram)**
+  - Format JSON propriétaire `.abd` pour backup complet
+  - Préservation des positions, liens, et configuration
+  - État UI optionnel (blocs collapsed, viewport)
+  - Intégrité avec checksums et comptages
+  - Versionné pour compatibilité future
+
+- **Export Mermaid**
+  - Export en Markdown avec diagramme Mermaid
+  - Compatible GitHub, GitLab, Notion
+  - Direction configurable (TB/LR)
+  - Subgraphs optionnels (plays, sections, blocks)
+
+- **Export SVG**
+  - Image vectorielle haute qualité
+  - Préservation des positions canvas originales
+  - Calcul dynamique des dimensions de blocs
+  - Support blocs imbriqués avec sections BLOCK/RESCUE/ALWAYS
+  - Liens avec flèches courbes
+  - Scale et background configurables
+
+- **Import ABD**
+  - Validation avec feedback d'erreurs et warnings
+  - Vérification d'intégrité (checksums, comptages)
+  - Détection de features manquantes pour compatibilité
+  - Restauration complète du diagramme
+
+### 🔧 Architecture
+
+- **Backend comme source de vérité**
+  - Endpoints `/api/export/{abd,mermaid,svg}`
+  - Service `playbook_export_service.py` pour traversée unifiée
+  - Exporters modulaires: `abd_exporter`, `mermaid_exporter`, `svg_exporter`
+
+- **Frontend simplifié**
+  - Service `diagramExportApiService.ts` pour appels API
+  - Dialog unifié `ExportDiagramDialog.tsx`
+  - Dialog d'import `ImportDiagramDialog.tsx`
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 2.1.0
+- **Tag Git** : v2.1.0
+- **Smoke tests** : Passés
+- **Temps de réponse** : 44ms
+
+---
+
 ## ✅ **Version 2.0.0** - *2026-01-01*
 
 ### 🎭 Galaxy Roles Integration

@@ -4,22 +4,69 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-01-02**
+## 🚀 **Status Actuel - 2026-01-03**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-backend:2.0.0) ✅
-- **Frontend :** `2.0.0` (ghcr.io/ccoupel/ansible-builder-frontend:2.0.0) ✅
+- **Backend :** `2.1.0` (ghcr.io/ccoupel/ansible-builder-backend:2.1.0) ✅
+- **Frontend :** `2.1.0` (ghcr.io/ccoupel/ansible-builder-frontend:2.1.0) ✅
 - **Database :** PostgreSQL 16 (StatefulSet) ✅
 - **URL :** https://coupel.net/ansible-builder
-- **Tag Git :** `v2.0.0`
-- **Helm Revision :** 93
+- **Tag Git :** `v2.1.0`
+- **Helm Revision :** 99
 
-**Staging (Docker) :**
-- **Backend :** `2.0.0-rc.1`
-- **Frontend :** `2.0.0-rc.3-vite`
-- **URL :** http://192.168.1.217
+**Développement Local :**
+- Pas de développement en cours
+
+---
+
+## ✅ **Version 2.1.0 - DEPLOYED**
+
+### Diagram Export/Import - Complété
+
+**Fonctionnalités livrées :**
+- Export ABD (.abd) - Backup complet avec positions et UI state
+- Export Mermaid (.md) - Documentation pour GitHub/GitLab
+- Export SVG - Image vectorielle haute qualité
+- Import ABD avec validation et intégrité
+
+**Architecture :**
+- Backend comme source de vérité (endpoints /api/export/*)
+- Exporters modulaires (abd, mermaid, svg)
+- Frontend simplifié (appels API)
+
+Voir détails dans [DONE.md](DONE.md#version-210---2026-01-03)
+
+#### Format ABD (Ansible Builder Diagram)
+```json
+{
+  "header": {
+    "magic": "ANSIBLE_BUILDER_DIAGRAM",
+    "formatVersion": "1.0.0",
+    "minAppVersion": "2.1.0",
+    "createdAt": "...",
+    "generator": { "name": "Ansible Builder", "version": "2.1.0" }
+  },
+  "metadata": { "name": "...", "id": "..." },
+  "content": { "plays": [...] },
+  "uiState": { "collapsedBlocks": [...], "activePlayIndex": 0 },
+  "integrity": { "checksum": "sha256...", "moduleCount": 10 },
+  "compatibility": { "features": ["blocks", "variables"] }
+}
+```
+
+#### Phase 2 - Staging (2026-01-03) ✅
+- [x] Build backend image: `ansible-builder-backend:2.1.0-rc.1`
+- [x] Build frontend image: `ansible-builder-frontend:2.1.0-rc.1`
+- [x] Déploiement docker-compose.staging.yml
+- [x] Health checks passés (Nginx, Backend, Frontend)
+- [x] Tests E2E: Services OK, Version RC confirmée, API OK
+- [x] Performance: 13ms response time
+
+**URL Staging:** http://192.168.1.217
+
+#### En attente validation utilisateur
 
 ---
 
@@ -148,4 +195,4 @@ backend:
 
 ---
 
-*Dernière mise à jour : 2026-01-02 - Migration PostgreSQL en production via Helm (Revision 93)*
+*Dernière mise à jour : 2026-01-03 - Phase 2 Staging déployée (v2.1.0-rc.1)*

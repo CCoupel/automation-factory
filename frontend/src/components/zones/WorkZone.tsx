@@ -24,6 +24,8 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import LockIcon from '@mui/icons-material/Lock'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import FileDownloadIcon from '@mui/icons-material/FileDownload'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import PlaySectionContent from './PlaySectionContent'
 import BlockSectionContent from './BlockSectionContent'
@@ -33,6 +35,9 @@ import SectionLinks from '../common/SectionLinks'
 import TabIconBadge from '../common/TabIconBadge'
 import ResizeHandles from '../common/ResizeHandles'
 import AddVariableDialog from '../dialogs/AddVariableDialog'
+import ExportDiagramDialog from '../dialogs/ExportDiagramDialog'
+import ImportDiagramDialog from '../dialogs/ImportDiagramDialog'
+import { ImportResult } from '../../services/diagramImportService'
 import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, PlayAttributes, ModuleSchema, isSystemBlock } from '../../types/playbook'
 import { generateAssertionsBlocks, SYSTEM_ASSERTIONS_BLOCK_PREFIX, SYSTEM_TASK_PREFIX, SYSTEM_LINK_PREFIX, updateAssertionsBlocks, isSystemAssertionsId, isSystemLink, CustomTypeInfo } from '../../utils/assertionsGenerator'
 import { variableTypesService } from '../../services/variableTypesService'
@@ -254,6 +259,8 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
   const [addVariableDialogOpen, setAddVariableDialogOpen] = useState(false)
   const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   // Ref to track last resized module for sync
   const lastResizedModuleRef = useRef<{ id: string; width: number; height: number; x: number; y: number } | null>(null)
@@ -2749,6 +2756,36 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     setEditingVariableIndex(null)
   }
 
+  // Handle diagram import - load plays from imported data
+  const handleImportDiagram = (result: ImportResult) => {
+    if (!result.success) return
+
+    // Replace current plays with imported plays
+    setPlays(result.plays.map(play => ({
+      ...play,
+      modules: ensureStartModules(play.id, play.modules)
+    })))
+
+    // Restore UI state if provided
+    if (result.uiState) {
+      setCollapsedBlocks(new Set(result.uiState.collapsedBlocks))
+      setCollapsedBlockSections(new Set(result.uiState.collapsedBlockSections))
+      setCollapsedPlaySections(new Set(result.uiState.collapsedPlaySections))
+      setActivePlayIndex(result.uiState.activePlayIndex)
+    }
+
+    // Update playbook name
+    if (result.metadata.name) {
+      setPlaybookName(result.metadata.name)
+    }
+
+    // Clear current playbook ID since this is a new imported diagram
+    setCurrentPlaybookId(null)
+    if (onPlaybookIdChange) {
+      onPlaybookIdChange(null)
+    }
+  }
+
   const deleteVariable = (index: number) => {
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
@@ -3054,6 +3091,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           >
             Add Play
           </Button>
+          <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+            <Tooltip title="Import diagram (.abd)">
+              <IconButton
+                size="small"
+                onClick={() => setImportDialogOpen(true)}
+                sx={{ color: 'text.secondary' }}
+              >
+                <FileUploadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export diagram">
+              <IconButton
+                size="small"
+                onClick={() => setExportDialogOpen(true)}
+                sx={{ color: 'text.secondary' }}
+              >
+                <FileDownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
 
@@ -4806,6 +4863,26 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         onAdd={handleAddVariableFromDialog}
         existingKeys={currentPlay.variables.map(v => v.key)}
         editVariable={editingVariableIndex !== null ? currentPlay.variables[editingVariableIndex] : undefined}
+      />
+
+      {/* Export Diagram Dialog */}
+      <ExportDiagramDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        plays={plays}
+        playbookName={playbookName}
+        playbookId={currentPlaybookId || undefined}
+        collapsedBlocks={Array.from(collapsedBlocks)}
+        collapsedBlockSections={Array.from(collapsedBlockSections)}
+        collapsedPlaySections={Array.from(collapsedPlaySections)}
+        activePlayIndex={activePlayIndex}
+      />
+
+      {/* Import Diagram Dialog */}
+      <ImportDiagramDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleImportDiagram}
       />
     </Box>
   )
