@@ -30,6 +30,96 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 
 ---
 
+## 🏗️ **Principe BORE : Build Once, Run Everywhere**
+
+### Concept Fondamental
+
+Le principe **BORE** garantit que les images Docker utilisées en **staging** sont **strictement identiques** à celles déployées en **production**. Cela élimine les risques de "ça marche en staging mais pas en prod".
+
+### Règles BORE
+
+| Règle | Description |
+|-------|-------------|
+| **1. Un seul Dockerfile** | Frontend et backend utilisent le même Dockerfile en staging et production |
+| **2. Pas de rebuild** | Les images staging validées sont promues en production sans reconstruction |
+| **3. Tag et promote** | `X.Y.Z-rc.n` → `X.Y.Z` par simple retag, pas de nouveau build |
+| **4. Variables d'environnement** | Les différences (ENVIRONMENT=STAGING vs PROD) sont injectées à l'exécution |
+
+### Architecture Images
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     BUILD ONCE (Phase 2)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  docker build -t backend:X.Y.Z-rc.n -f backend/Dockerfile      │
+│  docker build -t frontend:X.Y.Z-rc.n -f frontend/Dockerfile    │
+│                         ↓                                       │
+│              Tests E2E sur staging                              │
+│                         ↓                                       │
+│              Validation utilisateur                             │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   RUN EVERYWHERE (Phase 3)                      │
+├─────────────────────────────────────────────────────────────────┤
+│  docker tag backend:X.Y.Z-rc.n ghcr.io/.../backend:X.Y.Z       │
+│  docker tag frontend:X.Y.Z-rc.n ghcr.io/.../frontend:X.Y.Z     │
+│                         ↓                                       │
+│              Push ghcr.io (même image)                          │
+│                         ↓                                       │
+│              Déploiement Kubernetes via Helm                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Comparaison Staging vs Production
+
+| Aspect | Staging | Production |
+|--------|---------|------------|
+| **Backend Dockerfile** | `backend/Dockerfile` | `backend/Dockerfile` |
+| **Frontend Dockerfile** | `frontend/Dockerfile` | `frontend/Dockerfile` |
+| **Frontend server** | nginx (port 80) | nginx (port 80) |
+| **Image tag** | `X.Y.Z-rc.n` | `X.Y.Z` |
+| **ENVIRONMENT** | STAGING | PROD |
+| **Code binaire** | **IDENTIQUE** | **IDENTIQUE** |
+
+### ⚠️ Ce qui est INTERDIT
+
+```bash
+# ❌ INTERDIT : Rebuild en Phase 3
+docker build ... # Jamais en Phase 3 !
+
+# ❌ INTERDIT : Dockerfile différent staging/prod
+frontend/Dockerfile.dev  # N'existe plus pour staging
+frontend/Dockerfile      # Utilisé partout
+
+# ❌ INTERDIT : kubectl set image en production
+kubectl set image ...    # Casse la cohérence Helm
+
+# ❌ INTERDIT : Modifications code entre staging et prod
+# Le code déployé en prod = exactement celui validé en staging
+```
+
+### ✅ Ce qui est OBLIGATOIRE
+
+```bash
+# ✅ OBLIGATOIRE : Build unique en Phase 2
+docker build -t frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
+
+# ✅ OBLIGATOIRE : Même image nginx en staging et production
+# Staging: frontend:X.Y.Z-rc.n (nginx, port 80)
+# Prod: ghcr.io/.../frontend:X.Y.Z (nginx, port 80)
+
+# ✅ OBLIGATOIRE : Déploiement production via Helm
+helm upgrade ansible-builder ./helm/ansible-builder --values custom-values.yaml
+
+# ✅ OBLIGATOIRE : Différences par variables d'environnement uniquement
+ENVIRONMENT=STAGING  # Affiche version RC
+ENVIRONMENT=PROD     # Masque suffixe RC
+```
+
+---
+
 ## 🚀 **Sprint de Développement - 3 Phases**
 
 ### Étapes du Sprint

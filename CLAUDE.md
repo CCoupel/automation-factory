@@ -153,4 +153,45 @@ curl -I http://192.168.1.217/                # Frontend OK (nginx)
 
 ---
 
+## 🚀 **Déploiement Production - HELM EXCLUSIF**
+
+**⚠️ RÈGLE ABSOLUE :** Le déploiement en production se fait **EXCLUSIVEMENT via Helm**.
+
+### ❌ INTERDIT en Production
+```bash
+# NE JAMAIS utiliser kubectl set image
+kubectl set image deployment/... # INTERDIT - Casse la cohérence Helm
+
+# NE JAMAIS rebuild les images en Phase 3
+docker build ... # INTERDIT - Utiliser les images staging validées
+```
+
+### ✅ OBLIGATOIRE en Production
+```bash
+# 1. Tag et push des images staging vers ghcr.io
+docker tag ansible-builder-frontend:X.Y.Z-rc.n ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+docker push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+
+# 2. Mise à jour custom-values.yaml avec nouveaux tags
+
+# 3. Déploiement via Helm UNIQUEMENT
+KUBECONFIG=kubeconfig.txt helm upgrade ansible-builder ./helm/ansible-builder \
+  --namespace ansible-builder \
+  --values custom-values.yaml \
+  --timeout 300s
+```
+
+### Rollback Production
+```bash
+# Via Helm (recommandé)
+KUBECONFIG=kubeconfig.txt helm rollback ansible-builder -n ansible-builder
+
+# Voir historique
+KUBECONFIG=kubeconfig.txt helm history ansible-builder -n ansible-builder
+```
+
+**Voir détails complets :** [Phase 3 Production](docs/operations/PHASE3_PRODUCTION.md)
+
+---
+
 *Ce fichier est maintenu automatiquement. Pour les détails techniques, consultez la documentation spécialisée ci-dessus.*
