@@ -296,6 +296,78 @@ frontend:
 
 ---
 
+## ✅ **Checklist Post-Déploiement Production**
+
+### Tâches OBLIGATOIRES après mise en production
+
+Ces tâches doivent être exécutées **systématiquement** après chaque déploiement en production.
+
+#### 1. Validation Production
+```bash
+# Vérifier les pods
+kubectl get pods -n ansible-builder
+
+# Vérifier les images déployées
+kubectl get deployments -n ansible-builder -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.template.spec.containers[0].image}{"\n"}{end}'
+
+# Health checks
+curl -s https://coupel.net/ansible-builder/api/version
+curl -s -I https://coupel.net/ansible-builder/
+```
+
+#### 2. Git - Commit et Tag
+```bash
+# Commit tous les changements
+git add -A
+git commit -m "feat: Description de la version X.Y.Z"
+
+# Créer le tag de version
+git tag -a vX.Y.Z -m "vX.Y.Z - Titre de la release"
+
+# Push avec tags
+git push ccoupel master --tags
+```
+
+#### 3. Documentation - CLAUDE.md
+Mettre à jour la section "Status Actuel" :
+- Version Développement
+- Version Production
+- Dernière mise à jour
+
+#### 4. Site Marketing (submodule)
+```bash
+cd marketing/
+
+# Mettre à jour index.html :
+# - Hero badge (Version X.Y)
+# - Timeline (ajouter nouvelle version en "current")
+# - Docker/Helm examples (image tags)
+# - Footer version
+
+git add -A
+git commit -m "feat: Update to version X.Y.Z"
+git push origin main
+
+# Retour au repo principal
+cd ..
+git add marketing
+git commit -m "chore: Update marketing submodule to vX.Y.Z"
+git push ccoupel master
+```
+
+### Checklist Résumé
+
+| # | Tâche | Commande/Action |
+|---|-------|-----------------|
+| 1 | ✅ Health checks production | `curl https://coupel.net/ansible-builder/api/version` |
+| 2 | ✅ Git commit | `git add -A && git commit` |
+| 3 | ✅ Git tag | `git tag -a vX.Y.Z` |
+| 4 | ✅ Git push | `git push ccoupel master --tags` |
+| 5 | ✅ CLAUDE.md | Mettre à jour versions |
+| 6 | ✅ Site marketing | Mettre à jour index.html + push submodule |
+
+---
+
 *Voir aussi :*
 - [Process Développement](../core/DEVELOPMENT_PROCESS.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
