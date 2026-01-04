@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getHttpClient } from '../utils/httpClient';
 
 interface Collection {
   name: string;
@@ -30,8 +30,9 @@ export const useAnsibleCollections = (version: string) => {
         setLoading(true);
         setError(null);
         
-        const response = await axios.get<AnsibleCollectionsResponse>(
-          `/api/ansible/${version}/collections`
+        const httpClient = getHttpClient();
+        const response = await httpClient.get<AnsibleCollectionsResponse>(
+          `/ansible/${version}/collections`
         );
         
         setCollections(response.data.collections);

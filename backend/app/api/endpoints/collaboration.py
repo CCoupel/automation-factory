@@ -15,7 +15,13 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import (
+    get_current_user,
+    get_playbook_or_404,
+    get_user_by_username_or_404,
+    check_owner_or_403,
+    check_not_self_or_400
+)
 from app.models.user import User
 from app.models.playbook import Playbook
 from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
@@ -58,23 +64,9 @@ async def create_share(
         HTTPException 403: Not the owner
         HTTPException 400: Cannot share with yourself, already shared, or invalid role
     """
-    # Verify ownership
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can share this playbook"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "share this playbook")
 
     # Validate role
     if share_data.role not in [PlaybookRole.EDITOR.value, PlaybookRole.VIEWER.value]:
@@ -83,24 +75,9 @@ async def create_share(
             detail="Invalid role. Must be 'editor' or 'viewer'"
         )
 
-    # Find target user by username
-    user_result = await db.execute(
-        select(User).where(User.username == share_data.username)
-    )
-    target_user = user_result.scalar_one_or_none()
-
-    if not target_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User '{share_data.username}' not found"
-        )
-
-    # Cannot share with yourself
-    if target_user.id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot share playbook with yourself"
-        )
+    # Find target user and verify not sharing with self
+    target_user = await get_user_by_username_or_404(db, share_data.username, f"User '{share_data.username}' not found")
+    check_not_self_or_400(target_user.id, current_user, "share playbook with yourself")
 
     # Check if already shared
     existing_result = await db.execute(
@@ -167,23 +144,9 @@ async def list_shares(
     Returns:
         List of shares with user info
     """
-    # Verify ownership
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can view shares"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "view shares")
 
     # Get shares with user info
     shares_result = await db.execute(
@@ -238,23 +201,9 @@ async def update_share(
     Returns:
         Updated share
     """
-    # Verify ownership
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can modify shares"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "modify shares")
 
     # Validate role
     if share_data.role not in [PlaybookRole.EDITOR.value, PlaybookRole.VIEWER.value]:
@@ -325,23 +274,9 @@ async def delete_share(
         playbook_id: Playbook ID
         share_id: Share ID
     """
-    # Verify ownership
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can remove shares"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "remove shares")
 
     # Get share
     share_result = await db.execute(
@@ -436,23 +371,9 @@ async def get_audit_log(
     Returns:
         List of audit log entries
     """
-    # Verify ownership
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can view the audit log"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "view the audit log")
 
     # Get audit log entries
     log_result = await db.execute(

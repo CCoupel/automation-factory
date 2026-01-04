@@ -264,7 +264,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: Add installation section with deployment instructions\n\n- Add installation section with tabs for Docker, Kubernetes, and Standalone\n- Remove version numbers from roadmap features\n- Add CSS styles for installation tabs, code blocks, and copy button\n- Add JavaScript for tab switching and clipboard copy functionality\n- Update navigation and footer links with Installation section\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(python -m json.tool:*)",
       "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl patch:*)",
-      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" helm version:*)"
+      "Bash(KUBECONFIG=\"/c/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" helm version:*)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

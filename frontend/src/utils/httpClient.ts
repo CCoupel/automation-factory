@@ -6,6 +6,9 @@
 import axios, { AxiosInstance } from 'axios'
 import { getApiBaseUrl } from './apiConfig'
 
+// Re-export for convenience
+export { getApiBaseUrl }
+
 // Create a configured axios instance
 let httpClient: AxiosInstance | null = null
 

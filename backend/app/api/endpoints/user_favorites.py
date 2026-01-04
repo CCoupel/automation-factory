@@ -5,11 +5,16 @@ All user data must be stored in database for:
 - Persistence across container restarts
 - Multi-user support (each user has their own favorites)
 - Horizontal scalability (multiple backend instances)
+
+Consolidated endpoints (v2.2.0):
+- GET    /favorites/{type}           - Get favorites of a type
+- POST   /favorites/{type}           - Add a favorite
+- DELETE /favorites/{type}/{item}    - Remove a favorite
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
+from typing import Dict, Any, Literal
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
@@ -24,208 +29,102 @@ from app.services.favorites_service import (
 
 router = APIRouter(prefix="/user", tags=["user-favorites"])
 
+# Type definitions for favorites
+FavoriteType = Literal["namespaces", "collections", "modules"]
 
-# === Namespace Favorites ===
+# Mapping from URL type to database type
+TYPE_MAP = {
+    "namespaces": "namespace",
+    "collections": "collection",
+    "modules": "module"
+}
 
-@router.get("/favorites")
-async def get_favorite_namespaces(
+# Mapping from URL type to request field name
+FIELD_MAP = {
+    "namespaces": "namespace",
+    "collections": "collection",
+    "modules": "module"
+}
+
+
+# === Consolidated Favorites Endpoints ===
+
+@router.get("/favorites/{favorite_type}")
+async def get_favorites_endpoint(
+    favorite_type: FavoriteType,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get user's favorite namespaces from database"""
+    """Get user's favorites of specified type from database"""
     try:
-        favorites = await get_favorites(db, current_user.id, "namespace")
+        db_type = TYPE_MAP[favorite_type]
+        favorites = await get_favorites(db, current_user.id, db_type)
         return {
             "success": True,
-            "message": "Favorites retrieved successfully",
-            "favorite_namespaces": favorites
+            "message": f"Favorite {favorite_type} retrieved successfully",
+            f"favorite_{favorite_type}": favorites
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get favorites: {str(e)}"
+            detail=f"Failed to get favorite {favorite_type}: {str(e)}"
         )
 
 
-@router.post("/favorites")
-async def add_favorite_namespace(
+@router.post("/favorites/{favorite_type}")
+async def add_favorite_endpoint(
+    favorite_type: FavoriteType,
     request: dict,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Add namespace to user's favorites in database"""
-    namespace = request.get("namespace", "").strip()
-    if not namespace:
-        raise HTTPException(status_code=400, detail="Namespace is required")
+    """Add item to user's favorites of specified type in database"""
+    field_name = FIELD_MAP[favorite_type]
+    item = request.get(field_name, "").strip()
+
+    if not item:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name.capitalize()} is required"
+        )
 
     try:
-        favorites = await add_favorite(db, current_user.id, "namespace", namespace)
+        db_type = TYPE_MAP[favorite_type]
+        favorites = await add_favorite(db, current_user.id, db_type, item)
         return {
             "success": True,
-            "message": f"Namespace '{namespace}' added to favorites",
-            "favorite_namespaces": favorites
+            "message": f"{field_name.capitalize()} '{item}' added to favorites",
+            f"favorite_{favorite_type}": favorites
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add favorite: {str(e)}"
+            detail=f"Failed to add favorite {field_name}: {str(e)}"
         )
 
 
-@router.delete("/favorites/{namespace}")
-async def remove_favorite_namespace(
-    namespace: str,
+@router.delete("/favorites/{favorite_type}/{item:path}")
+async def remove_favorite_endpoint(
+    favorite_type: FavoriteType,
+    item: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Remove namespace from user's favorites in database"""
+    """Remove item from user's favorites of specified type in database"""
     try:
-        favorites = await remove_favorite(db, current_user.id, "namespace", namespace)
+        db_type = TYPE_MAP[favorite_type]
+        favorites = await remove_favorite(db, current_user.id, db_type, item)
+        field_name = FIELD_MAP[favorite_type]
         return {
             "success": True,
-            "message": f"Namespace '{namespace}' removed from favorites",
-            "favorite_namespaces": favorites
+            "message": f"{field_name.capitalize()} '{item}' removed from favorites",
+            f"favorite_{favorite_type}": favorites
         }
     except Exception as e:
+        field_name = FIELD_MAP[favorite_type]
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to remove favorite: {str(e)}"
-        )
-
-
-# === Collection Favorites ===
-
-@router.get("/favorites/collections")
-async def get_favorite_collections(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get user's favorite collections from database"""
-    try:
-        favorites = await get_favorites(db, current_user.id, "collection")
-        return {
-            "success": True,
-            "message": "Favorite collections retrieved successfully",
-            "favorite_collections": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get favorite collections: {str(e)}"
-        )
-
-
-@router.post("/favorites/collections")
-async def add_favorite_collection(
-    request: dict,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Add collection to user's favorites in database"""
-    collection = request.get("collection", "").strip()
-    if not collection:
-        raise HTTPException(status_code=400, detail="Collection is required")
-
-    try:
-        favorites = await add_favorite(db, current_user.id, "collection", collection)
-        return {
-            "success": True,
-            "message": f"Collection '{collection}' added to favorites",
-            "favorite_collections": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add favorite collection: {str(e)}"
-        )
-
-
-@router.delete("/favorites/collections/{collection:path}")
-async def remove_favorite_collection(
-    collection: str,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Remove collection from user's favorites in database"""
-    try:
-        favorites = await remove_favorite(db, current_user.id, "collection", collection)
-        return {
-            "success": True,
-            "message": f"Collection '{collection}' removed from favorites",
-            "favorite_collections": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to remove favorite collection: {str(e)}"
-        )
-
-
-# === Module Favorites ===
-
-@router.get("/favorites/modules")
-async def get_favorite_modules(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get user's favorite modules from database"""
-    try:
-        favorites = await get_favorites(db, current_user.id, "module")
-        return {
-            "success": True,
-            "message": "Favorite modules retrieved successfully",
-            "favorite_modules": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get favorite modules: {str(e)}"
-        )
-
-
-@router.post("/favorites/modules")
-async def add_favorite_module(
-    request: dict,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Add module to user's favorites in database"""
-    module = request.get("module", "").strip()
-    if not module:
-        raise HTTPException(status_code=400, detail="Module is required")
-
-    try:
-        favorites = await add_favorite(db, current_user.id, "module", module)
-        return {
-            "success": True,
-            "message": f"Module '{module}' added to favorites",
-            "favorite_modules": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add favorite module: {str(e)}"
-        )
-
-
-@router.delete("/favorites/modules/{module:path}")
-async def remove_favorite_module(
-    module: str,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> Dict[str, Any]:
-    """Remove module from user's favorites in database"""
-    try:
-        favorites = await remove_favorite(db, current_user.id, "module", module)
-        return {
-            "success": True,
-            "message": f"Module '{module}' removed from favorites",
-            "favorite_modules": favorites
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to remove favorite module: {str(e)}"
+            detail=f"Failed to remove favorite {field_name}: {str(e)}"
         )
 
 

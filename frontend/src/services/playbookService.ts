@@ -1,5 +1,4 @@
-import axios from 'axios'
-import { getApiBaseUrl } from '../utils/apiConfig'
+import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
 
 /**
  * Playbook content structure
@@ -186,17 +185,10 @@ export interface PlaybookTransferOwnershipResponse {
 }
 
 /**
- * Get authorization header with JWT token
- */
-function getAuthHeader(): { Authorization: string } | {} {
-  const token = localStorage.getItem('authToken')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-/**
  * Playbook Service
  *
  * Handles API calls for playbook operations (CRUD)
+ * Uses httpClient with automatic auth token injection via interceptor
  */
 export const playbookService = {
   /**
@@ -206,9 +198,8 @@ export const playbookService = {
    */
   async listPlaybooks(): Promise<Playbook[]> {
     try {
-      const response = await axios.get(`${getApiBaseUrl()}/playbooks`, {
-        headers: getAuthHeader()
-      })
+      const client = getHttpClient()
+      const response = await client.get(`${getApiBaseUrl()}/playbooks`)
       return response.data
     } catch (error: any) {
       console.error('List playbooks API error:', error)
@@ -227,9 +218,8 @@ export const playbookService = {
    */
   async getPlaybook(playbookId: string): Promise<PlaybookDetail> {
     try {
-      const response = await axios.get(`${getApiBaseUrl()}/playbooks/${playbookId}`, {
-        headers: getAuthHeader()
-      })
+      const client = getHttpClient()
+      const response = await client.get(`${getApiBaseUrl()}/playbooks/${playbookId}`)
       return response.data
     } catch (error: any) {
       console.error('Get playbook API error:', error)
@@ -248,13 +238,8 @@ export const playbookService = {
    */
   async createPlaybook(playbook: PlaybookCreate): Promise<PlaybookDetail> {
     try {
-      const response = await axios.post(
-        `${getApiBaseUrl()}/playbooks`,
-        playbook,
-        {
-          headers: getAuthHeader()
-        }
-      )
+      const client = getHttpClient()
+      const response = await client.post(`${getApiBaseUrl()}/playbooks`, playbook)
       return response.data
     } catch (error: any) {
       console.error('Create playbook API error:', error)
@@ -274,13 +259,8 @@ export const playbookService = {
    */
   async updatePlaybook(playbookId: string, updates: PlaybookUpdate): Promise<PlaybookDetail> {
     try {
-      const response = await axios.put(
-        `${getApiBaseUrl()}/playbooks/${playbookId}`,
-        updates,
-        {
-          headers: getAuthHeader()
-        }
-      )
+      const client = getHttpClient()
+      const response = await client.put(`${getApiBaseUrl()}/playbooks/${playbookId}`, updates)
       return response.data
     } catch (error: any) {
       console.error('Update playbook API error:', error)
@@ -299,9 +279,8 @@ export const playbookService = {
    */
   async deletePlaybook(playbookId: string): Promise<void> {
     try {
-      await axios.delete(`${getApiBaseUrl()}/playbooks/${playbookId}`, {
-        headers: getAuthHeader()
-      })
+      const client = getHttpClient()
+      await client.delete(`${getApiBaseUrl()}/playbooks/${playbookId}`)
     } catch (error: any) {
       console.error('Delete playbook API error:', error)
       if (error.response?.data?.detail) {
@@ -323,12 +302,10 @@ export const playbookService = {
     request: PlaybookTransferOwnershipRequest
   ): Promise<PlaybookTransferOwnershipResponse> {
     try {
-      const response = await axios.post(
+      const client = getHttpClient()
+      const response = await client.post(
         `${getApiBaseUrl()}/playbooks/${playbookId}/transfer-ownership`,
-        request,
-        {
-          headers: getAuthHeader()
-        }
+        request
       )
       return response.data
     } catch (error: any) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { getHttpClient } from '../utils/httpClient'
 import packageJson from '../../package.json'
 
 /**
@@ -64,8 +64,8 @@ export function useVersionInfo(): UseVersionInfoReturn {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        const apiUrl = (window as any).__API_URL__ || '/api'
-        const response = await axios.get<VersionInfo>(`${apiUrl}/version`)
+        const httpClient = getHttpClient()
+        const response = await httpClient.get<VersionInfo>('/version')
         setBackendVersionInfo(response.data)
         setError(null)
       } catch (err) {

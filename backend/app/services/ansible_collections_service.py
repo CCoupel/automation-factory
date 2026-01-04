@@ -2,39 +2,28 @@
 Ansible Collections Service - Web scraping from Ansible documentation
 """
 
-import aiohttp
 import re
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from bs4 import BeautifulSoup
+from app.core.http_service import BaseHTTPService
 from app.services.cache_service import cache
 from app.services.ansible_versions_service import ansible_versions_service
 
 logger = logging.getLogger(__name__)
 
-class AnsibleCollectionsService:
+
+class AnsibleCollectionsService(BaseHTTPService):
     """Service for scraping collections and modules from Ansible documentation"""
-    
-    CACHE_TTL_COLLECTIONS = 3600  # 1 heure pour les collections
-    CACHE_TTL_MODULES = 1800      # 30 minutes pour les modules  
-    CACHE_TTL_SCHEMA = 3600       # 1 heure pour les schémas
-    
+
+    # Import centralized TTL values
+    from app.core.cache_config import CacheTTL
+    CACHE_TTL_COLLECTIONS = CacheTTL.COLLECTIONS
+    CACHE_TTL_MODULES = CacheTTL.MODULES
+    CACHE_TTL_SCHEMA = CacheTTL.MODULE_SCHEMA
+
     def __init__(self):
-        self.session: Optional[aiohttp.ClientSession] = None
-    
-    async def get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session"""
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=60)
-            )
-        return self.session
-    
-    async def close_session(self):
-        """Close HTTP session"""
-        if self.session and not self.session.closed:
-            await self.session.close()
-            self.session = None
+        super().__init__(timeout=60)
     
     async def get_collections(self, version: str, force_refresh: bool = False) -> Dict[str, List[str]]:
         """

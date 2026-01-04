@@ -25,7 +25,7 @@ backend:
   replicaCount: 1
   image:
     repository: ghcr.io/ccoupel/ansible-builder-backend
-    tag: "2.1.0"
+    tag: "2.2.0"
     pullPolicy: Always
   env:
     DATABASE_TYPE: "postgresql"
@@ -33,16 +33,18 @@ backend:
     ALGORITHM: "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
-    maxReplicas: 1
+    maxReplicas: 4
 
 autoscaling:
-  enabled: false
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
 frontend:
   replicaCount: 1
   image:
-    tag: "2.1.0"
+    tag: "2.2.0"
     pullPolicy: Always
 ingress:
   className: "traefik"

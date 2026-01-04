@@ -7,43 +7,31 @@ Supports:
 - Private Galaxy: AAP (Automation Hub) or Galaxy NG
 """
 
-import aiohttp
 import logging
 from typing import Dict, List, Optional, Any
 from app.core.config import settings
+from app.core.http_service import BaseHTTPService
 from app.services.cache_service import cache
 
 logger = logging.getLogger(__name__)
 
 
-class GalaxyRolesService:
+class GalaxyRolesService(BaseHTTPService):
     """Service for fetching roles from Ansible Galaxy APIs"""
 
-    CACHE_TTL_ROLES = 1800      # 30 minutes for role lists
-    CACHE_TTL_DETAILS = 3600    # 1 hour for role details
-    CACHE_TTL_CONFIG = 86400    # 24 hours for namespaces list
+    # Import centralized TTL values
+    from app.core.cache_config import CacheTTL
+    CACHE_TTL_ROLES = CacheTTL.ROLES_LIST
+    CACHE_TTL_DETAILS = CacheTTL.ROLE_DETAILS
+    CACHE_TTL_CONFIG = CacheTTL.NAMESPACES
 
     def __init__(self):
+        super().__init__(timeout=60)
         self.public_url = settings.GALAXY_PUBLIC_URL.rstrip('/')
         self.public_enabled = settings.GALAXY_PUBLIC_ENABLED
         self.private_url = settings.GALAXY_PRIVATE_URL.rstrip('/') if settings.GALAXY_PRIVATE_URL else ""
         self.private_token = settings.GALAXY_PRIVATE_TOKEN
         self.preferred_source = settings.GALAXY_PREFERRED_SOURCE
-        self.session: Optional[aiohttp.ClientSession] = None
-
-    async def get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session"""
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=60)
-            )
-        return self.session
-
-    async def close_session(self):
-        """Close HTTP session"""
-        if self.session and not self.session.closed:
-            await self.session.close()
-            self.session = None
 
     def _get_base_url(self, source: str) -> Optional[str]:
         """Get base URL for the specified source. Returns None if source is disabled."""

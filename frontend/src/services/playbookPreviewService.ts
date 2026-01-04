@@ -1,5 +1,4 @@
-import axios from 'axios'
-import { getApiBaseUrl } from '../utils/apiConfig'
+import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
 import { PlaybookContent, ModuleBlock, Link, RoleDefinition } from './playbookService'
 
 /**
@@ -83,14 +82,6 @@ interface AnsibleTask {
   block?: AnsibleTask[]
   rescue?: AnsibleTask[]
   always?: AnsibleTask[]
-}
-
-/**
- * Get authorization header with JWT token
- */
-function getAuthHeader(): { Authorization: string } | Record<string, never> {
-  const token = localStorage.getItem('authToken')
-  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 /**
@@ -428,11 +419,10 @@ export const playbookPreviewService = {
     try {
       // Transform frontend format to Ansible format
       const ansibleContent = transformSinglePlayToAnsible(content)
-
-      const response = await axios.post<YamlPreviewResponse>(
+      const client = getHttpClient()
+      const response = await client.post<YamlPreviewResponse>(
         `${getApiBaseUrl()}/playbooks/preview`,
-        { content: ansibleContent },
-        { headers: getAuthHeader() }
+        { content: ansibleContent }
       )
       return response.data
     } catch (error: any) {
@@ -455,11 +445,10 @@ export const playbookPreviewService = {
     try {
       // Transform frontend format to Ansible format
       const ansibleContent = transformSinglePlayToAnsible(content)
-
-      const response = await axios.post<ValidationResponse>(
+      const client = getHttpClient()
+      const response = await client.post<ValidationResponse>(
         `${getApiBaseUrl()}/playbooks/validate-preview`,
-        { content: ansibleContent },
-        { headers: getAuthHeader() }
+        { content: ansibleContent }
       )
       return response.data
     } catch (error: any) {
@@ -479,9 +468,9 @@ export const playbookPreviewService = {
    */
   async getPlaybookYaml(playbookId: string): Promise<YamlPreviewResponse> {
     try {
-      const response = await axios.get<YamlPreviewResponse>(
-        `${getApiBaseUrl()}/playbooks/${playbookId}/yaml`,
-        { headers: getAuthHeader() }
+      const client = getHttpClient()
+      const response = await client.get<YamlPreviewResponse>(
+        `${getApiBaseUrl()}/playbooks/${playbookId}/yaml`
       )
       return response.data
     } catch (error: any) {
@@ -501,10 +490,10 @@ export const playbookPreviewService = {
    */
   async validatePlaybook(playbookId: string): Promise<ValidationResponse> {
     try {
-      const response = await axios.post<ValidationResponse>(
+      const client = getHttpClient()
+      const response = await client.post<ValidationResponse>(
         `${getApiBaseUrl()}/playbooks/${playbookId}/validate`,
-        {},
-        { headers: getAuthHeader() }
+        {}
       )
       return response.data
     } catch (error: any) {
@@ -527,11 +516,10 @@ export const playbookPreviewService = {
     try {
       // Transform frontend format to Ansible format
       const ansibleContent = transformSinglePlayToAnsible(content)
-
-      const response = await axios.post<FullValidationResponse>(
+      const client = getHttpClient()
+      const response = await client.post<FullValidationResponse>(
         `${getApiBaseUrl()}/playbooks/validate-full-preview`,
-        { content: ansibleContent },
-        { headers: getAuthHeader() }
+        { content: ansibleContent }
       )
       return response.data
     } catch (error: any) {
@@ -551,10 +539,10 @@ export const playbookPreviewService = {
    */
   async validateFullPlaybook(playbookId: string): Promise<FullValidationResponse> {
     try {
-      const response = await axios.post<FullValidationResponse>(
+      const client = getHttpClient()
+      const response = await client.post<FullValidationResponse>(
         `${getApiBaseUrl()}/playbooks/${playbookId}/validate-full`,
-        {},
-        { headers: getAuthHeader() }
+        {}
       )
       return response.data
     } catch (error: any) {

@@ -8,6 +8,7 @@
  */
 
 import { getHttpClient } from '../utils/httpClient'
+import { CacheManager } from '../utils/cacheManager'
 
 // ========================================
 // Types
@@ -79,19 +80,15 @@ export interface GalaxyConfig {
 export type GalaxySource = 'public' | 'private'
 
 // ========================================
-// Cache
+// Cache (using CacheManager for unified caching)
 // ========================================
-
-const standaloneCache = new Map<string, { data: StandaloneRolesResponse; timestamp: number }>()
-const collectionCache = new Map<string, { data: CollectionRole[]; timestamp: number }>()
-const namespacesCache = new Map<string, { data: RoleNamespace[]; timestamp: number }>()
-let configCache: { data: GalaxyConfig; timestamp: number } | null = null
 
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes
 
-function isCacheValid(timestamp: number): boolean {
-  return Date.now() - timestamp < CACHE_TTL
-}
+const standaloneCache = new CacheManager<StandaloneRolesResponse>(CACHE_TTL)
+const collectionCache = new CacheManager<CollectionRole[]>(CACHE_TTL)
+const namespacesCache = new CacheManager<RoleNamespace[]>(CACHE_TTL)
+const configCache = new CacheManager<GalaxyConfig>(CACHE_TTL)
 
 // ========================================
 // Standalone Roles (API v1)
@@ -119,8 +116,8 @@ export async function getStandaloneRoles(params: {
 
   const cacheKey = `standalone:${source}:${namespace}:${search}:${page}:${pageSize}`
   const cached = standaloneCache.get(cacheKey)
-  if (cached && isCacheValid(cached.timestamp)) {
-    return cached.data
+  if (cached) {
+    return cached
   }
 
   try {
@@ -138,7 +135,7 @@ export async function getStandaloneRoles(params: {
       `/galaxy-roles/standalone?${queryParams.toString()}`
     )
 
-    standaloneCache.set(cacheKey, { data: response.data, timestamp: Date.now() })
+    standaloneCache.set(cacheKey, response.data)
     return response.data
   } catch (error) {
     console.error('Failed to fetch standalone roles:', error)
@@ -175,8 +172,8 @@ export async function getPopularNamespaces(
 ): Promise<RoleNamespace[]> {
   const cacheKey = `namespaces:${source}:${limit}`
   const cached = namespacesCache.get(cacheKey)
-  if (cached && isCacheValid(cached.timestamp)) {
-    return cached.data
+  if (cached) {
+    return cached
   }
 
   try {
@@ -185,7 +182,7 @@ export async function getPopularNamespaces(
       `/galaxy-roles/standalone/namespaces?source=${source}&limit=${limit}`
     )
 
-    namespacesCache.set(cacheKey, { data: response.data, timestamp: Date.now() })
+    namespacesCache.set(cacheKey, response.data)
     return response.data
   } catch (error) {
     console.error('Failed to fetch popular namespaces:', error)
@@ -208,8 +205,8 @@ export async function getCollectionRoles(
 ): Promise<CollectionRole[]> {
   const cacheKey = `collection:${source}:${namespace}:${collection}:${version}`
   const cached = collectionCache.get(cacheKey)
-  if (cached && isCacheValid(cached.timestamp)) {
-    return cached.data
+  if (cached) {
+    return cached
   }
 
   try {
@@ -218,7 +215,7 @@ export async function getCollectionRoles(
       `/galaxy-roles/collections/${namespace}/${collection}/roles?version=${version}&source=${source}`
     )
 
-    collectionCache.set(cacheKey, { data: response.data, timestamp: Date.now() })
+    collectionCache.set(cacheKey, response.data)
     return response.data
   } catch (error) {
     console.error(`Failed to fetch roles for ${namespace}.${collection}:`, error)
@@ -254,15 +251,17 @@ export async function searchCollectionRoles(
  * Get Galaxy configuration
  */
 export async function getGalaxyConfig(): Promise<GalaxyConfig> {
-  if (configCache && isCacheValid(configCache.timestamp)) {
-    return configCache.data
+  const cacheKey = 'config'
+  const cached = configCache.get(cacheKey)
+  if (cached) {
+    return cached
   }
 
   try {
     const httpClient = getHttpClient()
     const response = await httpClient.get<GalaxyConfig>('/galaxy-roles/config')
 
-    configCache = { data: response.data, timestamp: Date.now() }
+    configCache.set(cacheKey, response.data)
     return response.data
   } catch (error) {
     console.error('Failed to fetch Galaxy config:', error)
@@ -296,7 +295,7 @@ export function clearGalaxyRolesCache(): void {
   standaloneCache.clear()
   collectionCache.clear()
   namespacesCache.clear()
-  configCache = null
+  configCache.clear()
 }
 
 /**
@@ -306,11 +305,13 @@ export function getGalaxyRolesCacheStats(): {
   standalone: number
   collections: number
   namespaces: number
+  config: number
 } {
   return {
     standalone: standaloneCache.size,
     collections: collectionCache.size,
-    namespaces: namespacesCache.size
+    namespaces: namespacesCache.size,
+    config: configCache.size
   }
 }
 

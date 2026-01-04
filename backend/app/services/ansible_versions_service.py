@@ -2,37 +2,27 @@
 Ansible Versions Service - Dynamic version detection from Ansible documentation
 """
 
-import aiohttp
 import re
 import logging
-from typing import List, Optional
+from typing import List
+from app.core.http_service import BaseHTTPService
 from app.services.cache_service import cache
 
 logger = logging.getLogger(__name__)
 
-class AnsibleVersionsService:
+
+class AnsibleVersionsService(BaseHTTPService):
     """Service for detecting and managing Ansible versions dynamically"""
-    
+
     ANSIBLE_DOCS_BASE_URL = "https://docs.ansible.com"
-    CACHE_TTL = 86400  # 24 heures pour les versions
+
+    # Import centralized TTL values
+    from app.core.cache_config import CacheTTL
+    CACHE_TTL = CacheTTL.VERSIONS
     CACHE_KEY_VERSIONS = "ansible_versions:available"
-    
+
     def __init__(self):
-        self.session: Optional[aiohttp.ClientSession] = None
-    
-    async def get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session"""
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=30)
-            )
-        return self.session
-    
-    async def close_session(self):
-        """Close HTTP session"""
-        if self.session and not self.session.closed:
-            await self.session.close()
-            self.session = None
+        super().__init__(timeout=30)
     
     async def get_available_versions(self, force_refresh: bool = False) -> List[str]:
         """
@@ -155,10 +145,30 @@ class AnsibleVersionsService:
         """
         Construit l'URL de la page collections pour une version
         """
+        return self.build_docs_url("collections/", version)
+
+    def build_docs_url(self, path: str, version: str = "latest") -> str:
+        """
+        Build Ansible documentation URL for a specific version.
+
+        Args:
+            path: Path within the documentation (e.g., "collections/", "collections/ansible/builtin/")
+            version: Ansible version ("latest", "13", "12", etc.)
+
+        Returns:
+            Full documentation URL
+
+        Examples:
+            build_docs_url("collections/", "latest")
+            -> "https://docs.ansible.com/ansible/latest/collections/"
+
+            build_docs_url("collections/amazon/aws/", "13")
+            -> "https://docs.ansible.com/projects/ansible/13/collections/amazon/aws/"
+        """
         if version == "latest":
-            return f"{self.ANSIBLE_DOCS_BASE_URL}/ansible/latest/collections/"
+            return f"{self.ANSIBLE_DOCS_BASE_URL}/ansible/latest/{path}"
         else:
-            return f"{self.ANSIBLE_DOCS_BASE_URL}/projects/ansible/{version}/collections/"
+            return f"{self.ANSIBLE_DOCS_BASE_URL}/projects/ansible/{version}/{path}"
 
 # Instance globale du service
 ansible_versions_service = AnsibleVersionsService()

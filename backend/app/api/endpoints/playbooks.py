@@ -16,7 +16,13 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional, Tuple
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import (
+    get_current_user,
+    get_playbook_or_404,
+    get_user_by_username_or_404,
+    check_owner_or_403,
+    check_not_self_or_400
+)
 from app.models.user import User
 from app.models.playbook import Playbook
 from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
@@ -253,23 +259,9 @@ async def delete_playbook(
         HTTPException 404: Playbook not found
         HTTPException 403: Not the owner of this playbook
     """
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
-    )
-    playbook = result.scalar_one_or_none()
-
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Verify ownership
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to delete this playbook"
-        )
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "delete this playbook")
 
     await db.delete(playbook)
     await db.commit()
@@ -302,44 +294,18 @@ async def transfer_playbook_ownership(
         HTTPException 403: Not the owner of this playbook
         HTTPException 400: New owner is not a shared user
     """
-    # Get the playbook
-    result = await db.execute(
-        select(Playbook).where(Playbook.id == playbook_id)
+    # Verify playbook exists and user is owner
+    playbook = await get_playbook_or_404(db, playbook_id)
+    check_owner_or_403(playbook.owner_id, current_user, "transfer ownership")
+
+    # Find and validate new owner
+    new_owner = await get_user_by_username_or_404(
+        db, transfer_data.new_owner_username,
+        f"User '{transfer_data.new_owner_username}' not found"
     )
-    playbook = result.scalar_one_or_none()
+    check_not_self_or_400(new_owner.id, current_user, "transfer ownership to yourself")
 
-    if not playbook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Playbook not found"
-        )
-
-    # Verify current user is the owner
-    if playbook.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can transfer ownership"
-        )
-
-    # Find the new owner by username
-    new_owner_result = await db.execute(
-        select(User).where(User.username == transfer_data.new_owner_username)
-    )
-    new_owner = new_owner_result.scalar_one_or_none()
-
-    if not new_owner:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User '{transfer_data.new_owner_username}' not found"
-        )
-
-    # Verify new owner is a shared user (not the current owner)
-    if new_owner.id == current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot transfer ownership to yourself"
-        )
-
+    # Verify new owner is a shared user
     share_result = await db.execute(
         select(PlaybookShare).where(
             and_(

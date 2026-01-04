@@ -102,7 +102,7 @@ class UserPreferencesService {
   async addFavoriteNamespace(namespace: string): Promise<FavoriteNamespaceResponse> {
     try {
       const request: FavoriteNamespaceRequest = { namespace: namespace.trim() };
-      const response = await this.httpClient.post<FavoriteNamespaceResponse>('/user/favorites', request);
+      const response = await this.httpClient.post<FavoriteNamespaceResponse>('/user/favorites/namespaces', request);
       
       // Update cache
       if (this.cache) {
@@ -122,7 +122,7 @@ class UserPreferencesService {
    */
   async removeFavoriteNamespace(namespace: string): Promise<FavoriteNamespaceResponse> {
     try {
-      const response = await this.httpClient.delete<FavoriteNamespaceResponse>(`/user/favorites/${encodeURIComponent(namespace.trim())}`);
+      const response = await this.httpClient.delete<FavoriteNamespaceResponse>(`/user/favorites/namespaces/${encodeURIComponent(namespace.trim())}`);
       
       // Update cache
       if (this.cache) {
@@ -142,7 +142,7 @@ class UserPreferencesService {
    */
   async getFavoriteNamespaces(): Promise<string[]> {
     try {
-      const response = await this.httpClient.get<FavoriteNamespaceResponse>('/user/favorites');
+      const response = await this.httpClient.get<FavoriteNamespaceResponse>('/user/favorites/namespaces');
       return response.data.favorite_namespaces || [];
     } catch (error: any) {
       console.error('Failed to get favorite namespaces:', error);

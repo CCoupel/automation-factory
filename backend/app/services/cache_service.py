@@ -1,13 +1,22 @@
 """
 Enhanced cache service for Galaxy API responses with statistics
+
+Features:
+- In-memory cache with TTL
+- Statistics tracking (hits, misses, expired)
+- Pattern-based key deletion
+- Generic @cached_async decorator for any async function
 """
 
 import json
 import hashlib
-from typing import Any, Dict, Optional, List
+from functools import wraps
+from typing import Any, Dict, Optional, List, Callable, TypeVar
 import logging
 import time
 from datetime import datetime
+
+T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
@@ -120,24 +129,66 @@ class EnhancedCache:
 # Global cache instance
 cache = EnhancedCache()
 
-def cached_galaxy_request(cache_key_prefix: str, ttl_seconds: int = 900):
+def cached_async(ttl_seconds: int, key_fn: Callable[..., str]):
     """
-    Decorator for caching Galaxy API requests
+    Generic decorator for caching async function results.
+
+    Args:
+        ttl_seconds: Time-to-live for cached results in seconds
+        key_fn: Function that generates cache key from function arguments
+
+    Example:
+        @cached_async(
+            ttl_seconds=3600,
+            key_fn=lambda self, version: f"namespaces:{version}"
+        )
+        async def get_namespaces(self, version: str) -> List[Dict]:
+            ...
+
+    Note:
+        The key_fn receives the same arguments as the decorated function.
+        For instance methods, 'self' is the first argument.
     """
     def decorator(func):
+        @wraps(func)
         async def wrapper(*args, **kwargs):
-            # Create cache key
-            cache_key = cache._make_key(cache_key_prefix, **kwargs)
-            
+            # Generate cache key
+            cache_key = key_fn(*args, **kwargs)
+
             # Try to get from cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
                 return cached_result
-            
+
             # Execute function and cache result
             result = await func(*args, **kwargs)
             cache.set(cache_key, result, ttl_seconds)
-            
+
+            return result
+        return wrapper
+    return decorator
+
+
+def cached_galaxy_request(cache_key_prefix: str, ttl_seconds: int = 900):
+    """
+    Decorator for caching Galaxy API requests (legacy).
+    Consider using cached_async for new code.
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Create cache key
+            cache_key = cache._make_key(cache_key_prefix, **kwargs)
+
+            # Try to get from cache
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+
+            # Execute function and cache result
+            result = await func(*args, **kwargs)
+            cache.set(cache_key, result, ttl_seconds)
+
             return result
         return wrapper
     return decorator

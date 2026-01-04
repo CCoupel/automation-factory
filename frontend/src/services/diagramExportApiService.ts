@@ -5,8 +5,7 @@
  * The backend is the source of truth for export generation.
  */
 
-import axios from 'axios'
-import { getApiBaseUrl } from '../utils/apiConfig'
+import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
 import { Play } from '../types/playbook'
 import { ExportOptions, MermaidExportOptions, SVGExportOptions } from '../types/diagram-export'
 
@@ -59,14 +58,6 @@ interface ExportResponse<T> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Get authorization header
- */
-function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('authToken')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
-/**
  * Export to ABD format via API
  */
 export async function exportABD(
@@ -95,10 +86,10 @@ export async function exportABD(
     active_play_index: options.activePlayIndex
   }
 
-  const response = await axios.post<ExportResponse<Record<string, unknown>>>(
+  const client = getHttpClient()
+  const response = await client.post<ExportResponse<Record<string, unknown>>>(
     `${getApiBaseUrl()}/export/abd`,
-    request,
-    { headers: getAuthHeader() }
+    request
   )
 
   // Download the file
@@ -127,10 +118,10 @@ export async function exportMermaid(
     as_markdown: true
   }
 
-  const response = await axios.post<ExportResponse<string>>(
+  const client = getHttpClient()
+  const response = await client.post<ExportResponse<string>>(
     `${getApiBaseUrl()}/export/mermaid`,
-    request,
-    { headers: getAuthHeader() }
+    request
   )
 
   downloadFile(response.data.content, response.data.filename, 'text/markdown')
@@ -153,10 +144,10 @@ export async function exportSVG(
     collapsed_blocks: options.collapsedBlocks || []
   }
 
-  const response = await axios.post<ExportResponse<string>>(
+  const client = getHttpClient()
+  const response = await client.post<ExportResponse<string>>(
     `${getApiBaseUrl()}/export/svg`,
-    request,
-    { headers: getAuthHeader() }
+    request
   )
 
   downloadFile(response.data.content, response.data.filename, 'image/svg+xml')

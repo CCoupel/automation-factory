@@ -8,45 +8,14 @@
 import { getHttpClient } from '../utils/httpClient'
 import { ansibleApiService } from './ansibleApiService'
 import { ModuleParameter, ModuleSchema } from '../types/playbook'
+import { CacheManager } from '../utils/cacheManager'
 
 // Re-export types for backward compatibility
 export type { ModuleParameter, ModuleSchema }
 
-// In-memory cache for schemas (TTL: 30 minutes)
-class SchemaCache {
-  private cache = new Map<string, { data: ModuleSchema; expiry: number }>()
-  private readonly TTL = 30 * 60 * 1000 // 30 minutes in milliseconds
-
-  set(key: string, data: ModuleSchema): void {
-    this.cache.set(key, {
-      data,
-      expiry: Date.now() + this.TTL
-    })
-  }
-
-  get(key: string): ModuleSchema | null {
-    const entry = this.cache.get(key)
-    if (!entry) return null
-
-    if (Date.now() > entry.expiry) {
-      this.cache.delete(key)
-      return null
-    }
-
-    return entry.data
-  }
-
-  clear(): void {
-    this.cache.clear()
-  }
-
-  size(): number {
-    return this.cache.size
-  }
-}
-
-// Global cache instance
-const schemaCache = new SchemaCache()
+// Schema cache using shared CacheManager (TTL: 30 minutes)
+const SCHEMA_CACHE_TTL = 30 * 60 * 1000
+const schemaCache = new CacheManager<ModuleSchema>(SCHEMA_CACHE_TTL)
 
 /**
  * Normalize parameter type from API format to internal format
@@ -352,8 +321,8 @@ export const galaxyModuleSchemaService = {
    */
   getCacheStats() {
     return {
-      size: schemaCache.size(),
-      maxAge: 30 * 60 * 1000 // 30 minutes
+      size: schemaCache.size,
+      maxAge: SCHEMA_CACHE_TTL
     }
   },
 

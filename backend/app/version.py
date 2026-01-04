@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.1.0-rc.2"
-__description__ = "Ansible Builder API with Diagram Export/Import"
+__version__ = "2.2.0-rc.1"
+__description__ = "Ansible Builder API - Code Rationalization"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -12,6 +12,31 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "2.2.0": {
+        "title": "Code Rationalization",
+        "release_date": "2026-01-04",
+        "features": [
+            "Unified HTTP service base class for backend (BaseHTTPService)",
+            "Centralized cache TTL configuration (CacheTTL constants)",
+            "Generic CacheManager<T> utility for frontend caching",
+            "Consolidated user favorites API (9 endpoints → 3 generic)",
+            "Entity fetching helpers with 404 handling"
+        ],
+        "improvements": [
+            "~170 lines of duplicated code eliminated",
+            "Standardized httpClient usage across all frontend services",
+            "Consistent error handling patterns in backend",
+            "Extracted fallback data to dedicated module",
+            "Replaced custom cache implementations with CacheManager"
+        ],
+        "technical": [
+            "backend/app/core/http_service.py: BaseHTTPService base class",
+            "backend/app/core/cache_config.py: CacheTTL constants",
+            "backend/app/core/dependencies.py: get_playbook_or_404, check_owner_or_403",
+            "frontend/src/utils/cacheManager.ts: Generic CacheManager<T>",
+            "frontend/src/data/ansibleFallbackData.ts: Extracted fallback data"
+        ]
+    },
     "2.1.0": {
         "title": "Diagram Export/Import",
         "release_date": "2026-01-03",
