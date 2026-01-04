@@ -296,13 +296,50 @@ frontend:
 
 ---
 
-## ✅ **Checklist Post-Déploiement Production**
+## ✅ **Checklist Complète Déploiement Production**
 
-### Tâches OBLIGATOIRES après mise en production
+### Tâches OBLIGATOIRES pour chaque mise en production
 
-Ces tâches doivent être exécutées **systématiquement** après chaque déploiement en production.
+Ces tâches doivent être exécutées **systématiquement** et dans l'ordre.
 
-#### 1. Validation Production
+---
+
+### 🚀 PHASE DÉPLOIEMENT
+
+#### 1. Push Images vers Registry
+```bash
+# Tag images pour production (supprimer suffixe -rc.X)
+docker -H tcp://192.168.1.217:2375 tag ansible-builder-backend:X.Y.Z-rc.N ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 tag ansible-builder-frontend:X.Y.Z-rc.N ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+
+# Login et push
+echo "TOKEN" | docker -H tcp://192.168.1.217:2375 login ghcr.io -u ccoupel --password-stdin
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+```
+
+#### 2. Mettre à jour custom-values.yaml
+```yaml
+# Modifier les tags dans custom-values.yaml
+backend:
+  image:
+    tag: "X.Y.Z"    # ← Nouvelle version
+
+frontend:
+  image:
+    tag: "X.Y.Z"    # ← Nouvelle version
+```
+
+#### 3. Déploiement Helm
+```bash
+export KUBECONFIG=kubeconfig.txt
+
+helm upgrade ansible-builder ./helm/ansible-builder \
+  -f custom-values.yaml \
+  --namespace ansible-builder
+```
+
+#### 4. Validation Production
 ```bash
 # Vérifier les pods
 kubectl get pods -n ansible-builder
@@ -315,7 +352,11 @@ curl -s https://coupel.net/ansible-builder/api/version
 curl -s -I https://coupel.net/ansible-builder/
 ```
 
-#### 2. Git - Commit et Tag
+---
+
+### 📝 PHASE POST-DÉPLOIEMENT
+
+#### 5. Git - Commit et Tag
 ```bash
 # Commit tous les changements
 git add -A
@@ -328,13 +369,13 @@ git tag -a vX.Y.Z -m "vX.Y.Z - Titre de la release"
 git push ccoupel master --tags
 ```
 
-#### 3. Documentation - CLAUDE.md
+#### 6. Documentation - CLAUDE.md
 Mettre à jour la section "Status Actuel" :
 - Version Développement
 - Version Production
 - Dernière mise à jour
 
-#### 4. Site Marketing (submodule)
+#### 7. Site Marketing (submodule)
 ```bash
 cd marketing/
 
@@ -355,16 +396,21 @@ git commit -m "chore: Update marketing submodule to vX.Y.Z"
 git push ccoupel master
 ```
 
+---
+
 ### Checklist Résumé
 
-| # | Tâche | Commande/Action |
-|---|-------|-----------------|
-| 1 | ✅ Health checks production | `curl https://coupel.net/ansible-builder/api/version` |
-| 2 | ✅ Git commit | `git add -A && git commit` |
-| 3 | ✅ Git tag | `git tag -a vX.Y.Z` |
-| 4 | ✅ Git push | `git push ccoupel master --tags` |
-| 5 | ✅ CLAUDE.md | Mettre à jour versions |
-| 6 | ✅ Site marketing | Mettre à jour index.html + push submodule |
+| # | Phase | Tâche | Commande/Action |
+|---|-------|-------|-----------------|
+| 1 | 🚀 Deploy | Push images ghcr.io | `docker push ghcr.io/ccoupel/ansible-builder-*:X.Y.Z` |
+| 2 | 🚀 Deploy | **custom-values.yaml** | Mettre à jour `backend.image.tag` et `frontend.image.tag` |
+| 3 | 🚀 Deploy | Helm upgrade | `helm upgrade ansible-builder ...` |
+| 4 | 🚀 Deploy | Health checks | `curl https://coupel.net/ansible-builder/api/version` |
+| 5 | 📝 Post | Git commit | `git add -A && git commit` |
+| 6 | 📝 Post | Git tag | `git tag -a vX.Y.Z` |
+| 7 | 📝 Post | Git push | `git push ccoupel master --tags` |
+| 8 | 📝 Post | CLAUDE.md | Mettre à jour versions |
+| 9 | 📝 Post | Site marketing | Mettre à jour index.html + push submodule |
 
 ---
 
