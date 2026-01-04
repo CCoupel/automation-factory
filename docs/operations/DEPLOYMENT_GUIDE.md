@@ -304,9 +304,58 @@ Ces tâches doivent être exécutées **systématiquement** et dans l'ordre.
 
 ---
 
+### 📋 PHASE PRÉ-DÉPLOIEMENT
+
+#### 1. Mettre à jour les fichiers de version
+```python
+# backend/app/version.py
+__version__ = "X.Y.Z-rc.1"  # ou "X.Y.Z" pour production finale
+__description__ = "Ansible Builder API - Titre de la version"
+```
+
+```json
+// frontend/package.json
+{
+  "version": "X.Y.Z-rc.1"
+}
+```
+
+#### 2. Ajouter VERSION_FEATURES (backend/app/version.py)
+```python
+VERSION_FEATURES = {
+    "X.Y.Z": {
+        "title": "Titre de la Release",
+        "release_date": "YYYY-MM-DD",
+        "features": [
+            "Feature 1",
+            "Feature 2"
+        ],
+        "improvements": [
+            "Improvement 1"
+        ],
+        "technical": [
+            "Technical detail 1"
+        ]
+    },
+    # ... versions précédentes
+}
+```
+
+#### 3. Mettre à jour docker-compose.staging.yml
+```yaml
+services:
+  ansible-builder-backend:
+    image: ansible-builder-backend:X.Y.Z-rc.1  # ← Nouvelle version
+
+  ansible-builder-frontend:
+    image: ansible-builder-frontend:X.Y.Z-rc.1  # ← Nouvelle version
+```
+
+---
+
 ### 🚀 PHASE DÉPLOIEMENT
 
-#### 1. Push Images vers Registry
+#### 4. Push Images vers Registry
 ```bash
 # Tag images pour production (supprimer suffixe -rc.X)
 docker -H tcp://192.168.1.217:2375 tag ansible-builder-backend:X.Y.Z-rc.N ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
@@ -318,7 +367,7 @@ docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:
 docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
 ```
 
-#### 2. Mettre à jour custom-values.yaml
+#### 5. Mettre à jour custom-values.yaml
 ```yaml
 # Modifier les tags dans custom-values.yaml
 backend:
@@ -330,7 +379,7 @@ frontend:
     tag: "X.Y.Z"    # ← Nouvelle version
 ```
 
-#### 3. Déploiement Helm
+#### 6. Déploiement Helm
 ```bash
 export KUBECONFIG=kubeconfig.txt
 
@@ -339,7 +388,7 @@ helm upgrade ansible-builder ./helm/ansible-builder \
   --namespace ansible-builder
 ```
 
-#### 4. Validation Production
+#### 7. Validation Production
 ```bash
 # Vérifier les pods
 kubectl get pods -n ansible-builder
@@ -356,7 +405,7 @@ curl -s -I https://coupel.net/ansible-builder/
 
 ### 📝 PHASE POST-DÉPLOIEMENT
 
-#### 5. Git - Commit et Tag
+#### 8. Git - Commit et Tag
 ```bash
 # Commit tous les changements
 git add -A
@@ -369,13 +418,13 @@ git tag -a vX.Y.Z -m "vX.Y.Z - Titre de la release"
 git push ccoupel master --tags
 ```
 
-#### 6. Documentation - CLAUDE.md
+#### 9. Documentation - CLAUDE.md
 Mettre à jour la section "Status Actuel" :
 - Version Développement
 - Version Production
 - Dernière mise à jour
 
-#### 7. Site Marketing (submodule)
+#### 10. Site Marketing (submodule)
 ```bash
 cd marketing/
 
@@ -400,17 +449,21 @@ git push ccoupel master
 
 ### Checklist Résumé
 
-| # | Phase | Tâche | Commande/Action |
-|---|-------|-------|-----------------|
-| 1 | 🚀 Deploy | Push images ghcr.io | `docker push ghcr.io/ccoupel/ansible-builder-*:X.Y.Z` |
-| 2 | 🚀 Deploy | **custom-values.yaml** | Mettre à jour `backend.image.tag` et `frontend.image.tag` |
-| 3 | 🚀 Deploy | Helm upgrade | `helm upgrade ansible-builder ...` |
-| 4 | 🚀 Deploy | Health checks | `curl https://coupel.net/ansible-builder/api/version` |
-| 5 | 📝 Post | Git commit | `git add -A && git commit` |
-| 6 | 📝 Post | Git tag | `git tag -a vX.Y.Z` |
-| 7 | 📝 Post | Git push | `git push ccoupel master --tags` |
-| 8 | 📝 Post | CLAUDE.md | Mettre à jour versions |
-| 9 | 📝 Post | Site marketing | Mettre à jour index.html + push submodule |
+| # | Phase | Tâche | Fichier/Action |
+|---|-------|-------|----------------|
+| 1 | 📋 Pré | **version.py** | `__version__ = "X.Y.Z"` |
+| 2 | 📋 Pré | **VERSION_FEATURES** | Ajouter bloc features pour X.Y.Z |
+| 3 | 📋 Pré | **package.json** | `"version": "X.Y.Z"` |
+| 4 | 📋 Pré | **docker-compose.staging.yml** | Mettre à jour image tags |
+| 5 | 🚀 Deploy | Push images ghcr.io | `docker push ghcr.io/ccoupel/ansible-builder-*:X.Y.Z` |
+| 6 | 🚀 Deploy | **custom-values.yaml** | `backend.image.tag` et `frontend.image.tag` |
+| 7 | 🚀 Deploy | Helm upgrade | `helm upgrade ansible-builder ...` |
+| 8 | 🚀 Deploy | Health checks | `curl https://coupel.net/ansible-builder/api/version` |
+| 9 | 📝 Post | Git commit | `git add -A && git commit` |
+| 10 | 📝 Post | Git tag | `git tag -a vX.Y.Z` |
+| 11 | 📝 Post | Git push | `git push ccoupel master --tags` |
+| 12 | 📝 Post | **CLAUDE.md** | Mettre à jour versions |
+| 13 | 📝 Post | **Site marketing** | index.html + push submodule |
 
 ---
 
