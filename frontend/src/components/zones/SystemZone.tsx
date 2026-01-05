@@ -152,7 +152,7 @@ const SystemZone = ({ getPlaybookContent, onSaveComplete }: SystemZoneProps) => 
           justifyContent: 'space-between',
           p: 1.5,
           bgcolor: 'background.paper',
-          borderBottom: '1px solid #ddd',
+          borderBottom: 1, borderColor: 'divider',
         }}
       >
         <Tabs

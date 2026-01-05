@@ -3008,7 +3008,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }}
     >
       {/* Onglets PLAYs */}
-      <Box sx={{ bgcolor: 'background.paper', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+      <Box sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
           <Tabs
             value={activePlayIndex}
@@ -3117,7 +3117,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       {/* PLAY Sections - Workspace Level */}
       <Box ref={playSectionsContainerRef} sx={{ display: 'flex', flexDirection: 'column', flex: 1, bgcolor: 'background.paper', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         {/* Section 1: Variables (Accordion - always visible) */}
-        <Box sx={{ borderBottom: '1px solid #ddd', flexShrink: 0 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
           <Box
             onClick={() => {
               const playModule = modules.find(m => m.isPlay)
@@ -3241,7 +3241,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         </Box>
 
         {/* Tabs Navigation Bar for Roles and Task Sections */}
-        <Box sx={{ borderBottom: 2, borderColor: 'divider', bgcolor: '#fafafa' }}>
+        <Box sx={{ borderBottom: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
           <Tabs
             value={activeSectionTab}
             onChange={(e, newValue) => setActiveSectionTab(newValue)}
@@ -4053,7 +4053,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             p: 0.5,
                             bgcolor: `${getSectionColor('normal')}15`,
                             cursor: 'pointer',
-                            borderBottom: '1px solid #ddd',
+                            borderBottom: 1, borderColor: 'divider',
                             flexShrink: 0,
                             '&:hover': { bgcolor: `${getSectionColor('normal')}25` }
                           }}
@@ -4286,7 +4286,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             p: 0.5,
                             bgcolor: `${getSectionColor('rescue')}15`,
                             cursor: 'pointer',
-                            borderBottom: '1px solid #ddd',
+                            borderBottom: 1, borderColor: 'divider',
                             flexShrink: 0,
                             '&:hover': { bgcolor: `${getSectionColor('rescue')}25` }
                           }}
@@ -4507,7 +4507,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
                             p: 0.5,
                             bgcolor: `${getSectionColor('always')}15`,
                             cursor: 'pointer',
-                            borderBottom: '1px solid #ddd',
+                            borderBottom: 1, borderColor: 'divider',
                             flexShrink: 0,
                             '&:hover': { bgcolor: `${getSectionColor('always')}25` }
                           }}

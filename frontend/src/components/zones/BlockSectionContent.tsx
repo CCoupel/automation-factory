@@ -356,7 +356,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                       p: 0.5,
                       bgcolor: `${getSectionColor('normal')}15`,
                       cursor: 'pointer',
-                      borderBottom: '1px solid #ddd',
+                      borderBottom: 1, borderColor: 'divider',
                       flexShrink: 0,
                       '&:hover': { bgcolor: `${getSectionColor('normal')}25` }
                     }}
@@ -422,7 +422,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                       p: 0.5,
                       bgcolor: `${getSectionColor('rescue')}15`,
                       cursor: 'pointer',
-                      borderBottom: '1px solid #ddd',
+                      borderBottom: 1, borderColor: 'divider',
                       flexShrink: 0,
                       '&:hover': { bgcolor: `${getSectionColor('rescue')}25` }
                     }}
@@ -488,7 +488,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                       p: 0.5,
                       bgcolor: `${getSectionColor('always')}15`,
                       cursor: 'pointer',
-                      borderBottom: '1px solid #ddd',
+                      borderBottom: 1, borderColor: 'divider',
                       flexShrink: 0,
                       '&:hover': { bgcolor: `${getSectionColor('always')}25` }
                     }}

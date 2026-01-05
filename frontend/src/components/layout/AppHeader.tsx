@@ -17,7 +17,7 @@ import {
   DialogActions,
   Button,
   IconButton,
-  Switch,
+
   Alert,
   Chip,
   CircularProgress,
@@ -39,6 +39,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import InfoIcon from '@mui/icons-material/Info'
 import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
@@ -88,7 +89,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
-  const { darkMode, toggleDarkMode } = useTheme()
+  const { themeMode, darkMode, setThemeMode, cycleThemeMode } = useTheme()
   const { forceRefreshCache, isLoading: cacheLoading, currentVersion } = useGalaxyCache()
 
   // Version info from shared hook
@@ -222,7 +223,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
    * Handle dark mode toggle
    */
   const handleDarkModeToggle = () => {
-    toggleDarkMode()
+    cycleThemeMode()
   }
 
   /**
@@ -565,16 +566,28 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
               <Divider />
 
-              {/* Dark Mode Toggle */}
+              {/* Theme Mode Toggle (Light / Dark / System) */}
               <MenuItem onClick={handleDarkModeToggle}>
                 <ListItemIcon>
-                  {darkMode ? <Brightness7Icon fontSize="small" /> : <Brightness4Icon fontSize="small" />}
+                  {themeMode === 'light' && <Brightness7Icon fontSize="small" />}
+                  {themeMode === 'dark' && <Brightness4Icon fontSize="small" />}
+                  {themeMode === 'system' && <SettingsBrightnessIcon fontSize="small" />}
                 </ListItemIcon>
-                <ListItemText>{darkMode ? 'Light Mode' : 'Dark Mode'}</ListItemText>
-                <Switch
-                  edge="end"
-                  checked={darkMode}
+                <ListItemText
+                  primary={
+                    themeMode === 'light' ? 'Light Mode' :
+                    themeMode === 'dark' ? 'Dark Mode' :
+                    'System (Auto)'
+                  }
+                  secondary={
+                    themeMode === 'system' ? (darkMode ? 'Currently: Dark' : 'Currently: Light') : undefined
+                  }
+                />
+                <Chip
+                  label={themeMode === 'light' ? 'Light' : themeMode === 'dark' ? 'Dark' : 'Auto'}
                   size="small"
+                  variant="outlined"
+                  sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
                 />
               </MenuItem>
 

@@ -274,7 +274,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                         p: 0.5,
                         bgcolor: `${getSectionColor('normal')}15`,
                         cursor: 'pointer',
-                        borderBottom: '1px solid #ddd',
+                        borderBottom: 1, borderColor: 'divider',
                         flexShrink: 0,
                         '&:hover': { bgcolor: `${getSectionColor('normal')}25` }
                       }}
@@ -364,7 +364,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                             p: 0.5,
                             bgcolor: `${getSectionColor('rescue')}15`,
                             cursor: 'pointer',
-                            borderBottom: '1px solid #ddd',
+                            borderBottom: 1, borderColor: 'divider',
                             flexShrink: 0,
                             '&:hover': { bgcolor: `${getSectionColor('rescue')}25` }
                           }}
@@ -448,7 +448,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                             p: 0.5,
                             bgcolor: `${getSectionColor('always')}15`,
                             cursor: 'pointer',
-                            borderBottom: '1px solid #ddd',
+                            borderBottom: 1, borderColor: 'divider',
                             flexShrink: 0,
                             '&:hover': { bgcolor: `${getSectionColor('always')}25` }
                           }}
@@ -592,7 +592,7 @@ const PlaySectionContent: React.FC<PlaySectionContentProps> = ({
                 minHeight: 60,
                 p: 1.5,
                 cursor: 'move',
-                border: '2px solid #ddd',
+                border: 2, borderStyle: 'solid', borderColor: 'divider',
                 borderRadius: 2,
                 bgcolor: 'background.paper',
                 zIndex: draggedModuleId === task.id ? 10 : 1,

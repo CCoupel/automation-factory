@@ -4,6 +4,63 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.2.1** - *2026-01-05*
+
+### 🎨 Système de Thème 3 États
+
+- **Modes Light/Dark/System**
+  - Mode Light : Interface claire standard
+  - Mode Dark : Interface sombre pour confort visuel
+  - Mode System (Auto) : Suit la préférence du système d'exploitation
+  - Détection automatique via matchMedia prefers-color-scheme
+  - Mise à jour en temps réel lors du changement de préférence système
+
+- **Corrections Dark Mode**
+  - Zone des onglets (Roles, Pre-Tasks, Tasks, Post-Tasks, Handlers) adaptée au thème
+  - Remplacement des couleurs codées en dur par couleurs thématiques
+  - Page de login isolée du thème (toujours en mode clair)
+
+- **Interface Utilisateur**
+  - Menu utilisateur avec indicateur du mode actif (Light/Dark/Auto)
+  - Icône adaptative (LightMode/DarkMode/SettingsBrightness)
+  - Cycle entre les modes par clic simple
+  - Persistance du choix en localStorage
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 2.2.1
+- **Tag Git** : v2.2.1
+- **Smoke tests** : Passés
+- **Temps de réponse** : 26ms
+- **Helm Revision** : 102
+
+---
+
+## ✅ **Version 2.2.0** - *2026-01-04*
+
+### 🔧 Code Rationalization
+
+- **Centralisation Backend**
+  - BaseHTTPService : Classe de base pour services HTTP
+  - CacheTTL : Constantes centralisées pour durées de cache
+  - Helpers get_playbook_or_404, check_owner_or_403 avec gestion erreurs
+
+- **Centralisation Frontend**
+  - CacheManager<T> : Utilitaire générique pour caching
+  - ansibleFallbackData.ts : Données de fallback extraites
+  - httpClient standardisé pour tous les services
+
+- **Consolidation API Favoris**
+  - 9 endpoints vers 3 endpoints génériques
+  - CRUD unifié namespaces/collections/modules
+
+### 📊 Métriques
+- **~170 lignes** de code dupliqué éliminées
+- **Patterns** d'erreur standardisés
+- **Cache** unifié avec CacheManager
+
+---
+
 ## ✅ **Version 2.1.0** - *2026-01-03*
 
 ### 📤 Diagram Export/Import

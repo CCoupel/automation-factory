@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "2.2.0-rc.1"
+__version__ = "2.2.1-rc.17"
 __description__ = "Ansible Builder API - Code Rationalization"
 
 # Environment: PROD (default), STAGING, DEV

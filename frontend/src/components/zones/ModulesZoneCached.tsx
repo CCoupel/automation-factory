@@ -512,7 +512,7 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
             Elements

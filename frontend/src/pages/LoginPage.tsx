@@ -10,12 +10,31 @@ import {
   Tab,
   Tabs,
   Container,
-  Chip
+  Chip,
+  ThemeProvider,
+  createTheme
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useVersionInfo } from '../hooks/useVersionInfo'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+
+// Fixed light theme for login page - independent of app theme
+const loginLightTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#667eea',
+    },
+    secondary: {
+      main: '#764ba2',
+    },
+    background: {
+      default: '#f5f5f5',
+      paper: '#ffffff',
+    },
+  },
+})
 
 /**
  * Login/Register Page Component
@@ -124,6 +143,7 @@ const LoginPage: React.FC = () => {
   }
 
   return (
+    <ThemeProvider theme={loginLightTheme}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -324,6 +344,7 @@ const LoginPage: React.FC = () => {
         </Paper>
       </Container>
     </Box>
+    </ThemeProvider>
   )
 }
 
