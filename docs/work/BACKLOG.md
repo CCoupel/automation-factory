@@ -65,6 +65,22 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ## 🌟 **Fonctionnalités Galaxy & Collections**
 
+### Configuration Galaxy (Admin UI) - P5
+- [ ] **Panel Admin - Sources Galaxy**
+  - [ ] Toggle pour activer/désactiver Galaxy publique
+  - [ ] Liste configurable de Galaxy privées (multi-sources)
+  - [ ] Pour chaque Galaxy privée :
+    - [ ] Nom (libellé d'affichage)
+    - [ ] URL (AAP Hub, Galaxy NG, etc.)
+    - [ ] Token d'authentification (stocké chiffré)
+    - [ ] Toggle actif/inactif
+  - [ ] Ordre de priorité des sources (drag & drop)
+  - [ ] Test de connexion par source
+- [ ] **Persistance configuration**
+  - [ ] Stockage en base de données (table `galaxy_sources`)
+  - [ ] Cache des sources actives au démarrage
+  - [ ] Rechargement à chaud sans redémarrage
+
 ### Galaxy Enhanced
 - [ ] **Optimisation performances favoris**
   - [ ] Cache prioritaire pour namespaces favoris
@@ -406,6 +422,6 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-31*
+*Document maintenu à jour. Dernière mise à jour : 2026-01-06*
 
 *Pour ajouter des items au backlog, créer une issue GitHub ou contacter l'équipe de développement.*
