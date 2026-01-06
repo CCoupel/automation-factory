@@ -5,6 +5,7 @@ Supports:
 - API v1: Standalone/legacy roles (author.role_name format)
 - API v3: Collection roles (namespace.collection.role format)
 - Private Galaxy: AAP (Automation Hub) or Galaxy NG
+- Dynamic source configuration from database (admin-configurable)
 """
 
 import logging
@@ -27,19 +28,50 @@ class GalaxyRolesService(BaseHTTPService):
 
     def __init__(self):
         super().__init__(timeout=60)
-        self.public_url = settings.GALAXY_PUBLIC_URL.rstrip('/')
-        self.public_enabled = settings.GALAXY_PUBLIC_ENABLED
-        self.private_url = settings.GALAXY_PRIVATE_URL.rstrip('/') if settings.GALAXY_PRIVATE_URL else ""
-        self.private_token = settings.GALAXY_PRIVATE_TOKEN
-        self.preferred_source = settings.GALAXY_PREFERRED_SOURCE
+        # Environment variables as fallback only (used when DB cache not loaded)
+        self._fallback_public_url = settings.GALAXY_PUBLIC_URL.rstrip('/')
+        self._fallback_public_enabled = settings.GALAXY_PUBLIC_ENABLED
+
+    def _get_active_sources(self) -> List[dict]:
+        """
+        Get active Galaxy sources from database cache.
+
+        Falls back to environment variables if cache not loaded.
+        """
+        from app.services.galaxy_source_service import GalaxySourceService
+
+        sources = GalaxySourceService.get_active_sources()
+        if sources:
+            return sources
+
+        # Fallback to environment config if cache not loaded
+        logger.warning("Galaxy sources cache not loaded, using environment fallback")
+        fallback = []
+        if self._fallback_public_enabled:
+            fallback.append({
+                "id": "env-public",
+                "name": "Ansible Galaxy (Public)",
+                "source_type": "public",
+                "url": self._fallback_public_url,
+                "token": None,
+                "priority": 10,
+            })
+        return fallback
+
+    def _get_source_by_type(self, source_type: str) -> Optional[dict]:
+        """Get the first active source of the specified type."""
+        sources = self._get_active_sources()
+        for source in sources:
+            if source["source_type"] == source_type:
+                return source
+        return None
 
     def _get_base_url(self, source: str) -> Optional[str]:
-        """Get base URL for the specified source. Returns None if source is disabled."""
-        if source == "private" and self.private_url:
-            return self.private_url
-        if source == "public" and not self.public_enabled:
-            return None  # Public Galaxy is disabled
-        return self.public_url if self.public_enabled else None
+        """Get base URL for the specified source type. Returns None if source is disabled."""
+        source_config = self._get_source_by_type(source)
+        if source_config:
+            return source_config["url"].rstrip('/')
+        return None
 
     def _get_headers(self, source: str) -> Dict[str, str]:
         """Get headers including auth token for private Galaxy"""
@@ -47,8 +79,9 @@ class GalaxyRolesService(BaseHTTPService):
             "Accept": "application/json",
             "Content-Type": "application/json"
         }
-        if source == "private" and self.private_token:
-            headers["Authorization"] = f"Token {self.private_token}"
+        source_config = self._get_source_by_type(source)
+        if source_config and source_config.get("token"):
+            headers["Authorization"] = f"Token {source_config['token']}"
         return headers
 
     # ========================================
@@ -419,13 +452,29 @@ class GalaxyRolesService(BaseHTTPService):
     # ========================================
 
     def get_config(self) -> Dict[str, Any]:
-        """Get Galaxy configuration (without exposing token)"""
+        """Get Galaxy configuration from database (without exposing tokens)"""
+        sources = self._get_active_sources()
+
+        # Find public and private sources
+        public_source = self._get_source_by_type("public")
+        private_source = self._get_source_by_type("private")
+
         return {
-            "public_url": self.public_url,
-            "public_enabled": self.public_enabled,
-            "private_configured": bool(self.private_url),
-            "private_url": self.private_url if self.private_url else None,
-            "preferred_source": self.preferred_source
+            "public_url": public_source["url"] if public_source else None,
+            "public_enabled": public_source is not None,
+            "private_configured": private_source is not None,
+            "private_url": private_source["url"] if private_source else None,
+            "preferred_source": "private" if private_source and private_source["priority"] < (public_source["priority"] if public_source else 999) else "public",
+            "sources": [
+                {
+                    "id": s["id"],
+                    "name": s["name"],
+                    "source_type": s["source_type"],
+                    "url": s["url"],
+                    "priority": s["priority"],
+                }
+                for s in sources
+            ]
         }
 
 

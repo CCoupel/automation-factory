@@ -41,6 +41,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { getHttpClient } from '../../utils/httpClient'
 import { useUserPreferences } from '../../contexts/UserPreferencesContext'
 import { variableTypesService, CustomVariableType, CreateCustomTypeRequest } from '../../services/variableTypesService'
+import GalaxySourcesTab from '../admin/GalaxySourcesTab'
 
 interface ConfigurationDialogProps {
   open: boolean
@@ -383,6 +384,7 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
                   <Tab label="Préférences" />
                   <Tab label="Namespaces" />
                   <Tab label="Types Variables" />
+                  <Tab label="Galaxy Sources" />
                 </Tabs>
               )}
 
@@ -603,6 +605,11 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
                     </>
                   )}
                 </Box>
+              )}
+
+              {/* Galaxy Sources Tab - Admin only */}
+              {isAdmin && activeTab === 3 && (
+                <GalaxySourcesTab />
               )}
             </>
           )}

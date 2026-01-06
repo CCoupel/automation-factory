@@ -72,11 +72,30 @@ const createHttpClient = (): AxiosInstance => {
       // Handle 401 Unauthorized - token expired or invalid
       if (error.response?.status === 401) {
         console.warn('🔒 AUTHENTICATION LOST: Token expired or invalid')
-        
+
         // Notify auth context of lost authentication
-        window.dispatchEvent(new CustomEvent('authLost', { 
-          detail: { reason: 'token_expired', url: error.config?.url } 
+        window.dispatchEvent(new CustomEvent('authLost', {
+          detail: { reason: 'token_expired', url: error.config?.url }
         }))
+      }
+
+      // Handle 403 Forbidden - permission denied or account disabled
+      if (error.response?.status === 403) {
+        console.warn('🚫 PERMISSION DENIED:', error.response?.data?.detail || 'Access forbidden')
+
+        // Check if account is disabled (should logout) vs just lacking permissions
+        const detail = error.response?.data?.detail || ''
+        if (detail.toLowerCase().includes('disabled') || detail.toLowerCase().includes('desactivé')) {
+          // Account disabled - treat like auth lost
+          window.dispatchEvent(new CustomEvent('authLost', {
+            detail: { reason: 'account_disabled', url: error.config?.url }
+          }))
+        } else {
+          // Just permission denied - don't logout
+          window.dispatchEvent(new CustomEvent('permissionDenied', {
+            detail: { reason: 'insufficient_permissions', url: error.config?.url, message: detail }
+          }))
+        }
       }
 
       return Promise.reject(error)

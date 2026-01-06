@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.2.1-rc.17"
-__description__ = "Ansible Builder API - Code Rationalization"
+__version__ = "2.3.0-rc.1"
+__description__ = "Ansible Builder API - Galaxy Admin Configuration"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -12,6 +12,34 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "2.3.0": {
+        "title": "Galaxy Admin Configuration",
+        "release_date": "2026-01-06",
+        "features": [
+            "Admin UI to manage Galaxy sources (public/private)",
+            "Toggle to enable/disable public Galaxy",
+            "Multi-source private Galaxy support (AAP, Galaxy NG)",
+            "Encrypted token storage (Fernet AES encryption)",
+            "Connection testing with status indicators",
+            "Drag & drop reordering for source priority",
+            "Hot-reload configuration (no restart needed)"
+        ],
+        "improvements": [
+            "Database-backed Galaxy configuration vs environment variables",
+            "Visual indicators for source type and connection status",
+            "Admin-only access with proper authorization",
+            "Automatic default source creation at startup",
+            "In-memory cache with instant refresh after changes"
+        ],
+        "technical": [
+            "backend/app/models/galaxy_source.py: GalaxySource SQLAlchemy model",
+            "backend/app/utils/encryption.py: Fernet encryption for tokens",
+            "backend/app/services/galaxy_source_service.py: CRUD + cache + test",
+            "backend/app/api/endpoints/galaxy_sources.py: Admin API endpoints",
+            "frontend/src/components/admin/GalaxySourcesTab.tsx: Admin UI",
+            "frontend/src/components/admin/GalaxySourceDialog.tsx: Add/Edit dialog"
+        ]
+    },
     "2.2.0": {
         "title": "Code Rationalization",
         "release_date": "2026-01-04",

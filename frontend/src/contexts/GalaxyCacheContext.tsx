@@ -2,15 +2,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ansibleApiService, Namespace } from '../services/ansibleApiService'
 import { notificationService, CacheNotification } from '../services/notificationService'
 import { useAnsibleVersion } from './AnsibleVersionContext'
+import { preloadManager, PreloadProgress } from '../services/preloadManager'
+
+// Re-export PreloadProgress for backward compatibility
+export type { PreloadProgress }
+
+// Module-level guard to prevent multiple initializations
+let contextInitialized = false
 
 interface GalaxyCacheContextType {
-  // Data
   popularNamespaces: Namespace[]
   allNamespaces: Namespace[]
   collectionsCache: Record<string, any[]>
   modulesCache: Record<string, any[]>
-
-  // Status
   isLoading: boolean
   isReady: boolean
   lastSync: string | null
@@ -18,10 +22,9 @@ interface GalaxyCacheContextType {
   error: string | null
   currentVersion: string
   preloadComplete: boolean
-
-  // Actions
+  preloadProgress: PreloadProgress
   refreshCache: () => Promise<void>
-  forceRefreshCache: () => Promise<void>  // Force refresh bypassing cache
+  forceRefreshCache: () => Promise<void>
   enrichNamespaceOnDemand: (namespace: string) => Promise<any | null>
   getCollections: (namespace: string) => Promise<any[] | null>
   getModules: (namespace: string, collection: string, version: string) => Promise<any[] | null>
@@ -45,354 +48,174 @@ interface GalaxyCacheProviderProps {
 }
 
 export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ children }) => {
-  // Get current Ansible version from shared context
   const { ansibleVersion } = useAnsibleVersion()
 
-  // Data state
   const [popularNamespaces, setPopularNamespaces] = useState<Namespace[]>([])
   const [allNamespaces, setAllNamespaces] = useState<Namespace[]>([])
-  const [collectionsCache, setCollectionsCache] = useState<Record<string, any[]>>({})
-  const [modulesCache, setModulesCache] = useState<Record<string, any[]>>({})
+  const [collectionsCache, setCollectionsCache] = useState<Record<string, any[]>>(
+    () => preloadManager.getCollections()
+  )
+  const [modulesCache, setModulesCache] = useState<Record<string, any[]>>(
+    () => preloadManager.getModules()
+  )
   const [currentVersion, setCurrentVersion] = useState<string>(ansibleVersion)
-  const [preloadComplete, setPreloadComplete] = useState<boolean>(false)
-
-  // Status state
+  const [preloadComplete, setPreloadComplete] = useState<boolean>(
+    () => preloadManager.isCompleted()
+  )
+  const [preloadProgress, setPreloadProgress] = useState<PreloadProgress>(
+    () => preloadManager.getProgress()
+  )
   const [isLoading, setIsLoading] = useState(true)
   const [isReady, setIsReady] = useState(false)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<string>('loading')
   const [error, setError] = useState<string | null>(null)
 
-  // Load cached data and start notifications on component mount
+  // Subscribe to preload manager updates
   useEffect(() => {
-    console.log('🚀 GalaxyCacheContext: Loading cached Galaxy data on app startup...')
+    const unsubProgress = preloadManager.onProgress(setPreloadProgress)
+    const unsubComplete = preloadManager.onComplete((collections, modules) => {
+      setCollectionsCache(prev => ({ ...prev, ...collections }))
+      setModulesCache(prev => ({ ...prev, ...modules }))
+      setPreloadComplete(true)
+    })
+    return () => {
+      unsubProgress()
+      unsubComplete()
+    }
+  }, [])
+
+  // Load cached data on mount - module-level guard
+  useEffect(() => {
+    if (contextInitialized) return
+    contextInitialized = true
+
+    console.log('🚀 GalaxyCacheContext: Initializing...')
     loadCachedData()
-
-    // Start listening to SSE notifications
     notificationService.connect()
-
-    // Subscribe to cache notifications
     const unsubscribe = notificationService.subscribe(handleNotification)
-
-    // Cleanup on unmount
     return () => {
       unsubscribe()
       notificationService.disconnect()
     }
   }, [])
 
-  // React to Ansible version changes
+  // React to version changes
   useEffect(() => {
-    if (ansibleVersion && ansibleVersion !== currentVersion) {
-      console.log(`🔄 GalaxyCacheContext: Ansible version changed from ${currentVersion} to ${ansibleVersion}`)
-      setCurrentVersion(ansibleVersion)
+    if (!isReady) return
+    if (ansibleVersion === currentVersion) return
 
-      // Update the service with new version
-      ansibleApiService.setVersion(ansibleVersion)
+    console.log(`🔄 Version changed from ${currentVersion} to ${ansibleVersion}`)
+    setCurrentVersion(ansibleVersion)
+    ansibleApiService.setVersion(ansibleVersion)
+    setCollectionsCache({})
+    setModulesCache({})
+    setPreloadComplete(false)
+    preloadManager.reset(ansibleVersion)
+    loadCachedData()
+  }, [ansibleVersion, currentVersion, isReady])
 
-      // Clear collections cache (collections are version-specific)
-      setCollectionsCache({})
+  // Trigger preload when namespaces are ready
+  useEffect(() => {
+    if (!isReady || allNamespaces.length === 0) return
 
-      // Reload namespaces for new version
-      console.log(`📥 GalaxyCacheContext: Reloading data for Ansible ${ansibleVersion}...`)
-      loadCachedData()
-    }
-  }, [ansibleVersion, currentVersion])
-  
+    const namespaceNames = allNamespaces.map(ns => ns.name)
+    preloadManager.startPreload(namespaceNames, ansibleVersion)
+  }, [isReady, allNamespaces.length, ansibleVersion])
+
   const loadCachedData = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      
-      // Get all cached data from Ansible API service
-      const cachedData = await ansibleApiService.getAllCachedData()
-      
-      if (cachedData) {
-        // Update state with cached data
-        setPopularNamespaces(cachedData.popular_namespaces || [])
-        setAllNamespaces(cachedData.all_namespaces || [])
-        
-        // Store collections sample in cache
-        if (cachedData.collections_sample) {
-          setCollectionsCache(cachedData.collections_sample)
-        }
-        
-        // Update status
-        setSyncStatus(cachedData.cache_info?.sync_status || 'unknown')
-        setLastSync(cachedData.cache_info?.last_sync || null)
+      const data = await ansibleApiService.getAllCachedData()
+      if (data) {
+        setPopularNamespaces(data.popular_namespaces || [])
+        setAllNamespaces(data.all_namespaces || [])
+        if (data.collections_sample) setCollectionsCache(prev => ({ ...prev, ...data.collections_sample }))
+        setSyncStatus(data.cache_info?.sync_status || 'unknown')
+        setLastSync(data.cache_info?.last_sync || null)
         setIsReady(true)
-        
-        console.log('✅ Ansible API data loaded successfully:', {
-          popular: cachedData.popular_namespaces?.length || 0,
-          all: cachedData.all_namespaces?.length || 0,
-          collections_sample: Object.keys(cachedData.collections_sample || {}).length,
-          sync_status: cachedData.cache_info?.sync_status,
-          service: 'ansible_api'
-        })
+        console.log('✅ Data loaded:', { namespaces: data.all_namespaces?.length || 0 })
       } else {
-        // No cached data available
-        setError('No cached Galaxy data available')
+        setError('No cached data available')
         setSyncStatus('no_cache')
-        console.warn('⚠️ No cached Galaxy data found')
       }
-      
-    } catch (err) {
-      console.error('❌ Failed to load cached Galaxy data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load cached data')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Load failed')
       setSyncStatus('error')
     } finally {
       setIsLoading(false)
     }
   }
-  
+
   const refreshCache = async () => {
-    try {
-      console.log('🔄 Refreshing Galaxy cache...')
-      setIsLoading(true)
-      setError(null)
-
-      // Use Ansible API service (no need for resync, just refresh data)
-      console.log('🔄 Refreshing Ansible data...')
-      await loadCachedData()
-      setSyncStatus('refreshed')
-
-      // Return to 'completed' (displayed as 'Cached') after 5 seconds
-      setTimeout(() => {
-        setSyncStatus('completed')
-      }, 5000)
-
-    } catch (err) {
-      console.error('❌ Cache refresh failed:', err)
-      setError(err instanceof Error ? err.message : 'Cache refresh failed')
-      setSyncStatus('error')
-
-      // Return to 'completed' after 5 seconds even on error
-      setTimeout(() => {
-        setSyncStatus('completed')
-      }, 5000)
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(true)
+    setError(null)
+    await loadCachedData()
+    setSyncStatus('refreshed')
+    setTimeout(() => setSyncStatus('completed'), 5000)
+    setIsLoading(false)
   }
 
   const forceRefreshCache = async () => {
-    try {
-      console.log('🔄 FORCE Refreshing - Bypassing all caches...')
-      setIsLoading(true)
-      setSyncStatus('refreshing')
-      setError(null)
-
-      // Clear local collections cache
-      setCollectionsCache({})
-
-      // Request fresh data from backend with force_refresh parameter
-      const cachedData = await ansibleApiService.getAllCachedData(true)
-
-      if (cachedData) {
-        setPopularNamespaces(cachedData.popular_namespaces || [])
-        setAllNamespaces(cachedData.all_namespaces || [])
-        setSyncStatus('refreshed')
-        setLastSync(new Date().toISOString())
-        setIsReady(true)
-
-        console.log('✅ Force refresh completed:', {
-          namespaces: cachedData.all_namespaces?.length || 0,
-          version: currentVersion
-        })
-
-        // Return to 'completed' (displayed as 'Cached') after 5 seconds
-        setTimeout(() => {
-          setSyncStatus('completed')
-        }, 5000)
-      }
-
-    } catch (err) {
-      console.error('❌ Force cache refresh failed:', err)
-      setError(err instanceof Error ? err.message : 'Force cache refresh failed')
-      setSyncStatus('error')
-
-      // Return to 'completed' after 5 seconds even on error
-      setTimeout(() => {
-        setSyncStatus('completed')
-      }, 5000)
-    } finally {
-      setIsLoading(false)
+    setIsLoading(true)
+    setSyncStatus('refreshing')
+    setError(null)
+    setCollectionsCache({})
+    setModulesCache({})
+    setPreloadComplete(false)
+    preloadManager.reset()
+    const data = await ansibleApiService.getAllCachedData(true)
+    if (data) {
+      setPopularNamespaces(data.popular_namespaces || [])
+      setAllNamespaces(data.all_namespaces || [])
+      setSyncStatus('refreshed')
+      setLastSync(new Date().toISOString())
+      setIsReady(true)
+      setTimeout(() => setSyncStatus('completed'), 5000)
     }
+    setIsLoading(false)
   }
 
   const enrichNamespaceOnDemand = async (namespace: string) => {
-    try {
-      console.log(`🔄 Enriching namespace on-demand: ${namespace}`)
-      
-      // For Ansible API, no enrichment needed - return basic namespace info
-      const enrichedNamespace = { name: namespace, collection_count: 0 }
-      if (enrichedNamespace) {
-        // Mettre à jour les données en cache avec le namespace enrichi
-        setAllNamespaces(prev => 
-          prev.map(ns => ns.name === namespace ? enrichedNamespace : ns)
-        )
-        console.log(`✅ Namespace ${namespace} enriched and updated`)
-        return enrichedNamespace
-      } else {
-        console.warn(`⚠️ Failed to enrich namespace ${namespace}`)
-        return null
-      }
-    } catch (error) {
-      console.error(`❌ Error enriching namespace ${namespace}:`, error)
-      return null
-    }
-  }
-  
-  const getCollections = async (namespace: string): Promise<any[] | null> => {
-    try {
-      // Check if already cached
-      if (collectionsCache[namespace]) {
-        console.log(`📚 Collections for ${namespace} found in cache`)
-        return collectionsCache[namespace]
-      }
-      
-      // Fetch from backend via SMART service
-      console.log(`📥 Fetching collections for ${namespace} from SMART service...`)
-      const collections = await ansibleApiService.getCollections(namespace)
-      
-      if (collections) {
-        // Cache the result
-        setCollectionsCache(prev => ({
-          ...prev,
-          [namespace]: collections
-        }))
-        
-        console.log(`✅ Loaded ${collections.length} collections for ${namespace}`)
-        return collections
-      }
-      
-      console.warn(`⚠️ No cached collections found for ${namespace}`)
-      return null
-      
-    } catch (error) {
-      console.error(`❌ Failed to get collections for ${namespace}:`, error)
-      return null
-    }
-  }
-  
-  const getModules = async (namespace: string, collection: string, version: string): Promise<any[] | null> => {
-    try {
-      const cacheKey = `${namespace}.${collection}`
-
-      // Check if already cached
-      if (modulesCache[cacheKey]) {
-        console.log(`📚 Modules for ${cacheKey} found in cache`)
-        return modulesCache[cacheKey]
-      }
-
-      console.log(`📥 Fetching modules for ${namespace}.${collection}:${version} from SMART service...`)
-
-      const modules = await ansibleApiService.getModules(namespace, collection)
-
-      if (modules) {
-        // Cache the result
-        setModulesCache(prev => ({
-          ...prev,
-          [cacheKey]: modules
-        }))
-
-        console.log(`✅ Loaded ${modules.length} modules for ${namespace}.${collection}:${version}`)
-        return modules
-      }
-
-      console.warn(`⚠️ No cached modules found for ${namespace}.${collection}:${version}`)
-      return null
-
-    } catch (error) {
-      console.error(`❌ Failed to get modules for ${namespace}.${collection}:${version}:`, error)
-      return null
-    }
+    const enriched = { name: namespace, collection_count: 0 }
+    setAllNamespaces(prev => prev.map(ns => ns.name === namespace ? enriched : ns))
+    return enriched
   }
 
-  // Setters for TreeView preloading
-  const setCollectionsCacheData = (data: Record<string, any[]>) => {
-    setCollectionsCache(prev => ({ ...prev, ...data }))
+  const getCollections = async (namespace: string) => {
+    if (collectionsCache[namespace]) return collectionsCache[namespace]
+    const cols = await ansibleApiService.getCollections(namespace)
+    if (cols) setCollectionsCache(p => ({ ...p, [namespace]: cols }))
+    return cols || null
   }
 
-  const setModulesCacheData = (data: Record<string, any[]>) => {
-    setModulesCache(prev => ({ ...prev, ...data }))
+  const getModules = async (namespace: string, collection: string, _version: string) => {
+    const key = `${namespace}.${collection}`
+    if (modulesCache[key]) return modulesCache[key]
+    const mods = await ansibleApiService.getModules(namespace, collection)
+    if (mods) setModulesCache(p => ({ ...p, [key]: mods }))
+    return mods || null
   }
-  
-  const handleNotification = (notification: CacheNotification) => {
-    // Skip logging for ping keepalives
-    if (notification.type === 'ping') {
-      return // No action needed for keepalive pings
-    }
 
-    console.log('📨 Cache notification:', notification.type, notification.message || '')
+  const setCollectionsCacheData = (d: Record<string, any[]>) => setCollectionsCache(p => ({ ...p, ...d }))
+  const setModulesCacheData = (d: Record<string, any[]>) => setModulesCache(p => ({ ...p, ...d }))
 
-    switch (notification.type) {
-      case 'connected':
-        console.log('✅ Connected to cache notifications')
-        break
-
-      case 'cache_sync_started':
-        console.log('🚀 Cache sync started')
-        setSyncStatus('syncing')
-        setError(null)
-        break
-
-      case 'cache_sync_completed':
-        console.log('✅ Cache sync completed')
-        setSyncStatus('completed')
-        setLastSync(notification.timestamp)
-
-        // Reload cache data to get latest updates
-        loadCachedData()
-        break
-
-      case 'cache_updated':
-        console.log('📊 Cache data updated:', notification.data?.update_type)
-        // Could selectively update specific data based on update_type
-        loadCachedData()
-        break
-
-      case 'cache_error':
-        console.error('❌ Cache sync error:', notification.data?.error)
-        setSyncStatus('error')
-        setError(notification.data?.error || 'Cache sync failed')
-        break
-
-      default:
-        console.log('📨 Unknown notification type:', notification.type)
-    }
+  const handleNotification = (n: CacheNotification) => {
+    if (n.type === 'ping') return
+    if (n.type === 'connected') console.log('✅ Connected to notifications')
+    else if (n.type === 'cache_sync_started') { setSyncStatus('syncing'); setError(null) }
+    else if (n.type === 'cache_sync_completed') { setSyncStatus('completed'); setLastSync(n.timestamp); loadCachedData() }
+    else if (n.type === 'cache_updated') loadCachedData()
+    else if (n.type === 'cache_error') { setSyncStatus('error'); setError(n.data?.error || 'Sync failed') }
   }
-  
+
   const value: GalaxyCacheContextType = {
-    // Data
-    popularNamespaces,
-    allNamespaces,
-    collectionsCache,
-    modulesCache,
-
-    // Status
-    isLoading,
-    isReady,
-    lastSync,
-    syncStatus,
-    error,
-    currentVersion,
-    preloadComplete,
-
-    // Actions
-    refreshCache,
-    forceRefreshCache,
-    enrichNamespaceOnDemand,
-    getCollections,
-    getModules,
-    setCollectionsCacheData,
-    setModulesCacheData,
-    setPreloadComplete,
+    popularNamespaces, allNamespaces, collectionsCache, modulesCache,
+    isLoading, isReady, lastSync, syncStatus, error, currentVersion, preloadComplete, preloadProgress,
+    refreshCache, forceRefreshCache, enrichNamespaceOnDemand, getCollections, getModules,
+    setCollectionsCacheData, setModulesCacheData, setPreloadComplete
   }
-  
-  return (
-    <GalaxyCacheContext.Provider value={value}>
-      {children}
-    </GalaxyCacheContext.Provider>
-  )
+
+  return <GalaxyCacheContext.Provider value={value}>{children}</GalaxyCacheContext.Provider>
 }

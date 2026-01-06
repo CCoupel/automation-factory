@@ -3,6 +3,7 @@ from .user_preferences import UserPreferences
 from .playbook import Playbook
 from .playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
 from .custom_variable_type import CustomVariableType
+from .galaxy_source import GalaxySource
 
 __all__ = [
     "User",
@@ -12,5 +13,6 @@ __all__ = [
     "PlaybookAuditLog",
     "PlaybookRole",
     "AuditAction",
-    "CustomVariableType"
+    "CustomVariableType",
+    "GalaxySource",
 ]

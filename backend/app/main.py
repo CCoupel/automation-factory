@@ -12,6 +12,7 @@ from app.version import __version__
 from app.services.cache_scheduler_service import cache_scheduler
 from app.services.sse_manager import sse_manager
 from app.services.variable_type_service import ensure_default_types
+from app.services.galaxy_source_service import GalaxySourceService
 
 async def create_default_user():
     """Create default admin user for testing if not exists"""
@@ -69,6 +70,19 @@ async def lifespan(app: FastAPI):
                 print(f"Created default variable types: {', '.join(created_types)}")
             else:
                 print("Default variable types already exist")
+
+        # Initialize Galaxy sources from environment (if DB empty) and load cache
+        async with AsyncSessionLocal() as session:
+            # Get admin user ID for created_by field
+            result = await session.execute(select(User).where(User.is_admin == True).limit(1))
+            admin_user = result.scalar_one_or_none()
+            admin_id = str(admin_user.id) if admin_user else None
+
+            if admin_id:
+                await GalaxySourceService.initialize_defaults(session, admin_id)
+            await GalaxySourceService.refresh_cache(session)
+            sources = GalaxySourceService.get_active_sources()
+            print(f"Galaxy sources initialized: {len(sources)} active source(s)")
 
         # Start Ansible cache scheduler
         print("Starting Ansible cache scheduler...")

@@ -134,17 +134,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Listen for authentication lost events from httpClient
     const handleAuthLost = (event: CustomEvent) => {
       console.warn('🔒 AUTH CONTEXT: Authentication lost detected', event.detail)
+
+      // Clear authentication state - this will trigger redirect via PrivateRoute
+      setUser(null)
+      setToken(null)
       setAuthLost(true)
+
+      // Clear localStorage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('authUser')
+
+      console.log('🔒 AUTH CONTEXT: Cleared auth state, user will be redirected to login')
+    }
+
+    // Listen for permission denied events (403)
+    const handlePermissionDenied = (event: CustomEvent) => {
+      console.warn('🚫 AUTH CONTEXT: Permission denied', event.detail)
+      // Don't logout on 403, just log it - user is authenticated but lacks permissions
     }
 
     loadUserFromStorage()
     
-    // Add event listener for auth loss
+    // Add event listeners for auth events
     window.addEventListener('authLost', handleAuthLost as EventListener)
+    window.addEventListener('permissionDenied', handlePermissionDenied as EventListener)
 
     // Cleanup
     return () => {
       window.removeEventListener('authLost', handleAuthLost as EventListener)
+      window.removeEventListener('permissionDenied', handlePermissionDenied as EventListener)
     }
   }, [])
 

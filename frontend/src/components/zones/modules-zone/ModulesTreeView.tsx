@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, Typography, CircularProgress, IconButton, Tooltip, Tabs, Tab, Chip, LinearProgress } from '@mui/material'
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView'
 import { TreeItem } from '@mui/x-tree-view/TreeItem'
@@ -50,6 +50,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     collectionsCache,
     modulesCache,
     preloadComplete,
+    preloadProgress,  // Now from context - auto-preload at app startup
     setCollectionsCacheData,
     setModulesCacheData,
     setPreloadComplete
@@ -77,21 +78,8 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
 
   const [favoritesLoading, setFavoritesLoading] = useState(false)
 
-  // Preloading state - separate tracking for each level
-  const [preloadProgress, setPreloadProgress] = useState<{
-    phase: 'idle' | 'namespaces' | 'collections' | 'modules' | 'complete'
-    namespaces: { current: number; total: number }
-    collections: { current: number; total: number }
-    modules: { current: number; total: number }
-    currentItem: string
-  }>({
-    phase: 'idle',
-    namespaces: { current: 0, total: 0 },
-    collections: { current: 0, total: 0 },
-    modules: { current: 0, total: 0 },
-    currentItem: ''
-  })
-  const preloadStarted = useRef(false)
+  // Note: Preloading is now handled by GalaxyCacheContext at app startup
+  // preloadProgress comes from context
 
   // Combined namespace favorites = standard + user
   const combinedNamespaceFavorites = [...new Set([...standardNamespaces, ...favoriteNamespaces])]
@@ -154,135 +142,8 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
     loadAllFavorites()
   }, [])
 
-  // Preload all data (collections and modules) for instant search
-  // Uses parallel loading with batches for better performance
-  useEffect(() => {
-    // Skip if already preloaded or not ready
-    if (preloadComplete || preloadStarted.current || !isReady || allNamespaces.length === 0) return
-    preloadStarted.current = true
+  // Preloading is now handled by GalaxyCacheContext
 
-    const BATCH_SIZE = 10 // Number of parallel requests
-
-    const preloadAllData = async () => {
-      const namespaces = allNamespaces.map(ns => ns.name)
-      const totalNamespaces = namespaces.length
-
-      // Initialize progress with totals
-      setPreloadProgress(prev => ({
-        ...prev,
-        phase: 'namespaces',
-        namespaces: { current: totalNamespaces, total: totalNamespaces },
-        collections: { current: 0, total: 0 },
-        modules: { current: 0, total: 0 },
-        currentItem: 'Namespaces loaded'
-      }))
-
-      // Small delay to show namespaces phase
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // Phase 1: Load all collections in parallel batches
-      setPreloadProgress(prev => ({
-        ...prev,
-        phase: 'collections',
-        currentItem: ''
-      }))
-
-      const allCollections: Record<string, CollectionData[]> = {}
-
-      for (let i = 0; i < namespaces.length; i += BATCH_SIZE) {
-        const batch = namespaces.slice(i, i + BATCH_SIZE)
-        const batchNames = batch.join(', ')
-        setPreloadProgress(prev => ({
-          ...prev,
-          phase: 'collections',
-          collections: { current: Math.min(i + BATCH_SIZE, totalNamespaces), total: totalNamespaces },
-          currentItem: batchNames
-        }))
-
-        // Load batch in parallel
-        const results = await Promise.all(
-          batch.map(async (ns) => {
-            try {
-              const collections = await getCollections(ns)
-              return { ns, collections }
-            } catch (error) {
-              console.error(`Failed to preload collections for ${ns}:`, error)
-              return { ns, collections: null }
-            }
-          })
-        )
-
-        // Store results
-        results.forEach(({ ns, collections }) => {
-          if (collections) {
-            allCollections[ns] = collections
-          }
-        })
-      }
-      setCollectionsCacheData(allCollections)
-
-      // Phase 2: Load all modules in parallel batches
-      const collectionIds = Object.entries(allCollections).flatMap(([ns, cols]) =>
-        cols.map(c => `${ns}.${c.name}`)
-      )
-      const totalCollections = collectionIds.length
-
-      setPreloadProgress(prev => ({
-        ...prev,
-        phase: 'modules',
-        collections: { current: totalNamespaces, total: totalNamespaces },
-        modules: { current: 0, total: totalCollections },
-        currentItem: ''
-      }))
-
-      const allModules: Record<string, ModuleData[]> = {}
-
-      for (let i = 0; i < collectionIds.length; i += BATCH_SIZE) {
-        const batch = collectionIds.slice(i, i + BATCH_SIZE)
-        const batchNames = batch.length <= 3 ? batch.join(', ') : `${batch[0]} ... ${batch[batch.length - 1]}`
-        setPreloadProgress(prev => ({
-          ...prev,
-          phase: 'modules',
-          modules: { current: Math.min(i + BATCH_SIZE, totalCollections), total: totalCollections },
-          currentItem: batchNames
-        }))
-
-        // Load batch in parallel
-        const results = await Promise.all(
-          batch.map(async (collectionId) => {
-            const [namespace, collection] = collectionId.split('.')
-            try {
-              const modules = await getModules(namespace, collection, 'latest')
-              return { collectionId, modules }
-            } catch (error) {
-              console.error(`Failed to preload modules for ${collectionId}:`, error)
-              return { collectionId, modules: null }
-            }
-          })
-        )
-
-        // Store results
-        results.forEach(({ collectionId, modules }) => {
-          if (modules) {
-            allModules[collectionId] = modules
-          }
-        })
-      }
-      setModulesCacheData(allModules)
-
-      // Complete - mark in context so it persists across tab switches
-      setPreloadComplete(true)
-      setPreloadProgress(prev => ({
-        ...prev,
-        phase: 'complete',
-        modules: { current: totalCollections, total: totalCollections },
-        currentItem: 'Ready'
-      }))
-      console.log(`✅ Preload complete: ${Object.keys(allCollections).length} namespaces, ${Object.keys(allModules).length} collections (parallel batches of ${BATCH_SIZE})`)
-    }
-
-    preloadAllData()
-  }, [isReady, allNamespaces, preloadComplete, getCollections, getModules, setCollectionsCacheData, setModulesCacheData, setPreloadComplete])
 
   // Check functions
   const isStandardNamespace = (namespace: string) => standardNamespaces.includes(namespace)

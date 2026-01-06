@@ -279,6 +279,78 @@ npm run tsc --noEmit
 - [ ] **Logs clean** : Pas d'erreurs backend
 - [ ] **Performance** : Réponses <2s local
 
+### Tests Chrome/Navigateur OBLIGATOIRES
+
+> **Important** : Ces tests doivent être effectués manuellement dans Chrome avec les DevTools ouverts (F12) pour surveiller les erreurs console et réseau.
+
+#### Prérequis
+```bash
+# Terminal 1 : Backend
+cd backend && source venv/bin/activate
+uvicorn app.main:app --reload --port 8000
+
+# Terminal 2 : Frontend
+cd frontend && npm run dev
+```
+
+#### Tests Authentification
+- [ ] **Login admin** : admin@example.com / admin123 → Succès
+- [ ] **Login user** : Création compte utilisateur → Succès
+- [ ] **Logout** : Déconnexion propre
+- [ ] **Token refresh** : Session maintenue après refresh page
+
+#### Tests Interface Principale
+- [ ] **Page d'accueil** : Charge sans erreur
+- [ ] **Version affichée** : Footer affiche X.Y.Z_n
+- [ ] **Navigation** : Tous les menus fonctionnent
+- [ ] **Responsive** : Interface adaptée mobile (DevTools toggle)
+
+#### Tests Galaxy Sources (Admin)
+- [ ] **Accès Configuration** : Icône ⚙️ → Dialog s'ouvre
+- [ ] **Onglet Galaxy Sources** : Visible pour admin uniquement
+- [ ] **Liste sources** : Galaxy Public créée par défaut au startup
+- [ ] **Indicateurs visuels** : Icône Public/Private, status test, token chip
+- [ ] **Add Source** :
+  - [ ] Dialog s'ouvre avec champs vides
+  - [ ] Validation nom requis
+  - [ ] Validation URL requise
+  - [ ] Token requis pour type Private
+  - [ ] Test Connection avant sauvegarde
+  - [ ] Création réussie → Liste mise à jour
+- [ ] **Edit Source** :
+  - [ ] Dialog pré-rempli (sauf token)
+  - [ ] Modification nom/URL
+  - [ ] Token placeholder "****" si existant
+  - [ ] Sauvegarde réussie
+- [ ] **Toggle Active** :
+  - [ ] Switch activer/désactiver
+  - [ ] Impossible désactiver dernière source active (erreur)
+- [ ] **Test Connection** :
+  - [ ] Spinner pendant test
+  - [ ] Icône ✅ ou ❌ après test
+  - [ ] Tooltip avec date dernier test
+- [ ] **Delete Source** :
+  - [ ] Confirmation dialog
+  - [ ] Impossible supprimer source publique
+  - [ ] Suppression source privée OK
+- [ ] **Drag & Drop Reorder** :
+  - [ ] Curseur grab sur hover
+  - [ ] Réordonnancement visuel
+  - [ ] Ordre persisté après refresh
+
+#### Tests Playbooks (Fonctionnalités existantes)
+- [ ] **Créer playbook** : Nouveau playbook vide
+- [ ] **Drag & drop modules** : Ajouter modules depuis Galaxy
+- [ ] **Édition variables** : Modifier variables fonctionne
+- [ ] **Sauvegarde** : Playbook sauvegardé en DB
+- [ ] **Export YAML** : Téléchargement fichier .yml
+
+#### Tests Console DevTools
+- [ ] **Aucune erreur JS** : Console propre (warnings OK)
+- [ ] **Network requests** : Toutes requêtes 2xx/3xx
+- [ ] **Pas de 401/403** : Authentification correcte
+- [ ] **Pas de 500** : Pas d'erreur serveur
+
 ---
 
 ## 📊 **Livrables Phase 1**
@@ -383,7 +455,7 @@ git commit -m "feat: [description] - Phase 1 complete
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2025-12-14*
+*Document maintenu à jour. Dernière mise à jour : 2026-01-06*
 
 *Voir aussi :*
 - [Phase 2 Intégration](PHASE2_INTEGRATION.md)
