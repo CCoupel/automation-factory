@@ -94,6 +94,8 @@ interface WorkZoneProps {
   initialPlaybookId?: string | null
   // Callback when playbook ID changes
   onPlaybookIdChange?: (id: string | null) => void
+  // Callback when active section tab changes (for ModulesZone visibility)
+  onActiveSectionTabChange?: (tab: 'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers') => void
 }
 
 // Helper to create START modules for a play
@@ -132,7 +134,7 @@ const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock
 // Session storage key for playbook cache
 const PLAYBOOK_CACHE_KEY = 'ansible-builder-playbook-cache'
 
-const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSelectRole, selectedRoleIndex, onRoleCallbacks, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange }: WorkZoneProps) => {
+const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSelectRole, selectedRoleIndex, onRoleCallbacks, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange, onActiveSectionTabChange }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)
   const playSectionsContainerRef = useRef<HTMLDivElement>(null)
   const variablesSectionRef = useRef<HTMLDivElement>(null)
@@ -256,6 +258,12 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   const [collapsedPlaySections, setCollapsedPlaySections] = useState<Set<string>>(new Set(['*:pre_tasks', '*:post_tasks', '*:handlers']))
   // Onglet actif pour les sections PLAY (présentation en tabs) - Variables reste en accordéon
   const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
+
+  // Notify parent when active section tab changes (for ModulesZone visibility)
+  useEffect(() => {
+    onActiveSectionTabChange?.(activeSectionTab)
+  }, [activeSectionTab, onActiveSectionTabChange])
+
   const [resizingBlock, setResizingBlock] = useState<{ id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null>(null)
   const [addVariableDialogOpen, setAddVariableDialogOpen] = useState(false)
   const [editingVariableIndex, setEditingVariableIndex] = useState<number | null>(null)

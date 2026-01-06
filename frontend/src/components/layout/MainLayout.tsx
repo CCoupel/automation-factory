@@ -99,6 +99,9 @@ const MainLayout = () => {
   // Active play ID (for collaboration - different from playbook ID)
   const [activePlayId, setActivePlayId] = useState<string | null>(null)
 
+  // Active section tab from WorkZone (for ModulesZone visibility)
+  const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
+
   // Force re-render counter for collaboration updates that affect refs
   const [, forceRender] = useState(0)
 
@@ -280,7 +283,7 @@ const MainLayout = () => {
               position: 'relative',
             }}
           >
-            <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} />
+            <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
             {/* Poignée de redimensionnement */}
             <Box
               onMouseDown={handleModulesMouseDown}
@@ -399,6 +402,7 @@ const MainLayout = () => {
             onActivePlayIdChange={setActivePlayId}
             initialPlaybookId={currentPlaybookId}
             onPlaybookIdChange={setCurrentPlaybookId}
+            onActiveSectionTabChange={setActiveSectionTab}
           />
         </Box>
 

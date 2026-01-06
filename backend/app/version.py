@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "2.3.0-rc.1"
+__version__ = "2.3.0-rc.2"
 __description__ = "Ansible Builder API - Galaxy Admin Configuration"
 
 # Environment: PROD (default), STAGING, DEV

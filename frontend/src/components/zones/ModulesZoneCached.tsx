@@ -47,6 +47,8 @@ import { RolesTreeView } from './modules-zone/RolesTreeView'
 
 interface ModulesZoneCachedProps {
   onCollapse?: () => void
+  // Active section tab from WorkZone - used to show/hide Modules tab
+  activeSectionTab?: 'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'
 }
 
 type NavigationLevel = 'namespaces' | 'collections' | 'versions' | 'modules'
@@ -61,9 +63,45 @@ interface NavigationState {
 }
 
 
-const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
-  console.log('ModulesZoneCached v1.16.1 FIXED loaded at:', new Date().toISOString())
+const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedProps) => {
+  console.log('ModulesZoneCached v1.16.4 ROLES_ONLY loaded at:', new Date().toISOString())
+  // Logical tab values: 0=Generic, 1=Modules, 2=Roles (always)
   const [activeTab, setActiveTab] = useState(0)
+
+  // Determine which tabs should be visible based on WorkZone section
+  const isRolesSection = activeSectionTab === 'roles'
+  const showGenericTab = !isRolesSection  // Hide Generic when Roles section active
+  const showModulesTab = !isRolesSection  // Hide Modules when Roles section active
+
+  // When switching to Roles section, auto-switch to Roles tab (logical 2)
+  useEffect(() => {
+    if (isRolesSection && activeTab !== 2) {
+      setActiveTab(2) // Switch to Roles tab
+    }
+  }, [isRolesSection, activeTab])
+
+  // Map logical tab (0,1,2) to visual tab index based on visible tabs
+  const getVisualTabIndex = () => {
+    if (isRolesSection) {
+      // Only Roles tab visible, always index 0
+      return 0
+    } else {
+      // All tabs visible: Generic=0, Modules=1, Roles=2
+      return activeTab
+    }
+  }
+
+  // Map visual tab click to logical tab based on visible tabs
+  const handleTabChange = (_: React.SyntheticEvent, visualIndex: number) => {
+    if (isRolesSection) {
+      // Only Roles visible, so any click = Roles (logical 2)
+      setActiveTab(2)
+    } else {
+      // All tabs visible: direct mapping
+      setActiveTab(visualIndex)
+    }
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   // Get current Ansible version from AppHeader VersionSelector
   const { selectedVersion: ansibleVersion } = useAnsibleVersions()
@@ -118,6 +156,8 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
     { name: 'block', description: 'Group tasks with error handling' },
     { name: 'include_tasks', description: 'Include tasks from file' },
     { name: 'import_tasks', description: 'Import tasks statically' },
+    { name: 'import_role', description: 'Import a role statically' },
+    { name: 'include_role', description: 'Include a role dynamically' },
   ]
   
   // Load standard namespaces from configuration on mount
@@ -566,15 +606,15 @@ const ModulesZoneCached = ({ onCollapse }: ModulesZoneCachedProps) => {
           </Box>
         </Box>
 
-        {/* Tabs */}
+        {/* Tabs - Only Roles visible when Roles section active */}
         <Tabs
-          value={activeTab}
-          onChange={(_, val) => setActiveTab(val)}
+          value={getVisualTabIndex()}
+          onChange={handleTabChange}
           variant="fullWidth"
           sx={{ mb: 1.5 }}
         >
-          <Tab label="Generic" />
-          <Tab label="Modules" />
+          {showGenericTab && <Tab label="Generic" />}
+          {showModulesTab && <Tab label="Modules" />}
           <Tab label="Roles" />
         </Tabs>
 
