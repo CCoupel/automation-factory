@@ -259,20 +259,31 @@ git push --tags
 
 **Fichiers à modifier dans `marketing/` :**
 
-1. **index.html** - Section Versions (timeline)
+1. **translations.js** - Hero Badge (en-tête de page)
+   - **⚠️ OBLIGATOIRE** : Mettre à jour `hero.badge` (FR ligne ~18, EN ligne ~346)
+   - Format : `'hero.badge': 'Version X.Y.Z - Nom Feature',`
+
+2. **index.html** - Hero Badge (fallback, ligne ~70)
+   - Mettre à jour le texte dans `<span data-i18n="hero.badge">...</span>`
+
+3. **index.html** - Section Versions (timeline)
    - Ajouter la nouvelle version en haut de la timeline
    - Marquer la nouvelle version comme "Actuelle" / "Current"
    - Retirer le tag "Actuelle" de l'ancienne version
+   - **⚠️ OBLIGATOIRE** : Ajouter `data-i18n-detail` sur chaque `<li>` pour les popups
 
-2. **translations.js** - Traductions FR/EN
+4. **translations.js** - Traductions FR/EN
    - Ajouter les traductions pour la nouvelle version :
      - `versions.vXYZ.date` (FR/EN)
      - `versions.vXYZ.title` (FR/EN)
      - `versions.vXYZ.f1`, `f2`, etc. pour chaque feature (FR/EN)
+     - **⚠️ OBLIGATOIRE** : `versions.vXYZ.f1.detail`, `f2.detail`, etc. pour les popups (FR/EN)
 
-3. **index.html** - Section Roadmap (optionnel)
+5. **index.html** - Section Roadmap (optionnel)
    - Retirer les fonctionnalités implémentées de la roadmap
    - Ajouter les nouvelles fonctionnalités prévues
+
+**Documentation complète** : Voir `marketing/MAINTENANCE.md`
 
 **Procédure :**
 ```bash
@@ -305,12 +316,26 @@ git push
         </div>
         <h3 data-i18n="versions.vXYZ.title">Titre Feature</h3>
         <ul class="version-features">
-            <li data-i18n="versions.vXYZ.f1">Feature 1</li>
-            <li data-i18n="versions.vXYZ.f2">Feature 2</li>
+            <li class="feat-TYPE" data-i18n-detail="versions.vXYZ.f1.detail">
+                <svg viewBox="0 0 24 24">...</svg>
+                <span data-i18n="versions.vXYZ.f1">Feature 1</span>
+            </li>
+            <li class="feat-TYPE" data-i18n-detail="versions.vXYZ.f2.detail">
+                <svg viewBox="0 0 24 24">...</svg>
+                <span data-i18n="versions.vXYZ.f2">Feature 2</span>
+            </li>
         </ul>
     </div>
 </div>
 ```
+
+**Types de features (class `feat-TYPE`) :**
+- `feat-api` - API/Cloud (bleu)
+- `feat-frontend` - Frontend (violet)
+- `feat-backend` - Backend (vert)
+- `feat-security` - Sécurité (orange)
+- `feat-perf` - Performance (jaune)
+- `feat-collab` - Collaboration (rose)
 
 ---
 
@@ -343,10 +368,13 @@ git push
 - [ ] **Git tag** vX.Y.Z créé et pushé
 
 ### Site Marketing (ccoupel.bitbucket.io)
-- [ ] **index.html** - Nouvelle version ajoutée au changelog
-- [ ] **translations.js** - Traductions FR/EN ajoutées
+- [ ] **Hero Badge** - `hero.badge` mis à jour dans translations.js (FR + EN)
+- [ ] **Hero Badge** - Fallback mis à jour dans index.html (ligne ~70)
+- [ ] **index.html** - Nouvelle version ajoutée avec `data-i18n-detail` pour popups
+- [ ] **translations.js** - Traductions FR/EN avec clés `.detail` pour popups
 - [ ] **Roadmap** mise à jour (optionnel)
 - [ ] **Submodule** marketing commité et pushé
+- [ ] **Test popups** - Vérifier que les popups s'affichent au clic
 
 ---
 
