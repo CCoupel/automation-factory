@@ -2294,6 +2294,67 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         })
       }
     }
+    // Cas 3: Role depuis la palette - créer include_role
+    else {
+      const roleData = e.dataTransfer.getData('role')
+      if (roleData) {
+        try {
+          const parsedRole = JSON.parse(roleData)
+          let roleName = ''
+
+          // Handle standalone roles (Galaxy v1 API)
+          if (parsedRole.type === 'standalone-role' && parsedRole.fqrn) {
+            roleName = parsedRole.fqrn  // e.g., geerlingguy.docker
+          }
+          // Handle collection roles (Galaxy v3 API)
+          else if (parsedRole.type === 'collection-role' && parsedRole.fqcn) {
+            roleName = parsedRole.fqcn  // e.g., community.general.docker
+          }
+
+          if (roleName) {
+            e.preventDefault()
+            e.stopPropagation()
+
+            // Calculate position
+            const offsetX = dragOffsetXStr ? parseFloat(dragOffsetXStr) : 75
+            const offsetY = dragOffsetYStr ? parseFloat(dragOffsetYStr) : 60
+
+            let relativeX = e.clientX - sectionRect.left - offsetX
+            let relativeY = e.clientY - sectionRect.top - offsetY
+
+            // Constrain within section bounds
+            relativeX = Math.max(0, Math.min(relativeX, sectionRect.width - 140))
+            relativeY = Math.max(0, Math.min(relativeY, sectionRect.height - 60))
+
+            const newModuleId = `module-${Date.now()}-${Math.random().toString(36).substring(7)}`
+            const newModule: ModuleBlock = {
+              id: newModuleId,
+              collection: 'ansible.builtin',
+              name: 'include_role',
+              description: `Include role ${roleName}`,
+              taskName: `Include role: ${roleName}`,
+              x: relativeX,
+              y: relativeY,
+              parentSection: section,
+              moduleParameters: {
+                name: roleName
+              }
+            }
+
+            setModules([...modules, newModule])
+
+            // Send collaboration update for new module in play section
+            collaborationCallbacks?.sendModuleAdd?.({
+              moduleId: newModuleId,
+              module: newModule,
+              position: { x: relativeX, y: relativeY }
+            })
+          }
+        } catch (error) {
+          console.error('Failed to parse role data:', error)
+        }
+      }
+    }
   }
 
   const getPlaySectionColor = (section: PlaySectionName) => {

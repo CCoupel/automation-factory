@@ -18,7 +18,7 @@ services:
   # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
   # BORE: Utilise le même Dockerfile (nginx) que production - PAS de Dockerfile.dev
   ansible-builder-frontend:
-    image: ansible-builder-frontend:2.3.0-rc.3
+    image: ansible-builder-frontend:2.3.0-rc.4
     container_name: ansible-builder-frontend-staging
     restart: unless-stopped
     networks:
