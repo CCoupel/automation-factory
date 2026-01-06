@@ -4,6 +4,36 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.0** - *2026-01-06*
+
+### 🔧 Galaxy Admin Configuration
+
+- **Interface d'administration Galaxy Sources**
+  - Toggle pour activer/désactiver Galaxy publique
+  - Liste configurable de Galaxy privées (multi-sources)
+  - Support AAP Automation Hub et Galaxy NG
+  - Stockage en base de données avec rechargement à chaud
+
+- **Sécurité et Gestion**
+  - Chiffrement Fernet (AES) pour les tokens
+  - Test de connexion avec indicateurs de statut
+  - Drag & drop pour réordonner les priorités
+  - Admin-only via authorization
+
+- **UX Améliorations**
+  - Elements zone : Tabs GENERIC/MODULES cachés quand Roles actif
+  - Nouveaux éléments Generic : import_role, include_role
+  - Drop d'un rôle dans Tasks → création auto include_role
+
+### 📊 Métriques
+- **Production** : https://coupel.net/ansible-builder
+- **Version** : 2.3.0
+- **Tag Git** : v2.3.0
+- **Smoke tests** : Passés
+- **Helm Revision** : 103
+
+---
+
 ## ✅ **Version 2.2.1** - *2026-01-05*
 
 ### 🎨 Système de Thème 3 États
