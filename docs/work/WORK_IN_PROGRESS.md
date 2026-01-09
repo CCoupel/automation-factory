@@ -10,14 +10,14 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 **Production (Kubernetes) :**
 - **Backend :** `2.3.0` (ghcr.io/ccoupel/ansible-builder-backend:2.3.0)
-- **Frontend :** `2.3.4` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.4)
+- **Frontend :** `2.3.5` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.5)
 - **Database :** PostgreSQL 16 (StatefulSet)
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v2.3.0`
-- **Helm Revision :** 110
+- **Helm Revision :** 111
 
 **Développement / Staging :**
-- **Version :** `2.3.4`
+- **Version :** `2.3.5`
 - **Phase :** Idle (prêt pour prochaine feature)
 
 ---
@@ -81,4 +81,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-01-09 - v2.3.4 Production deployed (Hotfixes)*
+*Dernière mise à jour : 2026-01-09 - v2.3.5 Production deployed*

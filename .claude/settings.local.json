@@ -282,7 +282,10 @@
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker ps:*)",
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker tag:*)",
       "Bash(DOCKER_HOST=tcp://192.168.1.217:2375 docker push:*)",
-      "Bash(KUBECONFIG=\"c:/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl get pods:*)"
+      "Bash(KUBECONFIG=\"c:/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl get pods:*)",
+      "Bash(KUBECONFIG=\"C:/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" helm upgrade:*)",
+      "Bash(KUBECONFIG=\"C:/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl exec:*)",
+      "Bash(KUBECONFIG=\"C:/Users/cyril/Documents/VScode/Ansible Builder/kubeconfig.txt\" kubectl get:*)"
     ],
     "deny": [],
     "ask": []

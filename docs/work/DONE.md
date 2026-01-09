@@ -4,6 +4,25 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.5** - *2026-01-09*
+
+### 🎨 UX - Icône Playbook Manager améliorée
+
+- **Suppression icône inutile** : DescriptionIcon (fichier) à côté du nom supprimé
+- **Nouvelle icône** : FolderOpenIcon remplacé par ArticleIcon (document)
+- **Indicateur WebSocket** : Quand déconnecté, l'icône devient rouge avec badge LinkOffIcon
+- **Tooltip adaptatif** : Affiche "(WebSocket disconnected)" si non connecté
+
+### 📁 Fichiers Modifiés
+- frontend/src/components/layout/AppHeader.tsx
+
+### 📊 Métriques
+- **Frontend** : 2.3.5
+- **Backend** : 2.3.0 (inchangé)
+- **Helm Revision** : 111
+
+---
+
 ## ✅ **Version 2.3.4** - *2026-01-09*
 
 ### 🐛 Hotfix - Nginx Rewrite Rules (Alpine/BusyBox sed)

@@ -32,7 +32,6 @@ import { useVersionInfo } from '../../hooks/useVersionInfo'
 import { VersionSelector } from '../VersionSelector'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import DescriptionIcon from '@mui/icons-material/Description'
 import LockIcon from '@mui/icons-material/Lock'
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -42,7 +41,8 @@ import Brightness7Icon from '@mui/icons-material/Brightness7'
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
-import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import ArticleIcon from '@mui/icons-material/Article'
+import LinkOffIcon from '@mui/icons-material/LinkOff'
 import ShareIcon from '@mui/icons-material/Share'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
@@ -290,21 +290,38 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
         {/* Center - Playbook Info */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm, 8px)', flexGrow: 1 }}>
-          <Tooltip title="Open Playbook Manager" placement="bottom">
+          <Tooltip
+            title={isCollaborationConnected ? "Open Playbook Manager" : "Open Playbook Manager (WebSocket disconnected)"}
+            placement="bottom"
+          >
             <IconButton
               onClick={onOpenPlaybookManager}
               size="small"
               sx={{
-                color: 'white',
+                color: isCollaborationConnected ? 'white' : 'rgba(255, 100, 100, 0.9)',
+                position: 'relative',
                 '&:hover': {
                   bgcolor: 'rgba(255, 255, 255, 0.1)'
                 }
               }}
             >
-              <FolderOpenIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
+              <ArticleIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
+              {!isCollaborationConnected && (
+                <LinkOffIcon
+                  sx={{
+                    fontSize: 12,
+                    position: 'absolute',
+                    bottom: 2,
+                    right: 2,
+                    color: 'rgba(255, 100, 100, 0.9)',
+                    bgcolor: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '50%',
+                    padding: '1px'
+                  }}
+                />
+              )}
             </IconButton>
           </Tooltip>
-          <DescriptionIcon sx={{ fontSize: 'var(--icon-lg, 24px)', opacity: 0.9 }} />
           <TextField
             label="Name"
             variant="outlined"
