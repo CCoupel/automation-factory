@@ -89,10 +89,14 @@ export function usePlaybookWebSocket(
     // Use environment variable if available, otherwise derive from location
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsHost = window.location.host
+    // Get base path from runtime injection or derive from pathname
+    const basePath = (window as any).__BASE_PATH__ || window.location.pathname.replace(/\/[^/]*$/, '') || ''
+    const wsBasePath = basePath.replace(/\/$/, '')
 
-    const url = `${wsProtocol}//${wsHost}/ws/playbook/${currentPlaybookId}?token=${token.substring(0, 20)}...`
+
+    const url = `${wsProtocol}//${wsHost}${wsBasePath}/ws/playbook/${currentPlaybookId}?token=${token.substring(0, 20)}...`
     console.log('[WS] WebSocket URL:', url)
-    return `${wsProtocol}//${wsHost}/ws/playbook/${currentPlaybookId}?token=${token}`
+    return `${wsProtocol}//${wsHost}${wsBasePath}/ws/playbook/${currentPlaybookId}?token=${token}`
   }, [])
 
   const handleMessage = useCallback((event: MessageEvent) => {
