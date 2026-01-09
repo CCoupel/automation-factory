@@ -4,6 +4,44 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.4** - *2026-01-09*
+
+### 🐛 Hotfix - Nginx Rewrite Rules (Alpine/BusyBox sed)
+
+- **Bug corrigé** : Les règles rewrite n'étaient pas appliquées dans nginx
+- **Cause** : La syntaxe `0,/pattern/` de GNU sed ne fonctionne pas avec BusyBox sed (Alpine)
+- **Fix** : Utilisation de placeholders `__API_REWRITE__` et `__WS_REWRITE__` dans nginx.conf
+
+### 📁 Fichiers Modifiés
+- frontend/nginx.conf (ajout placeholders)
+- frontend/docker-entrypoint.sh (substitution placeholders)
+
+### 📊 Métriques
+- **Frontend** : 2.3.4
+- **Backend** : 2.3.0 (inchangé)
+- **Helm Revision** : 110
+
+---
+
+## ✅ **Version 2.3.3** - *2026-01-09*
+
+### 🐛 Hotfix - Nginx WebSocket Location
+
+- **Bug corrigé** : Pas de location /ws dans nginx pour le proxy WebSocket
+- **Cause** : nginx.conf n'avait que la location /api, pas /ws
+- **Fix** : Ajout de la location /ws avec proxy vers le backend
+
+### 📁 Fichiers Modifiés
+- frontend/nginx.conf (ajout location /ws)
+- frontend/docker-entrypoint.sh (gestion BASE_PATH pour /ws)
+
+### 📊 Métriques
+- **Frontend** : 2.3.3
+- **Backend** : 2.3.0 (inchangé)
+- **Helm Revision** : 109
+
+---
+
 ## ✅ **Version 2.3.2** - *2026-01-09*
 
 ### 🐛 Hotfix - WebSocket Base Path
