@@ -4,6 +4,24 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.2** - *2026-01-09*
+
+### 🐛 Hotfix - WebSocket Base Path
+
+- **Bug corrigé** : WebSocket URL manquait le base path /ansible-builder en production
+- **Cause** : URL WebSocket construite sans tenir compte du sous-chemin
+- **Fix** : Détection du base path via __BASE_PATH__ ou extraction du pathname
+
+### 📁 Fichiers Modifiés
+- frontend/src/hooks/usePlaybookWebSocket.ts
+
+### 📊 Métriques
+- **Frontend** : 2.3.2
+- **Backend** : 2.3.0 (inchangé)
+- **Helm Revision** : 106
+
+---
+
 ## ✅ **Version 2.3.1** - *2026-01-09*
 
 ### 🐛 Hotfix - Double URL Prefix
