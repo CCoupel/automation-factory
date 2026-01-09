@@ -44,7 +44,7 @@ autoscaling:
 frontend:
   replicaCount: 1
   image:
-    tag: "2.3.2"
+    tag: "2.3.4"
     pullPolicy: Always
 ingress:
   className: "traefik"
@@ -56,12 +56,6 @@ ingress:
   hosts:
     - host: coupel.net
       paths:
-        - path: '/api'
-          pathType: Prefix
-          service: backend
-        - path: '/ws'
-          pathType: Prefix
-          service: backend
         - path: ''
           pathType: Prefix
           service: frontend

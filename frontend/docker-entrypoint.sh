@@ -66,14 +66,17 @@ if [ -n "$BASE_PATH" ]; then
   sed -i "s|location = /health|location = /${BASE_PATH}/health|g" "$NGINX_CONF"
   sed -i "s|location = /version|location = /${BASE_PATH}/version|g" "$NGINX_CONF"
   sed -i "s|location /api|location /${BASE_PATH}/api|g" "$NGINX_CONF"
-  # Add rewrite rule to strip BASE_PATH before proxying to backend
-  sed -i "s|proxy_pass http://ansible-builder-backend:8000;|rewrite ^/${BASE_PATH}/api/(.*) /api/\$1 break; proxy_pass http://ansible-builder-backend:8000;|g" "$NGINX_CONF"
+  sed -i "s|location /ws|location /${BASE_PATH}/ws|g" "$NGINX_CONF"
+  # Add rewrite rules to strip BASE_PATH before proxying to backend
+  sed -i "s|# __API_REWRITE__ placeholder for BASE_PATH rewrite rule|rewrite ^/${BASE_PATH}/api/(.*) /api/\$1 break;|g" "$NGINX_CONF"
+  sed -i "s|# __WS_REWRITE__ placeholder for BASE_PATH rewrite rule|rewrite ^/${BASE_PATH}/ws/(.*) /ws/\$1 break;|g" "$NGINX_CONF"
   
   echo "   • Fallback: /$BASE_PATH/index.html"
   echo "   • Static assets: tries /$BASE_PATH/\$uri fallback"
   echo "   • Health endpoint: /$BASE_PATH/health"
   echo "   • Version endpoint: /$BASE_PATH/version"
   echo "   • API proxy: /$BASE_PATH/api"
+  echo "   • WebSocket proxy: /$BASE_PATH/ws"
 else
   echo "📝 No BASE_PATH configured, using root path /"
   # Inject empty BASE_PATH and root API_URL into index.html

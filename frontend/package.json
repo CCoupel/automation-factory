@@ -1,7 +1,7 @@
 {
   "name": "ansible-builder-frontend",
   "private": true,
-  "version": "2.3.2",
+  "version": "2.3.4",
   "type": "module",
   "scripts": {
     "dev": "vite",

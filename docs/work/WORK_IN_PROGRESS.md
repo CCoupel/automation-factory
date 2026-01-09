@@ -10,15 +10,28 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 **Production (Kubernetes) :**
 - **Backend :** `2.3.0` (ghcr.io/ccoupel/ansible-builder-backend:2.3.0)
-- **Frontend :** `2.3.2` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.2)
+- **Frontend :** `2.3.4` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.4)
 - **Database :** PostgreSQL 16 (StatefulSet)
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v2.3.0`
-- **Helm Revision :** 106
+- **Helm Revision :** 110
 
 **Développement / Staging :**
-- **Version :** `2.3.2`
+- **Version :** `2.3.4`
 - **Phase :** Idle (prêt pour prochaine feature)
+
+---
+
+## 🔧 **Hotfixes 2.3.1 à 2.3.4**
+
+### Frontend Hotfixes (Backend reste 2.3.0)
+
+| Version | Issue | Fix |
+|---------|-------|-----|
+| 2.3.1 | Double URL prefix `/api/ansible-builder/api/...` | Suppression `${getApiBaseUrl()}` dans services |
+| 2.3.2 | WebSocket URL sans base path | Ajout détection base path dans `usePlaybookWebSocket.ts` |
+| 2.3.3 | Pas de location /ws dans nginx | Ajout location `/ws` dans `nginx.conf` |
+| 2.3.4 | Rewrite rules manquantes (sed Alpine) | Placeholders dans nginx.conf pour compatibilité BusyBox |
 
 ---
 
@@ -68,4 +81,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-01-09 - v2.3.0 Production deployed*
+*Dernière mise à jour : 2026-01-09 - v2.3.4 Production deployed (Hotfixes)*
