@@ -4,20 +4,20 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-01-06**
+## 🚀 **Status Actuel - 2026-01-09**
 
 ### Versions Déployées
 
 **Production (Kubernetes) :**
 - **Backend :** `2.3.0` (ghcr.io/ccoupel/ansible-builder-backend:2.3.0)
-- **Frontend :** `2.3.0` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.0)
+- **Frontend :** `2.3.1` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.1)
 - **Database :** PostgreSQL 16 (StatefulSet)
 - **URL :** https://coupel.net/ansible-builder
 - **Tag Git :** `v2.3.0`
-- **Helm Revision :** 103
+- **Helm Revision :** 104
 
 **Développement / Staging :**
-- **Version :** `2.3.0-rc.4`
+- **Version :** `2.3.1`
 - **Phase :** Idle (prêt pour prochaine feature)
 
 ---
@@ -39,7 +39,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - Nouveaux éléments Generic : import_role, include_role
 - Drop d'un rôle dans Tasks → création auto include_role
 
-Voir détails dans [DONE.md](DONE.md#version-230---2026-01-06)
+Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
@@ -68,4 +68,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-06)
 
 ---
 
-*Dernière mise à jour : 2026-01-06 - v2.3.0 Production deployed*
+*Dernière mise à jour : 2026-01-09 - v2.3.0 Production deployed*

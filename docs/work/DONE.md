@@ -4,6 +4,26 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.1** - *2026-01-09*
+
+### 🐛 Hotfix - Double URL Prefix
+
+- **Bug corrigé** : L'URL API était doublée
+- **Cause** : getApiBaseUrl() appelé deux fois (httpClient baseURL + services)
+- **Fix** : Suppression du prefix redondant dans les services
+
+### 📁 Fichiers Modifiés
+- playbookService.ts
+- playbookPreviewService.ts
+- diagramExportApiService.ts
+
+### 📊 Métriques
+- **Frontend** : 2.3.1
+- **Backend** : 2.3.0 (inchangé)
+- **Helm Revision** : 104
+
+---
+
 ## ✅ **Version 2.3.0** - *2026-01-06*
 
 ### 🔧 Galaxy Admin Configuration
