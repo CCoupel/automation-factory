@@ -1,4 +1,4 @@
-import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
+import { getHttpClient } from '../utils/httpClient'
 import { PlaybookContent, ModuleBlock, Link, RoleDefinition } from './playbookService'
 
 /**
@@ -421,7 +421,7 @@ export const playbookPreviewService = {
       const ansibleContent = transformSinglePlayToAnsible(content)
       const client = getHttpClient()
       const response = await client.post<YamlPreviewResponse>(
-        `${getApiBaseUrl()}/playbooks/preview`,
+        `/playbooks/preview`,
         { content: ansibleContent }
       )
       return response.data
@@ -447,7 +447,7 @@ export const playbookPreviewService = {
       const ansibleContent = transformSinglePlayToAnsible(content)
       const client = getHttpClient()
       const response = await client.post<ValidationResponse>(
-        `${getApiBaseUrl()}/playbooks/validate-preview`,
+        `/playbooks/validate-preview`,
         { content: ansibleContent }
       )
       return response.data
@@ -470,7 +470,7 @@ export const playbookPreviewService = {
     try {
       const client = getHttpClient()
       const response = await client.get<YamlPreviewResponse>(
-        `${getApiBaseUrl()}/playbooks/${playbookId}/yaml`
+        `/playbooks/${playbookId}/yaml`
       )
       return response.data
     } catch (error: any) {
@@ -492,7 +492,7 @@ export const playbookPreviewService = {
     try {
       const client = getHttpClient()
       const response = await client.post<ValidationResponse>(
-        `${getApiBaseUrl()}/playbooks/${playbookId}/validate`,
+        `/playbooks/${playbookId}/validate`,
         {}
       )
       return response.data
@@ -518,7 +518,7 @@ export const playbookPreviewService = {
       const ansibleContent = transformSinglePlayToAnsible(content)
       const client = getHttpClient()
       const response = await client.post<FullValidationResponse>(
-        `${getApiBaseUrl()}/playbooks/validate-full-preview`,
+        `/playbooks/validate-full-preview`,
         { content: ansibleContent }
       )
       return response.data
@@ -541,7 +541,7 @@ export const playbookPreviewService = {
     try {
       const client = getHttpClient()
       const response = await client.post<FullValidationResponse>(
-        `${getApiBaseUrl()}/playbooks/${playbookId}/validate-full`,
+        `/playbooks/${playbookId}/validate-full`,
         {}
       )
       return response.data

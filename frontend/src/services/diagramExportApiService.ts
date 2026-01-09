@@ -5,7 +5,7 @@
  * The backend is the source of truth for export generation.
  */
 
-import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
+import { getHttpClient } from '../utils/httpClient'
 import { Play } from '../types/playbook'
 import { ExportOptions, MermaidExportOptions, SVGExportOptions } from '../types/diagram-export'
 
@@ -88,7 +88,7 @@ export async function exportABD(
 
   const client = getHttpClient()
   const response = await client.post<ExportResponse<Record<string, unknown>>>(
-    `${getApiBaseUrl()}/export/abd`,
+    `/export/abd`,
     request
   )
 
@@ -120,7 +120,7 @@ export async function exportMermaid(
 
   const client = getHttpClient()
   const response = await client.post<ExportResponse<string>>(
-    `${getApiBaseUrl()}/export/mermaid`,
+    `/export/mermaid`,
     request
   )
 
@@ -146,7 +146,7 @@ export async function exportSVG(
 
   const client = getHttpClient()
   const response = await client.post<ExportResponse<string>>(
-    `${getApiBaseUrl()}/export/svg`,
+    `/export/svg`,
     request
   )
 

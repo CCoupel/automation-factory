@@ -1,4 +1,4 @@
-import { getHttpClient, getApiBaseUrl } from '../utils/httpClient'
+import { getHttpClient } from '../utils/httpClient'
 
 /**
  * Playbook content structure
@@ -199,7 +199,7 @@ export const playbookService = {
   async listPlaybooks(): Promise<Playbook[]> {
     try {
       const client = getHttpClient()
-      const response = await client.get(`${getApiBaseUrl()}/playbooks`)
+      const response = await client.get(`/playbooks`)
       return response.data
     } catch (error: any) {
       console.error('List playbooks API error:', error)
@@ -219,7 +219,7 @@ export const playbookService = {
   async getPlaybook(playbookId: string): Promise<PlaybookDetail> {
     try {
       const client = getHttpClient()
-      const response = await client.get(`${getApiBaseUrl()}/playbooks/${playbookId}`)
+      const response = await client.get(`/playbooks/${playbookId}`)
       return response.data
     } catch (error: any) {
       console.error('Get playbook API error:', error)
@@ -239,7 +239,7 @@ export const playbookService = {
   async createPlaybook(playbook: PlaybookCreate): Promise<PlaybookDetail> {
     try {
       const client = getHttpClient()
-      const response = await client.post(`${getApiBaseUrl()}/playbooks`, playbook)
+      const response = await client.post(`/playbooks`, playbook)
       return response.data
     } catch (error: any) {
       console.error('Create playbook API error:', error)
@@ -260,7 +260,7 @@ export const playbookService = {
   async updatePlaybook(playbookId: string, updates: PlaybookUpdate): Promise<PlaybookDetail> {
     try {
       const client = getHttpClient()
-      const response = await client.put(`${getApiBaseUrl()}/playbooks/${playbookId}`, updates)
+      const response = await client.put(`/playbooks/${playbookId}`, updates)
       return response.data
     } catch (error: any) {
       console.error('Update playbook API error:', error)
@@ -280,7 +280,7 @@ export const playbookService = {
   async deletePlaybook(playbookId: string): Promise<void> {
     try {
       const client = getHttpClient()
-      await client.delete(`${getApiBaseUrl()}/playbooks/${playbookId}`)
+      await client.delete(`/playbooks/${playbookId}`)
     } catch (error: any) {
       console.error('Delete playbook API error:', error)
       if (error.response?.data?.detail) {
@@ -304,7 +304,7 @@ export const playbookService = {
     try {
       const client = getHttpClient()
       const response = await client.post(
-        `${getApiBaseUrl()}/playbooks/${playbookId}/transfer-ownership`,
+        `/playbooks/${playbookId}/transfer-ownership`,
         request
       )
       return response.data
