@@ -14,7 +14,12 @@
  * - link_add: New link created
  * - link_delete: Link removed
  * - play_update: Play metadata changed
+ * - variable_add: New variable added
  * - variable_update: Variable changed
+ * - variable_delete: Variable removed
+ * - role_add: New role added
+ * - role_delete: Role removed
+ * - role_update: Roles list changed (reorder, toggle enabled)
  */
 
 import { useCallback, useRef, useEffect } from 'react'
@@ -35,7 +40,12 @@ export type UpdateType =
   | 'link_add'
   | 'link_delete'
   | 'play_update'
+  | 'variable_add'
   | 'variable_update'
+  | 'variable_delete'
+  | 'role_add'
+  | 'role_delete'
+  | 'role_update'
   | 'block_collapse'
   | 'section_collapse'
 
@@ -87,8 +97,35 @@ export interface PlayUpdateData {
   value: unknown
 }
 
+export interface VariableAddData {
+  playId: string
+  variable: PlayVariable
+}
+
 export interface VariableUpdateData {
-  variable: PlayVariable & { id: string; type: string }
+  playId: string
+  variableIndex: number
+  variable: PlayVariable
+}
+
+export interface VariableDeleteData {
+  playId: string
+  variableIndex: number
+}
+
+export interface RoleAddData {
+  playId: string
+  role: string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }
+}
+
+export interface RoleDeleteData {
+  playId: string
+  roleIndex: number
+}
+
+export interface RoleUpdateData {
+  playId: string
+  roles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }>
 }
 
 export interface BlockCollapseData {
@@ -111,7 +148,12 @@ export type UpdateData =
   | LinkAddData
   | LinkDeleteData
   | PlayUpdateData
+  | VariableAddData
   | VariableUpdateData
+  | VariableDeleteData
+  | RoleAddData
+  | RoleDeleteData
+  | RoleUpdateData
   | BlockCollapseData
   | SectionCollapseData
 
@@ -128,7 +170,12 @@ interface UseCollaborationSyncReturn {
   sendLinkAdd: (data: LinkAddData) => void
   sendLinkDelete: (data: LinkDeleteData) => void
   sendPlayUpdate: (data: PlayUpdateData) => void
+  sendVariableAdd: (data: VariableAddData) => void
   sendVariableUpdate: (data: VariableUpdateData) => void
+  sendVariableDelete: (data: VariableDeleteData) => void
+  sendRoleAdd: (data: RoleAddData) => void
+  sendRoleDelete: (data: RoleDeleteData) => void
+  sendRoleUpdate: (data: RoleUpdateData) => void
   sendBlockCollapse: (data: BlockCollapseData) => void
   sendSectionCollapse: (data: SectionCollapseData) => void
 
@@ -227,10 +274,35 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
     debouncedSend('play_update', data, `play_update_${data.playId}_${data.field}`)
   }, [debouncedSend])
 
+  const sendVariableAdd = useCallback((data: VariableAddData) => {
+    // Variable add is immediate (discrete action)
+    immediateSend('variable_add', data)
+  }, [immediateSend])
+
   const sendVariableUpdate = useCallback((data: VariableUpdateData) => {
     // Variable update is debounced
-    debouncedSend('variable_update', data, `variable_update_${data.variable.id}`)
+    debouncedSend('variable_update', data, `variable_update_${data.playId}_${data.variableIndex}`)
   }, [debouncedSend])
+
+  const sendVariableDelete = useCallback((data: VariableDeleteData) => {
+    // Variable delete is immediate
+    immediateSend('variable_delete', data)
+  }, [immediateSend])
+
+  const sendRoleAdd = useCallback((data: RoleAddData) => {
+    // Role add is immediate (discrete action)
+    immediateSend('role_add', data)
+  }, [immediateSend])
+
+  const sendRoleDelete = useCallback((data: RoleDeleteData) => {
+    // Role delete is immediate
+    immediateSend('role_delete', data)
+  }, [immediateSend])
+
+  const sendRoleUpdate = useCallback((data: RoleUpdateData) => {
+    // Role update (reorder, toggle enabled) is immediate
+    immediateSend('role_update', data)
+  }, [immediateSend])
 
   const sendBlockCollapse = useCallback((data: BlockCollapseData) => {
     // Block collapse is immediate
@@ -245,7 +317,13 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
   // Generic sender
   const sendUpdate = useCallback((updateType: UpdateType, data: UpdateData) => {
     // Determine if this type should be debounced
-    const discreteTypes: UpdateType[] = ['module_add', 'module_delete', 'module_resize', 'link_add', 'link_delete', 'block_collapse', 'section_collapse']
+    const discreteTypes: UpdateType[] = [
+      'module_add', 'module_delete', 'module_resize',
+      'link_add', 'link_delete',
+      'variable_add', 'variable_delete',
+      'role_add', 'role_delete', 'role_update',
+      'block_collapse', 'section_collapse'
+    ]
     if (discreteTypes.includes(updateType)) {
       immediateSend(updateType, data)
     } else {
@@ -262,7 +340,12 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
     sendLinkAdd,
     sendLinkDelete,
     sendPlayUpdate,
+    sendVariableAdd,
     sendVariableUpdate,
+    sendVariableDelete,
+    sendRoleAdd,
+    sendRoleDelete,
+    sendRoleUpdate,
     sendBlockCollapse,
     sendSectionCollapse,
     sendUpdate,
@@ -359,20 +442,34 @@ export function applyPlaybookUpdate(
       break
     }
 
-    case 'variable_update': {
-      const varData = data as unknown as VariableUpdateData
+    case 'variable_add': {
+      const varData = data as unknown as VariableAddData
       if (currentState.variables) {
-        const existingIndex = currentState.variables.findIndex(v => v.id === varData.variable.id)
-        if (existingIndex >= 0) {
-          newState.variables = currentState.variables.map(v =>
-            v.id === varData.variable.id ? { ...v, ...varData.variable } : v
-          )
-        } else {
-          newState.variables = [...currentState.variables, varData.variable as unknown as typeof currentState.variables[0]]
-        }
+        newState.variables = [...currentState.variables, varData.variable as unknown as typeof currentState.variables[0]]
       }
       break
     }
+
+    case 'variable_update': {
+      const varData = data as unknown as VariableUpdateData
+      if (currentState.variables && varData.variableIndex >= 0 && varData.variableIndex < currentState.variables.length) {
+        newState.variables = currentState.variables.map((v, i) =>
+          i === varData.variableIndex ? { ...v, ...varData.variable } : v
+        )
+      }
+      break
+    }
+
+    case 'variable_delete': {
+      const varData = data as unknown as VariableDeleteData
+      if (currentState.variables) {
+        newState.variables = currentState.variables.filter((_, i) => i !== varData.variableIndex)
+      }
+      break
+    }
+
+    // Note: role_add, role_delete, role_update are handled by WorkZone directly via play_update
+    // since roles are stored in play.attributes.roles
 
     default:
       console.warn(`Unknown update type: ${update_type}`)

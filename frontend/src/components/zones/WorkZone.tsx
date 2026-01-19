@@ -56,7 +56,12 @@ export interface CollaborationCallbacks {
   sendLinkAdd?: (data: { link: Link }) => void
   sendLinkDelete?: (data: { linkId: string }) => void
   sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
-  sendVariableUpdate?: (data: { variable: PlayVariable & { id: string; action: 'add' | 'update' | 'delete' } }) => void
+  sendVariableAdd?: (data: { playId: string; variable: PlayVariable }) => void
+  sendVariableUpdate?: (data: { playId: string; variableIndex: number; variable: PlayVariable }) => void
+  sendVariableDelete?: (data: { playId: string; variableIndex: number }) => void
+  sendRoleAdd?: (data: { playId: string; role: string | { role: string; vars?: Record<string, unknown>; enabled?: boolean } }) => void
+  sendRoleDelete?: (data: { playId: string; roleIndex: number }) => void
+  sendRoleUpdate?: (data: { playId: string; roles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }> }) => void
   sendBlockCollapse?: (data: { blockId: string; collapsed: boolean }) => void
   sendSectionCollapse?: (data: { key: string; collapsed: boolean }) => void
 }
@@ -840,18 +845,83 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         }))
         break
       }
-      case 'variable_update': {
-        const { variable } = data as { variable: { id: string; name: string; value: unknown } }
+      case 'variable_add': {
+        const { playId, variable } = data as { playId: string; variable: PlayVariable }
         setPlays(prev => prev.map(p => {
-          const idx = p.variables.findIndex(v => v.key === variable.name)
-          if (idx >= 0) {
+          if (p.id === playId) {
+            return { ...p, variables: [...p.variables, variable] }
+          }
+          return p
+        }))
+        break
+      }
+      case 'variable_update': {
+        const { playId, variableIndex, variable } = data as { playId: string; variableIndex: number; variable: PlayVariable }
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId && variableIndex >= 0 && variableIndex < p.variables.length) {
             const newVars = [...p.variables]
-            newVars[idx] = {
-              ...newVars[idx],
-              key: variable.name,
-              value: String(variable.value)
-            }
+            newVars[variableIndex] = variable
             return { ...p, variables: newVars }
+          }
+          return p
+        }))
+        break
+      }
+      case 'variable_delete': {
+        const { playId, variableIndex } = data as { playId: string; variableIndex: number }
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId) {
+            return { ...p, variables: p.variables.filter((_, i) => i !== variableIndex) }
+          }
+          return p
+        }))
+        break
+      }
+      case 'role_add': {
+        const { playId, role } = data as { playId: string; role: string | { role: string; vars?: Record<string, unknown>; enabled?: boolean } }
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId) {
+            const currentRoles = p.attributes?.roles || []
+            return {
+              ...p,
+              attributes: {
+                ...p.attributes,
+                roles: [...currentRoles, role]
+              }
+            }
+          }
+          return p
+        }))
+        break
+      }
+      case 'role_delete': {
+        const { playId, roleIndex } = data as { playId: string; roleIndex: number }
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId) {
+            const currentRoles = p.attributes?.roles || []
+            return {
+              ...p,
+              attributes: {
+                ...p.attributes,
+                roles: currentRoles.filter((_, i) => i !== roleIndex)
+              }
+            }
+          }
+          return p
+        }))
+        break
+      }
+      case 'role_update': {
+        const { playId, roles } = data as { playId: string; roles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }> }
+        setPlays(prev => prev.map(p => {
+          if (p.id === playId) {
+            return {
+              ...p,
+              attributes: {
+                ...p.attributes,
+                roles
+              }
+            }
           }
           return p
         }))
@@ -2821,6 +2891,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
         }
         return updatedPlays
       })
+
+      // Send collaboration update for new variable
+      if (collaborationCallbacks?.sendVariableAdd) {
+        collaborationCallbacks.sendVariableAdd({
+          playId: currentPlay.id,
+          variable: newVariable
+        })
+      }
     }
     setEditingVariableIndex(null)
   }
@@ -2856,6 +2934,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
   }
 
   const deleteVariable = (index: number) => {
+    const playId = currentPlay.id
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       updatedPlays[activePlayIndex] = {
@@ -2864,10 +2943,19 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
       return updatedPlays
     })
+
+    // Send collaboration update
+    if (collaborationCallbacks?.sendVariableDelete) {
+      collaborationCallbacks.sendVariableDelete({
+        playId,
+        variableIndex: index
+      })
+    }
   }
 
   // Update an existing variable
   const updateVariable = useCallback((index: number, variable: PlayVariable) => {
+    const playId = currentPlay.id
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       const newVariables = [...updatedPlays[activePlayIndex].variables]
@@ -2882,19 +2970,18 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
     // Send collaboration update
     if (collaborationCallbacks?.sendVariableUpdate) {
       collaborationCallbacks.sendVariableUpdate({
-        variable: {
-          ...variable,
-          id: `var-${index}`,
-          action: 'update'
-        }
+        playId,
+        variableIndex: index,
+        variable
       })
     }
-  }, [activePlayIndex, collaborationCallbacks])
+  }, [activePlayIndex, collaborationCallbacks, currentPlay.id])
 
   // Gestion des roles
   const [draggedRoleIndex, setDraggedRoleIndex] = useState<number | null>(null)
 
   const deleteRole = (index: number) => {
+    const playId = currentPlay.id
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
@@ -2907,9 +2994,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
       return updatedPlays
     })
+
+    // Send collaboration update
+    if (collaborationCallbacks?.sendRoleDelete) {
+      collaborationCallbacks.sendRoleDelete({
+        playId,
+        roleIndex: index
+      })
+    }
   }
 
   const toggleRoleEnabled = (index: number) => {
+    const playId = currentPlay.id
+    let newRoles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }> = []
+
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       const currentRoles = [...(updatedPlays[activePlayIndex].attributes?.roles || [])]
@@ -2925,7 +3023,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           role: roleName,
           ...(roleVars && Object.keys(roleVars).length > 0 && { vars: roleVars }),
           enabled: !currentEnabled
-        } as { role: string; vars?: Record<string, any>; enabled?: boolean }
+        } as { role: string; vars?: Record<string, unknown>; enabled?: boolean }
 
         updatedPlays[activePlayIndex] = {
           ...updatedPlays[activePlayIndex],
@@ -2934,9 +3032,20 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
             roles: currentRoles
           }
         }
+
+        // Capture new roles for collaboration sync
+        newRoles = currentRoles as Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }>
       }
       return updatedPlays
     })
+
+    // Send collaboration update with new roles list
+    if (collaborationCallbacks?.sendRoleUpdate && newRoles.length > 0) {
+      collaborationCallbacks.sendRoleUpdate({
+        playId,
+        roles: newRoles
+      })
+    }
   }
 
   const handleRoleDragStart = (index: number, e: React.DragEvent) => {
@@ -2957,6 +3066,9 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       return
     }
 
+    const playId = currentPlay.id
+    let newRoles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }> = []
+
     setPlays(prevPlays => {
       const updatedPlays = [...prevPlays]
       const currentRoles = [...(updatedPlays[activePlayIndex].attributes?.roles || [])]
@@ -2970,9 +3082,21 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           roles: currentRoles
         }
       }
+
+      // Capture new roles for collaboration sync
+      newRoles = currentRoles as Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }>
+
       return updatedPlays
     })
     setDraggedRoleIndex(null)
+
+    // Send collaboration update with reordered roles
+    if (collaborationCallbacks?.sendRoleUpdate && newRoles.length > 0) {
+      collaborationCallbacks.sendRoleUpdate({
+        playId,
+        roles: newRoles
+      })
+    }
   }
 
   const handleRoleDragEnd = () => {
@@ -3005,6 +3129,7 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
       }
 
       if (roleName) {
+        const playId = currentPlay.id
         setPlays(prevPlays => {
           const updatedPlays = [...prevPlays]
           const currentRoles = updatedPlays[activePlayIndex].attributes?.roles || []
@@ -3018,6 +3143,14 @@ const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateMo
           }
           return updatedPlays
         })
+
+        // Send collaboration update for new role
+        if (collaborationCallbacks?.sendRoleAdd) {
+          collaborationCallbacks.sendRoleAdd({
+            playId,
+            role: roleName
+          })
+        }
       }
     } catch (error) {
       console.error('Failed to parse role data:', error)

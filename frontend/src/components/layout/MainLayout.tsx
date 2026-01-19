@@ -115,7 +115,12 @@ const MainLayout = () => {
     sendLinkAdd,
     sendLinkDelete,
     sendPlayUpdate,
+    sendVariableAdd,
     sendVariableUpdate,
+    sendVariableDelete,
+    sendRoleAdd,
+    sendRoleDelete,
+    sendRoleUpdate,
     sendBlockCollapse,
     sendSectionCollapse,
     sendModuleResize
@@ -134,7 +139,12 @@ const MainLayout = () => {
     sendLinkAdd,
     sendLinkDelete,
     sendPlayUpdate,
+    sendVariableAdd,
     sendVariableUpdate,
+    sendVariableDelete,
+    sendRoleAdd,
+    sendRoleDelete,
+    sendRoleUpdate,
     sendBlockCollapse,
     sendSectionCollapse
   }
