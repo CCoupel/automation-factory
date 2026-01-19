@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-01-09**
+## 🚀 **Status Actuel - 2026-01-19**
 
 ### Versions Déployées
 
@@ -17,12 +17,48 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Helm Revision :** 111
 
 **Développement / Staging :**
-- **Version :** `2.3.5`
-- **Phase :** Idle (prêt pour prochaine feature)
+- **Version :** `2.3.6-rc.1`
+- **Phase :** Phase 1 - Développement
 
 ---
 
-## 🔧 **Hotfixes 2.3.1 à 2.3.4**
+## 🔧 **Version 2.3.6 - EN COURS**
+
+### Bugfix - Synchronisation Collaborative Variables & Rôles
+
+**Problèmes corrigés :**
+- L'ajout de variables ne se propageait pas aux autres participants
+- L'ajout de rôles ne se propageait pas aux autres participants
+
+**Modifications :**
+- Ajout des types `variable_add`, `variable_delete` dans useCollaborationSync
+- Ajout des types `role_add`, `role_delete`, `role_update` dans useCollaborationSync
+- Appels de synchronisation dans tous les handlers de variables et rôles
+- Handlers dans `applyCollaborationUpdate` pour traiter les nouveaux types
+
+**Fichiers modifiés :**
+- `frontend/src/hooks/useCollaborationSync.ts`
+- `frontend/src/components/zones/WorkZone.tsx`
+- `frontend/src/components/layout/MainLayout.tsx`
+
+---
+
+## 📋 **Prochaine Version Majeure - 2.4.0**
+
+### Architecture Event Sourcing
+
+Refonte complète du système collaboratif :
+- Backend comme autorité unique (server-authoritative)
+- Journal des événements avec persistance
+- Sauvegarde automatique (plus de bouton Save)
+- Undo/Redo natif
+- Timeline et rattrapage automatique
+
+Voir [EVENT_SOURCING_SPEC.md](../core/EVENT_SOURCING_SPEC.md) pour la spécification complète.
+
+---
+
+## 🔧 **Hotfixes 2.3.1 à 2.3.5**
 
 ### Frontend Hotfixes (Backend reste 2.3.0)
 
@@ -81,4 +117,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-01-09 - v2.3.5 Production deployed*
+*Dernière mise à jour : 2026-01-19 - v2.3.6-rc.1 en développement*

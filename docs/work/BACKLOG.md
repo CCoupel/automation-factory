@@ -55,31 +55,48 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
   - [x] Composants réutilisables (DraggableListItem)
   - [x] Élimination ~800 lignes de code dupliqué
 
-### P5 - Next Priority (Version 2.0.x)
-- [ ] **Gestion des Rôles Ansible**
-  - [ ] Collecte et affichage des rôles disponibles
-  - [ ] Drag & drop des rôles dans la section roles
-  - [ ] Configuration des paramètres de rôles
+### ✅ P5 - Complété (Version 2.0.0 - 2.3.0)
+- [x] **Gestion des Rôles Ansible** (v2.0.0)
+  - [x] Collecte et affichage des rôles disponibles (Galaxy v1 + v3)
+  - [x] Drag & drop des rôles dans la section roles
+  - [x] Configuration des paramètres de rôles
+  - [x] Support Galaxy privée (AAP Hub, Galaxy NG)
+- [x] **Configuration Galaxy Admin** (v2.3.0)
+  - [x] Toggle pour activer/désactiver Galaxy publique
+  - [x] Liste configurable de Galaxy privées (multi-sources)
+  - [x] Chiffrement Fernet (AES) pour les tokens
+  - [x] Test de connexion avec indicateurs de statut
+  - [x] Drag & drop pour réordonner les priorités
+
+### 🔥 P6 - Next Priority (Version 2.4.0)
+- [ ] **Architecture Event Sourcing**
+  - [ ] Refonte du système collaboratif
+  - [ ] Backend comme autorité unique (server-authoritative)
+  - [ ] Journal des événements avec persistance
+  - [ ] Timeline et rattrapage automatique
+  - [ ] Undo/Redo natif
+  - [ ] Sauvegarde automatique (plus de bouton Save)
+  - Voir [EVENT_SOURCING_SPEC.md](../core/EVENT_SOURCING_SPEC.md) pour la spécification complète
 
 ---
 
 ## 🌟 **Fonctionnalités Galaxy & Collections**
 
-### Configuration Galaxy (Admin UI) - P5
-- [ ] **Panel Admin - Sources Galaxy**
-  - [ ] Toggle pour activer/désactiver Galaxy publique
-  - [ ] Liste configurable de Galaxy privées (multi-sources)
-  - [ ] Pour chaque Galaxy privée :
-    - [ ] Nom (libellé d'affichage)
-    - [ ] URL (AAP Hub, Galaxy NG, etc.)
-    - [ ] Token d'authentification (stocké chiffré)
-    - [ ] Toggle actif/inactif
-  - [ ] Ordre de priorité des sources (drag & drop)
-  - [ ] Test de connexion par source
-- [ ] **Persistance configuration**
-  - [ ] Stockage en base de données (table `galaxy_sources`)
-  - [ ] Cache des sources actives au démarrage
-  - [ ] Rechargement à chaud sans redémarrage
+### ✅ Configuration Galaxy (Admin UI) - Complété v2.3.0
+- [x] **Panel Admin - Sources Galaxy**
+  - [x] Toggle pour activer/désactiver Galaxy publique
+  - [x] Liste configurable de Galaxy privées (multi-sources)
+  - [x] Pour chaque Galaxy privée :
+    - [x] Nom (libellé d'affichage)
+    - [x] URL (AAP Hub, Galaxy NG, etc.)
+    - [x] Token d'authentification (stocké chiffré)
+    - [x] Toggle actif/inactif
+  - [x] Ordre de priorité des sources (drag & drop)
+  - [x] Test de connexion par source
+- [x] **Persistance configuration**
+  - [x] Stockage en base de données (table `galaxy_sources`)
+  - [x] Cache des sources actives au démarrage
+  - [x] Rechargement à chaud sans redémarrage
 
 ### Galaxy Enhanced
 - [ ] **Optimisation performances favoris**
@@ -148,6 +165,38 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
   - [ ] Parser et importer les playbooks détectés
   - [ ] Support GitHub/GitLab
 
+### Import Rôles Ansible
+- [ ] **Import rôle local**
+  - [ ] Upload structure rôle (zip ou dossier)
+  - [ ] Parsing tasks/main.yml → tâches visuelles
+  - [ ] Import des variables (defaults/, vars/)
+  - [ ] Import des handlers
+  - [ ] Détection des dépendances (meta/main.yml)
+- [ ] **Import rôle depuis Galaxy**
+  - [ ] Recherche et sélection rôle Galaxy (public ou privé)
+  - [ ] Téléchargement et parsing automatique
+  - [ ] Conversion en playbook éditable
+  - [ ] Préservation des métadonnées d'origine
+
+### Export Role/Collection
+- [ ] **Export en tant que Rôle Ansible**
+  - [ ] Génération structure rôle (tasks/, handlers/, vars/, defaults/, meta/)
+  - [ ] Extraction automatique des variables en defaults/main.yml
+  - [ ] Génération meta/main.yml avec dépendances
+  - [ ] Support des handlers détectés
+  - [ ] README.md auto-généré
+- [ ] **Export en tant que Collection**
+  - [ ] Génération structure collection (plugins/, roles/, playbooks/)
+  - [ ] galaxy.yml avec métadonnées configurables
+  - [ ] Packaging pour publication Galaxy
+  - [ ] Versioning automatique de la collection
+- [ ] **Publication Galaxy locale**
+  - [ ] Push direct vers Galaxy privée (AAP Hub, Galaxy NG)
+  - [ ] Sélection de la source Galaxy cible (depuis config admin)
+  - [ ] Validation pré-publication (structure, métadonnées)
+  - [ ] Gestion des versions et remplacement
+  - [ ] Feedback temps réel du statut de publication
+
 ### Import/Export Diagramme
 - [ ] **Export diagramme**
   - [ ] Génération flowchart Mermaid
@@ -185,7 +234,7 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ---
 
-## 📝 **Annotations & Historique** (Version 2.4.x)
+## 📝 **Annotations & Historique** (Version 2.5.x)
 
 ### Commentaires Collaboratifs
 - [ ] **Commentaires sur tâches/modules**
@@ -194,12 +243,12 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
   - [ ] Résolution de commentaires
   - [ ] Notifications sur réponses
 
-### Versioning Playbooks
-- [ ] **Historique des modifications**
+### Versioning Playbooks (⚡ Couvert par Event Sourcing v2.4.0)
+- [ ] **Historique des modifications** → Natif avec Event Sourcing
   - [ ] Timeline des changements par playbook
   - [ ] Diff viewer entre versions
   - [ ] Auteur et date de chaque modification
-- [ ] **Restauration version**
+- [ ] **Restauration version** → Time Travel natif
   - [ ] Revenir à une version précédente
   - [ ] Prévisualisation avant restauration
   - [ ] Création branche depuis version ancienne
@@ -270,16 +319,36 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ## 🔗 **Intégrations Git** (Version 2.7.x)
 
+### Connexion Repository
+- [ ] **Configuration Git**
+  - [ ] Connexion OAuth GitHub/GitLab/Bitbucket
+  - [ ] Support repositories privés
+  - [ ] Gestion multi-repositories par utilisateur
+  - [ ] Stockage sécurisé des credentials
+
 ### Synchronisation Repository
 - [ ] **Push/Pull playbooks**
-  - [ ] Connexion à GitHub/GitLab
   - [ ] Push playbook vers repo
   - [ ] Pull playbook depuis repo
-  - [ ] Gestion branches
+  - [ ] Gestion branches (création, switch, merge)
+  - [ ] Détection et résolution conflits
 - [ ] **Workflow Git**
-  - [ ] Commit messages automatiques
+  - [ ] Commit messages automatiques ou personnalisés
   - [ ] Support .gitignore
-  - [ ] Résolution conflits
+  - [ ] Staging sélectif des fichiers
+  - [ ] Historique des commits dans l'UI
+
+### Gestion des Tags & Versions
+- [ ] **Tags de version**
+  - [ ] Création de tags (v1.0.0, v1.1.0, etc.)
+  - [ ] Liste et navigation entre tags
+  - [ ] Checkout d'un tag spécifique
+  - [ ] Push tags vers remote
+- [ ] **Versioning sémantique**
+  - [ ] Suggestion automatique du prochain numéro de version
+  - [ ] Changelog auto-généré depuis commits
+  - [ ] Release notes par version
+  - [ ] Comparaison entre versions/tags
 
 ---
 
@@ -367,7 +436,7 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 - [ ] **Responsive mobile complet**
 - [ ] **Tour guidé pour nouveaux utilisateurs**
 - [ ] **Tooltips contextuels améliorés**
-- [ ] **Undo/Redo système**
+- [ ] **Undo/Redo système** → ⚡ Natif avec Event Sourcing v2.4.0
 
 ### Authentification UX
 - [ ] **Avatar rouge pour réauthentification**
@@ -422,6 +491,6 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2026-01-06*
+*Document maintenu à jour. Dernière mise à jour : 2026-01-19*
 
 *Pour ajouter des items au backlog, créer une issue GitHub ou contacter l'équipe de développement.*
