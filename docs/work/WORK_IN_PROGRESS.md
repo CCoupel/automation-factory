@@ -40,6 +40,18 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - `frontend/src/hooks/useCollaborationSync.ts`
 - `frontend/src/components/zones/WorkZone.tsx`
 - `frontend/src/components/layout/MainLayout.tsx`
+- `frontend/vite.config.ts` (proxy WebSocket + localhost pour dev local)
+
+**⚠️ Configuration temporaire vite.config.ts :**
+- Proxy `/api` et `/ws` pointent vers `localhost:8000` (au lieu de `ansible-builder-backend:8000`)
+- Nécessaire pour tester le WebSocket en développement local
+- **À REVERTIR** avant déploiement staging/production ou rendre configurable via variable d'environnement
+
+**Status des tests :**
+- ✅ Code implémenté et compilé sans erreur
+- ⏳ Tests manuels de synchronisation WebSocket en attente
+- Backend doit être lancé sur port 8000
+- Frontend dev server sur port 5173 ou 5174
 
 ---
 

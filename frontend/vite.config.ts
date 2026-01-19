@@ -17,9 +17,16 @@ export default defineConfig({
     host: true,
     strictPort: false, // Allow automatic port selection if 5173 is busy
     allowedHosts: 'all', // Allow connections from nginx proxy
+    // TEMPORARY: localhost pour dev local - Revertir à ansible-builder-backend:8000 pour staging/prod
+    // TODO: Rendre configurable via VITE_API_TARGET env variable
     proxy: {
       '/api': {
-        target: 'http://ansible-builder-backend:8000',
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8000',
+        ws: true,
         changeOrigin: true,
       },
     },
