@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.3.0"
-__description__ = "Ansible Builder API - Galaxy Admin Configuration"
+__version__ = "2.3.6-rc.1"
+__description__ = "Ansible Builder API - Collaboration Bugfix"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -12,6 +12,28 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
+    "2.3.6": {
+        "title": "Collaboration Bugfix - Variables & Roles Sync",
+        "release_date": "2026-01-19",
+        "features": [
+            "Variable additions now sync to other collaborators",
+            "Role additions now sync to other collaborators",
+            "Role deletions and reordering now sync",
+            "Toggle role enabled/disabled now syncs"
+        ],
+        "improvements": [
+            "Added variable_add, variable_update, variable_delete sync types",
+            "Added role_add, role_delete, role_update sync types",
+            "All variable and role handlers now call collaboration sync",
+            "Proper handlers in applyCollaborationUpdate for new types"
+        ],
+        "technical": [
+            "useCollaborationSync.ts: 6 new types, interfaces, and send functions",
+            "WorkZone.tsx: Sync calls in all variable/role handlers",
+            "MainLayout.tsx: New callbacks passed to WorkZone",
+            "applyCollaborationUpdate: Handlers for variable_* and role_* types"
+        ]
+    },
     "2.3.0": {
         "title": "Galaxy Admin Configuration",
         "release_date": "2026-01-06",
