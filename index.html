@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Automation Factory - Créez vos playbooks Ansible visuellement avec drag & drop, intégration Galaxy et collaboration temps réel.">
+    <meta name="keywords" content="Ansible, Playbook, Builder, Automatisation, DevOps, Infrastructure as Code">
+    <title>Automation Factory - Créateur Visuel de Playbooks Ansible</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">AF</span>
+                <span class="brand-text">Automation Factory</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features" data-i18n="nav.features">Fonctionnalités</a></li>
+                <li><a href="#galaxy" data-i18n="nav.galaxy">Galaxy</a></li>
+                <li><a href="#collaboration" data-i18n="nav.collaboration">Collaboration</a></li>
+                <li><a href="#installation" data-i18n="nav.installation">Installation</a></li>
+                <li><a href="#versions" data-i18n="nav.versions">Versions</a></li>
+                <li><a href="#roadmap" data-i18n="nav.roadmap">Roadmap</a></li>
+            </ul>
+            <div class="nav-right">
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="fr" title="Français">
+                        <svg class="flag-icon" viewBox="0 0 36 24">
+                            <rect width="12" height="24" fill="#002395"/>
+                            <rect x="12" width="12" height="24" fill="#FFFFFF"/>
+                            <rect x="24" width="12" height="24" fill="#ED2939"/>
+                        </svg>
+                        <span>FR</span>
+                    </button>
+                    <button class="lang-btn" data-lang="en" title="English">
+                        <svg class="flag-icon" viewBox="0 0 60 30">
+                            <rect width="60" height="30" fill="#012169"/>
+                            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+                            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="4"/>
+                            <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+                            <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+                        </svg>
+                        <span>EN</span>
+                    </button>
+                </div>
+                <a href="https://coupel.net/automation-factory" class="nav-cta" target="_blank" data-i18n="nav.cta">Accéder à l'App</a>
+            </div>
+            <button class="mobile-menu-btn" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+            <div class="hero-grid"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span data-i18n="hero.badge">Version 2.3.0 - Galaxy Admin Configuration</span>
+            </div>
+            <h1 class="hero-title">
+                <span data-i18n="hero.title">Créez vos Playbooks Ansible</span>
+                <span class="gradient-text" data-i18n="hero.title.highlight">Visuellement</span>
+            </h1>
+            <p class="hero-subtitle" data-i18n="hero.subtitle">
+                Interface drag & drop intuitive, intégration Galaxy complète avec 36 000+ rôles,
+                collaboration temps réel et validation Ansible-lint instantanée.
+            </p>
+            <div class="hero-actions">
+                <a href="https://coupel.net/automation-factory" class="btn btn-primary" target="_blank">
+                    <span data-i18n="hero.btn.start">Commencer Gratuitement</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="#demo" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <span data-i18n="hero.btn.demo">Voir la Démo</span>
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-value">2,204</span>
+                    <span class="stat-label" data-i18n="hero.stat.namespaces">Namespaces Galaxy</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-value">36,726+</span>
+                    <span class="stat-label" data-i18n="hero.stat.roles">Rôles Disponibles</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-value">100%</span>
+                    <span class="stat-label" data-i18n="hero.stat.opensource">Open Source</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="browser-mockup">
+                <div class="browser-header">
+                    <div class="browser-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="browser-url">coupel.net/automation-factory</div>
+                </div>
+                <div class="browser-content screenshot-slideshow">
+                    <div class="slideshow-container">
+                        <div class="slide active">
+                            <img src="images/screenshots/interface.jpg" alt="Interface principale Automation Factory" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.interface">Interface principale avec zones de travail</div>
+                        </div>
+                        <div class="slide">
+                            <img src="images/screenshots/modules.jpg" alt="Modules Galaxy" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.modules">Parcourez les modules Galaxy</div>
+                        </div>
+                        <div class="slide">
+                            <img src="images/screenshots/roles.jpg" alt="Rôles Galaxy" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.roles">36 000+ rôles Ansible disponibles</div>
+                        </div>
+                        <div class="slide">
+                            <img src="images/screenshots/block.jpg" alt="Bloc avec rescue/always" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.block">Blocs avec gestion d'erreurs</div>
+                        </div>
+                        <div class="slide">
+                            <img src="images/screenshots/share.jpg" alt="Partage collaboratif" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.share">Partagez avec votre équipe</div>
+                        </div>
+                        <div class="slide">
+                            <img src="images/screenshots/validation.jpg" alt="Validation Ansible-lint" loading="lazy">
+                            <div class="slide-caption" data-i18n="slideshow.validation">Validation Ansible-lint intégrée</div>
+                        </div>
+                    </div>
+                    <div class="slideshow-controls">
+                        <button class="slide-btn prev" aria-label="Previous slide">&lt;</button>
+                        <div class="slide-dots"></div>
+                        <button class="slide-btn next" aria-label="Next slide">&gt;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Pain Points Section -->
+    <section id="problems" class="problems">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="problems.label">Le Constat</span>
+                <h2 class="section-title"><span data-i18n="problems.title">Créer des playbooks Ansible, c'est</span> <span class="gradient-text" data-i18n="problems.title.highlight">complexe</span></h2>
+                <p class="section-subtitle" data-i18n="problems.subtitle">
+                    Les équipes DevOps passent des heures à écrire du YAML, chercher la bonne syntaxe, et débugger des erreurs d'indentation.
+                </p>
+            </div>
+
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon problem-icon-red">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M15 9l-6 6M9 9l6 6"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="problems.yaml.title">Syntaxe YAML stricte</h3>
+                    <p data-i18n="problems.yaml.desc">Une indentation incorrecte et tout le playbook échoue. Des heures perdues à chercher l'erreur.</p>
+                    <div class="problem-stat">
+                        <span class="stat-number" data-i18n="problems.yaml.stat">67%</span>
+                        <span class="stat-text" data-i18n="problems.yaml.stattext">des erreurs sont liées à l'indentation YAML</span>
+                    </div>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon problem-icon-orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 8v4M12 16h.01"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="problems.docs.title">Documentation dispersée</h3>
+                    <p data-i18n="problems.docs.desc">Jongler entre docs.ansible.com, Galaxy et Stack Overflow pour trouver les bons paramètres.</p>
+                    <div class="problem-stat">
+                        <span class="stat-number" data-i18n="problems.docs.stat">5,800+</span>
+                        <span class="stat-text" data-i18n="problems.docs.stattext">modules disponibles, difficile de s'y retrouver</span>
+                    </div>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon problem-icon-yellow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="problems.collab.title">Collaboration difficile</h3>
+                    <p data-i18n="problems.collab.desc">Partager des playbooks par email ou Git sans savoir qui modifie quoi en temps réel.</p>
+                    <div class="problem-stat">
+                        <span class="stat-number" data-i18n="problems.collab.stat">3x</span>
+                        <span class="stat-text" data-i18n="problems.collab.stattext">plus de temps passé en coordination qu'en développement</span>
+                    </div>
+                </div>
+
+                <div class="problem-card">
+                    <div class="problem-icon problem-icon-purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 21V9"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="problems.overview.title">Pas de vue d'ensemble</h3>
+                    <p data-i18n="problems.overview.desc">Difficile de visualiser le flux d'exécution et les dépendances entre tâches dans un fichier texte.</p>
+                    <div class="problem-stat">
+                        <span class="stat-number" data-i18n="problems.overview.stat">250+</span>
+                        <span class="stat-text" data-i18n="problems.overview.stattext">lignes en moyenne par playbook complexe</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="solution-intro">
+                <div class="solution-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M19 12l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <h3 data-i18n="problems.solution.title">Automation Factory résout ces problèmes</h3>
+                <p data-i18n="problems.solution.desc">Une interface visuelle qui génère du YAML valide, avec accès à toute la documentation et collaboration en temps réel.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="features.label">Fonctionnalités</span>
+                <h2 class="section-title" data-i18n="features.title">Tout ce dont vous avez besoin pour créer des playbooks professionnels</h2>
+                <p class="section-subtitle" data-i18n="features.subtitle">Une interface moderne qui simplifie la création de playbooks Ansible sans sacrifier la puissance.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card feature-highlight">
+                    <div class="feature-icon icon-drag">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="7" height="7" rx="1"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.dragdrop.title">Drag & Drop Intuitif</h3>
+                    <p data-i18n="features.dragdrop.desc">Glissez-déposez modules, blocs et rôles pour construire vos playbooks visuellement.
+                       Réorganisez vos tâches en quelques clics.</p>
+                    <ul class="feature-list">
+                        <li data-i18n="features.dragdrop.list1">5 zones de travail (pre_tasks, tasks, post_tasks, handlers, roles)</li>
+                        <li data-i18n="features.dragdrop.list2">Blocs imbriqués avec rescue/always</li>
+                        <li data-i18n="features.dragdrop.list3">Liens visuels entre les tâches</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon icon-validation">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 12l2 2 4-4"/>
+                            <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.validation.title">Validation Ansible-lint</h3>
+                    <p data-i18n="features.validation.desc">Validation en temps réel avec ansible-lint. Corrigez les erreurs avant même d'exécuter.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon icon-variables">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M4 7h16M4 12h16M4 17h10"/>
+                            <circle cx="19" cy="17" r="2"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.variables.title">Variables Typées</h3>
+                    <p data-i18n="features.variables.desc">Définissez le type (string, int, bool, list, dict), obligatoire/optionnel, et valeur par défaut.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon icon-assertions">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.assertions.title">Assertions Automatiques</h3>
+                    <p data-i18n="features.assertions.desc">Génération automatique de blocs d'assertions pour valider vos variables d'entrée.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon icon-yaml">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                            <path d="M8 13h8M8 17h5"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.yaml.title">Export YAML</h3>
+                    <p data-i18n="features.yaml.desc">Exportez vos playbooks en YAML propre et valide, prêts à être exécutés.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon icon-preview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="features.preview.title">Preview en Temps Réel</h3>
+                    <p data-i18n="features.preview.desc">Visualisez le YAML généré instantanément pendant que vous construisez.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Galaxy Section -->
+    <section id="galaxy" class="galaxy">
+        <div class="container">
+            <div class="galaxy-content">
+                <div class="galaxy-text">
+                    <span class="section-label" data-i18n="galaxy.label">Intégration Galaxy</span>
+                    <h2 class="section-title" data-i18n="galaxy.title">Accédez à tout l'écosystème Ansible Galaxy</h2>
+                    <p class="section-subtitle" data-i18n="galaxy.subtitle">
+                        Parcourez et utilisez plus de 36 000 rôles et 2 200 namespaces directement depuis l'interface.
+                        Support complet des rôles standalone (v1) et des collections (v3).
+                    </p>
+
+                    <div class="galaxy-features">
+                        <div class="galaxy-feature">
+                            <div class="galaxy-feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="M21 21l-4.35-4.35"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 data-i18n="galaxy.search.title">Recherche Intelligente</h4>
+                                <p data-i18n="galaxy.search.desc">Trouvez rapidement les rôles dont vous avez besoin avec la recherche en temps réel.</p>
+                            </div>
+                        </div>
+
+                        <div class="galaxy-feature">
+                            <div class="galaxy-feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                    <path d="M2 17l10 5 10-5"/>
+                                    <path d="M2 12l10 5 10-5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 data-i18n="galaxy.lazy.title">Chargement Paresseux</h4>
+                                <p data-i18n="galaxy.lazy.desc">Architecture optimisée avec cache intelligent et chargement à la demande.</p>
+                            </div>
+                        </div>
+
+                        <div class="galaxy-feature">
+                            <div class="galaxy-feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                    <path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 data-i18n="galaxy.private.title">Galaxy Privée</h4>
+                                <p data-i18n="galaxy.private.desc">Support AAP Automation Hub et Galaxy NG pour vos rôles privés.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="galaxy-visual">
+                    <div class="galaxy-card">
+                        <div class="galaxy-card-header">
+                            <span class="galaxy-card-icon">G</span>
+                            <span>Galaxy Explorer</span>
+                        </div>
+                        <div class="galaxy-tabs">
+                            <span class="tab active">Standalone</span>
+                            <span class="tab">Collections</span>
+                        </div>
+                        <div class="galaxy-tree">
+                            <div class="tree-item namespace expanded">
+                                <span class="tree-arrow">▼</span>
+                                <span class="tree-icon ns">N</span>
+                                <span>geerlingguy</span>
+                                <span class="tree-count">127</span>
+                            </div>
+                            <div class="tree-item role indent">
+                                <span class="tree-icon role">R</span>
+                                <span>docker</span>
+                            </div>
+                            <div class="tree-item role indent">
+                                <span class="tree-icon role">R</span>
+                                <span>nginx</span>
+                            </div>
+                            <div class="tree-item role indent">
+                                <span class="tree-icon role">R</span>
+                                <span>mysql</span>
+                            </div>
+                            <div class="tree-item namespace">
+                                <span class="tree-arrow">▶</span>
+                                <span class="tree-icon ns">N</span>
+                                <span>community</span>
+                                <span class="tree-count">2,340</span>
+                            </div>
+                            <div class="tree-item namespace">
+                                <span class="tree-arrow">▶</span>
+                                <span class="tree-icon ns">N</span>
+                                <span>ansible</span>
+                                <span class="tree-count">890</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Collaboration Section -->
+    <section id="collaboration" class="collaboration">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="collab.label">Collaboration</span>
+                <h2 class="section-title" data-i18n="collab.title">Travaillez en équipe, en temps réel</h2>
+                <p class="section-subtitle" data-i18n="collab.subtitle">
+                    Partagez vos playbooks avec votre équipe et collaborez simultanément avec synchronisation instantanée.
+                </p>
+            </div>
+
+            <div class="collab-grid">
+                <div class="collab-card">
+                    <div class="collab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="collab.roles.title">Système de Rôles</h3>
+                    <p data-i18n="collab.roles.desc">3 niveaux d'accès : Propriétaire, Éditeur, Visualiseur. Contrôlez finement qui peut modifier vos playbooks.</p>
+                </div>
+
+                <div class="collab-card">
+                    <div class="collab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="collab.sync.title">Sync Temps Réel</h3>
+                    <p data-i18n="collab.sync.desc">WebSockets pour une synchronisation instantanée. Voyez les modifications de vos collaborateurs en direct.</p>
+                </div>
+
+                <div class="collab-card">
+                    <div class="collab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="collab.audit.title">Audit Log</h3>
+                    <p data-i18n="collab.audit.desc">Historique complet des modifications avec auteur, date et détails de chaque changement.</p>
+                </div>
+
+                <div class="collab-card">
+                    <div class="collab-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                    </div>
+                    <h3 data-i18n="collab.conflicts.title">Gestion Conflits</h3>
+                    <p data-i18n="collab.conflicts.desc">Optimistic locking pour éviter les conflits d'édition simultanée sur les mêmes éléments.</p>
+                </div>
+            </div>
+
+            <div class="collab-visual">
+                <div class="avatars-demo">
+                    <div class="avatar avatar-1">JD</div>
+                    <div class="avatar avatar-2">MC</div>
+                    <div class="avatar avatar-3">PL</div>
+                    <div class="avatar-more">+2</div>
+                </div>
+                <p class="avatars-label" data-i18n="collab.avatars">5 collaborateurs actifs sur ce playbook</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+        <div class="container">
+            <div class="demo-content">
+                <div class="demo-text">
+                    <span class="section-label" data-i18n="demo.label">Démonstration</span>
+                    <h2 class="section-title" data-i18n="demo.title">Voyez Automation Factory en action</h2>
+                    <p class="section-subtitle" data-i18n="demo.subtitle">
+                        Découvrez comment créer un playbook complet en quelques minutes avec notre interface intuitive.
+                    </p>
+
+                    <div class="demo-steps">
+                        <div class="demo-step">
+                            <span class="step-number">1</span>
+                            <div class="step-content">
+                                <h4 data-i18n="demo.step1.title">Parcourez Galaxy</h4>
+                                <p data-i18n="demo.step1.desc">Explorez les modules et rôles disponibles dans la palette latérale.</p>
+                            </div>
+                        </div>
+                        <div class="demo-step">
+                            <span class="step-number">2</span>
+                            <div class="step-content">
+                                <h4 data-i18n="demo.step2.title">Glissez-Déposez</h4>
+                                <p data-i18n="demo.step2.desc">Ajoutez des tâches à votre playbook par simple drag & drop.</p>
+                            </div>
+                        </div>
+                        <div class="demo-step">
+                            <span class="step-number">3</span>
+                            <div class="step-content">
+                                <h4 data-i18n="demo.step3.title">Configurez</h4>
+                                <p data-i18n="demo.step3.desc">Paramétrez chaque tâche avec le panneau de configuration contextuel.</p>
+                            </div>
+                        </div>
+                        <div class="demo-step">
+                            <span class="step-number">4</span>
+                            <div class="step-content">
+                                <h4 data-i18n="demo.step4.title">Exportez</h4>
+                                <p data-i18n="demo.step4.desc">Récupérez votre playbook YAML validé, prêt à être exécuté.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="demo-visual">
+                    <div class="video-placeholder">
+                        <div class="play-button">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                        </div>
+                        <span data-i18n="demo.video">Vidéo de démonstration</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Version History Section -->
+    <section id="versions" class="versions">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="versions.label">Changelog</span>
+                <h2 class="section-title" data-i18n="versions.title">Historique des Versions</h2>
+                <p class="section-subtitle" data-i18n="versions.subtitle">
+                    Suivez l'évolution d'Automation Factory et découvrez les nouvelles fonctionnalités ajoutées à chaque version.
+                </p>
+            </div>
+
+            <!-- Feature Legend -->
+            <div class="feature-legend">
+                <span class="legend-label" data-i18n="versions.legend">Filtrer :</span>
+                <button class="legend-item" data-filter="api">
+                    <svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                    <span data-i18n="versions.legend.api">API</span>
+                </button>
+                <button class="legend-item" data-filter="frontend">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    <span data-i18n="versions.legend.frontend">Frontend</span>
+                </button>
+                <button class="legend-item" data-filter="backend">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg>
+                    <span data-i18n="versions.legend.backend">Backend</span>
+                </button>
+                <button class="legend-item" data-filter="security">
+                    <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    <span data-i18n="versions.legend.security">Sécurité</span>
+                </button>
+                <button class="legend-item" data-filter="perf">
+                    <svg viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg>
+                    <span data-i18n="versions.legend.perf">Perf</span>
+                </button>
+                <button class="legend-item" data-filter="collab">
+                    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    <span data-i18n="versions.legend.collab">Collab</span>
+                </button>
+                <button class="legend-item legend-reset" data-filter="all">
+                    <span data-i18n="versions.legend.all">Tous</span>
+                </button>
+            </div>
+
+            <div class="timeline">
+                <!-- v2.3.0 -->
+                <div class="timeline-item current">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v2.3.0</span>
+                            <span class="version-date" data-i18n="versions.v230.date">Janvier 2026</span>
+                            <span class="version-tag current-tag" data-i18n="versions.current">Actuelle</span>
+                        </div>
+                        <h3 data-i18n="versions.v230.title">Galaxy Admin Configuration</h3>
+                        <ul class="version-features">
+                            <li class="feat-backend" data-i18n-detail="versions.v230.f1.detail"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span data-i18n="versions.v230.f1">Galaxy Sources UI</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v230.f2.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v230.f2">Multi-sources</span></li>
+                            <li class="feat-security" data-i18n-detail="versions.v230.f3.detail"><svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6z"/></svg><span data-i18n="versions.v230.f3">Tokens chiffres</span></li>
+                            <li class="feat-api" data-i18n-detail="versions.v230.f4.detail"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="versions.v230.f4">Test connexion</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v230.f5.detail"><svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg><span data-i18n="versions.v230.f5">Drag & drop roles</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v2.2.1 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v2.2.1</span>
+                            <span class="version-date" data-i18n="versions.v221.date">Janvier 2026</span>
+                        </div>
+                        <h3 data-i18n="versions.v221.title">Theme System</h3>
+                        <ul class="version-features">
+                            <li class="feat-frontend" data-i18n-detail="versions.v221.f1.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v221.f1">3-state theme</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v221.f2.detail"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span data-i18n="versions.v221.f2">System preference</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v221.f3.detail"><svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg><span data-i18n="versions.v221.f3">Dark mode fixes</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v221.f4.detail"><svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM8.9 6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H8.9V6z"/></svg><span data-i18n="versions.v221.f4">Login isolation</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v2.2.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v2.2.0</span>
+                            <span class="version-date" data-i18n="versions.v220.date">Janvier 2026</span>
+                        </div>
+                        <h3 data-i18n="versions.v220.title">Code Rationalization</h3>
+                        <ul class="version-features">
+                            <li class="feat-backend" data-i18n-detail="versions.v220.f1.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v220.f1">BaseHTTPService</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v220.f2.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v220.f2">CacheTTL config</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v220.f3.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v220.f3">CacheManager</span></li>
+                            <li class="feat-api" data-i18n-detail="versions.v220.f4.detail"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="versions.v220.f4">Favorites API 9→3</span></li>
+                            <li class="feat-perf" data-i18n-detail="versions.v220.f5.detail"><svg viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg><span data-i18n="versions.v220.f5">-400 lignes code</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v2.1.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v2.1.0</span>
+                            <span class="version-date" data-i18n="versions.v210.date">Janvier 2026</span>
+                        </div>
+                        <h3 data-i18n="versions.v210.title">Diagram Export/Import</h3>
+                        <ul class="version-features">
+                            <li class="feat-frontend" data-i18n-detail="versions.v210.f1.detail"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg><span data-i18n="versions.v210.f1">Export ABD</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v210.f2.detail"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg><span data-i18n="versions.v210.f2">Export Mermaid</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v210.f3.detail"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span data-i18n="versions.v210.f3">Export SVG</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v210.f4.detail"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg><span data-i18n="versions.v210.f4">Import ABD</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v210.f5.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v210.f5">Backend exporters</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v2.0.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v2.0.0</span>
+                            <span class="version-date" data-i18n="versions.v200.date">Janvier 2026</span>
+                        </div>
+                        <h3 data-i18n="versions.v200.title">Galaxy Roles Integration</h3>
+                        <ul class="version-features">
+                            <li class="feat-api" data-i18n-detail="versions.v200.f1.detail"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="versions.v200.f1">API Galaxy v1 + v3</span></li>
+                            <li class="feat-security" data-i18n-detail="versions.v200.f2.detail"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="versions.v200.f2">Galaxy privée</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v200.f3.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v200.f3">RolesTreeView</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v200.f4.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v200.f4">Toggle rôles</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v200.f5.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v200.f5">YAML + variables</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v1.17.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v1.17.0</span>
+                            <span class="version-date" data-i18n="versions.v1170.date">Décembre 2025</span>
+                        </div>
+                        <h3 data-i18n="versions.v1170.title">Bloc Assertions Système</h3>
+                        <ul class="version-features">
+                            <li class="feat-frontend" data-i18n-detail="versions.v1170.f1.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v1170.f1">Blocs système</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v1170.f2.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v1170.f2">Auto-assertions</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v1170.f3.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v1170.f3">Liens auto</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v1170.f4.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v1170.f4">Types custom</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v1.15.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v1.15.0</span>
+                            <span class="version-date" data-i18n="versions.v1150.date">Décembre 2025</span>
+                        </div>
+                        <h3 data-i18n="versions.v1150.title">Variables Typées</h3>
+                        <ul class="version-features">
+                            <li class="feat-backend" data-i18n-detail="versions.v1150.f1.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v1150.f1">5 types natifs</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v1150.f2.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v1150.f2">Requis/optionnel</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v1150.f3.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v1150.f3">Validation regex</span></li>
+                            <li class="feat-security" data-i18n-detail="versions.v1150.f4.detail"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="versions.v1150.f4">Types admin</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v1.14.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v1.14.0</span>
+                            <span class="version-date" data-i18n="versions.v1140.date">Décembre 2025</span>
+                        </div>
+                        <h3 data-i18n="versions.v1140.title">Synchronisation Temps Réel</h3>
+                        <ul class="version-features">
+                            <li class="feat-collab" data-i18n-detail="versions.v1140.f1.detail"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span data-i18n="versions.v1140.f1">Sync granulaire</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v1140.f2.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v1140.f2">Highlight collab</span></li>
+                            <li class="feat-frontend" data-i18n-detail="versions.v1140.f3.detail"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="versions.v1140.f3">TreeView modules</span></li>
+                            <li class="feat-perf" data-i18n-detail="versions.v1140.f4.detail"><svg viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg><span data-i18n="versions.v1140.f4">Lazy loading</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- v1.13.0 -->
+                <div class="timeline-item">
+                    <div class="timeline-marker">
+                        <span class="marker-dot"></span>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="version-header">
+                            <span class="version-badge">v1.13.0</span>
+                            <span class="version-date" data-i18n="versions.v1130.date">Décembre 2025</span>
+                        </div>
+                        <h3 data-i18n="versions.v1130.title">Collaboration Multi-utilisateur</h3>
+                        <ul class="version-features">
+                            <li class="feat-security" data-i18n-detail="versions.v1130.f1.detail"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="versions.v1130.f1">Rôles utilisateur</span></li>
+                            <li class="feat-collab" data-i18n-detail="versions.v1130.f2.detail"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span data-i18n="versions.v1130.f2">Partage playbooks</span></li>
+                            <li class="feat-api" data-i18n-detail="versions.v1130.f3.detail"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="versions.v1130.f3">WebSockets</span></li>
+                            <li class="feat-backend" data-i18n-detail="versions.v1130.f4.detail"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="versions.v1130.f4">Audit log</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="roadmap">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="roadmap.label">Roadmap</span>
+                <h2 class="section-title" data-i18n="roadmap.title">Fonctionnalités à Venir</h2>
+                <p class="section-subtitle" data-i18n="roadmap.subtitle">
+                    Découvrez ce que nous préparons pour les prochaines versions d'Automation Factory.
+                </p>
+            </div>
+
+            <div class="roadmap-grid">
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.collab.title">Collaboration Avancée</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-collab"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span data-i18n="roadmap.collab.f1">Messagerie temps réel entre collaborateurs</span></li>
+                        <li class="feat-security"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="roadmap.collab.f2">Verrouillage/déverrouillage de playbook</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.import.title">Import & Export</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-frontend"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="roadmap.import.f1">Import playbooks YAML et rôles Ansible</span></li>
+                        <li class="feat-api"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="roadmap.import.f2">Export en rôle ou collection Ansible</span></li>
+                        <li class="feat-backend"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="roadmap.import.f3">Publication directe vers Galaxy privée</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.security.title">Sécurité & Vault</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-security"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="roadmap.security.f1">Intégration Ansible Vault</span></li>
+                        <li class="feat-security"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span data-i18n="roadmap.security.f2">Détection automatique de secrets</span></li>
+                        <li class="feat-backend"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="roadmap.security.f3">Gestion des sessions admin</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.annotations.title">Annotations & Historique</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-collab"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span data-i18n="roadmap.annotations.f1">Commentaires sur tâches et modules</span></li>
+                        <li class="feat-backend"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="roadmap.annotations.f2">Versioning et historique des playbooks</span></li>
+                        <li class="feat-frontend"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="roadmap.annotations.f3">Comparaison et diff entre versions</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.inventory.title">Inventaire & Connexions</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-frontend"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="roadmap.inventory.f1">Éditeur d'inventaire visuel</span></li>
+                        <li class="feat-api"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="roadmap.inventory.f2">Test de connexion SSH</span></li>
+                        <li class="feat-api"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="roadmap.inventory.f3">Inventaire dynamique (AWS, Azure, GCP)</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.git.title">Intégrations Git</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-api"><svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg><span data-i18n="roadmap.git.f1">Connexion GitHub/GitLab/Bitbucket</span></li>
+                        <li class="feat-backend"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="roadmap.git.f2">Push/Pull et gestion des branches</span></li>
+                        <li class="feat-frontend"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="roadmap.git.f3">Tags de version et changelog auto</span></li>
+                    </ul>
+                </div>
+
+                <div class="roadmap-card">
+                    <h3 data-i18n="roadmap.more.title">Et Plus Encore...</h3>
+                    <ul class="roadmap-features">
+                        <li class="feat-frontend"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span data-i18n="roadmap.more.f1">Centre de notifications</span></li>
+                        <li class="feat-backend"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1.5"/><circle cx="6" cy="18" r="1.5"/></svg><span data-i18n="roadmap.more.f2">Dashboard admin et statistiques</span></li>
+                        <li class="feat-collab"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span data-i18n="roadmap.more.f3">Gestion des rôles Ansible</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="installation">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label" data-i18n="install.label">Déploiement</span>
+                <h2 class="section-title" data-i18n="install.title">Installation</h2>
+                <p class="section-subtitle" data-i18n="install.subtitle">
+                    Déployez Automation Factory selon vos besoins : en local, avec Docker, ou sur Kubernetes.
+                </p>
+            </div>
+
+            <div class="install-tabs">
+                <button class="install-tab active" data-tab="docker">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.186.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.186.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.186.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.185-.186h-2.119a.185.185 0 00-.186.185v1.888c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.185v1.888c0 .102.084.185.186.185m-.054 5.428h14.779c.105 0 .19-.085.19-.19v-3.403c-.004-.105-.086-.19-.19-.19H2.19a.19.19 0 00-.19.19v3.403c0 .105.086.19.19.19"/>
+                    </svg>
+                    <span data-i18n="install.tab.docker">Docker Compose</span>
+                </button>
+                <button class="install-tab" data-tab="kubernetes">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10.204 14.35l.007.01-.999 2.413a5.171 5.171 0 01-2.075-2.597l2.578-.437.004.005a.44.44 0 01.485.606zm-.833-2.129a.44.44 0 00.173-.756l.002-.011L7.585 9.7a5.143 5.143 0 00-.73 3.255l2.514-.725.002-.009zm1.145-1.98a.44.44 0 00.699-.337l-.01-.016.15-2.62a5.144 5.144 0 00-3.01 1.442l2.168 1.527.003.004zm3.06 3.439l-.003.005a.44.44 0 00.486.606l.003-.006 2.578.437a5.172 5.172 0 01-2.075 2.597l-.999-2.413.01-.026zm.836-2.129l.002.009 2.514.725a5.144 5.144 0 00-.73-3.255l-1.96 1.754.002.011a.44.44 0 00.172.756zm-1.141-1.98l.003-.004 2.167-1.527a5.145 5.145 0 00-3.009-1.442l.15 2.62-.01.016a.44.44 0 00.699.337zm-1.257 2.89a.44.44 0 100 .88.44.44 0 000-.88zm7.1 3.092a6.873 6.873 0 01-3.835 3.89l-.263-.633a5.947 5.947 0 003.35-3.396l.748.139zm-.748-5.356l-.748.139a5.947 5.947 0 00-3.35-3.397l.263-.632a6.873 6.873 0 013.835 3.89zm-13.26 5.356a6.873 6.873 0 003.835 3.89l.263-.633a5.947 5.947 0 01-3.35-3.396l-.748.139zm.748-5.356l.748.139a5.947 5.947 0 013.35-3.397l-.263-.632a6.873 6.873 0 00-3.835 3.89zM12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-1.2a8.8 8.8 0 100-17.6 8.8 8.8 0 000 17.6z"/>
+                    </svg>
+                    <span data-i18n="install.tab.kubernetes">Kubernetes (Helm)</span>
+                </button>
+                <button class="install-tab" data-tab="standalone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <path d="M8 21h8M12 17v4"/>
+                    </svg>
+                    <span data-i18n="install.tab.standalone">Standalone</span>
+                </button>
+            </div>
+
+            <div class="install-content">
+                <!-- Docker Tab -->
+                <div class="install-panel active" id="docker-panel">
+                    <div class="install-description">
+                        <h3 data-i18n="install.docker.title">Déploiement avec Docker Compose</h3>
+                        <p data-i18n="install.docker.desc">La méthode la plus simple pour déployer Automation Factory. Prêt en 2 minutes avec SQLite intégré, aucune configuration requise.</p>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-badge code-badge-green" data-i18n="install.docker.recommended">Recommandé</span>
+                            <span data-i18n="install.docker.quick">Installation rapide (SQLite)</span>
+                            <button class="copy-btn" data-copy="docker" data-i18n="install.docker.copy">Copier</button>
+                        </div>
+                        <pre><code><span class="code-comment"># Cloner le repository</span>
+git clone https://github.com/ccoupel/automation-factory.git
+cd automation-factory
+
+<span class="code-comment"># Lancer avec Docker Compose (SQLite par défaut)</span>
+docker compose up -d
+
+<span class="code-comment"># C'est tout ! Accédez à http://localhost</span></code></pre>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>docker-compose.yml - Configuration minimale</span>
+                            <button class="copy-btn" data-copy="docker-minimal">Copier</button>
+                        </div>
+                        <pre><code>version: '3.8'
+services:
+  backend:
+    image: ghcr.io/ccoupel/automation-factory-backend:2.2.0
+    environment:
+      - SECRET_KEY=change-me-in-production
+      <span class="code-comment"># SQLite par défaut - aucune config DB requise !</span>
+    volumes:
+      - data:/app/data  <span class="code-comment"># Persistence SQLite</span>
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: ghcr.io/ccoupel/automation-factory-frontend:2.2.0
+    ports:
+      - "80:80"
+
+volumes:
+  data:</code></pre>
+                    </div>
+
+                    <div class="install-note">
+                        <div class="note-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 16v-4M12 8h.01"/>
+                            </svg>
+                        </div>
+                        <div class="note-content">
+                            <strong data-i18n="install.docker.note.title">SQLite vs PostgreSQL</strong>
+                            <p data-i18n="install.docker.note.desc">SQLite est parfait pour démarrer rapidement, les tests et les petites équipes (jusqu'à 10 utilisateurs).
+                               Pour la production avec plus d'utilisateurs, passez à PostgreSQL.</p>
+                        </div>
+                    </div>
+
+                    <details class="install-advanced">
+                        <summary>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M19 12l-7 7-7-7"/>
+                            </svg>
+                            <span data-i18n="install.docker.advanced">Configuration avancée (PostgreSQL + Redis)</span>
+                        </summary>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>docker-compose.yml - Production</span>
+                                <button class="copy-btn" data-copy="docker-prod">Copier</button>
+                            </div>
+                            <pre><code>version: '3.8'
+services:
+  backend:
+    image: ghcr.io/ccoupel/automation-factory-backend:2.2.0
+    environment:
+      <span class="code-comment"># Base de données PostgreSQL</span>
+      - DATABASE_TYPE=postgresql
+      - DATABASE_URL=postgresql://ansible:secret@db:5432/automation_factory
+
+      <span class="code-comment"># Sécurité</span>
+      - SECRET_KEY=your-very-long-secret-key-here
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+      <span class="code-comment"># Redis cache (recommandé en production)</span>
+      - REDIS_URL=redis://redis:6379/0
+
+      <span class="code-comment"># Galaxy privée (optionnel)</span>
+      <span class="code-comment"># - GALAXY_PRIVATE_URL=https://hub.example.com</span>
+      <span class="code-comment"># - GALAXY_PRIVATE_TOKEN=your-token</span>
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    image: ghcr.io/ccoupel/automation-factory-frontend:2.2.0
+    ports:
+      - "80:80"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=ansible
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=automation_factory
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:</code></pre>
+                        </div>
+                    </details>
+
+                    <div class="install-requirements">
+                        <h4 data-i18n="install.requirements">Prérequis</h4>
+                        <ul>
+                            <li>Docker 20.10+</li>
+                            <li>Docker Compose v2+</li>
+                            <li>2 Go RAM (SQLite) / 4 Go RAM (PostgreSQL)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Kubernetes Tab -->
+                <div class="install-panel" id="kubernetes-panel">
+                    <div class="install-description">
+                        <h3 data-i18n="install.k8s.title">Déploiement sur Kubernetes avec Helm</h3>
+                        <p data-i18n="install.k8s.desc">Pour les environnements de production. Haute disponibilité, scaling automatique et gestion centralisée.</p>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Installation Helm</span>
+                            <button class="copy-btn" data-copy="kubernetes">Copier</button>
+                        </div>
+                        <pre><code><span class="code-comment"># Ajouter le repository Helm</span>
+helm repo add automation-factory https://ccoupel.github.io/automation-factory
+helm repo update
+
+<span class="code-comment"># Installer avec les valeurs par défaut</span>
+helm install automation-factory automation-factory/automation-factory \
+  --namespace automation-factory \
+  --create-namespace
+
+<span class="code-comment"># Ou avec des valeurs personnalisées</span>
+helm install automation-factory automation-factory/automation-factory \
+  --namespace automation-factory \
+  --create-namespace \
+  -f custom-values.yaml
+
+<span class="code-comment"># Vérifier le déploiement</span>
+kubectl get pods -n automation-factory</code></pre>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>custom-values.yaml - Configuration Helm</span>
+                            <button class="copy-btn" data-copy="helm-config">Copier</button>
+                        </div>
+                        <pre><code><span class="code-comment"># Backend configuration</span>
+backend:
+  replicaCount: 2
+  image:
+    repository: ghcr.io/ccoupel/automation-factory-backend
+    tag: "2.2.0"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  env:
+    DATABASE_TYPE: "postgresql"
+    SECRET_KEY: "your-production-secret"
+    GALAXY_PUBLIC_ENABLED: "true"
+    <span class="code-comment"># Galaxy privée (optionnel)</span>
+    GALAXY_PRIVATE_URL: "https://hub.example.com"
+    GALAXY_PRIVATE_TOKEN: "your-token"
+
+<span class="code-comment"># Frontend configuration</span>
+frontend:
+  replicaCount: 2
+  image:
+    repository: ghcr.io/ccoupel/automation-factory-frontend
+    tag: "2.2.0"
+
+<span class="code-comment"># PostgreSQL database</span>
+postgresql:
+  enabled: true
+  auth:
+    username: ansible
+    password: "secure-db-password"
+    database: automation_factory
+  primary:
+    persistence:
+      size: 10Gi
+
+<span class="code-comment"># Redis cache</span>
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+<span class="code-comment"># Ingress configuration</span>
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: automation-factory.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: automation-factory-tls
+      hosts:
+        - automation-factory.example.com</code></pre>
+                    </div>
+
+                    <div class="install-requirements">
+                        <h4>Prérequis</h4>
+                        <ul>
+                            <li>Kubernetes 1.24+</li>
+                            <li>Helm 3.10+</li>
+                            <li>Ingress Controller (nginx recommandé)</li>
+                            <li>Cert-Manager (pour HTTPS)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Standalone Tab -->
+                <div class="install-panel" id="standalone-panel">
+                    <div class="install-description">
+                        <h3 data-i18n="install.standalone.title">Installation Standalone (Développement)</h3>
+                        <p data-i18n="install.standalone.desc">Pour le développement local ou les tests. Backend et frontend lancés séparément.</p>
+                    </div>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Installation manuelle</span>
+                            <button class="copy-btn" data-copy="standalone">Copier</button>
+                        </div>
+                        <pre><code><span class="code-comment"># Cloner le repository</span>
+git clone https://github.com/ccoupel/automation-factory.git
+cd automation-factory
+
+<span class="code-comment"># Backend (Python/FastAPI)</span>
+cd backend
+python -m venv venv
+source venv/bin/activate  <span class="code-comment"># Linux/Mac</span>
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+<span class="code-comment"># Frontend (React/TypeScript) - nouveau terminal</span>
+cd frontend
+npm install
+npm run dev
+
+<span class="code-comment"># Accéder à l'application</span>
+<span class="code-comment"># Frontend: http://localhost:5173</span>
+<span class="code-comment"># Backend API: http://localhost:8000/api</span></code></pre>
+                    </div>
+                    <div class="install-requirements">
+                        <h4>Prérequis</h4>
+                        <ul>
+                            <li>Python 3.11+</li>
+                            <li>Node.js 18+</li>
+                            <li>Redis (optionnel, pour le cache)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 data-i18n="cta.title">Prêt à simplifier vos playbooks Ansible ?</h2>
+                <p data-i18n="cta.subtitle">Commencez gratuitement dès aujourd'hui. Aucune carte de crédit requise.</p>
+                <a href="https://coupel.net/automation-factory" class="btn btn-primary btn-large" target="_blank">
+                    <span data-i18n="cta.btn">Lancer Automation Factory</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="nav-brand">
+                        <span class="brand-icon">AF</span>
+                        <span class="brand-text">Automation Factory</span>
+                    </div>
+                    <p data-i18n="footer.desc">Créateur visuel de playbooks Ansible. Open source et gratuit.</p>
+                </div>
+
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4 data-i18n="footer.product">Produit</h4>
+                        <ul>
+                            <li><a href="#features" data-i18n="nav.features">Fonctionnalités</a></li>
+                            <li><a href="#galaxy" data-i18n="nav.galaxy">Galaxy</a></li>
+                            <li><a href="#collaboration" data-i18n="nav.collaboration">Collaboration</a></li>
+                            <li><a href="#installation" data-i18n="nav.installation">Installation</a></li>
+                            <li><a href="#versions" data-i18n="nav.versions">Versions</a></li>
+                            <li><a href="#roadmap" data-i18n="nav.roadmap">Roadmap</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h4 data-i18n="footer.resources">Ressources</h4>
+                        <ul>
+                            <li><a href="https://docs.ansible.com/" target="_blank" data-i18n="footer.ansible.docs">Documentation Ansible</a></li>
+                            <li><a href="https://galaxy.ansible.com/" target="_blank" data-i18n="footer.ansible.galaxy">Ansible Galaxy</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; <span data-i18n="footer.copyright">2026 Automation Factory. Développé par Cyril Coupel.</span></p>
+                <p class="footer-version">Version 2.2.0</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="translations.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
