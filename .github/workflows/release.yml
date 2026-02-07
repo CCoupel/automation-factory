@@ -1,0 +1,284 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      skip_images:
+        description: 'Skip Docker images build (chart only)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  GITHUB_USERNAME: ${{ github.repository_owner }}
+
+jobs:
+  build-backend:
+    name: Build and Push Backend Docker Image
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_images }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_version: ${{ steps.version.outputs.image_version }}
+      app_version: ${{ steps.version.outputs.app_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract versions from Chart.yaml
+        id: version
+        run: |
+          cd helm/automation-factory
+          IMAGE_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          APP_VERSION=$(grep '^appVersion:' Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "image_version=${IMAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Image version: ${IMAGE_VERSION} (app ${APP_VERSION})"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.GITHUB_USERNAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-backend:${{ steps.version.outputs.image_version }}
+            ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image published
+        run: |
+          echo "✅ Backend image published!"
+          echo "📍 ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-backend:${{ steps.version.outputs.image_version }}"
+
+  build-frontend:
+    name: Build and Push Frontend Docker Image
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_images }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_version: ${{ steps.version.outputs.image_version }}
+      app_version: ${{ steps.version.outputs.app_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract versions from Chart.yaml
+        id: version
+        run: |
+          cd helm/automation-factory
+          IMAGE_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          APP_VERSION=$(grep '^appVersion:' Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "image_version=${IMAGE_VERSION}" >> $GITHUB_OUTPUT
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Image version: ${IMAGE_VERSION} (app ${APP_VERSION})"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.GITHUB_USERNAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-frontend:${{ steps.version.outputs.image_version }}
+            ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image published
+        run: |
+          echo "✅ Frontend image published!"
+          echo "📍 ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-frontend:${{ steps.version.outputs.image_version }}"
+
+  publish-helm-chart:
+    name: Package and Push Helm Chart to GHCR
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: |
+      always() &&
+      (needs.build-backend.result == 'success' || needs.build-backend.result == 'skipped') &&
+      (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped')
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      chart_version: ${{ steps.version.outputs.chart_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Extract chart version
+        id: version
+        run: |
+          cd helm/automation-factory
+          CHART_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "chart_version=${CHART_VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Chart version: ${CHART_VERSION}"
+
+      - name: Add Helm repositories
+        run: |
+          echo "📦 Adding Helm repositories..."
+          helm repo add pascaliske https://charts.pascaliske.dev
+          helm repo update
+          echo "📦 Searching available charts..."
+          helm search repo pascaliske
+
+      - name: Update Helm dependencies
+        run: |
+          cd helm/automation-factory
+          echo "📦 Creating charts directory..."
+          mkdir -p charts
+          echo "📦 Updating Helm dependencies..."
+          helm dependency update
+          echo "📦 Checking downloaded dependencies..."
+          ls -lha charts/ || echo "charts/ directory not found"
+          cat Chart.lock || echo "Chart.lock not found"
+
+      - name: Package Helm chart
+        run: |
+          cd helm/automation-factory
+          echo "📦 Packaging Helm chart..."
+          helm package . --destination charts/
+          ls -lh charts/
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "🔐 Logging in to GitHub Container Registry..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ env.GITHUB_USERNAME }} --password-stdin
+
+      - name: Push Helm chart to GHCR
+        run: |
+          cd helm/automation-factory
+          CHART_VERSION="${{ steps.version.outputs.chart_version }}"
+          echo "🚀 Pushing chart to ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}..."
+          helm push "charts/automation-factory-${CHART_VERSION}.tgz" "oci://${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}"
+          echo "✅ Chart published successfully!"
+
+      - name: Summary
+        run: |
+          CHART_VERSION="${{ steps.version.outputs.chart_version }}"
+          echo "📦 PUBLISHED ARTIFACTS:"
+          echo "  - Helm Chart     oci://${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory:${CHART_VERSION}"
+          echo "  - Backend Image  ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-backend:${CHART_VERSION}"
+          echo "  - Frontend Image ${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-frontend:${CHART_VERSION}"
+          echo ""
+          echo "Install with:"
+          echo "  helm install automation-factory oci://${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory \\"
+          echo "    --version ${CHART_VERSION} \\"
+          echo "    --namespace automation-factory \\"
+          echo "    --create-namespace"
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [publish-helm-chart]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "📌 Creating release for ${TAG_NAME}"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHART_VERSION="${{ needs.publish-helm-chart.outputs.chart_version }}"
+
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-version:refname | grep -A1 "${{ steps.version.outputs.tag_name }}" | tail -1)
+
+          # Generate changelog
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(git log ${PREV_TAG}..${{ steps.version.outputs.tag_name }} --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log ${{ steps.version.outputs.tag_name }} --pretty=format:"- %s (%h)" --no-merges | head -20)
+          fi
+
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## 🚀 Automation Factory ${{ steps.version.outputs.version }}
+
+          ### 📦 Published Artifacts
+
+          - **Helm Chart**: \`oci://${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory:${CHART_VERSION}\`
+          - **Backend Image**: \`${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-backend:${CHART_VERSION}\`
+          - **Frontend Image**: \`${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory-frontend:${CHART_VERSION}\`
+
+          ### 📥 Installation
+
+          \`\`\`bash
+          # Install with Helm
+          helm install automation-factory oci://${{ env.REGISTRY }}/${{ env.GITHUB_USERNAME }}/automation-factory \\
+            --version ${CHART_VERSION} \\
+            --namespace automation-factory \\
+            --create-namespace
+          \`\`\`
+
+          ### 📝 Changes
+
+          ${CHANGELOG}
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ steps.version.outputs.tag_name }}
+          EOF
+
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag_name, '-rc') || contains(steps.version.outputs.tag_name, '-beta') || contains(steps.version.outputs.tag_name, '-alpha') }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release created
+        run: |
+          echo "✅ GitHub Release created!"
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag_name }}"
