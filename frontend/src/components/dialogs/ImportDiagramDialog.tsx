@@ -241,7 +241,7 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
               {file ? file.name : 'Drop a diagram file here or click to select'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Supported format: {DIAGRAM_FORMAT.FILE_EXTENSION} (Ansible Builder Diagram)
+              Supported format: {DIAGRAM_FORMAT.FILE_EXTENSION} (Automation Factory Diagram)
             </Typography>
           </Paper>
 

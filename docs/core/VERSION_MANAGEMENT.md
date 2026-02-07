@@ -1,4 +1,4 @@
-# Gestion des Versions - Ansible Builder
+# Gestion des Versions - Automation Factory
 
 Ce document décrit le système complet de gestion des versions, incluant le format, l'affichage conditionnel par environnement, et l'implémentation technique.
 
@@ -58,7 +58,7 @@ SINON
 import os
 
 __version__ = "1.13.0-rc.2"  # Version interne complète
-__description__ = "Ansible Builder API with dynamic Ansible documentation integration"
+__description__ = "Automation Factory API with dynamic Ansible documentation integration"
 
 # Environment: PROD (default), STAGING, DEV
 ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
@@ -286,12 +286,12 @@ Développement          Staging              Production
 ```yaml
 services:
   backend:
-    image: ansible-builder-backend:1.13.0-rc.2
+    image: automation-factory-backend:1.13.0-rc.2
     environment:
       - ENVIRONMENT=STAGING  # Important: définit l'environnement
 
   frontend:
-    image: ansible-builder-frontend:1.13.0-rc.2-vite
+    image: automation-factory-frontend:1.13.0-rc.2-vite
 ```
 
 ### Kubernetes (custom-values.yaml) - Production

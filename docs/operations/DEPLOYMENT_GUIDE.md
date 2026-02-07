@@ -1,6 +1,6 @@
-# Guide de Déploiement - Ansible Builder
+# Guide de Déploiement - Automation Factory
 
-Guide complet pour déployer Ansible Builder en développement et production.
+Guide complet pour déployer Automation Factory en développement et production.
 
 ---
 
@@ -16,14 +16,14 @@ Guide complet pour déployer Ansible Builder en développement et production.
 ```bash
 # Build backend avec version incrémentée _n
 export DOCKER_HOST=tcp://192.168.1.217:2375
-docker build -t ansible-builder-backend:1.5.0_4 backend/
+docker build -t automation-factory-backend:1.5.0_4 backend/
 
 # Build frontend avec version incrémentée
-docker build -t ansible-builder-frontend:1.7.0_2 frontend/
+docker build -t automation-factory-frontend:1.7.0_2 frontend/
 
 # Déploiement local
-docker run -d -p 8000:8000 ansible-builder-backend:1.5.0_4
-docker run -d -p 5173:80 ansible-builder-frontend:1.7.0_2
+docker run -d -p 8000:8000 automation-factory-backend:1.5.0_4
+docker run -d -p 5173:80 automation-factory-frontend:1.7.0_2
 ```
 
 #### Validation
@@ -58,8 +58,8 @@ version: '3.8'
 services:
   # Backend FastAPI
   backend:
-    image: ansible-builder-backend:X.Y.Z_n
-    container_name: ansible-builder-backend-staging
+    image: automation-factory-backend:X.Y.Z_n
+    container_name: automation-factory-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
       - DEBUG=true
@@ -67,27 +67,27 @@ services:
       - PORT=8000
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
 
   # Frontend Vite Dev Server
   frontend:
-    image: ansible-builder-frontend:X.Y.Z_n-vite
-    container_name: ansible-builder-frontend-staging
+    image: automation-factory-frontend:X.Y.Z_n-vite
+    container_name: automation-factory-frontend-staging
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
     depends_on:
       - backend
 
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: ansible-builder-nginx-staging
+    container_name: automation-factory-nginx-staging
     ports:
       - "80:80"
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
     depends_on:
       - frontend
       - backend
@@ -168,15 +168,15 @@ configs:
       }
 
 networks:
-  ansiblebuilder_default:
+  automationfactory_default:
     external: true
 ```
 
 #### Procédure de déploiement Phase 2
 ```bash
 # 1. Build images localement sur le serveur staging
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z_n backend/
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z_n-vite -f frontend/Dockerfile.dev frontend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z_n backend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z_n-vite -f frontend/Dockerfile.dev frontend/
 
 # 2. Déploiement avec docker-compose
 docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
@@ -203,15 +203,15 @@ curl -I http://192.168.1.217/                # Frontend OK (Vite dev)
 #### Build Production
 ```bash
 # Suppression suffixe _n pour production
-docker tag ansible-builder-backend:1.5.0_4 ghcr.io/ccoupel/ansible-builder-backend:1.5.0
-docker tag ansible-builder-frontend:1.7.0_2 ghcr.io/ccoupel/ansible-builder-frontend:1.7.0
+docker tag automation-factory-backend:1.5.0_4 ghcr.io/ccoupel/automation-factory-backend:1.5.0
+docker tag automation-factory-frontend:1.7.0_2 ghcr.io/ccoupel/automation-factory-frontend:1.7.0
 
 # Authentification registry
 cat github_token.txt | docker login ghcr.io -u ccoupel --password-stdin
 
 # Push vers registry
-docker push ghcr.io/ccoupel/ansible-builder-backend:1.5.0
-docker push ghcr.io/ccoupel/ansible-builder-frontend:1.7.0
+docker push ghcr.io/ccoupel/automation-factory-backend:1.5.0
+docker push ghcr.io/ccoupel/automation-factory-frontend:1.7.0
 ```
 
 #### Déploiement Helm
@@ -220,7 +220,7 @@ docker push ghcr.io/ccoupel/ansible-builder-frontend:1.7.0
 export KUBECONFIG=kubeconfig.txt
 
 # Déploiement avec nouvelles versions
-helm upgrade ansible-builder ./helm/ansible-builder \
+helm upgrade automation-factory ./helm/automation-factory \
   --values custom-values.yaml \
   --set backend.image.tag=1.5.0 \
   --set frontend.image.tag=1.7.0 \
@@ -228,8 +228,8 @@ helm upgrade ansible-builder ./helm/ansible-builder \
   --set frontend.image.pullPolicy=Always
 
 # Vérification rollout
-kubectl rollout status deployment/ansible-builder-backend
-kubectl rollout status deployment/ansible-builder-frontend
+kubectl rollout status deployment/automation-factory-backend
+kubectl rollout status deployment/automation-factory-frontend
 ```
 
 ---
@@ -245,7 +245,7 @@ services:
     ports: ["8000:8000"]
     environment:
       - DATABASE_TYPE=sqlite
-      - SQLITE_DB_PATH=/tmp/ansible_builder.db
+      - SQLITE_DB_PATH=/tmp/automation_factory.db
       - DEBUG=true
       
   frontend:
@@ -260,18 +260,18 @@ services:
 backend:
   replicaCount: 1
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-backend
+    repository: ghcr.io/ccoupel/automation-factory-backend
     tag: "1.5.0"
     pullPolicy: Always
   env:
     DATABASE_TYPE: sqlite
-    SQLITE_DB_PATH: /tmp/ansible_builder.db
+    SQLITE_DB_PATH: /tmp/automation_factory.db
   autoscaling:
     enabled: false
 
 frontend:
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-frontend
+    repository: ghcr.io/ccoupel/automation-factory-frontend
     tag: "1.7.0"
     pullPolicy: Always
 ```
@@ -310,7 +310,7 @@ Ces tâches doivent être exécutées **systématiquement** et dans l'ordre.
 ```python
 # backend/app/version.py
 __version__ = "X.Y.Z-rc.1"  # ou "X.Y.Z" pour production finale
-__description__ = "Ansible Builder API - Titre de la version"
+__description__ = "Automation Factory API - Titre de la version"
 ```
 
 ```json
@@ -344,11 +344,11 @@ VERSION_FEATURES = {
 #### 3. Mettre à jour docker-compose.staging.yml
 ```yaml
 services:
-  ansible-builder-backend:
-    image: ansible-builder-backend:X.Y.Z-rc.1  # ← Nouvelle version
+  automation-factory-backend:
+    image: automation-factory-backend:X.Y.Z-rc.1  # ← Nouvelle version
 
-  ansible-builder-frontend:
-    image: ansible-builder-frontend:X.Y.Z-rc.1  # ← Nouvelle version
+  automation-factory-frontend:
+    image: automation-factory-frontend:X.Y.Z-rc.1  # ← Nouvelle version
 ```
 
 ---
@@ -358,13 +358,13 @@ services:
 #### 4. Push Images vers Registry
 ```bash
 # Tag images pour production (supprimer suffixe -rc.X)
-docker -H tcp://192.168.1.217:2375 tag ansible-builder-backend:X.Y.Z-rc.N ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 tag ansible-builder-frontend:X.Y.Z-rc.N ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 tag automation-factory-backend:X.Y.Z-rc.N ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 tag automation-factory-frontend:X.Y.Z-rc.N ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
 
 # Login et push
 echo "TOKEN" | docker -H tcp://192.168.1.217:2375 login ghcr.io -u ccoupel --password-stdin
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
 ```
 
 #### 5. Mettre à jour custom-values.yaml
@@ -383,22 +383,22 @@ frontend:
 ```bash
 export KUBECONFIG=kubeconfig.txt
 
-helm upgrade ansible-builder ./helm/ansible-builder \
+helm upgrade automation-factory ./helm/automation-factory \
   -f custom-values.yaml \
-  --namespace ansible-builder
+  --namespace automation-factory
 ```
 
 #### 7. Validation Production
 ```bash
 # Vérifier les pods
-kubectl get pods -n ansible-builder
+kubectl get pods -n automation-factory
 
 # Vérifier les images déployées
-kubectl get deployments -n ansible-builder -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.template.spec.containers[0].image}{"\n"}{end}'
+kubectl get deployments -n automation-factory -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.template.spec.containers[0].image}{"\n"}{end}'
 
 # Health checks
-curl -s https://coupel.net/ansible-builder/api/version
-curl -s -I https://coupel.net/ansible-builder/
+curl -s https://coupel.net/automation-factory/api/version
+curl -s -I https://coupel.net/automation-factory/
 ```
 
 ---
@@ -455,10 +455,10 @@ git push ccoupel master
 | 2 | 📋 Pré | **VERSION_FEATURES** | Ajouter bloc features pour X.Y.Z |
 | 3 | 📋 Pré | **package.json** | `"version": "X.Y.Z"` |
 | 4 | 📋 Pré | **docker-compose.staging.yml** | Mettre à jour image tags |
-| 5 | 🚀 Deploy | Push images ghcr.io | `docker push ghcr.io/ccoupel/ansible-builder-*:X.Y.Z` |
+| 5 | 🚀 Deploy | Push images ghcr.io | `docker push ghcr.io/ccoupel/automation-factory-*:X.Y.Z` |
 | 6 | 🚀 Deploy | **custom-values.yaml** | `backend.image.tag` et `frontend.image.tag` |
-| 7 | 🚀 Deploy | Helm upgrade | `helm upgrade ansible-builder ...` |
-| 8 | 🚀 Deploy | Health checks | `curl https://coupel.net/ansible-builder/api/version` |
+| 7 | 🚀 Deploy | Helm upgrade | `helm upgrade automation-factory ...` |
+| 8 | 🚀 Deploy | Health checks | `curl https://coupel.net/automation-factory/api/version` |
 | 9 | 📝 Post | Git commit | `git add -A && git commit` |
 | 10 | 📝 Post | Git tag | `git tag -a vX.Y.Z` |
 | 11 | 📝 Post | Git push | `git push ccoupel master --tags` |

@@ -1,6 +1,6 @@
-# Ansible Builder Helm Chart - OCI Registry
+# Automation Factory Helm Chart - OCI Registry
 
-Ce repository contient le Helm chart pour Ansible Builder, distribué via OCI registry.
+Ce repository contient le Helm chart pour Automation Factory, distribué via OCI registry.
 
 ## 🚀 Installation depuis OCI Registry
 
@@ -13,27 +13,27 @@ Ce repository contient le Helm chart pour Ansible Builder, distribué via OCI re
 
 ```bash
 # Installation avec Docker Hub
-helm install ansible-builder oci://docker.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://docker.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --create-namespace
 
 # Installation avec GitHub Container Registry
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --create-namespace
 
 # Installation avec GitLab Registry
-helm install ansible-builder oci://registry.gitlab.com/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://registry.gitlab.com/ccoupel/automation-factory \
+  --namespace automation-factory \
   --create-namespace
 ```
 
 ### Installation avec Version Spécifique
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.0 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace
 ```
 
@@ -41,8 +41,8 @@ helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # Créer un fichier my-values.yaml avec vos configurations
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --create-namespace \
   --values my-values.yaml
 ```
@@ -51,30 +51,30 @@ helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # Pour Docker Hub
-helm show chart oci://docker.io/ccoupel/ansible-builder
+helm show chart oci://docker.io/ccoupel/automation-factory
 
 # Pour GitHub Container Registry
-helm show chart oci://ghcr.io/ccoupel/ansible-builder
+helm show chart oci://ghcr.io/ccoupel/automation-factory
 ```
 
 ## 🔄 Mise à Jour
 
 ```bash
 # Vers la dernière version
-helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder
+helm upgrade automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory
 
 # Vers une version spécifique
-helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm upgrade automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.2.0 \
-  --namespace ansible-builder
+  --namespace automation-factory
 ```
 
 ## 🗑️ Désinstallation
 
 ```bash
-helm uninstall ansible-builder --namespace ansible-builder
-kubectl delete namespace ansible-builder
+helm uninstall automation-factory --namespace automation-factory
+kubectl delete namespace automation-factory
 ```
 
 ## 📦 Pour les Développeurs - Publier sur OCI Registry
@@ -100,10 +100,10 @@ cd charts
 ./package-oci.sh ghcr.io/ccoupel
 
 # Ou manuellement
-cd ../helm/ansible-builder
+cd ../helm/automation-factory
 helm dependency update
 helm package .
-helm push ansible-builder-1.1.0.tgz oci://ghcr.io/ccoupel
+helm push automation-factory-1.1.0.tgz oci://ghcr.io/ccoupel
 ```
 
 ### 3. Script de Publication Automatisé
@@ -179,13 +179,13 @@ Le script `package-oci.sh` automatise tout le processus:
 
 Pour plus de détails:
 - [Guide de Déploiement](../HELM_DEPLOYMENT.md)
-- [Documentation du Chart](../helm/ansible-builder/README.md)
+- [Documentation du Chart](../helm/automation-factory/README.md)
 - [Helm OCI Documentation](https://helm.sh/docs/topics/registries/)
 
 ## 🆘 Support
 
-- **Issues**: https://bitbucket.org/ccoupel/ansible_builder/issues
-- **Repository**: https://bitbucket.org/ccoupel/ansible_builder
+- **Issues**: https://bitbucket.org/ccoupel/automation_factory/issues
+- **Repository**: https://bitbucket.org/ccoupel/automation_factory
 
 ## 📋 Versions Disponibles
 

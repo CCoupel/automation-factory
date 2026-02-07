@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "ansible-builder.name" -}}
+{{- define "automation-factory.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "ansible-builder.fullname" -}}
+{{- define "automation-factory.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "ansible-builder.chart" -}}
+{{- define "automation-factory.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "ansible-builder.labels" -}}
-helm.sh/chart: {{ include "ansible-builder.chart" . }}
-{{ include "ansible-builder.selectorLabels" . }}
+{{- define "automation-factory.labels" -}}
+helm.sh/chart: {{ include "automation-factory.chart" . }}
+{{ include "automation-factory.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,49 +43,49 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "ansible-builder.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "ansible-builder.name" . }}
+{{- define "automation-factory.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "automation-factory.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Backend labels
 */}}
-{{- define "ansible-builder.backend.labels" -}}
-{{ include "ansible-builder.labels" . }}
+{{- define "automation-factory.backend.labels" -}}
+{{ include "automation-factory.labels" . }}
 app.kubernetes.io/component: backend
 {{- end }}
 
 {{/*
 Backend selector labels
 */}}
-{{- define "ansible-builder.backend.selectorLabels" -}}
-{{ include "ansible-builder.selectorLabels" . }}
+{{- define "automation-factory.backend.selectorLabels" -}}
+{{ include "automation-factory.selectorLabels" . }}
 app.kubernetes.io/component: backend
 {{- end }}
 
 {{/*
 Frontend labels
 */}}
-{{- define "ansible-builder.frontend.labels" -}}
-{{ include "ansible-builder.labels" . }}
+{{- define "automation-factory.frontend.labels" -}}
+{{ include "automation-factory.labels" . }}
 app.kubernetes.io/component: frontend
 {{- end }}
 
 {{/*
 Frontend selector labels
 */}}
-{{- define "ansible-builder.frontend.selectorLabels" -}}
-{{ include "ansible-builder.selectorLabels" . }}
+{{- define "automation-factory.frontend.selectorLabels" -}}
+{{ include "automation-factory.selectorLabels" . }}
 app.kubernetes.io/component: frontend
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "ansible-builder.serviceAccountName" -}}
+{{- define "automation-factory.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "ansible-builder.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "automation-factory.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
@@ -96,12 +96,12 @@ PostgreSQL host
 For CloudNativePG, the read-write service is named {cluster}-rw
 For standard StatefulSet, the service is named {fullname}-postgresql
 */}}
-{{- define "ansible-builder.postgresql.host" -}}
+{{- define "automation-factory.postgresql.host" -}}
 {{- if .Values.postgresql.enabled }}
 {{- if index .Values "cloudnative-pg" "enabled" }}
-{{- printf "%s-postgresql-rw" (include "ansible-builder.fullname" .) }}
+{{- printf "%s-postgresql-rw" (include "automation-factory.fullname" .) }}
 {{- else }}
-{{- printf "%s-postgresql" (include "ansible-builder.fullname" .) }}
+{{- printf "%s-postgresql" (include "automation-factory.fullname" .) }}
 {{- end }}
 {{- else }}
 {{- .Values.postgresql.external.host }}
@@ -111,7 +111,7 @@ For standard StatefulSet, the service is named {fullname}-postgresql
 {{/*
 PostgreSQL port
 */}}
-{{- define "ansible-builder.postgresql.port" -}}
+{{- define "automation-factory.postgresql.port" -}}
 {{- if .Values.postgresql.enabled }}
 {{- 5432 }}
 {{- else }}
@@ -122,7 +122,7 @@ PostgreSQL port
 {{/*
 PostgreSQL database
 */}}
-{{- define "ansible-builder.postgresql.database" -}}
+{{- define "automation-factory.postgresql.database" -}}
 {{- if .Values.postgresql.enabled }}
 {{- .Values.postgresql.auth.database }}
 {{- else }}
@@ -133,7 +133,7 @@ PostgreSQL database
 {{/*
 PostgreSQL username
 */}}
-{{- define "ansible-builder.postgresql.username" -}}
+{{- define "automation-factory.postgresql.username" -}}
 {{- if .Values.postgresql.enabled }}
 {{- .Values.postgresql.auth.username }}
 {{- else }}
@@ -144,9 +144,9 @@ PostgreSQL username
 {{/*
 Redis host
 */}}
-{{- define "ansible-builder.redis.host" -}}
+{{- define "automation-factory.redis.host" -}}
 {{- if .Values.redis.enabled }}
-{{- printf "%s-redis-master" (include "ansible-builder.fullname" .) }}
+{{- printf "%s-redis-master" (include "automation-factory.fullname" .) }}
 {{- else }}
 {{- .Values.redis.external.host }}
 {{- end }}
@@ -155,7 +155,7 @@ Redis host
 {{/*
 Redis port
 */}}
-{{- define "ansible-builder.redis.port" -}}
+{{- define "automation-factory.redis.port" -}}
 {{- if .Values.redis.enabled }}
 {{- 6379 }}
 {{- else }}

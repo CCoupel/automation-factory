@@ -1,4 +1,4 @@
-# Phase 3 : Production - Ansible Builder
+# Phase 3 : Production - Automation Factory
 
 Ce document détaille les procédures spécifiques à la **Phase 3 : Production** du processus en 3 phases.
 
@@ -20,7 +20,7 @@ Ce document détaille les procédures spécifiques à la **Phase 3 : Production*
 - Staging et Production utilisent le même Dockerfile (nginx pour frontend)
 - Tag et push des images staging vers ghcr.io
 - Variable ENVIRONMENT contrôle l'affichage de version (STAGING → PROD)
-- Noms de services identiques : ansible-builder-backend, ansible-builder-frontend
+- Noms de services identiques : automation-factory-backend, automation-factory-frontend
 ```
 
 ### Critères d'Entrée
@@ -44,9 +44,9 @@ Ce document détaille les procédures spécifiques à la **Phase 3 : Production*
 ### Infrastructure
 ```yaml
 Plateforme: Kubernetes
-Namespace: ansible-builder
+Namespace: automation-factory
 Registry: ghcr.io/ccoupel
-URL: https://coupel.net/ansible-builder
+URL: https://coupel.net/automation-factory
 ```
 
 ### Variable ENVIRONMENT
@@ -88,36 +88,36 @@ curl -s http://192.168.1.217/api/version
 
 ```bash
 # Identifier les images staging validées
-docker -H tcp://192.168.1.217:2375 images | grep ansible-builder
+docker -H tcp://192.168.1.217:2375 images | grep automation-factory
 
 # Tag des images staging pour ghcr.io
-# Format: ansible-builder-*:X.Y.Z-rc.n → ghcr.io/ccoupel/ansible-builder-*:X.Y.Z
+# Format: automation-factory-*:X.Y.Z-rc.n → ghcr.io/ccoupel/automation-factory-*:X.Y.Z
 # NOTE: Plus de suffix -vite, même image nginx pour staging et production
 docker -H tcp://192.168.1.217:2375 tag \
-  ansible-builder-backend:X.Y.Z-rc.n \
-  ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
+  automation-factory-backend:X.Y.Z-rc.n \
+  ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
 
 docker -H tcp://192.168.1.217:2375 tag \
-  ansible-builder-frontend:X.Y.Z-rc.n \
-  ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+  automation-factory-frontend:X.Y.Z-rc.n \
+  ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
 
 # Tag latest
 docker -H tcp://192.168.1.217:2375 tag \
-  ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z \
-  ghcr.io/ccoupel/ansible-builder-backend:latest
+  ghcr.io/ccoupel/automation-factory-backend:X.Y.Z \
+  ghcr.io/ccoupel/automation-factory-backend:latest
 
 docker -H tcp://192.168.1.217:2375 tag \
-  ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z \
-  ghcr.io/ccoupel/ansible-builder-frontend:latest
+  ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z \
+  ghcr.io/ccoupel/automation-factory-frontend:latest
 ```
 
 #### Push vers Registry Production
 ```bash
 # Push versions production (images identiques au staging)
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:latest
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:latest
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:latest
+docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:latest
 ```
 
 ### 2. Mise à jour Configuration Kubernetes
@@ -127,7 +127,7 @@ docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend
 # custom-values.yaml - Mettre à jour les tags
 backend:
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-backend
+    repository: ghcr.io/ccoupel/automation-factory-backend
     tag: "X.Y.Z"
 frontend:
   image:
@@ -142,17 +142,17 @@ L'application est gérée via Helm chart. **TOUJOURS** utiliser `helm upgrade` p
 
 ```bash
 # Déploiement production via Helm (OBLIGATOIRE)
-KUBECONFIG=kubeconfig.txt helm upgrade ansible-builder ./helm/ansible-builder \
-  --namespace ansible-builder \
+KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
+  --namespace automation-factory \
   --values custom-values.yaml \
   --timeout 300s
 ```
 
 **Résultat attendu :**
 ```
-Release "ansible-builder" has been upgraded. Happy Helming!
-NAME: ansible-builder
-NAMESPACE: ansible-builder
+Release "automation-factory" has been upgraded. Happy Helming!
+NAME: automation-factory
+NAMESPACE: automation-factory
 STATUS: deployed
 REVISION: XX
 ```
@@ -160,17 +160,17 @@ REVISION: XX
 #### Vérification Pods
 ```bash
 # Vérifier que les pods sont Running
-KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
+KUBECONFIG=kubeconfig.txt kubectl get pods -n automation-factory
 
 # Vérifier la release Helm
-KUBECONFIG=kubeconfig.txt helm list -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm list -n automation-factory
 ```
 
 #### ❌ NE PAS UTILISER kubectl set image
 ```bash
 # ⚠️ INTERDIT - Casse la cohérence Helm
-# kubectl set image deployment/ansible-builder-backend ...
-# kubectl set image deployment/ansible-builder-frontend ...
+# kubectl set image deployment/automation-factory-backend ...
+# kubectl set image deployment/automation-factory-frontend ...
 ```
 
 ### 4. Smoke Tests Production
@@ -180,10 +180,10 @@ KUBECONFIG=kubeconfig.txt helm list -n ansible-builder
 ```bash
 # Test 1: Accessibilité
 echo "=== Smoke Tests Production ==="
-curl -s -I https://coupel.net/ansible-builder/ | head -1
+curl -s -I https://coupel.net/automation-factory/ | head -1
 
 # Test 2: Version API (doit afficher X.Y.Z sans -rc.n)
-curl -s https://coupel.net/ansible-builder/api/version
+curl -s https://coupel.net/automation-factory/api/version
 
 # Vérifier :
 # - "version": "X.Y.Z" (sans -rc.n)
@@ -191,17 +191,17 @@ curl -s https://coupel.net/ansible-builder/api/version
 # - "is_rc": false
 
 # Test 3: Fonctionnalité
-curl -s https://coupel.net/ansible-builder/api/ansible/versions | head -c 100
+curl -s https://coupel.net/automation-factory/api/ansible/versions | head -c 100
 
 # Test 4: Temps de réponse
-curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/ansible-builder/
+curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/automation-factory/
 ```
 
 **Template Rapport Smoke Tests:**
 ```markdown
 ## Rapport Smoke Tests Production - Version X.Y.Z
 **Date:** YYYY-MM-DD
-**URL:** https://coupel.net/ansible-builder
+**URL:** https://coupel.net/automation-factory
 
 ### Smoke Tests
 - Site accessible: HTTP 200 / FAIL
@@ -237,7 +237,7 @@ curl -w "Response time: %{time_total}s\n" -s -o /dev/null https://coupel.net/ans
 **Production (Kubernetes) :**
 - **Backend :** `X.Y.Z` ✅
 - **Frontend :** `X.Y.Z` ✅
-- **URL :** https://coupel.net/ansible-builder
+- **URL :** https://coupel.net/automation-factory
 - **Tag Git :** `vX.Y.Z`
 ```
 
@@ -383,27 +383,27 @@ git push
 ### Procédure Rapide via Helm (Recommandé)
 ```bash
 # Voir l'historique des releases
-KUBECONFIG=kubeconfig.txt helm history ansible-builder -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 
 # Rollback vers la revision précédente
-KUBECONFIG=kubeconfig.txt helm rollback ansible-builder -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm rollback automation-factory -n automation-factory
 
 # Ou rollback vers une revision spécifique
-KUBECONFIG=kubeconfig.txt helm rollback ansible-builder <REVISION> -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm rollback automation-factory <REVISION> -n automation-factory
 
 # Vérification
-KUBECONFIG=kubeconfig.txt kubectl get pods -n ansible-builder
-curl -s https://coupel.net/ansible-builder/api/version
+KUBECONFIG=kubeconfig.txt kubectl get pods -n automation-factory
+curl -s https://coupel.net/automation-factory/api/version
 ```
 
 ### Alternative : Rollback manuel (si Helm échoue)
 ```bash
 # Uniquement si helm rollback ne fonctionne pas
 KUBECONFIG=kubeconfig.txt kubectl rollout undo \
-  deployment/ansible-builder-backend -n ansible-builder
+  deployment/automation-factory-backend -n automation-factory
 
 KUBECONFIG=kubeconfig.txt kubectl rollout undo \
-  deployment/ansible-builder-frontend -n ansible-builder
+  deployment/automation-factory-frontend -n automation-factory
 ```
 
 ---
@@ -412,12 +412,12 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo \
 
 | Aspect | Staging | Production |
 |--------|---------|------------|
-| URL | http://192.168.1.217 | https://coupel.net/ansible-builder |
+| URL | http://192.168.1.217 | https://coupel.net/automation-factory |
 | ENVIRONMENT | STAGING | PROD (défaut) |
 | Version affichée | X.Y.Z-rc.n | X.Y.Z |
 | is_rc | true | false |
-| Image backend | ansible-builder-backend:X.Y.Z-rc.n | ghcr.io/ccoupel/ansible-builder-backend:X.Y.Z |
-| Image frontend | ansible-builder-frontend:X.Y.Z-rc.n | ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z |
+| Image backend | automation-factory-backend:X.Y.Z-rc.n | ghcr.io/ccoupel/automation-factory-backend:X.Y.Z |
+| Image frontend | automation-factory-frontend:X.Y.Z-rc.n | ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z |
 | Frontend server | nginx (port 80) | nginx (port 80) |
 | **Dockerfile** | **frontend/Dockerfile** | **frontend/Dockerfile** |
 | **Code** | **IDENTIQUE** | **IDENTIQUE** |

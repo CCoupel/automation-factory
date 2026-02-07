@@ -1,4 +1,4 @@
-# Default values for ansible-builder
+# Default values for automation-factory
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -12,14 +12,14 @@ global:
   storageClass: ""
 
 # Namespace configuration
-namespace: ansible-builder
+namespace: automation-factory
 
 # Backend configuration
 backend:
   replicaCount: 1
 
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-backend
+    repository: ghcr.io/ccoupel/automation-factory-backend
     pullPolicy: IfNotPresent
     tag: "1.3.8"
 
@@ -79,7 +79,7 @@ frontend:
   replicaCount: 1
 
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-frontend
+    repository: ghcr.io/ccoupel/automation-factory-frontend
     pullPolicy: IfNotPresent
     tag: "1.5.1"
 
@@ -134,7 +134,7 @@ ingress:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   hosts:
-    - host: ansible-builder.example.com
+    - host: automation-factory.example.com
       paths:
         - path: /
           pathType: Prefix
@@ -143,9 +143,9 @@ ingress:
           pathType: Prefix
           service: backend
   tls:
-    - secretName: ansible-builder-tls
+    - secretName: automation-factory-tls
       hosts:
-        - ansible-builder.example.com
+        - automation-factory.example.com
 
 # CloudNativePG Operator (must be installed separately in cnpg-system namespace)
 cloudnative-pg:
@@ -162,7 +162,7 @@ postgresql:
   auth:
     username: ansible
     password: changeme-in-production
-    database: ansible_builder
+    database: automation_factory
     existingSecret: ""
   resources:
     limits:
@@ -184,7 +184,7 @@ postgresql:
     port: 5432
     username: ansible
     password: ""
-    database: ansible_builder
+    database: automation_factory
 
 # Redis configuration
 redis:
@@ -217,7 +217,7 @@ redis:
 serviceAccount:
   create: true
   annotations: {}
-  name: "ansible-builder"
+  name: "automation-factory"
 
 # RBAC configuration
 rbac:
@@ -256,7 +256,7 @@ affinity:
               - key: app.kubernetes.io/name
                 operator: In
                 values:
-                  - ansible-builder
+                  - automation-factory
           topologyKey: kubernetes.io/hostname
 
 # Network Policy

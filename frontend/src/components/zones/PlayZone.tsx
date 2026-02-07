@@ -16,7 +16,7 @@ const PlayZone = () => {
     >
       <PlayArrowIcon sx={{ fontSize: 32 }} />
       <Typography variant="h6" sx={{ fontWeight: 'bold', minWidth: 150 }}>
-        Ansible Builder
+        Automation Factory
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>

@@ -7,8 +7,8 @@ Write-Host "Deploying REAL-TIME namespace discovery v1.6.1_1..." -ForegroundColo
 Push-Location backend
 try {
     Write-Host "Building backend with real-time streaming..." -ForegroundColor Yellow
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:1.6.1_1 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-backend:1.6.1_1
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:1.6.1_1 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-backend:1.6.1_1
 } finally {
     Pop-Location
 }
@@ -17,8 +17,8 @@ try {
 Push-Location frontend
 try {
     Write-Host "Building frontend with enhanced streaming UI..." -ForegroundColor Yellow
-    docker build -t ghcr.io/ccoupel/ansible-builder-frontend:1.10.0 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-frontend:1.10.0
+    docker build -t ghcr.io/ccoupel/automation-factory-frontend:1.10.0 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-frontend:1.10.0
 } finally {
     Pop-Location
 }
@@ -27,12 +27,12 @@ try {
 $env:KUBECONFIG = "$PWD\kubeconfig.txt"
 
 Write-Host "Deploying to Kubernetes..." -ForegroundColor Green
-kubectl set image deployment/ansible-builder-backend backend=ghcr.io/ccoupel/ansible-builder-backend:1.6.1_1 -n ansible-builder
-kubectl set image deployment/ansible-builder-frontend frontend=ghcr.io/ccoupel/ansible-builder-frontend:1.10.0 -n ansible-builder
+kubectl set image deployment/automation-factory-backend backend=ghcr.io/ccoupel/automation-factory-backend:1.6.1_1 -n automation-factory
+kubectl set image deployment/automation-factory-frontend frontend=ghcr.io/ccoupel/automation-factory-frontend:1.10.0 -n automation-factory
 
 Write-Host "Waiting for rollout..." -ForegroundColor Yellow
-kubectl rollout status deployment/ansible-builder-backend -n ansible-builder --timeout=180s
-kubectl rollout status deployment/ansible-builder-frontend -n ansible-builder --timeout=180s
+kubectl rollout status deployment/automation-factory-backend -n automation-factory --timeout=180s
+kubectl rollout status deployment/automation-factory-frontend -n automation-factory --timeout=180s
 
 # Test the deployment
 Write-Host "Testing deployment..." -ForegroundColor Green
@@ -40,13 +40,13 @@ Start-Sleep 10
 
 # Test backend version
 Write-Host "Backend version:" -ForegroundColor Cyan
-curl -s "https://coupel.net/ansible-builder/api/version"
+curl -s "https://coupel.net/automation-factory/api/version"
 Write-Host ""
 
 # Test streaming endpoint
 Write-Host "Testing REAL-TIME streaming endpoint:" -ForegroundColor Cyan
 Write-Host "Starting streaming test (first 10 messages)..." -ForegroundColor Yellow
-curl -s "https://coupel.net/ansible-builder/api/galaxy/namespaces/stream" | head -10
+curl -s "https://coupel.net/automation-factory/api/galaxy/namespaces/stream" | head -10
 Write-Host ""
 
 Write-Host "Real-time streaming deployment completed! ✅" -ForegroundColor Green
@@ -56,4 +56,4 @@ Write-Host "  - Progress indicators: Shows discovery stats and counts" -Foregrou
 Write-Host "  - Enhanced UI: Status messages + progress chips" -ForegroundColor White
 Write-Host "  - 2200+ namespaces: Full discovery instead of 25 hardcoded" -ForegroundColor White
 Write-Host ""
-Write-Host "Open https://coupel.net/ansible-builder and go to Modules tab!" -ForegroundColor Green
+Write-Host "Open https://coupel.net/automation-factory and go to Modules tab!" -ForegroundColor Green

@@ -1,7 +1,7 @@
 /**
- * Ansible Builder Diagram Export/Import Types
+ * Automation Factory Diagram Export/Import Types
  * Format version: 1.0.0
- * File extension: .abd (Ansible Builder Diagram)
+ * File extension: .abd (Automation Factory Diagram)
  */
 
 import { Play } from './playbook'
@@ -11,11 +11,11 @@ import { Play } from './playbook'
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const DIAGRAM_FORMAT = {
-  MAGIC: 'ANSIBLE_BUILDER_DIAGRAM',
+  MAGIC: 'AUTOMATION_FACTORY_DIAGRAM',
   VERSION: '1.0.0',
   MIN_APP_VERSION: '2.1.0',
   FILE_EXTENSION: '.abd',
-  MIME_TYPE: 'application/vnd.ansible-builder.diagram+json',
+  MIME_TYPE: 'application/vnd.automation-factory.diagram+json',
 } as const
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -142,7 +142,7 @@ export type DiagramFeature =
 // MAIN EXPORT TYPE
 // ═══════════════════════════════════════════════════════════════════════════
 
-export interface AnsibleBuilderDiagram {
+export interface AutomationFactoryDiagram {
   header: DiagramHeader
   metadata: DiagramMetadata
   content: DiagramContent

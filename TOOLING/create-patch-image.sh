@@ -5,7 +5,7 @@
 echo "🔧 Creating patch image 1.3.8 with SQLite support..."
 
 # Variables
-IMAGE_REPO="ghcr.io/ccoupel/ansible-builder-backend"
+IMAGE_REPO="ghcr.io/ccoupel/automation-factory-backend"
 OLD_VERSION="1.3.7"
 NEW_VERSION="1.3.8"
 
@@ -23,7 +23,7 @@ echo "✅ Using: $CONTAINER_CMD"
 
 # Créer un Dockerfile patch temporaire
 cat > Dockerfile.patch << 'EOF'
-FROM ghcr.io/ccoupel/ansible-builder-backend:1.3.7
+FROM ghcr.io/ccoupel/automation-factory-backend:1.3.7
 
 # Copier les fichiers modifiés pour SQLite
 COPY app/main.py /app/app/main.py
@@ -48,7 +48,7 @@ if [ $? -eq 0 ]; then
     
     if [ $? -eq 0 ]; then
         echo "🎉 Image $IMAGE_REPO:$NEW_VERSION pushed successfully!"
-        echo "Now you can deploy with: helm upgrade ansible-builder ..."
+        echo "Now you can deploy with: helm upgrade automation-factory ..."
     else
         echo "❌ Failed to push image"
         exit 1

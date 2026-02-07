@@ -8,7 +8,7 @@ param(
     [string]$FrontendVersion = "1.5.1"
 )
 
-Write-Host "🚀 Deploying Ansible Builder with new versions" -ForegroundColor Green
+Write-Host "🚀 Deploying Automation Factory with new versions" -ForegroundColor Green
 Write-Host "   Backend: v$BackendVersion" -ForegroundColor Cyan
 Write-Host "   Frontend: v$FrontendVersion" -ForegroundColor Cyan
 
@@ -78,16 +78,16 @@ try {
         # Builder backend
         Write-Host "🔨 Building backend v$BackendVersion..." -ForegroundColor Yellow
         Set-Location "backend"
-        & $dockerCmd.Split()[0] build -t "ghcr.io/ccoupel/ansible-builder-backend:$BackendVersion" -f Dockerfile .
-        & $dockerCmd.Split()[0] push "ghcr.io/ccoupel/ansible-builder-backend:$BackendVersion"
+        & $dockerCmd.Split()[0] build -t "ghcr.io/ccoupel/automation-factory-backend:$BackendVersion" -f Dockerfile .
+        & $dockerCmd.Split()[0] push "ghcr.io/ccoupel/automation-factory-backend:$BackendVersion"
         
         Set-Location $rootPath
         
         # Builder frontend  
         Write-Host "🔨 Building frontend v$FrontendVersion..." -ForegroundColor Yellow
         Set-Location "frontend"
-        & $dockerCmd.Split()[0] build -t "ghcr.io/ccoupel/ansible-builder-frontend:$FrontendVersion" -f Dockerfile .
-        & $dockerCmd.Split()[0] push "ghcr.io/ccoupel/ansible-builder-frontend:$FrontendVersion"
+        & $dockerCmd.Split()[0] build -t "ghcr.io/ccoupel/automation-factory-frontend:$FrontendVersion" -f Dockerfile .
+        & $dockerCmd.Split()[0] push "ghcr.io/ccoupel/automation-factory-frontend:$FrontendVersion"
         
         Set-Location $rootPath
     }
@@ -100,7 +100,7 @@ try {
 
     # Déployer via Helm
     Write-Host "🚢 Deploying with Helm..." -ForegroundColor Yellow
-    helm --kubeconfig=kubeconfig.txt upgrade ansible-builder ./helm/ansible-builder -f custom-values.yaml --namespace ansible-builder --force
+    helm --kubeconfig=kubeconfig.txt upgrade automation-factory ./helm/automation-factory -f custom-values.yaml --namespace automation-factory --force
     
     if ($LASTEXITCODE -ne 0) {
         throw "Helm upgrade failed"
@@ -108,33 +108,33 @@ try {
 
     # Forcer le redémarrage des pods pour s'assurer qu'ils utilisent les nouvelles images
     Write-Host "🔄 Restarting pods to ensure new image usage..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/ansible-builder-backend -n ansible-builder
-    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/ansible-builder-frontend -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/automation-factory-backend -n automation-factory
+    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/automation-factory-frontend -n automation-factory
 
     # Attendre que les pods soient prêts
     Write-Host "⏳ Waiting for pods to be ready..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n ansible-builder --timeout=300s
-    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=frontend -n ansible-builder --timeout=300s
+    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n automation-factory --timeout=300s
+    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=frontend -n automation-factory --timeout=300s
 
     # Vérifier le statut
     Write-Host "📊 Deployment Status:" -ForegroundColor Cyan
-    kubectl --kubeconfig=kubeconfig.txt get pods -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt get pods -n automation-factory
 
     # Tester les endpoints
     Write-Host "🧪 Testing endpoints..." -ForegroundColor Yellow
     Start-Sleep 10
 
     Write-Host "Testing frontend version:" -ForegroundColor Cyan
-    curl -s "https://coupel.net/ansible-builder/version"
+    curl -s "https://coupel.net/automation-factory/version"
     
     Write-Host "Testing backend version:" -ForegroundColor Cyan  
-    curl -s "https://coupel.net/ansible-builder/api/version"
+    curl -s "https://coupel.net/automation-factory/api/version"
 
     Write-Host "Testing authentication:" -ForegroundColor Cyan
-    curl -X POST "https://coupel.net/ansible-builder/api/auth/login" -H "Content-Type: application/json" -d '{""email"":""admin@example.com"",""password"":""admin""}' -s
+    curl -X POST "https://coupel.net/automation-factory/api/auth/login" -H "Content-Type: application/json" -d '{""email"":""admin@example.com"",""password"":""admin""}' -s
 
     Write-Host "`n✅ Deployment completed successfully!" -ForegroundColor Green
-    Write-Host "🌐 Application available at: https://coupel.net/ansible-builder/" -ForegroundColor Cyan
+    Write-Host "🌐 Application available at: https://coupel.net/automation-factory/" -ForegroundColor Cyan
     Write-Host "👤 Default credentials: admin@example.com / admin" -ForegroundColor Cyan
 
 } catch {

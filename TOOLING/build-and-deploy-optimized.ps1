@@ -16,7 +16,7 @@ $env:DOCKER_HOST = "tcp://192.168.1.217:2375"
 Write-Host "`n📦 Building backend..." -ForegroundColor Green
 Push-Location backend
 try {
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:$backendTag -f Dockerfile .
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:$backendTag -f Dockerfile .
     if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
     Write-Host "✅ Backend built successfully" -ForegroundColor Green
 }
@@ -28,7 +28,7 @@ finally {
 Write-Host "`n📦 Building frontend..." -ForegroundColor Green
 Push-Location frontend
 try {
-    docker build -t ghcr.io/ccoupel/ansible-builder-frontend:$frontendTag -f Dockerfile .
+    docker build -t ghcr.io/ccoupel/automation-factory-frontend:$frontendTag -f Dockerfile .
     if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
     Write-Host "✅ Frontend built successfully" -ForegroundColor Green
 }
@@ -52,9 +52,9 @@ Write-Host "✅ Values updated" -ForegroundColor Green
 
 # Deploy with Helm
 Write-Host "`n🚀 Deploying with Helm..." -ForegroundColor Cyan
-helm upgrade ansible-builder ./ansible-builder-chart `
+helm upgrade automation-factory ./automation-factory-chart `
     -f custom-values.yaml `
-    -n ansible-builder `
+    -n automation-factory `
     --wait `
     --timeout 5m
 
@@ -63,9 +63,9 @@ if ($LASTEXITCODE -eq 0) {
     
     # Get pod status
     Write-Host "`n📊 Pod Status:" -ForegroundColor Yellow
-    kubectl get pods -n ansible-builder
+    kubectl get pods -n automation-factory
     
-    Write-Host "`n🔗 Application URL: https://coupel.net/ansible-builder" -ForegroundColor Cyan
+    Write-Host "`n🔗 Application URL: https://coupel.net/automation-factory" -ForegroundColor Cyan
 }
 else {
     Write-Host "`n❌ Deployment failed!" -ForegroundColor Red

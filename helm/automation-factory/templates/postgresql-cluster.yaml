@@ -2,9 +2,9 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}-postgresql
+  name: {{ include "automation-factory.fullname" . }}-postgresql
   labels:
-    {{- include "ansible-builder.labels" . | nindent 4 }}
+    {{- include "automation-factory.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 spec:
   instances: {{ .Values.postgresql.instances }}
@@ -21,7 +21,7 @@ spec:
       database: {{ .Values.postgresql.auth.database }}
       owner: {{ .Values.postgresql.auth.username }}
       secret:
-        name: {{ include "ansible-builder.fullname" . }}-postgresql-credentials
+        name: {{ include "automation-factory.fullname" . }}-postgresql-credentials
 
   # Storage configuration
   storage:
@@ -61,9 +61,9 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}-postgresql-credentials
+  name: {{ include "automation-factory.fullname" . }}-postgresql-credentials
   labels:
-    {{- include "ansible-builder.labels" . | nindent 4 }}
+    {{- include "automation-factory.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 type: kubernetes.io/basic-auth
 stringData:

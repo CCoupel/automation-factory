@@ -1,16 +1,16 @@
-# Ansible Builder Helm Chart
+# Automation Factory Helm Chart
 
-Chart Helm officiel pour déployer Ansible Builder sur Kubernetes.
+Chart Helm officiel pour déployer Automation Factory sur Kubernetes.
 
-[![Published on GHCR](https://img.shields.io/badge/GHCR-published-blue)](https://ghcr.io/ccoupel/ansible-builder)
-[![Version](https://img.shields.io/badge/version-1.1.2-green)](https://github.com/ccoupel/ansible-builder/releases)
+[![Published on GHCR](https://img.shields.io/badge/GHCR-published-blue)](https://ghcr.io/ccoupel/automation-factory)
+[![Version](https://img.shields.io/badge/version-1.1.2-green)](https://github.com/ccoupel/automation-factory/releases)
 
 ## TL;DR
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.2 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace
 ```
 
@@ -38,9 +38,9 @@ L'application complète inclut:
 **Installation simple:**
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.2 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace
 ```
 
@@ -52,9 +52,9 @@ JWT_SECRET=$(openssl rand -base64 32)
 REDIS_PASSWORD=$(openssl rand -base64 24)
 
 # Installer
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.2 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace \
   --set ingress.hosts[0].host=ansible.mydomain.com \
   --set backend.env.JWT_SECRET_KEY="$JWT_SECRET" \
@@ -95,9 +95,9 @@ cloudnative-pg:
 Puis installez:
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.2 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace \
   --values my-values.yaml
 ```
@@ -105,15 +105,15 @@ helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 ### Méthode 2: Depuis le code source (Développement)
 
 ```bash
-git clone https://bitbucket.org/ccoupel/ansible_builder
-cd ansible_builder/helm/ansible-builder
+git clone https://bitbucket.org/ccoupel/automation_factory
+cd automation_factory/helm/automation-factory
 
 # Télécharger les dépendances
 helm dependency update
 
 # Installer
-helm install ansible-builder . \
-  --namespace ansible-builder \
+helm install automation-factory . \
+  --namespace automation-factory \
   --create-namespace
 ```
 
@@ -124,7 +124,7 @@ helm install ansible-builder . \
 | Paramètre | Description | Défaut |
 |-----------|-------------|--------|
 | `backend.replicaCount` | Nombre de replicas backend | `2` |
-| `backend.image.repository` | Image Docker backend | `ansible-builder-backend` |
+| `backend.image.repository` | Image Docker backend | `automation-factory-backend` |
 | `backend.image.tag` | Tag de l'image | `1.1.0` |
 | `backend.resources.limits.cpu` | CPU limit backend | `1000m` |
 | `backend.resources.limits.memory` | Memory limit backend | `1Gi` |
@@ -132,7 +132,7 @@ helm install ansible-builder . \
 | `backend.autoscaling.minReplicas` | Replicas minimum | `2` |
 | `backend.autoscaling.maxReplicas` | Replicas maximum | `10` |
 | `frontend.replicaCount` | Nombre de replicas frontend | `2` |
-| `frontend.image.repository` | Image Docker frontend | `ansible-builder-frontend` |
+| `frontend.image.repository` | Image Docker frontend | `automation-factory-frontend` |
 | `postgresql.enabled` | Utiliser PostgreSQL intégré | `true` |
 | `postgresql.auth.password` | Mot de passe PostgreSQL | `changeme-in-production` |
 | `redis.enabled` | Utiliser Redis intégré | `true` |
@@ -152,7 +152,7 @@ postgresql:
     port: 5432
     username: ansible
     password: "secure-password"
-    database: ansible_builder
+    database: automation_factory
 ```
 
 ### Redis externe
@@ -172,15 +172,15 @@ redis:
 ## Mise à jour
 
 ```bash
-helm upgrade ansible-builder . \
-  --namespace ansible-builder \
+helm upgrade automation-factory . \
+  --namespace automation-factory \
   --values values-production.yaml
 ```
 
 ## Désinstallation
 
 ```bash
-helm uninstall ansible-builder --namespace ansible-builder
+helm uninstall automation-factory --namespace automation-factory
 ```
 
 ## Surveillance
@@ -194,16 +194,16 @@ helm uninstall ansible-builder --namespace ansible-builder
 
 ```bash
 # Backend logs
-kubectl logs -f -l app.kubernetes.io/component=backend -n ansible-builder
+kubectl logs -f -l app.kubernetes.io/component=backend -n automation-factory
 
 # Frontend logs
-kubectl logs -f -l app.kubernetes.io/component=frontend -n ansible-builder
+kubectl logs -f -l app.kubernetes.io/component=frontend -n automation-factory
 
 # PostgreSQL logs
-kubectl logs -f -l app=postgresql -n ansible-builder
+kubectl logs -f -l app=postgresql -n automation-factory
 
 # Redis logs
-kubectl logs -f -l app=redis -n ansible-builder
+kubectl logs -f -l app=redis -n automation-factory
 ```
 
 ### Métriques
@@ -259,33 +259,33 @@ openssl rand -base64 24
 
 ```bash
 # Vérifier les events
-kubectl get events -n ansible-builder --sort-by='.lastTimestamp'
+kubectl get events -n automation-factory --sort-by='.lastTimestamp'
 
 # Décrire les pods
-kubectl describe pod <pod-name> -n ansible-builder
+kubectl describe pod <pod-name> -n automation-factory
 
 # Vérifier les logs
-kubectl logs <pod-name> -n ansible-builder
+kubectl logs <pod-name> -n automation-factory
 ```
 
 ### Problèmes de connexion à la base de données
 
 ```bash
 # Vérifier que PostgreSQL est running
-kubectl get pods -l app=postgresql -n ansible-builder
+kubectl get pods -l app=postgresql -n automation-factory
 
 # Test de connexion depuis un pod backend
-kubectl exec -it <backend-pod> -n ansible-builder -- python -c "from sqlalchemy import create_engine; engine = create_engine('postgresql://ansible:password@postgresql:5432/ansible_builder'); print(engine.connect())"
+kubectl exec -it <backend-pod> -n automation-factory -- python -c "from sqlalchemy import create_engine; engine = create_engine('postgresql://ansible:password@postgresql:5432/automation_factory'); print(engine.connect())"
 ```
 
 ### Problèmes d'ingress
 
 ```bash
 # Vérifier l'ingress
-kubectl describe ingress -n ansible-builder
+kubectl describe ingress -n automation-factory
 
 # Vérifier les services
-kubectl get svc -n ansible-builder
+kubectl get svc -n automation-factory
 
 # Logs de l'ingress controller
 kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
@@ -294,8 +294,8 @@ kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
 ## Support
 
 Pour toute question ou problème:
-- Issues: https://bitbucket.org/ccoupel/ansible_builder/issues
-- Documentation: https://bitbucket.org/ccoupel/ansible_builder
+- Issues: https://bitbucket.org/ccoupel/automation_factory/issues
+- Documentation: https://bitbucket.org/ccoupel/automation_factory
 
 ## License
 

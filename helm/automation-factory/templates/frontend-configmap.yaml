@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "automation-factory.fullname" . }}-frontend
+  labels:
+    {{- include "automation-factory.frontend.labels" . | nindent 4 }}
+data:
+  api-url: {{ .Values.frontend.env.VITE_API_URL | quote }}

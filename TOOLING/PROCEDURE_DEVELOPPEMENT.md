@@ -39,11 +39,11 @@
 
 # Backend (si modifié)
 cd backend/
-docker --host tcp://192.168.1.217:2375 build -t ansible-builder-backend:1.3.8_1 -f Dockerfile .
+docker --host tcp://192.168.1.217:2375 build -t automation-factory-backend:1.3.8_1 -f Dockerfile .
 
 # Frontend (si modifié)
 cd frontend/
-docker --host tcp://192.168.1.217:2375 build -t ansible-builder-frontend:1.5.1_1 -f Dockerfile .
+docker --host tcp://192.168.1.217:2375 build -t automation-factory-frontend:1.5.1_1 -f Dockerfile .
 
 # Incrémenter _n à chaque nouveau build : _1, _2, _3...
 ```
@@ -56,13 +56,13 @@ docker --host tcp://192.168.1.217:2375 build -t ansible-builder-frontend:1.5.1_1
 # custom-values.yaml pour développement
 backend:
   image:
-    repository: ansible-builder-backend  # Local, sans ghcr.io
+    repository: automation-factory-backend  # Local, sans ghcr.io
     tag: "1.3.8_1"
     pullPolicy: Never  # Force utilisation image locale
 
 frontend:
   image:
-    repository: ansible-builder-frontend
+    repository: automation-factory-frontend
     tag: "1.5.1_1"
     pullPolicy: Never
 ```
@@ -71,24 +71,24 @@ frontend:
 
 ```bash
 # Déployer avec Helm
-helm --kubeconfig=kubeconfig.txt upgrade ansible-builder ./helm/ansible-builder -f custom-values.yaml --namespace ansible-builder
+helm --kubeconfig=kubeconfig.txt upgrade automation-factory ./helm/automation-factory -f custom-values.yaml --namespace automation-factory
 
 # Si nécessaire, forcer redémarrage
-kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/ansible-builder-backend -n ansible-builder
-kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/ansible-builder-frontend -n ansible-builder
+kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/automation-factory-backend -n automation-factory
+kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/automation-factory-frontend -n automation-factory
 ```
 
 ### 5. Vérification des Logs de Démarrage
 
 ```bash
 # Attendre que les pods soient prêts
-kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n ansible-builder --timeout=300s
+kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n automation-factory --timeout=300s
 
 # Vérifier les logs de démarrage
-kubectl --kubeconfig=kubeconfig.txt logs -l app.kubernetes.io/component=backend -n ansible-builder | grep -E "(Starting|Database|Error|✅|❌|🚀)"
+kubectl --kubeconfig=kubeconfig.txt logs -l app.kubernetes.io/component=backend -n automation-factory | grep -E "(Starting|Database|Error|✅|❌|🚀)"
 
 # Chercher erreurs spécifiques
-kubectl --kubeconfig=kubeconfig.txt logs <POD-NAME> -n ansible-builder | head -50
+kubectl --kubeconfig=kubeconfig.txt logs <POD-NAME> -n automation-factory | head -50
 ```
 
 ### 6. Tests OBLIGATOIRES des APIs (Backend)
@@ -97,27 +97,27 @@ kubectl --kubeconfig=kubeconfig.txt logs <POD-NAME> -n ansible-builder | head -5
 
 ```bash
 # 1. Version Frontend
-curl -s "https://coupel.net/ansible-builder/version"
-# Attendu: {"version":"X.Y.Z","name":"Ansible Builder Frontend"}
+curl -s "https://coupel.net/automation-factory/version"
+# Attendu: {"version":"X.Y.Z","name":"Automation Factory Frontend"}
 
 # 2. Version Backend
-curl -s "https://coupel.net/ansible-builder/api/version"
-# Attendu: {"version":"X.Y.Z","name":"Ansible Builder API"}
+curl -s "https://coupel.net/automation-factory/api/version"
+# Attendu: {"version":"X.Y.Z","name":"Automation Factory API"}
 
 # 3. Health Check Frontend
-curl -s "https://coupel.net/ansible-builder/health"
+curl -s "https://coupel.net/automation-factory/health"
 # Attendu: {"status":"healthy","service":"frontend"}
 
 # 4. Health Check Backend (si existe)
-curl -s "https://coupel.net/ansible-builder/api/health"
+curl -s "https://coupel.net/automation-factory/api/health"
 
 # 5. Test Authentication
-curl -X POST "https://coupel.net/ansible-builder/api/auth/login" \
+curl -X POST "https://coupel.net/automation-factory/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"admin"}'
 
 # 6. Test Register (si nécessaire)
-curl -X POST "https://coupel.net/ansible-builder/api/auth/register" \
+curl -X POST "https://coupel.net/automation-factory/api/auth/register" \
   -H "Content-Type: application/json" \
   -d '{"email":"test@test.com","username":"test","password":"password123"}'
 
@@ -156,12 +156,12 @@ Si bugfix → X.Y.Z+1
 echo $GITHUB_TOKEN | docker --host tcp://192.168.1.217:2375 login ghcr.io -u ccoupel --password-stdin
 
 # Backend
-docker --host tcp://192.168.1.217:2375 tag ansible-builder-backend:1.3.8_15 ghcr.io/ccoupel/ansible-builder-backend:1.3.9
-docker --host tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-backend:1.3.9
+docker --host tcp://192.168.1.217:2375 tag automation-factory-backend:1.3.8_15 ghcr.io/ccoupel/automation-factory-backend:1.3.9
+docker --host tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:1.3.9
 
 # Frontend
-docker --host tcp://192.168.1.217:2375 tag ansible-builder-frontend:1.5.1_8 ghcr.io/ccoupel/ansible-builder-frontend:1.5.2
-docker --host tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-frontend:1.5.2
+docker --host tcp://192.168.1.217:2375 tag automation-factory-frontend:1.5.1_8 ghcr.io/ccoupel/automation-factory-frontend:1.5.2
+docker --host tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:1.5.2
 ```
 
 ### 3. Mise à jour pour Production
@@ -170,13 +170,13 @@ docker --host tcp://192.168.1.217:2375 push ghcr.io/ccoupel/ansible-builder-fron
 # custom-values.yaml pour production
 backend:
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-backend
+    repository: ghcr.io/ccoupel/automation-factory-backend
     tag: "1.3.9"
     pullPolicy: Always
 
 frontend:
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-frontend
+    repository: ghcr.io/ccoupel/automation-factory-frontend
     tag: "1.5.2"
     pullPolicy: Always
 ```
@@ -184,7 +184,7 @@ frontend:
 ### 4. Déploiement Production
 
 ```bash
-helm --kubeconfig=kubeconfig.txt upgrade ansible-builder ./helm/ansible-builder -f custom-values.yaml --namespace ansible-builder
+helm --kubeconfig=kubeconfig.txt upgrade automation-factory ./helm/automation-factory -f custom-values.yaml --namespace automation-factory
 ```
 
 ### 5. Documentation et Reset
@@ -210,7 +210,7 @@ VALIDATION : "Push vers git, c'est un bugfix"
 
 ACTIONS :
 1. Nouvelle version : 1.3.9 (Z+1 car bugfix)
-2. Tag 1.3.8_3 → ghcr.io/ccoupel/ansible-builder-backend:1.3.9
+2. Tag 1.3.8_3 → ghcr.io/ccoupel/automation-factory-backend:1.3.9
 3. Push vers ghcr.io
 4. Deploy production avec 1.3.9
 5. Prochain build sera 1.3.9_1
@@ -232,10 +232,10 @@ ACTIONS :
 
 ```bash
 # Voir historique
-helm --kubeconfig=kubeconfig.txt history ansible-builder -n ansible-builder
+helm --kubeconfig=kubeconfig.txt history automation-factory -n automation-factory
 
 # Rollback à version précédente
-helm --kubeconfig=kubeconfig.txt rollback ansible-builder [REVISION] -n ansible-builder
+helm --kubeconfig=kubeconfig.txt rollback automation-factory [REVISION] -n automation-factory
 ```
 
 ---

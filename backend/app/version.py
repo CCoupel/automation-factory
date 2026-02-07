@@ -4,7 +4,7 @@ Application version information
 import os
 
 __version__ = "2.3.6-rc.1"
-__description__ = "Ansible Builder API - Collaboration Bugfix"
+__description__ = "Automation Factory API - Collaboration Bugfix"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
@@ -105,7 +105,7 @@ VERSION_FEATURES = {
             "Validation feedback with errors and warnings"
         ],
         "technical": [
-            "AnsibleBuilderDiagram type with header/metadata/content/integrity",
+            "AutomationFactoryDiagram type with header/metadata/content/integrity",
             "Backend exporters (abd_exporter, mermaid_exporter, svg_exporter)",
             "API endpoints /api/export/{abd,mermaid,svg}",
             "playbook_export_service.py for consistent traversal",

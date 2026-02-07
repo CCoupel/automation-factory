@@ -137,7 +137,7 @@ const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock
 }
 
 // Session storage key for playbook cache
-const PLAYBOOK_CACHE_KEY = 'ansible-builder-playbook-cache'
+const PLAYBOOK_CACHE_KEY = 'automation-factory-playbook-cache'
 
 const WorkZone = ({ onSelectModule, selectedModuleId, onDeleteModule, onUpdateModule, onPlayAttributes, onSelectRole, selectedRoleIndex, onRoleCallbacks, onSaveStatusChange, onSavePlaybook, onLoadPlaybook, onGetPlaybookContent, collaborationCallbacks, onApplyCollaborationUpdate, onActivePlayIdChange, initialPlaybookId, onPlaybookIdChange, onActiveSectionTabChange }: WorkZoneProps) => {
   const canvasRef = useRef<HTMLDivElement>(null)

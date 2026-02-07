@@ -29,18 +29,18 @@ try {
 
     # Deployer avec Helm
     Write-Host "Deploying with Helm..." -ForegroundColor Yellow
-    helm --kubeconfig=kubeconfig.txt upgrade ansible-builder ./helm/ansible-builder -f custom-values.yaml --namespace ansible-builder --force
+    helm --kubeconfig=kubeconfig.txt upgrade automation-factory ./helm/automation-factory -f custom-values.yaml --namespace automation-factory --force
 
     # Redemarrer les pods
     Write-Host "Restarting backend pods..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/ansible-builder-backend -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt rollout restart deployment/automation-factory-backend -n automation-factory
 
     # Attendre
     Write-Host "Waiting for pods..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n ansible-builder --timeout=300s
+    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n automation-factory --timeout=300s
 
     Write-Host "Deployment completed!" -ForegroundColor Green
-    kubectl --kubeconfig=kubeconfig.txt get pods -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt get pods -n automation-factory
 
 } catch {
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red

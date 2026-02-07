@@ -139,7 +139,7 @@ const ExportDiagramDialog: React.FC<ExportDiagramDialogProps> = ({
   const formatInfo = {
     abd: {
       icon: <InsertDriveFileIcon />,
-      title: 'Ansible Builder Diagram (.abd)',
+      title: 'Automation Factory Diagram (.abd)',
       description: 'Full diagram backup with all data. Can be re-imported later.',
       extension: '.abd',
     },

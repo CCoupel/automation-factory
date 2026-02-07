@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Ansible Builder - Script principal d'orchestration
-# Usage: ./ansible-builder.sh <command> [options]
+# Automation Factory - Script principal d'orchestration
+# Usage: ./automation-factory.sh <command> [options]
 
 set -e
 
@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 function show_help() {
-    echo -e "${GREEN}🚀 Ansible Builder - Script d'orchestration
+    echo -e "${GREEN}🚀 Automation Factory - Script d'orchestration
 
 COMMANDES DISPONIBLES:
   publish <version>     Publier les images Docker et package Helm
@@ -28,17 +28,17 @@ COMMANDES DISPONIBLES:
   help                 Afficher cette aide
 
 EXEMPLES:
-  ./ansible-builder.sh publish 1.3.0
-  ./ansible-builder.sh deploy --namespace ansible-builder-dev
-  ./ansible-builder.sh full 1.3.0 --dry-run
-  ./ansible-builder.sh clean
-  ./ansible-builder.sh status
-  ./ansible-builder.sh debug
-  ./ansible-builder.sh test
+  ./automation-factory.sh publish 1.3.0
+  ./automation-factory.sh deploy --namespace automation-factory-dev
+  ./automation-factory.sh full 1.3.0 --dry-run
+  ./automation-factory.sh clean
+  ./automation-factory.sh status
+  ./automation-factory.sh debug
+  ./automation-factory.sh test
 
 OPTIONS:
   --version <version>   Version à publier/déployer
-  --namespace <name>    Namespace Kubernetes (défaut: ansible-builder)
+  --namespace <name>    Namespace Kubernetes (défaut: automation-factory)
   --dry-run            Mode simulation
   --skip-publish       Déployer sans publier (pour 'full')
 
@@ -64,7 +64,7 @@ function invoke_command() {
 # Parse arguments
 COMMAND=""
 VERSION=""
-NAMESPACE="ansible-builder"
+NAMESPACE="automation-factory"
 DRY_RUN=""
 SKIP_PUBLISH=""
 
@@ -114,7 +114,7 @@ case "$COMMAND" in
     "publish")
         if [[ -z "$VERSION" ]]; then
             echo -e "${RED}❌ Version requise pour publish${NC}"
-            echo -e "${YELLOW}Usage: ./ansible-builder.sh publish <version>${NC}"
+            echo -e "${YELLOW}Usage: ./automation-factory.sh publish <version>${NC}"
             exit 1
         fi
         invoke_command "publish.sh" "$VERSION"
@@ -122,7 +122,7 @@ case "$COMMAND" in
     
     "deploy")
         args=()
-        if [[ "$NAMESPACE" != "ansible-builder" ]]; then
+        if [[ "$NAMESPACE" != "automation-factory" ]]; then
             args+=("--namespace" "$NAMESPACE")
         fi
         if [[ -n "$DRY_RUN" ]]; then
@@ -135,7 +135,7 @@ case "$COMMAND" in
     "full")
         if [[ -z "$VERSION" ]]; then
             echo -e "${RED}❌ Version requise pour full${NC}"
-            echo -e "${YELLOW}Usage: ./ansible-builder.sh full <version>${NC}"
+            echo -e "${YELLOW}Usage: ./automation-factory.sh full <version>${NC}"
             exit 1
         fi
         

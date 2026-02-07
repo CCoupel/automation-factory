@@ -5,17 +5,17 @@ Write-Host "Deploying final fix 1.5.1 with instant namespaces..." -ForegroundCol
 
 Push-Location backend
 try {
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:1.5.1 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-backend:1.5.1
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:1.5.1 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-backend:1.5.1
 }
 finally {
     Pop-Location
 }
 
 $env:KUBECONFIG = "$PWD\kubeconfig.txt"
-kubectl set image deployment/ansible-builder-backend backend=ghcr.io/ccoupel/ansible-builder-backend:1.5.1 -n ansible-builder
-kubectl rollout status deployment/ansible-builder-backend -n ansible-builder --timeout=180s
+kubectl set image deployment/automation-factory-backend backend=ghcr.io/ccoupel/automation-factory-backend:1.5.1 -n automation-factory
+kubectl rollout status deployment/automation-factory-backend -n automation-factory --timeout=180s
 
 Write-Host "Testing instant namespaces..." -ForegroundColor Green
 Start-Sleep 5
-curl -s "https://coupel.net/ansible-builder/api/galaxy/namespaces?limit=25"
+curl -s "https://coupel.net/automation-factory/api/galaxy/namespaces?limit=25"

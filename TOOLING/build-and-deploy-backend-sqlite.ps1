@@ -6,7 +6,7 @@ param(
     [string]$Version = "1.3.8"
 )
 
-Write-Host "🚀 Building and deploying Ansible Builder Backend v$Version with SQLite support" -ForegroundColor Green
+Write-Host "🚀 Building and deploying Automation Factory Backend v$Version with SQLite support" -ForegroundColor Green
 
 $ErrorActionPreference = "Stop"
 
@@ -31,14 +31,14 @@ try {
     Write-Host "🔨 Building backend image v$Version..." -ForegroundColor Yellow
     Set-Location "backend"
     
-    docker build -t "ghcr.io/ccoupel/ansible-builder-backend:$Version" -f Dockerfile .
+    docker build -t "ghcr.io/ccoupel/automation-factory-backend:$Version" -f Dockerfile .
     if ($LASTEXITCODE -ne 0) { 
         throw "Docker build failed"
     }
 
     # 3. Push l'image
     Write-Host "📤 Pushing backend image..." -ForegroundColor Yellow
-    docker push "ghcr.io/ccoupel/ansible-builder-backend:$Version"
+    docker push "ghcr.io/ccoupel/automation-factory-backend:$Version"
     if ($LASTEXITCODE -ne 0) { 
         throw "Docker push failed"
     }
@@ -48,21 +48,21 @@ try {
 
     # 4. Déployer via Helm
     Write-Host "🚢 Deploying with Helm..." -ForegroundColor Yellow
-    helm --kubeconfig=kubeconfig.txt upgrade ansible-builder ./helm/ansible-builder -f custom-values.yaml --namespace ansible-builder
+    helm --kubeconfig=kubeconfig.txt upgrade automation-factory ./helm/automation-factory -f custom-values.yaml --namespace automation-factory
     if ($LASTEXITCODE -ne 0) { 
         throw "Helm upgrade failed"
     }
 
     # 5. Attendre que les pods soient prêts
     Write-Host "⏳ Waiting for pods to be ready..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n ansible-builder --timeout=180s
+    kubectl --kubeconfig=kubeconfig.txt wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n automation-factory --timeout=180s
 
     # 6. Vérifier le statut
     Write-Host "📊 Checking deployment status..." -ForegroundColor Yellow
-    kubectl --kubeconfig=kubeconfig.txt get pods -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt get pods -n automation-factory
 
     Write-Host "✅ Backend v$Version deployed successfully with SQLite support!" -ForegroundColor Green
-    Write-Host "🔗 Test the API at: https://coupel.net/ansible-builder/api/version" -ForegroundColor Cyan
+    Write-Host "🔗 Test the API at: https://coupel.net/automation-factory/api/version" -ForegroundColor Cyan
     Write-Host "👤 Default credentials: admin@example.com / admin" -ForegroundColor Cyan
 
 } catch {

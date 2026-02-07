@@ -1,4 +1,4 @@
-# Phase 1 : Développement - Ansible Builder
+# Phase 1 : Développement - Automation Factory
 
 Ce document détaille les procédures spécifiques à la **Phase 1 : Développement** du processus en 3 phases.
 
@@ -139,7 +139,7 @@ curl -s http://localhost:5173 | grep -o "X.Y.Z_n"
 
 # Backend - API Version
 curl -s http://localhost:8000/api/version
-# Attendu: {"version":"X.Y.Z_n","name":"Ansible Builder API"}
+# Attendu: {"version":"X.Y.Z_n","name":"Automation Factory API"}
 ```
 
 #### Screenshots Traçabilité

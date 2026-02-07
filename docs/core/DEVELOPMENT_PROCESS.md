@@ -1,6 +1,6 @@
-# Process de Développement - Ansible Builder
+# Process de Développement - Automation Factory
 
-Ce document décrit la méthodologie de développement, les phases et les procédures pour Ansible Builder.
+Ce document décrit la méthodologie de développement, les phases et les procédures pour Automation Factory.
 
 ---
 
@@ -111,7 +111,7 @@ docker build -t frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
 # Prod: ghcr.io/.../frontend:X.Y.Z (nginx, port 80)
 
 # ✅ OBLIGATOIRE : Déploiement production via Helm
-helm upgrade ansible-builder ./helm/ansible-builder --values custom-values.yaml
+helm upgrade automation-factory ./helm/automation-factory --values custom-values.yaml
 
 # ✅ OBLIGATOIRE : Différences par variables d'environnement uniquement
 ENVIRONMENT=STAGING  # Affiche version RC
@@ -252,7 +252,7 @@ La Phase 2 couvre le déploiement en production et la finalisation complète du 
 **Production**
 - **Registry** : ghcr.io/ccoupel
 - **Orchestration** : Kubernetes
-- **URL** : https://coupel.net/ansible-builder
+- **URL** : https://coupel.net/automation-factory
 - **Database** : SQLite single-pod (production)
 
 ### Configuration

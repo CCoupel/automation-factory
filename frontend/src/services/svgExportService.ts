@@ -539,7 +539,7 @@ export function generateSVG(
   elements.push(`
     <text x="${padding}" y="${totalHeight - 8 * scale}"
       font-family="Arial, sans-serif" font-size="${9 * scale}"
-      fill="${COLORS.textLight}">Ansible Builder v2.1.0 • ${new Date().toISOString().split('T')[0]}</text>`)
+      fill="${COLORS.textLight}">Automation Factory v2.1.0 • ${new Date().toISOString().split('T')[0]}</text>`)
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${totalHeight}"

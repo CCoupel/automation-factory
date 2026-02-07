@@ -1,4 +1,4 @@
-# Phase 2 : Intégration - Ansible Builder
+# Phase 2 : Intégration - Automation Factory
 
 Ce document détaille les procédures spécifiques à la **Phase 2 : Intégration** du processus en 3 phases.
 
@@ -103,11 +103,11 @@ echo '__version__ = "X.Y.Z-rc.n"' > backend/app/version.py
 # ⚠️ IMPORTANT: Utiliser Dockerfile PRODUCTION pour "build once, deploy everywhere"
 
 # Backend - build local
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n \
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n \
   -f backend/Dockerfile backend/
 
 # Frontend - build local avec Dockerfile PRODUCTION (nginx, pas Vite)
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n \
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n \
   -f frontend/Dockerfile frontend/
 
 # PAS de push - images restent locales sur 192.168.1.217
@@ -119,9 +119,9 @@ docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n 
 # docker-compose.staging.yml
 services:
   backend:
-    image: ansible-builder-backend:X.Y.Z-rc.n
+    image: automation-factory-backend:X.Y.Z-rc.n
   frontend:
-    image: ansible-builder-frontend:X.Y.Z-rc.n  # Même image que production (nginx)
+    image: automation-factory-frontend:X.Y.Z-rc.n  # Même image que production (nginx)
   nginx:
     # Configuration nginx reverse proxy inline
     # Route vers frontend:80 (nginx) au lieu de frontend:5173 (Vite)
@@ -322,8 +322,8 @@ echo "✅ Performance tests complete"
 echo '__version__ = "X.Y.Z-rc.n+1"' > backend/app/version.py
 
 # 4. Redéploiement local (même Dockerfile pour staging et prod)
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n+1 -f backend/Dockerfile backend/
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n+1 -f frontend/Dockerfile frontend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n+1 -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n+1 -f frontend/Dockerfile frontend/
 
 # 5. Retest complet
 ```

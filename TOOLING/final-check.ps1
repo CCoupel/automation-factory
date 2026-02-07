@@ -4,20 +4,20 @@ $env:KUBECONFIG = (Get-Item "kubeconfig.txt").FullName
 Write-Host "=== STATUT FINAL DU DÉPLOIEMENT ===" -ForegroundColor Green
 
 Write-Host "`n1. Pods:" -ForegroundColor Yellow
-kubectl get pods -n ansible-builder
+kubectl get pods -n automation-factory
 
 Write-Host "`n2. Services:" -ForegroundColor Yellow
-kubectl get svc -n ansible-builder
+kubectl get svc -n automation-factory
 
 Write-Host "`n3. Ingress:" -ForegroundColor Yellow
-kubectl get ingress -n ansible-builder
+kubectl get ingress -n automation-factory
 
 Write-Host "`n4. Test de l'endpoint de santé:" -ForegroundColor Yellow
-$backendPod = kubectl get pods -n ansible-builder -l app.kubernetes.io/name=ansible-builder -o name | Where-Object { $_ -like "*backend*" } | Select-Object -First 1
+$backendPod = kubectl get pods -n automation-factory -l app.kubernetes.io/name=automation-factory -o name | Where-Object { $_ -like "*backend*" } | Select-Object -First 1
 if ($backendPod) {
     $podName = $backendPod -replace "pod/", ""
     Write-Host "Testant le pod: $podName"
-    kubectl exec -n ansible-builder $podName -- python -c "
+    kubectl exec -n automation-factory $podName -- python -c "
 import requests
 try:
     r = requests.get('http://localhost:8000/health')
@@ -29,7 +29,7 @@ except Exception as e:
 }
 
 Write-Host "`n5. URL d'accès:" -ForegroundColor Yellow
-$ingressInfo = kubectl get ingress ansible-builder -n ansible-builder -o jsonpath='{.spec.rules[0].host}'
+$ingressInfo = kubectl get ingress automation-factory -n automation-factory -o jsonpath='{.spec.rules[0].host}'
 Write-Host "Application disponible sur: https://$ingressInfo"
 
 Write-Host "`n=== RÉSUMÉ ===" -ForegroundColor Green

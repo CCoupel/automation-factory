@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}-backend
+  name: {{ include "automation-factory.fullname" . }}-backend
   labels:
-    {{- include "ansible-builder.backend.labels" . | nindent 4 }}
+    {{- include "automation-factory.backend.labels" . | nindent 4 }}
   {{- with .Values.backend.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -16,4 +16,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "ansible-builder.backend.selectorLabels" . | nindent 4 }}
+    {{- include "automation-factory.backend.selectorLabels" . | nindent 4 }}

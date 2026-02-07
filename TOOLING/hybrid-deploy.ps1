@@ -7,8 +7,8 @@ Write-Host "Deploying hybrid Galaxy service v1.6.0_1..." -ForegroundColor Cyan
 Push-Location backend
 try {
     Write-Host "Building backend..." -ForegroundColor Yellow
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:1.6.0_1 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-backend:1.6.0_1
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:1.6.0_1 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-backend:1.6.0_1
 } finally {
     Pop-Location
 }
@@ -17,8 +17,8 @@ try {
 Push-Location frontend
 try {
     Write-Host "Building frontend..." -ForegroundColor Yellow
-    docker build -t ghcr.io/ccoupel/ansible-builder-frontend:1.9.0 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-frontend:1.9.0
+    docker build -t ghcr.io/ccoupel/automation-factory-frontend:1.9.0 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-frontend:1.9.0
 } finally {
     Pop-Location
 }
@@ -27,12 +27,12 @@ try {
 $env:KUBECONFIG = "$PWD\kubeconfig.txt"
 
 Write-Host "Deploying to Kubernetes..." -ForegroundColor Green
-kubectl set image deployment/ansible-builder-backend backend=ghcr.io/ccoupel/ansible-builder-backend:1.6.0_1 -n ansible-builder
-kubectl set image deployment/ansible-builder-frontend frontend=ghcr.io/ccoupel/ansible-builder-frontend:1.9.0 -n ansible-builder
+kubectl set image deployment/automation-factory-backend backend=ghcr.io/ccoupel/automation-factory-backend:1.6.0_1 -n automation-factory
+kubectl set image deployment/automation-factory-frontend frontend=ghcr.io/ccoupel/automation-factory-frontend:1.9.0 -n automation-factory
 
 Write-Host "Waiting for rollout..." -ForegroundColor Yellow
-kubectl rollout status deployment/ansible-builder-backend -n ansible-builder --timeout=180s
-kubectl rollout status deployment/ansible-builder-frontend -n ansible-builder --timeout=180s
+kubectl rollout status deployment/automation-factory-backend -n automation-factory --timeout=180s
+kubectl rollout status deployment/automation-factory-frontend -n automation-factory --timeout=180s
 
 # Test the deployment
 Write-Host "Testing deployment..." -ForegroundColor Green
@@ -40,17 +40,17 @@ Start-Sleep 10
 
 # Test backend version
 Write-Host "Backend version:" -ForegroundColor Cyan
-curl -s "https://coupel.net/ansible-builder/api/version"
+curl -s "https://coupel.net/automation-factory/api/version"
 Write-Host ""
 
 # Test hybrid namespaces endpoint 
 Write-Host "Testing instant namespaces:" -ForegroundColor Cyan
-curl -s "https://coupel.net/ansible-builder/api/galaxy/namespaces?limit=5"
+curl -s "https://coupel.net/automation-factory/api/galaxy/namespaces?limit=5"
 Write-Host ""
 
 # Test streaming endpoint
 Write-Host "Testing streaming endpoint:" -ForegroundColor Cyan
-curl -s "https://coupel.net/ansible-builder/api/galaxy/namespaces/stream" | head -20
+curl -s "https://coupel.net/automation-factory/api/galaxy/namespaces/stream" | head -20
 Write-Host ""
 
 Write-Host "Hybrid deployment completed! ✅" -ForegroundColor Green

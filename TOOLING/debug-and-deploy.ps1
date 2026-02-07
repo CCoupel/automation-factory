@@ -6,8 +6,8 @@ Write-Host "Building debug version 1.5.0_3..." -ForegroundColor Cyan
 # Build and push backend
 Push-Location backend
 try {
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:1.5.0_3 -f Dockerfile .
-    docker push ghcr.io/ccoupel/ansible-builder-backend:1.5.0_3
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:1.5.0_3 -f Dockerfile .
+    docker push ghcr.io/ccoupel/automation-factory-backend:1.5.0_3
     Write-Host "Backend 1.5.0_3 built and pushed" -ForegroundColor Green
 }
 finally {
@@ -16,7 +16,7 @@ finally {
 
 # Deploy
 $env:KUBECONFIG = "$PWD\kubeconfig.txt"
-kubectl set image deployment/ansible-builder-backend backend=ghcr.io/ccoupel/ansible-builder-backend:1.5.0_3 -n ansible-builder
-kubectl rollout status deployment/ansible-builder-backend -n ansible-builder --timeout=300s
+kubectl set image deployment/automation-factory-backend backend=ghcr.io/ccoupel/automation-factory-backend:1.5.0_3 -n automation-factory
+kubectl rollout status deployment/automation-factory-backend -n automation-factory --timeout=300s
 
 Write-Host "Debug version deployed!" -ForegroundColor Green

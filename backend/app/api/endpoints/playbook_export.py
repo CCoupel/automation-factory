@@ -2,7 +2,7 @@
 Playbook Export API Endpoints
 
 Provides endpoints for exporting playbook diagrams to various formats:
-- ABD: Ansible Builder Diagram (JSON)
+- ABD: Automation Factory Diagram (JSON)
 - Mermaid: Markdown with flowchart
 - SVG: Vector image
 """
@@ -91,7 +91,7 @@ class SVGExportResponse(BaseModel):
 @router.post("/abd", response_model=ABDExportResponse)
 async def export_abd(request: ABDExportRequest) -> ABDExportResponse:
     """
-    Export playbook diagram to ABD (Ansible Builder Diagram) format.
+    Export playbook diagram to ABD (Automation Factory Diagram) format.
 
     The ABD format is a JSON structure that includes:
     - Complete playbook structure with positions
@@ -99,7 +99,7 @@ async def export_abd(request: ABDExportRequest) -> ABDExportResponse:
     - Integrity checks (checksums, counts)
     - Compatibility information
 
-    This format can be imported back into Ansible Builder.
+    This format can be imported back into Automation Factory.
     """
     try:
         options = ABDOptions(
@@ -226,7 +226,7 @@ async def download_abd(request: ABDExportRequest) -> Response:
 
     return Response(
         content=content,
-        media_type="application/vnd.ansible-builder.diagram+json",
+        media_type="application/vnd.automation-factory.diagram+json",
         headers={
             "Content-Disposition": f'attachment; filename="{result.filename}"'
         }

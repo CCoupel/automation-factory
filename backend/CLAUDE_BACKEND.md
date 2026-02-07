@@ -1,6 +1,6 @@
-# Guide Claude - Ansible Builder Backend
+# Guide Claude - Automation Factory Backend
 
-Ce document contient toute la documentation technique backend du projet Ansible Builder.
+Ce document contient toute la documentation technique backend du projet Automation Factory.
 
 ---
 
@@ -138,9 +138,9 @@ a chaque mise a jour de l'image du backend, tu verifie la bonne reponse des diff
 
 **📊 Logs de Démarrage :**
 ```
-🚀 Starting Ansible Builder API v1.3.8
+🚀 Starting Automation Factory API v1.3.8
 📄 Database type: sqlite
-🔗 Database URL: sqlite+aiosqlite:///./ansible_builder.db
+🔗 Database URL: sqlite+aiosqlite:///./automation_factory.db
 ✅ Database initialized successfully
 👤 Created default admin user: admin@example.com / admin
 ```
@@ -412,7 +412,7 @@ pip install -r requirements.txt
 
 **2. Initialiser la base de données:**
 ```bash
-# Avec les valeurs par défaut (admin / admin@ansible-builder.local / admin123)
+# Avec les valeurs par défaut (admin / admin@automation-factory.local / admin123)
 python init_db.py
 
 # Ou avec des valeurs personnalisées
@@ -460,20 +460,20 @@ kubectl apply -f k8s/backend/
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ansible-builder-backend
+  name: automation-factory-backend
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: ansible-builder-backend
+      app: automation-factory-backend
   template:
     metadata:
       labels:
-        app: ansible-builder-backend
+        app: automation-factory-backend
     spec:
       containers:
       - name: backend
-        image: ansible-builder-backend:latest
+        image: automation-factory-backend:latest
         ports:
         - containerPort: 8000
         env:
@@ -695,7 +695,7 @@ print("Galaxy cache synchronization DISABLED to avoid rate limits")
 ```yaml
 # docker-compose.remote.yml
 environment:
-  - SQLITE_DB_PATH=/app/data/ansible_builder.db
+  - SQLITE_DB_PATH=/app/data/automation_factory.db
 volumes:
   - backend_data:/app/data
 ```
@@ -718,7 +718,7 @@ volumes:
 **Images Buildées :**
 ```bash
 # Backend v1.9.0_2
-docker build -f backend/Dockerfile.dev -t ansible-builder-backend:1.9.0_2 backend/
+docker build -f backend/Dockerfile.dev -t automation-factory-backend:1.9.0_2 backend/
 
 # Déploiement remote
 docker -H tcp://192.168.1.217:2375 compose -f docker-compose.remote.yml up -d
@@ -729,10 +729,10 @@ docker -H tcp://192.168.1.217:2375 compose -f docker-compose.remote.yml up -d
 # docker-compose.remote.yml
 services:
   backend:
-    image: ansible-builder-backend:1.9.0_2
+    image: automation-factory-backend:1.9.0_2
     environment:
       - DATABASE_TYPE=sqlite
-      - SQLITE_DB_PATH=/app/data/ansible_builder.db
+      - SQLITE_DB_PATH=/app/data/automation_factory.db
     volumes:
       - backend_data:/app/data
 ```
@@ -747,7 +747,7 @@ curl http://192.168.1.217/health
 
 # Version API 
 curl http://192.168.1.217/api/version
-> {"version":"1.9.0_2","name":"Ansible Builder API"}
+> {"version":"1.9.0_2","name":"Automation Factory API"}
 
 # Auth (Swagger)
 http://192.168.1.217/docs

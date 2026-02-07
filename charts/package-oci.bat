@@ -1,5 +1,5 @@
 @echo off
-REM Script to package and push Ansible Builder Helm Chart to OCI Registry (Windows)
+REM Script to package and push Automation Factory Helm Chart to OCI Registry (Windows)
 REM Usage: package-oci.bat <registry> [version]
 REM
 REM Examples:
@@ -10,7 +10,7 @@ setlocal enabledelayedexpansion
 
 set SCRIPT_DIR=%~dp0
 set REPO_ROOT=%SCRIPT_DIR%..
-set CHART_DIR=%REPO_ROOT%\helm\ansible-builder
+set CHART_DIR=%REPO_ROOT%\helm\automation-factory
 
 REM Check registry argument
 if "%~1"=="" (
@@ -36,7 +36,7 @@ if not "%~2"=="" (
 )
 
 echo ===================================
-echo Packaging Ansible Builder Chart
+echo Packaging Automation Factory Chart
 echo Registry: %REGISTRY%
 echo Version: %VERSION%
 echo ===================================
@@ -67,7 +67,7 @@ if errorlevel 1 (
 REM Package the chart
 echo.
 echo [36m📦 Packaging chart...[0m
-set PACKAGE_FILE=ansible-builder-%VERSION%.tgz
+set PACKAGE_FILE=automation-factory-%VERSION%.tgz
 helm package . --destination "%SCRIPT_DIR%"
 if errorlevel 1 (
     echo [31mError: Failed to package chart[0m
@@ -100,16 +100,16 @@ echo.
 echo [32m✅ Chart pushed successfully to OCI registry![0m
 echo.
 echo [36m📦 Package:[0m %PACKAGE_FILE%
-echo [36m📍 Location:[0m oci://%REGISTRY%/ansible-builder:%VERSION%
+echo [36m📍 Location:[0m oci://%REGISTRY%/automation-factory:%VERSION%
 echo.
 echo [36mUsers can now install with:[0m
-echo   helm install ansible-builder oci://%REGISTRY%/ansible-builder --version %VERSION%
+echo   helm install automation-factory oci://%REGISTRY%/automation-factory --version %VERSION%
 echo.
 echo [36mOr to always get the latest:[0m
-echo   helm install ansible-builder oci://%REGISTRY%/ansible-builder
+echo   helm install automation-factory oci://%REGISTRY%/automation-factory
 echo.
 echo [36mTo update:[0m
-echo   helm upgrade ansible-builder oci://%REGISTRY%/ansible-builder --version %VERSION%
+echo   helm upgrade automation-factory oci://%REGISTRY%/automation-factory --version %VERSION%
 echo.
 
 endlocal

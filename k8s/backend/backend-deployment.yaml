@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
-  namespace: ansible-builder
+  namespace: automation-factory
 spec:
   replicas: 1
   selector:
@@ -15,14 +15,14 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ansible-builder-backend:latest
+        image: automation-factory-backend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
           name: http
         env:
         - name: DATABASE_URL
-          value: postgresql+asyncpg://ansible:changeme-in-production@postgresql:5432/ansible_builder
+          value: postgresql+asyncpg://ansible:changeme-in-production@postgresql:5432/automation_factory
         - name: REDIS_URL
           value: redis://redis:6379/0
         - name: SECRET_KEY

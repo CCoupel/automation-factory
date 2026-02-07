@@ -1,12 +1,12 @@
-# Vue d'Ensemble du Projet - Ansible Builder
+# Vue d'Ensemble du Projet - Automation Factory
 
-Ce document décrit les objectifs, fonctionnalités et architecture générale du projet Ansible Builder.
+Ce document décrit les objectifs, fonctionnalités et architecture générale du projet Automation Factory.
 
 ---
 
 ## 🎯 **Description du Projet**
 
-Ansible Builder est un constructeur graphique de playbook Ansible qui permet aux utilisateurs de créer des playbooks de manière visuelle et intuitive.
+Automation Factory est un constructeur graphique de playbook Ansible qui permet aux utilisateurs de créer des playbooks de manière visuelle et intuitive.
 
 ### Objectifs Principaux
 - **Simplification** : Rendre Ansible accessible via une interface graphique

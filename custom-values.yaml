@@ -12,7 +12,7 @@ postgresql:
   auth:
     username: ansible
     password: "AnsibleBuilder2026!Prod"  # Strong password for production
-    database: ansible_builder
+    database: automation_factory
   resources:
     limits:
       cpu: 500m
@@ -24,7 +24,7 @@ postgresql:
 backend:
   replicaCount: 1
   image:
-    repository: ghcr.io/ccoupel/ansible-builder-backend
+    repository: ghcr.io/ccoupel/automation-factory-backend
     tag: "2.3.0"
     pullPolicy: Always
   env:
@@ -48,7 +48,7 @@ frontend:
     pullPolicy: Always
 ingress:
   className: "traefik"
-  basePath: "/ansible-builder"
+  basePath: "/automation-factory"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
@@ -60,7 +60,7 @@ ingress:
           pathType: Prefix
           service: frontend
   tls:
-    - secretName: ansible-builder-tls
+    - secretName: automation-factory-tls
       hosts:
         - coupel.net
 

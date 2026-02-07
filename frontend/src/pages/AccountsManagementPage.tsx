@@ -193,7 +193,7 @@ const AccountsManagementPage: React.FC = () => {
                       <TableCell align="center">
                         <Tooltip
                           title={
-                            account.email === 'admin@ansible-builder.local'
+                            account.email === 'admin@automation-factory.local'
                               ? 'Cannot modify default admin account'
                               : account.is_admin
                               ? 'Revoke admin privileges'
@@ -204,7 +204,7 @@ const AccountsManagementPage: React.FC = () => {
                             <Switch
                               checked={account.is_admin}
                               onChange={() => handleToggleAdmin(account.id, account.is_admin)}
-                              disabled={account.email === 'admin@ansible-builder.local'}
+                              disabled={account.email === 'admin@automation-factory.local'}
                               color="primary"
                               size="small"
                             />
@@ -214,7 +214,7 @@ const AccountsManagementPage: React.FC = () => {
                       <TableCell align="center">
                         <Tooltip
                           title={
-                            account.email === 'admin@ansible-builder.local'
+                            account.email === 'admin@automation-factory.local'
                               ? 'Cannot disable default admin account'
                               : account.is_active
                               ? 'Disable account'
@@ -225,7 +225,7 @@ const AccountsManagementPage: React.FC = () => {
                             <Switch
                               checked={account.is_active}
                               onChange={() => handleToggleActive(account.id, account.is_active)}
-                              disabled={account.email === 'admin@ansible-builder.local'}
+                              disabled={account.email === 'admin@automation-factory.local'}
                               color="success"
                               size="small"
                             />

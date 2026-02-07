@@ -1,7 +1,7 @@
 #!/bin/bash
 # Smoke tests for production v1.9.0
 
-PROD_URL="https://coupel.net/ansible-builder"
+PROD_URL="https://coupel.net/automation-factory"
 FRONTEND_URL="$PROD_URL/"
 echo "🔍 Starting smoke tests for production deployment v1.9.0..."
 echo "📍 Testing URL: $PROD_URL"

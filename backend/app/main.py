@@ -52,7 +52,7 @@ async def create_default_user():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
-    print(f"Starting Ansible Builder API v{__version__}")
+    print(f"Starting Automation Factory API v{__version__}")
     print(f"Database type: {settings.DATABASE_TYPE}")
     print(f"Database URL: {settings.database_url}")
     
@@ -100,12 +100,12 @@ async def lifespan(app: FastAPI):
     
     yield
     # Shutdown
-    print("Shutting down Ansible Builder API")
+    print("Shutting down Automation Factory API")
     await cache_scheduler.stop()
     print("✅ Cache scheduler stopped")
 
 app = FastAPI(
-    title="Ansible Builder API",
+    title="Automation Factory API",
     description="API for building Ansible playbooks graphically",
     version=__version__,
     lifespan=lifespan
@@ -128,7 +128,7 @@ app.include_router(websocket_router)
 
 @app.get("/")
 async def root():
-    return {"message": "Ansible Builder API", "version": "1.3.9_2"}
+    return {"message": "Automation Factory API", "version": "1.3.9_2"}
 
 @app.get("/health")
 async def health_check():

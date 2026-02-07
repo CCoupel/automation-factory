@@ -1,4 +1,4 @@
-# Ansible Builder
+# Automation Factory
 
 Constructeur graphique de playbooks Ansible en mode SaaS.
 
@@ -11,7 +11,7 @@ Constructeur graphique de playbooks Ansible en mode SaaS.
 
 ## Description
 
-Ansible Builder est une application web qui permet de construire des playbooks Ansible de manière visuelle via un système de drag & drop. L'application collecte les modules disponibles depuis Ansible Galaxy et permet de les assembler graphiquement pour générer des playbooks YAML valides.
+Automation Factory est une application web qui permet de construire des playbooks Ansible de manière visuelle via un système de drag & drop. L'application collecte les modules disponibles depuis Ansible Galaxy et permet de les assembler graphiquement pour générer des playbooks YAML valides.
 
 ## Stack Technique
 
@@ -61,7 +61,7 @@ Ansible Builder est une application web qui permet de construire des playbooks A
 ```bash
 # Cloner le repository
 git clone <repo-url>
-cd ansible-builder
+cd automation-factory
 
 # Démarrer tous les services
 docker-compose up -d --build
@@ -171,10 +171,10 @@ kubectl apply -f k8s/postgresql/
 kubectl apply -f k8s/redis/
 
 # Construire et pousser les images Docker
-docker build -t your-registry/ansible-builder-backend:latest ./backend
-docker build -t your-registry/ansible-builder-frontend:latest ./frontend
-docker push your-registry/ansible-builder-backend:latest
-docker push your-registry/ansible-builder-frontend:latest
+docker build -t your-registry/automation-factory-backend:latest ./backend
+docker build -t your-registry/automation-factory-frontend:latest ./frontend
+docker push your-registry/automation-factory-backend:latest
+docker push your-registry/automation-factory-frontend:latest
 
 # Mettre à jour les images dans les manifestes
 # Puis déployer backend et frontend
@@ -182,16 +182,16 @@ kubectl apply -f k8s/backend/
 kubectl apply -f k8s/frontend/
 
 # Vérifier le déploiement
-kubectl get pods -n ansible-builder
-kubectl get svc -n ansible-builder
-kubectl get ingress -n ansible-builder
+kubectl get pods -n automation-factory
+kubectl get svc -n automation-factory
+kubectl get ingress -n automation-factory
 ```
 
 ### Configuration DNS
 
 Pointer votre domaine vers l'IP de l'Ingress:
 ```bash
-kubectl get ingress -n ansible-builder
+kubectl get ingress -n automation-factory
 ```
 
 Mettre à jour `k8s/frontend/frontend-ingress.yaml` avec votre domaine.
@@ -199,7 +199,7 @@ Mettre à jour `k8s/frontend/frontend-ingress.yaml` avec votre domaine.
 ## Structure du Projet
 
 ```
-ansible-builder/
+automation-factory/
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # Routes FastAPI

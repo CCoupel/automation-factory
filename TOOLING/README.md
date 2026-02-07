@@ -1,6 +1,6 @@
 # 📁 Dossier TOOLING
 
-Ce dossier contient tous les outils, scripts et procédures pour le développement et le déploiement d'Ansible Builder.
+Ce dossier contient tous les outils, scripts et procédures pour le développement et le déploiement d'Automation Factory.
 
 ## 📋 Contenu
 
@@ -37,7 +37,7 @@ Ce dossier contient tous les outils, scripts et procédures pour le développeme
 
 1. Lire **`PROCEDURE_DEVELOPPEMENT.md`** en premier
 2. Modifier le code nécessaire
-3. Builder avec version _n : `docker build -t ansible-builder-backend:1.3.8_1`
+3. Builder avec version _n : `docker build -t automation-factory-backend:1.3.8_1`
 4. Déployer et tester
 5. Incrémenter _n pour chaque nouveau build
 6. Push vers ghcr.io uniquement sur validation

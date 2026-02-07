@@ -1,4 +1,4 @@
-# Implémentation Frontend - Ansible Builder
+# Implémentation Frontend - Automation Factory
 
 Ce document décrit les détails techniques et l'implémentation concrète du frontend React/TypeScript.
 

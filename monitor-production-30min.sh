@@ -1,7 +1,7 @@
 #!/bin/bash
 # Production monitoring script for 30 minutes post-deployment v1.9.0
 
-PROD_URL="https://coupel.net/ansible-builder"
+PROD_URL="https://coupel.net/automation-factory"
 FRONTEND_URL="$PROD_URL/"
 MONITORING_DURATION=1800  # 30 minutes in seconds
 CHECK_INTERVAL=300        # Check every 5 minutes  
@@ -66,9 +66,9 @@ perform_health_check() {
 # Function to check Kubernetes pods status
 check_k8s_status() {
     echo "🔍 Kubernetes Status:"
-    kubectl --kubeconfig=kubeconfig.txt get pods -n ansible-builder
+    kubectl --kubeconfig=kubeconfig.txt get pods -n automation-factory
     echo ""
-    kubectl --kubeconfig=kubeconfig.txt get deployments -n ansible-builder -o wide
+    kubectl --kubeconfig=kubeconfig.txt get deployments -n automation-factory -o wide
     echo "---"
 }
 

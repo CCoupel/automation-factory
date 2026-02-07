@@ -30,9 +30,9 @@ Write-Host ""
 Write-Host "🔍 Vérification des services..." -ForegroundColor Cyan
 
 $services = @(
-    @{ Name = "Nginx (Reverse Proxy)"; Url = "http://localhost/health"; Container = "ansible-builder-nginx-dev" }
-    @{ Name = "Frontend (Vite)"; Url = "http://localhost:5173"; Container = "ansible-builder-frontend-dev" }
-    @{ Name = "Backend (FastAPI)"; Url = "http://localhost:8000/health"; Container = "ansible-builder-backend-dev" }
+    @{ Name = "Nginx (Reverse Proxy)"; Url = "http://localhost/health"; Container = "automation-factory-nginx-dev" }
+    @{ Name = "Frontend (Vite)"; Url = "http://localhost:5173"; Container = "automation-factory-frontend-dev" }
+    @{ Name = "Backend (FastAPI)"; Url = "http://localhost:8000/health"; Container = "automation-factory-backend-dev" }
 )
 
 foreach ($service in $services) {
@@ -58,9 +58,9 @@ Write-Host "  • Backend direct: http://localhost:8000" -ForegroundColor Gray
 
 Write-Host ""
 Write-Host "📋 Commandes utiles:" -ForegroundColor Cyan
-Write-Host "  • Logs nginx: docker logs ansible-builder-nginx-dev -f" -ForegroundColor White
-Write-Host "  • Logs frontend: docker logs ansible-builder-frontend-dev -f" -ForegroundColor White
-Write-Host "  • Logs backend: docker logs ansible-builder-backend-dev -f" -ForegroundColor White
+Write-Host "  • Logs nginx: docker logs automation-factory-nginx-dev -f" -ForegroundColor White
+Write-Host "  • Logs frontend: docker logs automation-factory-frontend-dev -f" -ForegroundColor White
+Write-Host "  • Logs backend: docker logs automation-factory-backend-dev -f" -ForegroundColor White
 Write-Host "  • Arrêter: docker-compose -f docker-compose.dev.yml down" -ForegroundColor White
 
 Write-Host ""

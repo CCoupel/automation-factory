@@ -1,5 +1,5 @@
-# Ansible Builder - Script principal d'orchestration
-# Usage: .\ansible-builder.ps1 <command> [options]
+# Automation Factory - Script principal d'orchestration
+# Usage: .\automation-factory.ps1 <command> [options]
 
 param(
     [Parameter(Position=0, Mandatory=$true)]
@@ -7,7 +7,7 @@ param(
     [string]$Command,
     
     [string]$Version,
-    [string]$Namespace = "ansible-builder", 
+    [string]$Namespace = "automation-factory", 
     [switch]$DryRun,
     [switch]$SkipPublish
 )
@@ -17,7 +17,7 @@ $SCRIPT_DIR = $PSScriptRoot
 
 function Show-Help {
     Write-Host @"
-🚀 Ansible Builder - Script d'orchestration
+🚀 Automation Factory - Script d'orchestration
 
 COMMANDES DISPONIBLES:
   publish <version>     Publier les images Docker et package Helm
@@ -30,17 +30,17 @@ COMMANDES DISPONIBLES:
   help                 Afficher cette aide
 
 EXEMPLES:
-  .\ansible-builder.ps1 publish 1.3.0
-  .\ansible-builder.ps1 deploy -Namespace ansible-builder-dev
-  .\ansible-builder.ps1 full 1.3.0 -DryRun
-  .\ansible-builder.ps1 clean
-  .\ansible-builder.ps1 status
-  .\ansible-builder.ps1 debug
-  .\ansible-builder.ps1 test
+  .\automation-factory.ps1 publish 1.3.0
+  .\automation-factory.ps1 deploy -Namespace automation-factory-dev
+  .\automation-factory.ps1 full 1.3.0 -DryRun
+  .\automation-factory.ps1 clean
+  .\automation-factory.ps1 status
+  .\automation-factory.ps1 debug
+  .\automation-factory.ps1 test
 
 OPTIONS:
   -Version <version>    Version à publier/déployer
-  -Namespace <name>     Namespace Kubernetes (défaut: ansible-builder)
+  -Namespace <name>     Namespace Kubernetes (défaut: automation-factory)
   -DryRun              Mode simulation
   -SkipPublish         Déployer sans publier (pour 'full')
 
@@ -67,7 +67,7 @@ switch ($Command.ToLower()) {
     "publish" {
         if (-not $Version) {
             Write-Host "❌ Version requise pour publish" -ForegroundColor Red
-            Write-Host "Usage: .\ansible-builder.ps1 publish <version>" -ForegroundColor Yellow
+            Write-Host "Usage: .\automation-factory.ps1 publish <version>" -ForegroundColor Yellow
             exit 1
         }
         Invoke-Command "publish.ps1" @("-Version", $Version)
@@ -75,7 +75,7 @@ switch ($Command.ToLower()) {
     
     "deploy" {
         $args = @()
-        if ($Namespace -ne "ansible-builder") { $args += @("-Namespace", $Namespace) }
+        if ($Namespace -ne "automation-factory") { $args += @("-Namespace", $Namespace) }
         if ($DryRun) { $args += "-DryRun" }
         
         Invoke-Command "deploy.ps1" $args
@@ -84,12 +84,12 @@ switch ($Command.ToLower()) {
     "full" {
         if (-not $Version) {
             Write-Host "❌ Version requise pour full" -ForegroundColor Red
-            Write-Host "Usage: .\ansible-builder.ps1 full <version>" -ForegroundColor Yellow
+            Write-Host "Usage: .\automation-factory.ps1 full <version>" -ForegroundColor Yellow
             exit 1
         }
         
         $args = @("-Version", $Version, "-Deploy")
-        if ($Namespace -ne "ansible-builder") { $args += @("-Namespace", $Namespace) }
+        if ($Namespace -ne "automation-factory") { $args += @("-Namespace", $Namespace) }
         if ($DryRun) { $args += "-DryRun" }
         if ($SkipPublish) { $args += "-SkipPublish" }
         

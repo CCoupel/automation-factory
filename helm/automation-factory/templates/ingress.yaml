@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}
+  name: {{ include "automation-factory.fullname" . }}
   labels:
-    {{- include "ansible-builder.labels" . | nindent 4 }}
+    {{- include "automation-factory.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -37,7 +37,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "ansible-builder.fullname" $ }}-{{ .service }}
+                name: {{ include "automation-factory.fullname" $ }}-{{ .service }}
                 port:
                   number: {{ if eq .service "frontend" }}{{ $.Values.frontend.service.port }}{{ else }}{{ $.Values.backend.service.port }}{{ end }}
           {{- end }}

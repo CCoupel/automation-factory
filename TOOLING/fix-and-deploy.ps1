@@ -7,12 +7,12 @@ Write-Host "Building and deploying fixed namespace discovery..." -ForegroundColo
 Write-Host "`nBuilding backend 1.5.0_2..." -ForegroundColor Green
 Push-Location backend
 try {
-    docker build -t ghcr.io/ccoupel/ansible-builder-backend:1.5.0_2 -f Dockerfile .
+    docker build -t ghcr.io/ccoupel/automation-factory-backend:1.5.0_2 -f Dockerfile .
     if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
     
     # Push image
     Write-Host "Pushing backend image..." -ForegroundColor Yellow
-    docker push ghcr.io/ccoupel/ansible-builder-backend:1.5.0_2
+    docker push ghcr.io/ccoupel/automation-factory-backend:1.5.0_2
     if ($LASTEXITCODE -ne 0) { throw "Backend push failed" }
     
     Write-Host "Backend built and pushed successfully" -ForegroundColor Green
@@ -25,11 +25,11 @@ finally {
 $env:KUBECONFIG = "$PWD\kubeconfig.txt"
 
 Write-Host "`nUpdating backend deployment..." -ForegroundColor Yellow
-kubectl set image deployment/ansible-builder-backend backend=ghcr.io/ccoupel/ansible-builder-backend:1.5.0_2 -n ansible-builder
+kubectl set image deployment/automation-factory-backend backend=ghcr.io/ccoupel/automation-factory-backend:1.5.0_2 -n automation-factory
 
 # Wait for rollout
 Write-Host "`nWaiting for rollout..." -ForegroundColor Yellow
-kubectl rollout status deployment/ansible-builder-backend -n ansible-builder --timeout=300s
+kubectl rollout status deployment/automation-factory-backend -n automation-factory --timeout=300s
 
 Write-Host "`nDeployment completed!" -ForegroundColor Green
 Write-Host "Testing namespace discovery fix..." -ForegroundColor Cyan

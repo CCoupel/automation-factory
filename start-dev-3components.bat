@@ -64,9 +64,9 @@ echo   • Backend direct: http://localhost:8000
 
 echo.
 echo 📋 Commandes utiles:
-echo   • Logs nginx: docker logs ansible-builder-nginx-dev -f
-echo   • Logs frontend: docker logs ansible-builder-frontend-dev -f
-echo   • Logs backend: docker logs ansible-builder-backend-dev -f
+echo   • Logs nginx: docker logs automation-factory-nginx-dev -f
+echo   • Logs frontend: docker logs automation-factory-frontend-dev -f
+echo   • Logs backend: docker logs automation-factory-backend-dev -f
 echo   • Arrêter: docker-compose -f docker-compose.dev.yml down
 
 echo.

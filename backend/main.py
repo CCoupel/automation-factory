@@ -1,7 +1,7 @@
 """
 FastAPI main application
 
-Entry point for the Ansible Builder backend API.
+Entry point for the Automation Factory backend API.
 Provides REST endpoints for:
 - User authentication and management
 - Playbook CRUD operations
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
         - Clean up resources
     """
     # Startup
-    print("[STARTUP] Starting Ansible Builder API...")
+    print("[STARTUP] Starting Automation Factory API...")
     print(f"[DATABASE] Using {settings.DATABASE_TYPE.upper()}")
 
     # Initialize database
@@ -39,12 +39,12 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    print("[SHUTDOWN] Shutting down Ansible Builder API...")
+    print("[SHUTDOWN] Shutting down Automation Factory API...")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title="Ansible Builder API",
+    title="Automation Factory API",
     description="REST API for Ansible playbook visual builder",
     version="1.0.0",
     lifespan=lifespan
@@ -71,7 +71,7 @@ async def root():
     Root endpoint - API info
     """
     return {
-        "name": "Ansible Builder API",
+        "name": "Automation Factory API",
         "version": "1.0.0",
         "status": "running",
         "database": settings.DATABASE_TYPE

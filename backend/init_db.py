@@ -65,7 +65,7 @@ async def main():
     """
     Main initialization function
     """
-    parser = argparse.ArgumentParser(description="Initialize Ansible Builder database")
+    parser = argparse.ArgumentParser(description="Initialize Automation Factory database")
     parser.add_argument(
         "--email",
         type=str,
@@ -87,7 +87,7 @@ async def main():
 
     args = parser.parse_args()
 
-    print("[INIT] Initializing Ansible Builder database...")
+    print("[INIT] Initializing Automation Factory database...")
 
     # Initialize database tables
     await init_db()

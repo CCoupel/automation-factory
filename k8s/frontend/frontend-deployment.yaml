@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: ansible-builder
+  namespace: automation-factory
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ansible-builder-frontend:latest
+        image: automation-factory-frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80

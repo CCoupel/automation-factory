@@ -1,14 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ansible-builder-ingress
-  namespace: ansible-builder
+  name: automation-factory-ingress
+  namespace: automation-factory
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
   rules:
-  - host: ansible-builder.example.com
+  - host: automation-factory.example.com
     http:
       paths:
       - path: /api

@@ -24,13 +24,13 @@ try {
 
     # Arrêt des conteneurs existants
     Write-Host "🛑 Nettoyage des conteneurs existants..." -ForegroundColor Yellow
-    docker stop ansible-builder-nginx ansible-builder-frontend ansible-builder-backend 2>$null | Out-Null
-    docker rm ansible-builder-nginx ansible-builder-frontend ansible-builder-backend 2>$null | Out-Null
+    docker stop automation-factory-nginx automation-factory-frontend automation-factory-backend 2>$null | Out-Null
+    docker rm automation-factory-nginx automation-factory-frontend automation-factory-backend 2>$null | Out-Null
     Write-Host "✅ Conteneurs nettoyés" -ForegroundColor Green
 
     # Suppression des images de dev existantes (pour rebuild)
     Write-Host "🗑️ Suppression des images dev existantes..." -ForegroundColor Yellow
-    docker rmi ansible-builder-frontend_frontend ansible-builder-backend_backend 2>$null | Out-Null
+    docker rmi automation-factory-frontend_frontend automation-factory-backend_backend 2>$null | Out-Null
     Write-Host "✅ Images nettoyées" -ForegroundColor Green
 
     # Copie des fichiers de configuration sur le serveur distant
@@ -39,14 +39,14 @@ try {
     scp nginx-remote.conf "${RemoteUser}@${RemoteHost}:/tmp/"
     
     # Création du répertoire de travail distant
-    ssh "${RemoteUser}@${RemoteHost}" "mkdir -p /tmp/ansible-builder-deploy"
-    ssh "${RemoteUser}@${RemoteHost}" "cp /tmp/docker-compose.remote.yml /tmp/nginx-remote.conf /tmp/ansible-builder-deploy/"
+    ssh "${RemoteUser}@${RemoteHost}" "mkdir -p /tmp/automation-factory-deploy"
+    ssh "${RemoteUser}@${RemoteHost}" "cp /tmp/docker-compose.remote.yml /tmp/nginx-remote.conf /tmp/automation-factory-deploy/"
     Write-Host "✅ Fichiers copiés" -ForegroundColor Green
 
     # Création d'une archive du code source
     Write-Host "📦 Création archive du code source..." -ForegroundColor Yellow
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $archiveName = "ansible-builder-src-$timestamp.tar.gz"
+    $archiveName = "automation-factory-src-$timestamp.tar.gz"
     
     # Exclure les node_modules et autres dossiers volumineux
     $excludeArgs = @(
@@ -62,7 +62,7 @@ try {
     
     # Copie et extraction sur le serveur distant
     scp $archiveName "${RemoteUser}@${RemoteHost}:/tmp/"
-    ssh "${RemoteUser}@${RemoteHost}" "cd /tmp/ansible-builder-deploy && tar -xzf /tmp/$archiveName"
+    ssh "${RemoteUser}@${RemoteHost}" "cd /tmp/automation-factory-deploy && tar -xzf /tmp/$archiveName"
     
     # Nettoyage local
     Remove-Item $archiveName
@@ -70,7 +70,7 @@ try {
 
     # Build et démarrage avec Docker Compose sur le serveur distant
     Write-Host "🔨 Build et démarrage des services..." -ForegroundColor Yellow
-    ssh "${RemoteUser}@${RemoteHost}" "cd /tmp/ansible-builder-deploy && sudo docker-compose -f docker-compose.remote.yml up --build -d"
+    ssh "${RemoteUser}@${RemoteHost}" "cd /tmp/automation-factory-deploy && sudo docker-compose -f docker-compose.remote.yml up --build -d"
     Write-Host "✅ Services démarrés" -ForegroundColor Green
 
     # Attente du démarrage
@@ -102,7 +102,7 @@ try {
     # Statut des conteneurs
     Write-Host ""
     Write-Host "📊 Statut des conteneurs:" -ForegroundColor Cyan
-    ssh "${RemoteUser}@${RemoteHost}" "sudo docker ps --filter name=ansible-builder"
+    ssh "${RemoteUser}@${RemoteHost}" "sudo docker ps --filter name=automation-factory"
 
     Write-Host ""
     Write-Host "🌐 URLs d'accès:" -ForegroundColor Green
@@ -113,10 +113,10 @@ try {
 
     Write-Host ""
     Write-Host "📋 Commandes utiles:" -ForegroundColor Cyan
-    Write-Host "  • Logs nginx: ssh $RemoteUser@$RemoteHost 'sudo docker logs ansible-builder-nginx -f'" -ForegroundColor White
-    Write-Host "  • Logs frontend: ssh $RemoteUser@$RemoteHost 'sudo docker logs ansible-builder-frontend -f'" -ForegroundColor White
-    Write-Host "  • Logs backend: ssh $RemoteUser@$RemoteHost 'sudo docker logs ansible-builder-backend -f'" -ForegroundColor White
-    Write-Host "  • Arrêter: ssh $RemoteUser@$RemoteHost 'cd /tmp/ansible-builder-deploy && sudo docker-compose -f docker-compose.remote.yml down'" -ForegroundColor White
+    Write-Host "  • Logs nginx: ssh $RemoteUser@$RemoteHost 'sudo docker logs automation-factory-nginx -f'" -ForegroundColor White
+    Write-Host "  • Logs frontend: ssh $RemoteUser@$RemoteHost 'sudo docker logs automation-factory-frontend -f'" -ForegroundColor White
+    Write-Host "  • Logs backend: ssh $RemoteUser@$RemoteHost 'sudo docker logs automation-factory-backend -f'" -ForegroundColor White
+    Write-Host "  • Arrêter: ssh $RemoteUser@$RemoteHost 'cd /tmp/automation-factory-deploy && sudo docker-compose -f docker-compose.remote.yml down'" -ForegroundColor White
 
     Write-Host ""
     Write-Host "🎯 Déploiement distant réussi !" -ForegroundColor Green

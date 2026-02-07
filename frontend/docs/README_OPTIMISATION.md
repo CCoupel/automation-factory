@@ -1,6 +1,6 @@
 # Rapport d'Optimisation du Code Frontend
 
-Ce dossier contient une analyse complète du codebase frontend d'Ansible Builder, identifiant des opportunités de refactoring et de mutualisation du code.
+Ce dossier contient une analyse complète du codebase frontend d'Automation Factory, identifiant des opportunités de refactoring et de mutualisation du code.
 
 ## Documents Disponibles
 

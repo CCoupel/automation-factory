@@ -1,6 +1,6 @@
 # 🚀 Dev Deploy Tool
 
-PowerShell script for automated development deployment of Ansible Builder.
+PowerShell script for automated development deployment of Automation Factory.
 
 ## 📋 Overview
 
@@ -41,8 +41,8 @@ PowerShell script for automated development deployment of Ansible Builder.
 - Updates version files in place
 
 ### 2. Docker Build
-- Builds backend image: `ansible-builder-backend:X.Y.Z_n`
-- Builds frontend image: `ansible-builder-frontend:X.Y.Z`
+- Builds backend image: `automation-factory-backend:X.Y.Z_n`
+- Builds frontend image: `automation-factory-frontend:X.Y.Z`
 - Uses remote Docker host for building
 - Validates build success
 
@@ -130,7 +130,7 @@ The script creates `docker-compose.local-deploy.yml` with:
 
 ### Environment Variables
 - `DATABASE_TYPE=sqlite`
-- `SQLITE_DB_PATH=/tmp/ansible_builder.db`
+- `SQLITE_DB_PATH=/tmp/automation_factory.db`
 - `DEBUG=true`
 - `JWT_SECRET_KEY=dev-secret-key-change-in-production`
 

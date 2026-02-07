@@ -1,4 +1,4 @@
-# Spécifications Frontend - Ansible Builder
+# Spécifications Frontend - Automation Factory
 
 Ce document décrit les spécifications fonctionnelles et l'interface utilisateur de l'application frontend.
 

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Script de déploiement Ansible Builder sur Kubernetes
+# Script de déploiement Automation Factory sur Kubernetes
 # Usage: ./deploy.sh [-n namespace] [-r release-name] [--dry-run]
 
 set -e
 
 # Configuration par défaut
-NAMESPACE="ansible-builder"
-RELEASE="ansible-builder"
+NAMESPACE="automation-factory"
+RELEASE="automation-factory"
 KUBECONFIG_FILE="kubeconfig.txt"
 DRY_RUN=""
 
@@ -35,8 +35,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: $0 [-n namespace] [-r release-name] [--dry-run]"
-            echo "  -n, --namespace    Namespace Kubernetes (default: ansible-builder)"
-            echo "  -r, --release      Nom de la release Helm (default: ansible-builder)"
+            echo "  -n, --namespace    Namespace Kubernetes (default: automation-factory)"
+            echo "  -r, --release      Nom de la release Helm (default: automation-factory)"
             echo "  --dry-run          Mode simulation, aucune modification"
             exit 0
             ;;
@@ -47,7 +47,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "${GREEN}=== Déploiement Ansible Builder ===${NC}"
+echo -e "${GREEN}=== Déploiement Automation Factory ===${NC}"
 
 # Vérifier que kubeconfig existe
 if [ ! -f "$KUBECONFIG_FILE" ]; then
@@ -79,7 +79,7 @@ if [ -f "custom-values.yaml" ]; then
 fi
 
 # Préparer la commande Helm
-HELM_CMD="helm upgrade --install $RELEASE ./helm/ansible-builder/ --namespace $NAMESPACE $CUSTOM_VALUES $DRY_RUN"
+HELM_CMD="helm upgrade --install $RELEASE ./helm/automation-factory/ --namespace $NAMESPACE $CUSTOM_VALUES $DRY_RUN"
 
 if [ -n "$DRY_RUN" ]; then
     echo -e "${YELLOW}Mode DRY RUN activé - aucune modification ne sera effectuée${NC}"
@@ -115,8 +115,8 @@ if [ $? -eq 0 ] && [ -z "$DRY_RUN" ]; then
     # Instructions post-déploiement
     echo -e "${GREEN}=== Instructions ===${NC}"
     echo "Pour suivre les logs:"
-    echo "  Backend:  kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=ansible-builder-backend -f"
-    echo "  Frontend: kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=ansible-builder-frontend -f"
+    echo "  Backend:  kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=automation-factory-backend -f"
+    echo "  Frontend: kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=automation-factory-frontend -f"
     echo ""
     echo "Pour obtenir l'URL d'accès:"
     echo "  kubectl get ingress -n $NAMESPACE"

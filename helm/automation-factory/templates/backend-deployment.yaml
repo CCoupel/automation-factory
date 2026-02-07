@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}-backend
+  name: {{ include "automation-factory.fullname" . }}-backend
   labels:
-    {{- include "ansible-builder.backend.labels" . | nindent 4 }}
+    {{- include "automation-factory.backend.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.backend.autoscaling.enabled }}
   replicas: {{ .Values.backend.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "ansible-builder.backend.selectorLabels" . | nindent 6 }}
+      {{- include "automation-factory.backend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/backend-configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/backend-secret.yaml") . | sha256sum }}
       labels:
-        {{- include "ansible-builder.backend.selectorLabels" . | nindent 8 }}
+        {{- include "automation-factory.backend.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "ansible-builder.serviceAccountName" . }}
+      serviceAccountName: {{ include "automation-factory.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -40,33 +40,33 @@ spec:
         - name: DATABASE_TYPE
           value: {{ .Values.backend.env.DATABASE_TYPE | quote }}
         - name: POSTGRES_HOST
-          value: {{ include "ansible-builder.postgresql.host" . | quote }}
+          value: {{ include "automation-factory.postgresql.host" . | quote }}
         - name: POSTGRES_PORT
-          value: {{ include "ansible-builder.postgresql.port" . | quote }}
+          value: {{ include "automation-factory.postgresql.port" . | quote }}
         - name: POSTGRES_DB
-          value: {{ include "ansible-builder.postgresql.database" . | quote }}
+          value: {{ include "automation-factory.postgresql.database" . | quote }}
         - name: POSTGRES_USER
-          value: {{ include "ansible-builder.postgresql.username" . | quote }}
+          value: {{ include "automation-factory.postgresql.username" . | quote }}
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "ansible-builder.fullname" . }}-backend
+              name: {{ include "automation-factory.fullname" . }}-backend
               key: postgres-password
         - name: REDIS_HOST
-          value: {{ include "ansible-builder.redis.host" . | quote }}
+          value: {{ include "automation-factory.redis.host" . | quote }}
         - name: REDIS_PORT
-          value: {{ include "ansible-builder.redis.port" . | quote }}
+          value: {{ include "automation-factory.redis.port" . | quote }}
         {{- if .Values.redis.auth.enabled }}
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "ansible-builder.fullname" . }}-backend
+              name: {{ include "automation-factory.fullname" . }}-backend
               key: redis-password
         {{- end }}
         - name: SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: {{ include "ansible-builder.fullname" . }}-backend
+              name: {{ include "automation-factory.fullname" . }}-backend
               key: secret-key
         - name: ALGORITHM
           value: {{ .Values.backend.env.ALGORITHM | quote }}
@@ -75,7 +75,7 @@ spec:
         - name: CORS_ORIGINS
           valueFrom:
             configMapKeyRef:
-              name: {{ include "ansible-builder.fullname" . }}-backend
+              name: {{ include "automation-factory.fullname" . }}-backend
               key: cors-origins
         livenessProbe:
           {{- toYaml .Values.backend.livenessProbe | nindent 12 }}

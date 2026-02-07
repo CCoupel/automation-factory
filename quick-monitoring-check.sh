@@ -1,7 +1,7 @@
 #!/bin/bash
 # Quick production monitoring check for v1.9.0 deployment
 
-PROD_URL="https://coupel.net/ansible-builder"
+PROD_URL="https://coupel.net/automation-factory"
 FRONTEND_URL="$PROD_URL/"
 
 echo "🔍 Quick production monitoring check for v1.9.0..."
@@ -40,7 +40,7 @@ perform_health_check() {
 
 # Check Kubernetes status
 echo "🔍 Kubernetes Status:"
-kubectl --kubeconfig=kubeconfig.txt get pods -n ansible-builder --no-headers | while read line; do
+kubectl --kubeconfig=kubeconfig.txt get pods -n automation-factory --no-headers | while read line; do
     name=$(echo $line | awk '{print $1}')
     status=$(echo $line | awk '{print $3}')
     echo "$name: $status $([ "$status" = "Running" ] && echo "✅" || echo "❌")"

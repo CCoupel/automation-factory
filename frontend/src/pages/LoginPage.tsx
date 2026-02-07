@@ -168,7 +168,7 @@ const LoginPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <PlayArrowIcon sx={{ fontSize: 60, color: '#667eea', mb: 1 }} />
             <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333', mb: 1 }}>
-              Ansible Builder
+              Automation Factory
             </Typography>
             <Typography variant="body2" sx={{ color: '#666' }}>
               Constructeur graphique de playbooks Ansible

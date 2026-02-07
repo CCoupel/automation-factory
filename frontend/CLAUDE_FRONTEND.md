@@ -1,6 +1,6 @@
-# Guide Claude - Ansible Builder Frontend
+# Guide Claude - Automation Factory Frontend
 
-Ce document contient toute la documentation technique frontend du projet Ansible Builder.
+Ce document contient toute la documentation technique frontend du projet Automation Factory.
 
 ---
 
@@ -13,7 +13,7 @@ Le frontend implémente un système d'authentification complet permettant de sau
 **🛠️ Fix v1.5.1 : URLs Relatives**
 - **Problème résolu :** Elimination des URLs hardcodées `localhost:8000`
 - **Solution :** Utilisation systématique de `getHttpClient()` 
-- **Impact :** Compatibilité reverse proxy et base path `/ansible-builder`
+- **Impact :** Compatibilité reverse proxy et base path `/automation-factory`
 
 **Fonctionnalités:**
 - Page de login/register avec validation
@@ -108,7 +108,7 @@ const { user, token, isAuthenticated, login, logout } = useAuth()
 
 **Apparence:**
 - AppBar Material-UI avec gradient violet/bleu
-- Logo et titre "Ansible Builder" à gauche
+- Logo et titre "Automation Factory" à gauche
 - Informations utilisateur à droite:
   - Avatar avec initiale du username
   - Username et email affichés

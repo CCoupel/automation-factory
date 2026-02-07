@@ -1,5 +1,5 @@
 {
-  "name": "ansible-builder-frontend",
+  "name": "automation-factory-frontend",
   "private": true,
   "version": "2.3.6-rc.1",
   "type": "module",

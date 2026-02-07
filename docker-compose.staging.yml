@@ -1,8 +1,8 @@
 services:
   # Backend FastAPI (service name matches Kubernetes for "build once deploy everywhere")
-  ansible-builder-backend:
-    image: ansible-builder-backend:2.3.0-rc.2
-    container_name: ansible-builder-backend-staging
+  automation-factory-backend:
+    image: automation-factory-backend:2.3.0-rc.2
+    container_name: automation-factory-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
       - DEBUG=true
@@ -11,33 +11,33 @@ services:
       - ENVIRONMENT=STAGING
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
     external_links:
       - ansible-db:ansible-db
 
   # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
   # BORE: Utilise le même Dockerfile (nginx) que production - PAS de Dockerfile.dev
-  ansible-builder-frontend:
-    image: ansible-builder-frontend:2.3.5-rc.1
-    container_name: ansible-builder-frontend-staging
+  automation-factory-frontend:
+    image: automation-factory-frontend:2.3.5-rc.1
+    container_name: automation-factory-frontend-staging
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
     depends_on:
-      - ansible-builder-backend
+      - automation-factory-backend
 
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: ansible-builder-nginx-staging
+    container_name: automation-factory-nginx-staging
     ports:
       - "80:80"
     restart: unless-stopped
     networks:
-      - ansiblebuilder_default
+      - automationfactory_default
     depends_on:
-      - ansible-builder-frontend
-      - ansible-builder-backend
+      - automation-factory-frontend
+      - automation-factory-backend
     configs:
       - source: nginx_conf
         target: /etc/nginx/nginx.conf
@@ -68,7 +68,7 @@ configs:
               server_name localhost;
               
               location /api/ {
-                  proxy_pass http://ansible-builder-backend:8000/api/;
+                  proxy_pass http://automation-factory-backend:8000/api/;
                   proxy_http_version 1.1;
                   proxy_set_header Host $$host;
                   proxy_set_header X-Real-IP $$remote_addr;
@@ -92,7 +92,7 @@ configs:
 
               # WebSocket endpoint for real-time collaboration
               location /ws/ {
-                  proxy_pass http://ansible-builder-backend:8000/ws/;
+                  proxy_pass http://automation-factory-backend:8000/ws/;
                   proxy_http_version 1.1;
                   proxy_set_header Upgrade $$http_upgrade;
                   proxy_set_header Connection "upgrade";
@@ -112,7 +112,7 @@ configs:
               
               # BORE: Frontend utilise nginx sur port 80 (identique à production)
               location / {
-                  proxy_pass http://ansible-builder-frontend:80;
+                  proxy_pass http://automation-factory-frontend:80;
                   proxy_http_version 1.1;
                   proxy_set_header Host $$host;
                   proxy_set_header X-Real-IP $$remote_addr;
@@ -123,5 +123,5 @@ configs:
       }
 
 networks:
-  ansiblebuilder_default:
+  automationfactory_default:
     external: true

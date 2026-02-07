@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to package and push Ansible Builder Helm Chart to OCI Registry
+# Script to package and push Automation Factory Helm Chart to OCI Registry
 # Usage: ./package-oci.sh <registry> [version]
 #
 # Examples:
@@ -12,7 +12,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-CHART_DIR="$REPO_ROOT/helm/ansible-builder"
+CHART_DIR="$REPO_ROOT/helm/automation-factory"
 
 # Check registry argument
 if [ -z "$1" ]; then
@@ -38,7 +38,7 @@ else
 fi
 
 echo "==================================="
-echo "Packaging Ansible Builder Chart"
+echo "Packaging Automation Factory Chart"
 echo "Registry: $REGISTRY"
 echo "Version: $VERSION"
 echo "==================================="
@@ -59,7 +59,7 @@ helm dependency update
 # Package the chart
 echo ""
 echo "📦 Packaging chart..."
-PACKAGE_FILE="ansible-builder-${VERSION}.tgz"
+PACKAGE_FILE="automation-factory-${VERSION}.tgz"
 helm package . --destination "$SCRIPT_DIR"
 
 # Check if package was created
@@ -81,14 +81,14 @@ echo ""
 echo "✅ Chart pushed successfully to OCI registry!"
 echo ""
 echo "📦 Package: $PACKAGE_FILE"
-echo "📍 Location: oci://$REGISTRY/ansible-builder:$VERSION"
+echo "📍 Location: oci://$REGISTRY/automation-factory:$VERSION"
 echo ""
 echo "Users can now install with:"
-echo "  helm install ansible-builder oci://$REGISTRY/ansible-builder --version $VERSION"
+echo "  helm install automation-factory oci://$REGISTRY/automation-factory --version $VERSION"
 echo ""
 echo "Or to always get the latest:"
-echo "  helm install ansible-builder oci://$REGISTRY/ansible-builder"
+echo "  helm install automation-factory oci://$REGISTRY/automation-factory"
 echo ""
 echo "To update:"
-echo "  helm upgrade ansible-builder oci://$REGISTRY/ansible-builder --version $VERSION"
+echo "  helm upgrade automation-factory oci://$REGISTRY/automation-factory --version $VERSION"
 echo ""

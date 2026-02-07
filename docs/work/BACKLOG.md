@@ -1,6 +1,6 @@
-# Backlog - Ansible Builder
+# Backlog - Automation Factory
 
-Ce document contient la liste des fonctionnalités et améliorations prévues pour le projet Ansible Builder.
+Ce document contient la liste des fonctionnalités et améliorations prévues pour le projet Automation Factory.
 
 > **📋 Historique des réalisations :** Voir [DONE.md](DONE.md) pour les fonctionnalités déjà implémentées.
 
@@ -355,7 +355,7 @@ Ce document contient la liste des fonctionnalités et améliorations prévues po
 ## 🌐 **Site Marketing** (Version 2.8.x)
 
 ### Landing Page
-- [ ] **Site vitrine Ansible Builder**
+- [ ] **Site vitrine Automation Factory**
   - [ ] Page d'accueil avec présentation du produit
   - [ ] Fonctionnalités clés avec captures d'écran/GIFs
   - [ ] Démonstration interactive ou vidéo

@@ -12,7 +12,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   highlightDurationMs: 1500,
 }
 
-const STORAGE_KEY = 'ansible-builder-user-preferences'
+const STORAGE_KEY = 'automation-factory-user-preferences'
 
 interface UserPreferencesContextType {
   preferences: UserPreferences

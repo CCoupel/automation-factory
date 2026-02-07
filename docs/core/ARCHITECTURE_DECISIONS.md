@@ -1,4 +1,4 @@
-# Décisions d'Architecture - Ansible Builder
+# Décisions d'Architecture - Automation Factory
 
 Ce document trace les décisions techniques importantes et leurs justifications.
 

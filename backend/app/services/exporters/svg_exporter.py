@@ -152,7 +152,7 @@ class SVGExporter:
         return f'''
     <text x="{padding}" y="{total_height - 8 * scale}"
       font-family="Arial, sans-serif" font-size="{9 * scale}"
-      fill="{COLORS['text_light']}">Ansible Builder v2.1.0 - {date}</text>'''
+      fill="{COLORS['text_light']}">Automation Factory v2.1.0 - {date}</text>'''
 
     def _render_play(
         self,

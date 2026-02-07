@@ -23,8 +23,8 @@ echo ✅ Docker distant accessible
 REM Nettoyage conteneurs existants
 echo.
 echo 🛑 Nettoyage des conteneurs existants...
-docker stop ansible-builder-nginx ansible-builder-frontend ansible-builder-backend 2>nul
-docker rm ansible-builder-nginx ansible-builder-frontend ansible-builder-backend 2>nul
+docker stop automation-factory-nginx automation-factory-frontend automation-factory-backend 2>nul
+docker rm automation-factory-nginx automation-factory-frontend automation-factory-backend 2>nul
 echo ✅ Conteneurs nettoyés
 
 REM Copie des fichiers de configuration
@@ -34,27 +34,27 @@ scp docker-compose.remote.yml %REMOTE_USER%@%REMOTE_HOST%:/tmp/ 2>nul
 scp nginx-remote.conf %REMOTE_USER%@%REMOTE_HOST%:/tmp/ 2>nul
 
 REM Création répertoire de travail distant
-ssh %REMOTE_USER%@%REMOTE_HOST% "mkdir -p /tmp/ansible-builder-deploy" 2>nul
-ssh %REMOTE_USER%@%REMOTE_HOST% "cp /tmp/docker-compose.remote.yml /tmp/nginx-remote.conf /tmp/ansible-builder-deploy/" 2>nul
+ssh %REMOTE_USER%@%REMOTE_HOST% "mkdir -p /tmp/automation-factory-deploy" 2>nul
+ssh %REMOTE_USER%@%REMOTE_HOST% "cp /tmp/docker-compose.remote.yml /tmp/nginx-remote.conf /tmp/automation-factory-deploy/" 2>nul
 echo ✅ Fichiers copiés
 
 REM Création archive du code source
 echo.
 echo 📦 Création archive du code source...
-tar -czf ansible-builder-src.tar.gz --exclude=frontend/node_modules --exclude=backend/__pycache__ --exclude=frontend/dist --exclude=.git frontend/ backend/ 2>nul
+tar -czf automation-factory-src.tar.gz --exclude=frontend/node_modules --exclude=backend/__pycache__ --exclude=frontend/dist --exclude=.git frontend/ backend/ 2>nul
 
 REM Copie et extraction sur serveur distant
-scp ansible-builder-src.tar.gz %REMOTE_USER%@%REMOTE_HOST%:/tmp/ 2>nul
-ssh %REMOTE_USER%@%REMOTE_HOST% "cd /tmp/ansible-builder-deploy && tar -xzf /tmp/ansible-builder-src.tar.gz" 2>nul
+scp automation-factory-src.tar.gz %REMOTE_USER%@%REMOTE_HOST%:/tmp/ 2>nul
+ssh %REMOTE_USER%@%REMOTE_HOST% "cd /tmp/automation-factory-deploy && tar -xzf /tmp/automation-factory-src.tar.gz" 2>nul
 
 REM Nettoyage local
-del ansible-builder-src.tar.gz 2>nul
+del automation-factory-src.tar.gz 2>nul
 echo ✅ Code source déployé
 
 REM Build et démarrage
 echo.
 echo 🔨 Build et démarrage des services...
-ssh %REMOTE_USER%@%REMOTE_HOST% "cd /tmp/ansible-builder-deploy && sudo docker-compose -f docker-compose.remote.yml up --build -d" 2>nul
+ssh %REMOTE_USER%@%REMOTE_HOST% "cd /tmp/automation-factory-deploy && sudo docker-compose -f docker-compose.remote.yml up --build -d" 2>nul
 echo ✅ Services démarrés
 
 REM Attente
@@ -89,7 +89,7 @@ if %errorlevel% equ 0 (
 
 echo.
 echo 📊 Statut des conteneurs:
-ssh %REMOTE_USER%@%REMOTE_HOST% "sudo docker ps --filter name=ansible-builder"
+ssh %REMOTE_USER%@%REMOTE_HOST% "sudo docker ps --filter name=automation-factory"
 
 echo.
 echo 🌐 URLs d'accès:

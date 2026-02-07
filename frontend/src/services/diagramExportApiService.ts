@@ -97,7 +97,7 @@ export async function exportABD(
     ? JSON.stringify(response.data.content, null, 2)
     : JSON.stringify(response.data.content)
 
-  downloadFile(jsonString, response.data.filename, 'application/vnd.ansible-builder.diagram+json')
+  downloadFile(jsonString, response.data.filename, 'application/vnd.automation-factory.diagram+json')
 }
 
 /**

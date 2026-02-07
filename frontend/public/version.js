@@ -2,7 +2,7 @@
 // This file will be served statically and will call the backend API
 
 const FRONTEND_VERSION = "1.8.0_1";
-const FRONTEND_NAME = "Ansible Builder Frontend";
+const FRONTEND_NAME = "Automation Factory Frontend";
 
 async function getVersions() {
     try {

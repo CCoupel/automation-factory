@@ -1,4 +1,4 @@
-# Implémentation Backend - Ansible Builder
+# Implémentation Backend - Automation Factory
 
 Ce document décrit les détails techniques et l'implémentation concrète du backend FastAPI.
 
@@ -75,8 +75,8 @@ async def lifespan(app: FastAPI):
     # Shutdown (cleanup si nécessaire)
 
 app = FastAPI(
-    title="Ansible Builder API",
-    description="API backend pour Ansible Builder",
+    title="Automation Factory API",
+    description="API backend pour Automation Factory",
     version="1.8.1",
     lifespan=lifespan
 )
@@ -104,7 +104,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-DATABASE_URL = "sqlite+aiosqlite:///./ansible_builder.db"
+DATABASE_URL = "sqlite+aiosqlite:///./automation_factory.db"
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -706,7 +706,7 @@ from typing import List, Optional
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "sqlite+aiosqlite:///./ansible_builder.db"
+    database_url: str = "sqlite+aiosqlite:///./automation_factory.db"
     
     # JWT
     secret_key: str = "your-secret-key-here"

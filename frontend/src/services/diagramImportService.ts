@@ -5,7 +5,7 @@
 
 import { Play } from '../types/playbook'
 import {
-  AnsibleBuilderDiagram,
+  AutomationFactoryDiagram,
   DiagramContent,
   DiagramFeature,
   ValidationResult,
@@ -109,13 +109,13 @@ export async function validateDiagram(
     return { valid: false, canImport: false, needsMigration: false, errors, warnings, info }
   }
 
-  const diagram = data as Partial<AnsibleBuilderDiagram>
+  const diagram = data as Partial<AutomationFactoryDiagram>
 
   // 1. Check magic number
   if (diagram.header?.magic !== DIAGRAM_FORMAT.MAGIC) {
     errors.push({
       code: 'INVALID_MAGIC',
-      message: 'File format not recognized. Expected Ansible Builder Diagram format.',
+      message: 'File format not recognized. Expected Automation Factory Diagram format.',
       field: 'header.magic',
       severity: 'error',
     })
@@ -153,7 +153,7 @@ export async function validateDiagram(
     if (compareVersions(currentApp, minAppVersion) < 0) {
       errors.push({
         code: 'APP_TOO_OLD',
-        message: `This file requires Ansible Builder ${minAppVersion} or later. Current version: ${currentApp}`,
+        message: `This file requires Automation Factory ${minAppVersion} or later. Current version: ${currentApp}`,
         field: 'header.minAppVersion',
         severity: 'error',
       })
@@ -167,7 +167,7 @@ export async function validateDiagram(
     if (compareVersions(currentApp, maxAppVersion) > 0) {
       warnings.push({
         code: 'APP_TOO_NEW',
-        message: `This file was created for an older version of Ansible Builder (max: ${maxAppVersion}). Some features may have changed.`,
+        message: `This file was created for an older version of Automation Factory (max: ${maxAppVersion}). Some features may have changed.`,
         field: 'header.maxAppVersion',
         severity: 'warning',
       })
@@ -308,7 +308,7 @@ export async function validateDiagram(
 // MIGRATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-type MigrationFunction = (data: AnsibleBuilderDiagram) => AnsibleBuilderDiagram
+type MigrationFunction = (data: AutomationFactoryDiagram) => AutomationFactoryDiagram
 
 const migrations: Record<string, MigrationFunction> = {
   // Example migration from 1.0.0 to 1.1.0
@@ -334,7 +334,7 @@ function getNextVersion(version: string): string | null {
 /**
  * Migrate diagram to latest format version
  */
-export function migrateDiagram(data: AnsibleBuilderDiagram): AnsibleBuilderDiagram {
+export function migrateDiagram(data: AutomationFactoryDiagram): AutomationFactoryDiagram {
   let current = { ...data }
   const targetVersion = getCurrentFormatVersion()
 
@@ -431,7 +431,7 @@ export async function importDiagram(
     }
   }
 
-  let diagram = data as AnsibleBuilderDiagram
+  let diagram = data as AutomationFactoryDiagram
 
   // Migrate if needed
   if (validation.needsMigration) {

@@ -1,4 +1,4 @@
-# Travail en Cours - Ansible Builder
+# Travail en Cours - Automation Factory
 
 Ce document trace l'état actuel du développement et les versions déployées.
 
@@ -9,10 +9,10 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `2.3.0` (ghcr.io/ccoupel/ansible-builder-backend:2.3.0)
-- **Frontend :** `2.3.5` (ghcr.io/ccoupel/ansible-builder-frontend:2.3.5)
+- **Backend :** `2.3.0` (ghcr.io/ccoupel/automation-factory-backend:2.3.0)
+- **Frontend :** `2.3.5` (ghcr.io/ccoupel/automation-factory-frontend:2.3.5)
 - **Database :** PostgreSQL 16 (StatefulSet)
-- **URL :** https://coupel.net/ansible-builder
+- **URL :** https://coupel.net/automation-factory
 - **Tag Git :** `v2.3.0`
 - **Helm Revision :** 111
 
@@ -43,7 +43,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - `frontend/vite.config.ts` (proxy WebSocket + localhost pour dev local)
 
 **⚠️ Configuration temporaire vite.config.ts :**
-- Proxy `/api` et `/ws` pointent vers `localhost:8000` (au lieu de `ansible-builder-backend:8000`)
+- Proxy `/api` et `/ws` pointent vers `localhost:8000` (au lieu de `automation-factory-backend:8000`)
 - Nécessaire pour tester le WebSocket en développement local
 - **À REVERTIR** avant déploiement staging/production ou rendre configurable via variable d'environnement
 
@@ -76,7 +76,7 @@ Voir [EVENT_SOURCING_SPEC.md](../core/EVENT_SOURCING_SPEC.md) pour la spécifica
 
 | Version | Issue | Fix |
 |---------|-------|-----|
-| 2.3.1 | Double URL prefix `/api/ansible-builder/api/...` | Suppression `${getApiBaseUrl()}` dans services |
+| 2.3.1 | Double URL prefix `/api/automation-factory/api/...` | Suppression `${getApiBaseUrl()}` dans services |
 | 2.3.2 | WebSocket URL sans base path | Ajout détection base path dans `usePlaybookWebSocket.ts` |
 | 2.3.3 | Pas de location /ws dans nginx | Ajout location `/ws` dans `nginx.conf` |
 | 2.3.4 | Rewrite rules manquantes (sed Alpine) | Placeholders dans nginx.conf pour compatibilité BusyBox |
@@ -113,7 +113,7 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 ## 🔗 **Liens Utiles**
 
 ### Environnements
-- **Production :** https://coupel.net/ansible-builder
+- **Production :** https://coupel.net/automation-factory
 - **Staging :** http://192.168.1.217
 - **Docker Host :** 192.168.1.217:2375
 - **Registry :** ghcr.io/ccoupel

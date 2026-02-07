@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script de publication Ansible Builder
+# Script de publication Automation Factory
 # Usage: ./publish.sh [version]
 
 set -e
@@ -19,7 +19,7 @@ GITHUB_USER="ccoupel"
 # Get version from argument or prompt
 if [ -z "$1" ]; then
     echo -e "${YELLOW}Version actuelle dans Chart.yaml:${NC}"
-    grep "^version:" helm/ansible-builder/Chart.yaml
+    grep "^version:" helm/automation-factory/Chart.yaml
     echo ""
     read -p "Nouvelle version: " VERSION
 else
@@ -47,21 +47,21 @@ echo $GITHUB_TOKEN | docker login $REGISTRY -u $GITHUB_USER --password-stdin
 
 # Build and push backend
 echo -e "${YELLOW}Construction de l'image backend...${NC}"
-docker build -t $REGISTRY/$NAMESPACE/ansible-builder-backend:$VERSION ./backend/
-docker tag $REGISTRY/$NAMESPACE/ansible-builder-backend:$VERSION $REGISTRY/$NAMESPACE/ansible-builder-backend:latest
+docker build -t $REGISTRY/$NAMESPACE/automation-factory-backend:$VERSION ./backend/
+docker tag $REGISTRY/$NAMESPACE/automation-factory-backend:$VERSION $REGISTRY/$NAMESPACE/automation-factory-backend:latest
 
 echo -e "${YELLOW}Push de l'image backend...${NC}"
-docker push $REGISTRY/$NAMESPACE/ansible-builder-backend:$VERSION
-docker push $REGISTRY/$NAMESPACE/ansible-builder-backend:latest
+docker push $REGISTRY/$NAMESPACE/automation-factory-backend:$VERSION
+docker push $REGISTRY/$NAMESPACE/automation-factory-backend:latest
 
 # Build and push frontend
 echo -e "${YELLOW}Construction de l'image frontend...${NC}"
-docker build -t $REGISTRY/$NAMESPACE/ansible-builder-frontend:$VERSION ./frontend/
-docker tag $REGISTRY/$NAMESPACE/ansible-builder-frontend:$VERSION $REGISTRY/$NAMESPACE/ansible-builder-frontend:latest
+docker build -t $REGISTRY/$NAMESPACE/automation-factory-frontend:$VERSION ./frontend/
+docker tag $REGISTRY/$NAMESPACE/automation-factory-frontend:$VERSION $REGISTRY/$NAMESPACE/automation-factory-frontend:latest
 
 echo -e "${YELLOW}Push de l'image frontend...${NC}"
-docker push $REGISTRY/$NAMESPACE/ansible-builder-frontend:$VERSION
-docker push $REGISTRY/$NAMESPACE/ansible-builder-frontend:latest
+docker push $REGISTRY/$NAMESPACE/automation-factory-frontend:$VERSION
+docker push $REGISTRY/$NAMESPACE/automation-factory-frontend:latest
 
 # Update Helm chart version
 echo -e "${YELLOW}Mise à jour des versions Helm...${NC}"
@@ -69,36 +69,36 @@ echo -e "${YELLOW}Mise à jour des versions Helm...${NC}"
 # Update Chart.yaml
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    sed -i '' "s/^version:.*/version: $VERSION/" helm/ansible-builder/Chart.yaml
-    sed -i '' "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/ansible-builder/Chart.yaml
+    sed -i '' "s/^version:.*/version: $VERSION/" helm/automation-factory/Chart.yaml
+    sed -i '' "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/automation-factory/Chart.yaml
 else
     # Linux/Windows Git Bash
-    sed -i "s/^version:.*/version: $VERSION/" helm/ansible-builder/Chart.yaml
-    sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/ansible-builder/Chart.yaml
+    sed -i "s/^version:.*/version: $VERSION/" helm/automation-factory/Chart.yaml
+    sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" helm/automation-factory/Chart.yaml
 fi
 
 # Update values.yaml
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    sed -i '' "s|repository: ansible-builder-backend|repository: $REGISTRY/$NAMESPACE/ansible-builder-backend|" helm/ansible-builder/values.yaml
-    sed -i '' "s|repository: ansible-builder-frontend|repository: $REGISTRY/$NAMESPACE/ansible-builder-frontend|" helm/ansible-builder/values.yaml
-    sed -i '' "s/tag: \".*\"/tag: \"$VERSION\"/" helm/ansible-builder/values.yaml
+    sed -i '' "s|repository: automation-factory-backend|repository: $REGISTRY/$NAMESPACE/automation-factory-backend|" helm/automation-factory/values.yaml
+    sed -i '' "s|repository: automation-factory-frontend|repository: $REGISTRY/$NAMESPACE/automation-factory-frontend|" helm/automation-factory/values.yaml
+    sed -i '' "s/tag: \".*\"/tag: \"$VERSION\"/" helm/automation-factory/values.yaml
 else
     # Linux/Windows Git Bash
-    sed -i "s|repository: ansible-builder-backend|repository: $REGISTRY/$NAMESPACE/ansible-builder-backend|" helm/ansible-builder/values.yaml
-    sed -i "s|repository: ansible-builder-frontend|repository: $REGISTRY/$NAMESPACE/ansible-builder-frontend|" helm/ansible-builder/values.yaml
-    sed -i "s/tag: \".*\"/tag: \"$VERSION\"/" helm/ansible-builder/values.yaml
+    sed -i "s|repository: automation-factory-backend|repository: $REGISTRY/$NAMESPACE/automation-factory-backend|" helm/automation-factory/values.yaml
+    sed -i "s|repository: automation-factory-frontend|repository: $REGISTRY/$NAMESPACE/automation-factory-frontend|" helm/automation-factory/values.yaml
+    sed -i "s/tag: \".*\"/tag: \"$VERSION\"/" helm/automation-factory/values.yaml
 fi
 
 # Package Helm chart
 echo -e "${YELLOW}Packaging du chart Helm...${NC}"
-helm package helm/ansible-builder/ -d helm/packages/
+helm package helm/automation-factory/ -d helm/packages/
 
 echo -e "${GREEN}✅ Publication terminée!${NC}"
 echo ""
 echo "Pour déployer:"
-echo "  helm upgrade --install ansible-builder ./helm/ansible-builder/ \\"
-echo "    --namespace ansible-builder \\"
+echo "  helm upgrade --install automation-factory ./helm/automation-factory/ \\"
+echo "    --namespace automation-factory \\"
 echo "    --create-namespace \\"
 echo "    -f custom-values.yaml"
 echo ""

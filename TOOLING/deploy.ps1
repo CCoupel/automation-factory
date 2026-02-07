@@ -1,9 +1,9 @@
-# Script de déploiement Ansible Builder sur Kubernetes
+# Script de déploiement Automation Factory sur Kubernetes
 # Usage: .\deploy.ps1 [-Namespace <namespace>] [-Release <release-name>]
 
 param(
-    [string]$Namespace = "ansible-builder",
-    [string]$Release = "ansible-builder",
+    [string]$Namespace = "automation-factory",
+    [string]$Release = "automation-factory",
     [switch]$DryRun
 )
 
@@ -18,7 +18,7 @@ function Write-ColorOutput($ForegroundColor, $Message) {
     $host.UI.RawUI.ForegroundColor = $fc
 }
 
-Write-ColorOutput Green "=== Déploiement Ansible Builder ==="
+Write-ColorOutput Green "=== Déploiement Automation Factory ==="
 
 # Vérifier que kubeconfig existe
 if (-not (Test-Path $KUBECONFIG_FILE)) {
@@ -50,7 +50,7 @@ if (Test-Path "custom-values.yaml") {
 }
 
 # Préparer la commande Helm
-$helmCmd = "helm upgrade --install $Release ./helm/ansible-builder/ --namespace $Namespace $customValues"
+$helmCmd = "helm upgrade --install $Release ./helm/automation-factory/ --namespace $Namespace $customValues"
 
 if ($DryRun) {
     $helmCmd += " --dry-run --debug"
@@ -87,8 +87,8 @@ if ($LASTEXITCODE -eq 0 -and -not $DryRun) {
     # Instructions post-déploiement
     Write-ColorOutput Green "=== Instructions ==="
     Write-Host "Pour suivre les logs:"
-    Write-Host "  Backend:  kubectl logs -n $Namespace -l app.kubernetes.io/name=ansible-builder-backend -f"
-    Write-Host "  Frontend: kubectl logs -n $Namespace -l app.kubernetes.io/name=ansible-builder-frontend -f"
+    Write-Host "  Backend:  kubectl logs -n $Namespace -l app.kubernetes.io/name=automation-factory-backend -f"
+    Write-Host "  Frontend: kubectl logs -n $Namespace -l app.kubernetes.io/name=automation-factory-frontend -f"
     Write-Host ""
     Write-Host "Pour obtenir l'URL d'accès:"
     Write-Host "  kubectl get ingress -n $Namespace"

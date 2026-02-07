@@ -1,5 +1,5 @@
 """
-ABD (Ansible Builder Diagram) Exporter
+ABD (Automation Factory Diagram) Exporter
 
 Exports playbook diagrams to the proprietary .abd JSON format.
 This format supports full backup/restore with positions, UI state, and integrity checks.
@@ -16,11 +16,11 @@ from app.services.playbook_export_service import playbook_export_service
 
 # Format constants
 DIAGRAM_FORMAT = {
-    "MAGIC": "ANSIBLE_BUILDER_DIAGRAM",
+    "MAGIC": "AUTOMATION_FACTORY_DIAGRAM",
     "VERSION": "1.0.0",
     "MIN_APP_VERSION": "2.1.0",
     "FILE_EXTENSION": ".abd",
-    "MIME_TYPE": "application/vnd.ansible-builder.diagram+json"
+    "MIME_TYPE": "application/vnd.automation-factory.diagram+json"
 }
 
 # Feature types
@@ -50,7 +50,7 @@ class UIState:
 
 class ABDExporter:
     """
-    Exporter for Ansible Builder Diagram format.
+    Exporter for Automation Factory Diagram format.
 
     The ABD format structure:
     {
@@ -139,7 +139,7 @@ class ABDExporter:
             "createdAt": timestamp,
             "modifiedAt": timestamp,
             "generator": {
-                "name": "Ansible Builder",
+                "name": "Automation Factory",
                 "version": DIAGRAM_FORMAT["MIN_APP_VERSION"],
                 "platform": "web"
             }

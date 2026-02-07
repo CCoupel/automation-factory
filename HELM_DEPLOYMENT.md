@@ -1,13 +1,13 @@
-# Guide de Déploiement Helm - Ansible Builder
+# Guide de Déploiement Helm - Automation Factory
 
-Ce document explique comment déployer Ansible Builder sur Kubernetes en utilisant le Helm chart depuis GitHub Container Registry (GHCR).
+Ce document explique comment déployer Automation Factory sur Kubernetes en utilisant le Helm chart depuis GitHub Container Registry (GHCR).
 
 ## 📦 Chart Information
 
 - **Registry**: GitHub Container Registry (GHCR)
-- **URL**: `oci://ghcr.io/ccoupel/ansible-builder`
+- **URL**: `oci://ghcr.io/ccoupel/automation-factory`
 - **Version actuelle**: `1.1.1`
-- **Source**: https://bitbucket.org/ccoupel/ansible_builder
+- **Source**: https://bitbucket.org/ccoupel/automation_factory
 
 ## 🚀 Installation Rapide
 
@@ -30,9 +30,9 @@ kubectl get nodes
 **Installation avec valeurs par défaut:**
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.1 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace
 ```
 
@@ -44,12 +44,12 @@ JWT_SECRET=$(openssl rand -base64 32)
 REDIS_PASSWORD=$(openssl rand -base64 24)
 
 # Installer avec configuration
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --version 1.1.1 \
-  --namespace ansible-builder \
+  --namespace automation-factory \
   --create-namespace \
   --set ingress.enabled=true \
-  --set ingress.hosts[0].host=ansible-builder.yourdomain.com \
+  --set ingress.hosts[0].host=automation-factory.yourdomain.com \
   --set backend.env.JWT_SECRET_KEY="$JWT_SECRET" \
   --set redis.auth.password="$REDIS_PASSWORD"
 ```
@@ -58,16 +58,16 @@ helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # Vérifier les pods
-kubectl get pods -n ansible-builder
+kubectl get pods -n automation-factory
 
 # Vérifier les services
-kubectl get svc -n ansible-builder
+kubectl get svc -n automation-factory
 
 # Vérifier l'ingress
-kubectl get ingress -n ansible-builder
+kubectl get ingress -n automation-factory
 
 # Voir les logs
-kubectl logs -f -l app.kubernetes.io/component=backend -n ansible-builder
+kubectl logs -f -l app.kubernetes.io/component=backend -n automation-factory
 ```
 
 ## 📝 Configuration Personnalisée
@@ -86,7 +86,7 @@ backend:
   replicaCount: 3
   env:
     JWT_SECRET_KEY: "your-secret-key-here"
-    CORS_ORIGINS: "https://ansible-builder.yourdomain.com"
+    CORS_ORIGINS: "https://automation-factory.yourdomain.com"
 
   resources:
     requests:
@@ -105,7 +105,7 @@ backend:
 frontend:
   replicaCount: 2
   env:
-    VITE_API_URL: "https://ansible-builder.yourdomain.com/api"
+    VITE_API_URL: "https://automation-factory.yourdomain.com/api"
 
 # Ingress
 ingress:
@@ -114,7 +114,7 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
-    - host: ansible-builder.yourdomain.com
+    - host: automation-factory.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
@@ -123,9 +123,9 @@ ingress:
           pathType: Prefix
           service: backend
   tls:
-    - secretName: ansible-builder-tls
+    - secretName: automation-factory-tls
       hosts:
-        - ansible-builder.yourdomain.com
+        - automation-factory.yourdomain.com
 
 # PostgreSQL
 postgresql:
@@ -146,8 +146,8 @@ redis:
 ### Installer avec le fichier personnalisé
 
 ```bash
-helm install ansible-builder ansible-builder/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory automation-factory/automation-factory \
+  --namespace automation-factory \
   --create-namespace \
   --values my-values.yaml
 ```
@@ -156,16 +156,16 @@ helm install ansible-builder ansible-builder/ansible-builder \
 
 ```bash
 # Voir les informations de version disponible
-helm show chart oci://ghcr.io/ccoupel/ansible-builder
+helm show chart oci://ghcr.io/ccoupel/automation-factory
 
 # Mettre à jour vers la dernière version
-helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm upgrade automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --values my-values.yaml
 
 # Mettre à jour vers une version spécifique
-helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm upgrade automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --version 1.2.0 \
   --values my-values.yaml
 ```
@@ -174,10 +174,10 @@ helm upgrade ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # Désinstaller l'application
-helm uninstall ansible-builder --namespace ansible-builder
+helm uninstall automation-factory --namespace automation-factory
 
 # Supprimer le namespace (attention: supprime aussi les PVC)
-kubectl delete namespace ansible-builder
+kubectl delete namespace automation-factory
 ```
 
 ## 🔧 Debugging
@@ -186,18 +186,18 @@ kubectl delete namespace ansible-builder
 
 ```bash
 # Valeurs par défaut du chart
-helm show values oci://ghcr.io/ccoupel/ansible-builder
+helm show values oci://ghcr.io/ccoupel/automation-factory
 
 # Valeurs actuelles de votre installation
-helm get values ansible-builder -n ansible-builder
+helm get values automation-factory -n automation-factory
 ```
 
 ### Dry-run avant installation
 
 ```bash
 # Vérifier ce qui sera créé
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --dry-run \
   --debug \
   --values my-values.yaml
@@ -207,13 +207,13 @@ helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # Lister les révisions
-helm history ansible-builder -n ansible-builder
+helm history automation-factory -n automation-factory
 
 # Rollback vers la révision précédente
-helm rollback ansible-builder -n ansible-builder
+helm rollback automation-factory -n automation-factory
 
 # Rollback vers une révision spécifique
-helm rollback ansible-builder 1 -n ansible-builder
+helm rollback automation-factory 1 -n automation-factory
 ```
 
 ## 📦 Pour les Développeurs
@@ -223,7 +223,7 @@ helm rollback ansible-builder 1 -n ansible-builder
 Si vous avez modifié le chart localement:
 
 ```bash
-# 1. Mettre à jour la version dans helm/ansible-builder/Chart.yaml
+# 1. Mettre à jour la version dans helm/automation-factory/Chart.yaml
 
 # 2. Se connecter au registry (une seule fois)
 echo $GITHUB_TOKEN | helm registry login ghcr.io -u $GITHUB_USERNAME --password-stdin
@@ -234,7 +234,7 @@ cd charts
 
 # 4. Commit et push dans Git (optionnel)
 cd ..
-git add helm/ansible-builder/Chart.yaml
+git add helm/automation-factory/Chart.yaml
 git commit -m "chore: release helm chart v1.2.0"
 git push
 ```
@@ -262,13 +262,13 @@ Pour publier sur GitHub Container Registry (GHCR):
 
 ```bash
 # Installer depuis le chart local (non packagé)
-helm install test-ansible-builder ./helm/ansible-builder \
+helm install test-automation-factory ./helm/automation-factory \
   --namespace test \
   --create-namespace \
   --dependency-update
 
 # Nettoyer après test
-helm uninstall test-ansible-builder -n test
+helm uninstall test-automation-factory -n test
 kubectl delete namespace test
 ```
 
@@ -299,11 +299,11 @@ echo $GITLAB_TOKEN | helm registry login registry.gitlab.com -u $GITLAB_USERNAME
 2. **Utiliser des Secrets Kubernetes**
    ```bash
    # Créer un secret pour les mots de passe
-   kubectl create secret generic ansible-builder-secrets \
+   kubectl create secret generic automation-factory-secrets \
      --from-literal=jwt-secret=$JWT_SECRET \
      --from-literal=postgres-password=$PG_PASSWORD \
      --from-literal=redis-password=$REDIS_PASSWORD \
-     -n ansible-builder
+     -n automation-factory
    ```
 
 3. **Activer TLS/SSL**
@@ -318,11 +318,11 @@ echo $GITLAB_TOKEN | helm registry login registry.gitlab.com -u $GITLAB_USERNAME
 ## 📚 Documentation Complète
 
 Pour plus de détails:
-- [README du Chart](../helm/ansible-builder/README.md)
+- [README du Chart](../helm/automation-factory/README.md)
 - [Documentation Backend](../backend/CLAUDE_BACKEND.md)
 - [Documentation Frontend](../frontend/CLAUDE_FRONTEND.md)
 
 ## 🆘 Support
 
-- **Issues**: https://bitbucket.org/ccoupel/ansible_builder/issues
-- **Repository**: https://bitbucket.org/ccoupel/ansible_builder
+- **Issues**: https://bitbucket.org/ccoupel/automation_factory/issues
+- **Repository**: https://bitbucket.org/ccoupel/automation_factory

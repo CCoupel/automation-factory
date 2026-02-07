@@ -5,10 +5,10 @@ Write-Host "Attente de 30 secondes pour le démarrage des pods..." -ForegroundCo
 Start-Sleep 30
 
 Write-Host "=== Statut après attente ===" -ForegroundColor Green
-kubectl get pods -n ansible-builder
+kubectl get pods -n automation-factory
 
 Write-Host "`n=== Logs du backend (pour diagnose) ===" -ForegroundColor Yellow
-kubectl logs -l app.kubernetes.io/name=ansible-builder-backend -n ansible-builder --tail=30
+kubectl logs -l app.kubernetes.io/name=automation-factory-backend -n automation-factory --tail=30
 
 Write-Host "`n=== Describe du backend (pour diagnose) ===" -ForegroundColor Yellow
-kubectl describe pods -l app.kubernetes.io/name=ansible-builder-backend -n ansible-builder
+kubectl describe pods -l app.kubernetes.io/name=automation-factory-backend -n automation-factory

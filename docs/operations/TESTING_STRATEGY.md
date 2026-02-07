@@ -1,4 +1,4 @@
-# Strategie de Tests - Ansible Builder
+# Strategie de Tests - Automation Factory
 
 Ce document centralise tous les tests a executer pour valider une release. Les tests sont groupes par categorie et lies aux phases de deploiement.
 
@@ -299,7 +299,7 @@ echo "=== Performance Tests Complete ==="
 ```bash
 #!/bin/bash
 # smoke-tests-prod.sh
-BASE_URL="https://coupel.net/ansible-builder"
+BASE_URL="https://coupel.net/automation-factory"
 
 echo "=== Smoke Tests Production ==="
 
@@ -410,7 +410,7 @@ echo "=== Smoke Tests Complete ==="
 
 **Date:** YYYY-MM-DD
 **Executeur:** Claude Code
-**URL Production:** https://coupel.net/ansible-builder
+**URL Production:** https://coupel.net/automation-factory
 
 ### Smoke Tests
 - [ ] Site accessible: HTTP 200

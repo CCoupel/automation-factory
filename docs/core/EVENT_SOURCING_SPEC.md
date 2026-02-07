@@ -1,4 +1,4 @@
-# Spécification Event Sourcing - Ansible Builder
+# Spécification Event Sourcing - Automation Factory
 
 > **Version cible :** 2.4.0
 > **Statut :** Planifié

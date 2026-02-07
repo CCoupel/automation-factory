@@ -19,7 +19,7 @@ async def version():
         "base_version": version_info["base_version"],
         "internal_version": version_info["internal_version"],
         "environment": version_info["environment"],
-        "name": "Ansible Builder API",
+        "name": "Automation Factory API",
         "description": version_info["description"],
         "is_rc": version_info["is_rc"],
         "features": version_info["features"]

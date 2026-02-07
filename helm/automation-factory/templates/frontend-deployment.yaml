@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "ansible-builder.fullname" . }}-frontend
+  name: {{ include "automation-factory.fullname" . }}-frontend
   labels:
-    {{- include "ansible-builder.frontend.labels" . | nindent 4 }}
+    {{- include "automation-factory.frontend.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.frontend.autoscaling.enabled }}
   replicas: {{ .Values.frontend.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "ansible-builder.frontend.selectorLabels" . | nindent 6 }}
+      {{- include "automation-factory.frontend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/frontend-configmap.yaml") . | sha256sum }}
       labels:
-        {{- include "ansible-builder.frontend.selectorLabels" . | nindent 8 }}
+        {{- include "automation-factory.frontend.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "ansible-builder.serviceAccountName" . }}
+      serviceAccountName: {{ include "automation-factory.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:

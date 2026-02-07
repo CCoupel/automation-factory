@@ -1,6 +1,6 @@
 Session_id: 767f34c1-c453-4c33-b9a2-e8eaf2d2fa45
 
-# Guide Claude - Ansible Builder
+# Guide Claude - Automation Factory
 
 Ce document est l'index principal pour les futures instances de Claude travaillant sur ce projet. Il contient les liens vers toute la documentation technique organisée.
 
@@ -10,9 +10,10 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 **Version Développement :** Backend 2.2.1 / Frontend 2.2.1
 **Version Production :** Backend 2.2.1 / Frontend 2.2.1  ✅ **DEPLOYED**
-**URL Production :** https://coupel.net/ansible-builder
+**URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
-**Dernière mise à jour :** 2026-01-05
+**URL Marketing :** https://ccoupel.bitbucket.io
+**Dernière mise à jour :** 2026-01-16
 
 ## 📚 **Documentation Organisée**
 
@@ -102,7 +103,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ## 🎯 **Contact Points**
 
 **URLs :**
-- **Production :** https://coupel.net/ansible-builder
+- **Production :** https://coupel.net/automation-factory
 - **Docker Host :** 192.168.1.217:2375
 - **Registry :** ghcr.io/ccoupel
 
@@ -120,15 +121,15 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ### Structure
 ```
 nginx (port 80) → Point d'entrée unique
-├── / → ansible-builder-frontend (nginx, port 80)
-└── /api/* → ansible-builder-backend (FastAPI, port 8000)
+├── / → automation-factory-frontend (nginx, port 80)
+└── /api/* → automation-factory-backend (FastAPI, port 8000)
 ```
 
 ### Procédure de déploiement Phase 2
 ```bash
 # 1. Build images localement sur staging server (Dockerfile PRODUCTION)
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-backend:X.Y.Z-rc.n -f backend/Dockerfile backend/
-docker -H tcp://192.168.1.217:2375 build -t ansible-builder-frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
 
 # 2. Update docker-compose.staging.yml avec nouvelles versions
 
@@ -145,7 +146,7 @@ curl -I http://192.168.1.217/                # Frontend OK (nginx)
 - **Build Once Deploy Everywhere** : Même Dockerfile pour staging et production
 - **Images locales** : Build sur 192.168.1.217, PAS de push ghcr.io en Phase 2
 - **Frontend nginx** : TOUJOURS utiliser `frontend/Dockerfile` (pas Dockerfile.dev)
-- **Noms de services** : `ansible-builder-backend`, `ansible-builder-frontend` (alignés sur K8s)
+- **Noms de services** : `automation-factory-backend`, `automation-factory-frontend` (alignés sur K8s)
 - **Nginx central** : Point d'entrée unique sur port 80
 - **Validation santé** : TOUJOURS tester les 3 endpoints
 
@@ -169,14 +170,14 @@ docker build ... # INTERDIT - Utiliser les images staging validées
 ### ✅ OBLIGATOIRE en Production
 ```bash
 # 1. Tag et push des images staging vers ghcr.io
-docker tag ansible-builder-frontend:X.Y.Z-rc.n ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
-docker push ghcr.io/ccoupel/ansible-builder-frontend:X.Y.Z
+docker tag automation-factory-frontend:X.Y.Z-rc.n ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
+docker push ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
 
 # 2. Mise à jour custom-values.yaml avec nouveaux tags
 
 # 3. Déploiement via Helm UNIQUEMENT
-KUBECONFIG=kubeconfig.txt helm upgrade ansible-builder ./helm/ansible-builder \
-  --namespace ansible-builder \
+KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
+  --namespace automation-factory \
   --values custom-values.yaml \
   --timeout 300s
 ```
@@ -184,10 +185,10 @@ KUBECONFIG=kubeconfig.txt helm upgrade ansible-builder ./helm/ansible-builder \
 ### Rollback Production
 ```bash
 # Via Helm (recommandé)
-KUBECONFIG=kubeconfig.txt helm rollback ansible-builder -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm rollback automation-factory -n automation-factory
 
 # Voir historique
-KUBECONFIG=kubeconfig.txt helm history ansible-builder -n ansible-builder
+KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 ```
 
 **Voir détails complets :** [Phase 3 Production](docs/operations/PHASE3_PRODUCTION.md)

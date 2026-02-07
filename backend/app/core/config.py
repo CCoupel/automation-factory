@@ -3,7 +3,7 @@ from typing import List
 
 class Settings(BaseSettings):
     # Application
-    APP_NAME: str = "Ansible Builder"
+    APP_NAME: str = "Automation Factory"
     DEBUG: bool = True
     HOST: str = "0.0.0.0"
     PORT: int = 8000
@@ -21,14 +21,14 @@ class Settings(BaseSettings):
     DATABASE_TYPE: str = "sqlite"
 
     # SQLite Configuration (used when DATABASE_TYPE="sqlite")
-    SQLITE_DB_PATH: str = "/tmp/ansible_builder.db"
+    SQLITE_DB_PATH: str = "/tmp/automation_factory.db"
 
     # PostgreSQL Configuration (used when DATABASE_TYPE="postgresql")
     POSTGRES_USER: str = "ansible"
     POSTGRES_PASSWORD: str = "ansible"
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "ansible_builder"
+    POSTGRES_DB: str = "automation_factory"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

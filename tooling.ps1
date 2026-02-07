@@ -1,4 +1,4 @@
-# Raccourci vers les outils Ansible Builder
+# Raccourci vers les outils Automation Factory
 # Usage: .\tooling.ps1 <command> [options]
 
-& "$PSScriptRoot\TOOLING\ansible-builder.ps1" @args
+& "$PSScriptRoot\TOOLING\automation-factory.ps1" @args

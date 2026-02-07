@@ -1,10 +1,10 @@
-# Script complet de publication et déploiement Ansible Builder
+# Script complet de publication et déploiement Automation Factory
 # Usage: .\publish-and-deploy.ps1 [version] [-Deploy] [-Namespace <namespace>]
 
 param(
     [string]$Version,
     [switch]$Deploy,
-    [string]$Namespace = "ansible-builder",
+    [string]$Namespace = "automation-factory",
     [switch]$SkipPublish,
     [switch]$DryRun
 )
@@ -23,12 +23,12 @@ function Write-ColorOutput($ForegroundColor, $Message) {
     $host.UI.RawUI.ForegroundColor = $fc
 }
 
-Write-ColorOutput Green "=== Ansible Builder - Publication et Déploiement ==="
+Write-ColorOutput Green "=== Automation Factory - Publication et Déploiement ==="
 
 # Get version
 if (-not $Version) {
     Write-ColorOutput Yellow "Version actuelle dans Chart.yaml:"
-    Get-Content helm/ansible-builder/Chart.yaml | Select-String "^version:"
+    Get-Content helm/automation-factory/Chart.yaml | Select-String "^version:"
     Write-Host ""
     $Version = Read-Host "Nouvelle version"
 }
@@ -58,35 +58,35 @@ if (-not $SkipPublish) {
     if (-not $DryRun) {
         # Build and push backend
         Write-ColorOutput Yellow "Construction de l'image backend..."
-        docker build -t "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:$Version" ./backend/
-        docker tag "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:$Version" "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:latest"
+        docker build -t "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:$Version" ./backend/
+        docker tag "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:$Version" "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:latest"
         
         Write-ColorOutput Yellow "Push de l'image backend..."
-        docker push "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:$Version"
-        docker push "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:latest"
+        docker push "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:$Version"
+        docker push "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:latest"
         
         # Build and push frontend
         Write-ColorOutput Yellow "Construction de l'image frontend..."
-        docker build -t "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:$Version" ./frontend/
-        docker tag "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:$Version" "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:latest"
+        docker build -t "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:$Version" ./frontend/
+        docker tag "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:$Version" "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:latest"
         
         Write-ColorOutput Yellow "Push de l'image frontend..."
-        docker push "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:$Version"
-        docker push "$REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:latest"
+        docker push "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:$Version"
+        docker push "$REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:latest"
     } else {
         Write-ColorOutput Yellow "DRY RUN: Skip build et push des images"
     }
     
     # Update Helm files
     Write-ColorOutput Yellow "Mise à jour des versions Helm..."
-    $chartContent = Get-Content helm/ansible-builder/Chart.yaml
+    $chartContent = Get-Content helm/automation-factory/Chart.yaml
     $chartContent = $chartContent -replace "^version:.*", "version: $Version"
     $chartContent = $chartContent -replace "^appVersion:.*", "appVersion: `"$Version`""
-    $chartContent | Set-Content helm/ansible-builder/Chart.yaml
+    $chartContent | Set-Content helm/automation-factory/Chart.yaml
     
-    $valuesContent = Get-Content helm/ansible-builder/values.yaml
+    $valuesContent = Get-Content helm/automation-factory/values.yaml
     $valuesContent = $valuesContent -replace 'tag: ".*"', "tag: `"$Version`""
-    $valuesContent | Set-Content helm/ansible-builder/values.yaml
+    $valuesContent | Set-Content helm/automation-factory/values.yaml
     
     # Package Helm chart
     if (-not (Test-Path "helm/packages")) {
@@ -94,7 +94,7 @@ if (-not $SkipPublish) {
     }
     
     Write-ColorOutput Yellow "Packaging du chart Helm..."
-    helm package helm/ansible-builder/ -d helm/packages/
+    helm package helm/automation-factory/ -d helm/packages/
     
     Write-ColorOutput Green "✅ Publication terminée!"
 }
@@ -134,7 +134,7 @@ if ($Deploy) {
         Write-ColorOutput Yellow "Utilisation des valeurs personnalisées"
     }
     
-    $helmCmd = "helm upgrade --install ansible-builder ./helm/ansible-builder/ --namespace $Namespace $customValues"
+    $helmCmd = "helm upgrade --install automation-factory ./helm/automation-factory/ --namespace $Namespace $customValues"
     if ($DryRun) {
         $helmCmd += " --dry-run --debug"
     }
@@ -159,8 +159,8 @@ Write-ColorOutput Green "=== Résumé ==="
 if (-not $SkipPublish) {
     Write-Host "Version publiée: $Version"
     Write-Host "Images:"
-    Write-Host "  - $REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-backend:$Version"
-    Write-Host "  - $REGISTRY/$NAMESPACE_REGISTRY/ansible-builder-frontend:$Version"
+    Write-Host "  - $REGISTRY/$NAMESPACE_REGISTRY/automation-factory-backend:$Version"
+    Write-Host "  - $REGISTRY/$NAMESPACE_REGISTRY/automation-factory-frontend:$Version"
 }
 if ($Deploy) {
     Write-Host "Déployé dans le namespace: $Namespace"

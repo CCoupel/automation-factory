@@ -53,8 +53,8 @@ docker -H tcp://192.168.1.217:2375 ps
 ### Build Failed
 ```powershell
 # Check Docker logs
-docker -H tcp://192.168.1.217:2375 logs ansible-builder-backend-local
-docker -H tcp://192.168.1.217:2375 logs ansible-builder-frontend-local
+docker -H tcp://192.168.1.217:2375 logs automation-factory-backend-local
+docker -H tcp://192.168.1.217:2375 logs automation-factory-frontend-local
 ```
 
 ### Services Not Healthy

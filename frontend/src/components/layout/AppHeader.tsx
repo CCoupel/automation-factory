@@ -280,7 +280,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           >
             <PlayArrowIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
             <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: 'var(--font-base, 14px)' }}>
-              Ansible Builder
+              Automation Factory
             </Typography>
             {cacheLoading && (
               <CircularProgress size={16} sx={{ color: 'white', ml: 1 }} />
@@ -704,12 +704,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <InfoIcon color="primary" />
-          About Ansible Builder
+          About Automation Factory
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <Typography variant="h6" gutterBottom>
-              Ansible Builder
+              Automation Factory
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Constructeur graphique de playbooks Ansible en mode SaaS. 
@@ -723,10 +723,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 Versions des composants :
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Frontend: {frontendVersion} (ansible-builder-frontend)
+                • Frontend: {frontendVersion} (automation-factory-frontend)
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                • Backend: {backendVersion} ({backendVersionInfo?.name || 'Ansible Builder API'})
+                • Backend: {backendVersion} ({backendVersionInfo?.name || 'Automation Factory API'})
               </Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                 • Environment: {backendVersionInfo?.environment || 'N/A'}

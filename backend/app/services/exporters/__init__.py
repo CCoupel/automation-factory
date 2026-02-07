@@ -2,7 +2,7 @@
 Playbook Export Services
 
 This package contains exporters for different diagram formats:
-- ABD: Ansible Builder Diagram (JSON format for backup/restore)
+- ABD: Automation Factory Diagram (JSON format for backup/restore)
 - Mermaid: Markdown with Mermaid flowchart
 - SVG: Vector image
 """

@@ -1,4 +1,4 @@
-# Spécifications Backend - Ansible Builder
+# Spécifications Backend - Automation Factory
 
 Ce document décrit les spécifications fonctionnelles et l'architecture du backend API de l'application.
 
@@ -187,7 +187,7 @@ GET /api/admin/configuration/info                   # Info générale
 GET /api/version
 {
   "version": "1.8.1",
-  "name": "Ansible Builder API"
+  "name": "Automation Factory API"
 }
 ```
 
@@ -251,7 +251,7 @@ CREATE TABLE user_favorites (
 ```bash
 # Base de données
 DATABASE_TYPE=sqlite
-SQLITE_DB_PATH=/tmp/ansible_builder_dev.db
+SQLITE_DB_PATH=/tmp/automation_factory_dev.db
 
 # Cache Redis
 REDIS_URL=redis://redis:6379

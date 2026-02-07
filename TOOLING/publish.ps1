@@ -1,4 +1,4 @@
-# Script de publication Ansible Builder pour Windows
+# Script de publication Automation Factory pour Windows
 # Usage: .\publish.ps1 [version]
 
 param(
@@ -31,7 +31,7 @@ function Write-ColorOutput($ForegroundColor, $Message) {
 # Get version
 if (-not $Version) {
     Write-ColorOutput Yellow "Version actuelle dans Chart.yaml:"
-    Get-Content helm/ansible-builder/Chart.yaml | Select-String "^version:"
+    Get-Content helm/automation-factory/Chart.yaml | Select-String "^version:"
     Write-Host ""
     $Version = Read-Host "Nouvelle version"
 }
@@ -58,37 +58,37 @@ $GITHUB_TOKEN | docker login $REGISTRY -u $GITHUB_USER --password-stdin
 
 # Build and push backend
 Write-ColorOutput Yellow "Construction de l'image backend..."
-docker build -t "$REGISTRY/$NAMESPACE/ansible-builder-backend:$Version" ./backend/
-docker tag "$REGISTRY/$NAMESPACE/ansible-builder-backend:$Version" "$REGISTRY/$NAMESPACE/ansible-builder-backend:latest"
+docker build -t "$REGISTRY/$NAMESPACE/automation-factory-backend:$Version" ./backend/
+docker tag "$REGISTRY/$NAMESPACE/automation-factory-backend:$Version" "$REGISTRY/$NAMESPACE/automation-factory-backend:latest"
 
 Write-ColorOutput Yellow "Push de l'image backend..."
-docker push "$REGISTRY/$NAMESPACE/ansible-builder-backend:$Version"
-docker push "$REGISTRY/$NAMESPACE/ansible-builder-backend:latest"
+docker push "$REGISTRY/$NAMESPACE/automation-factory-backend:$Version"
+docker push "$REGISTRY/$NAMESPACE/automation-factory-backend:latest"
 
 # Build and push frontend
 Write-ColorOutput Yellow "Construction de l'image frontend..."
-docker build -t "$REGISTRY/$NAMESPACE/ansible-builder-frontend:$Version" ./frontend/
-docker tag "$REGISTRY/$NAMESPACE/ansible-builder-frontend:$Version" "$REGISTRY/$NAMESPACE/ansible-builder-frontend:latest"
+docker build -t "$REGISTRY/$NAMESPACE/automation-factory-frontend:$Version" ./frontend/
+docker tag "$REGISTRY/$NAMESPACE/automation-factory-frontend:$Version" "$REGISTRY/$NAMESPACE/automation-factory-frontend:latest"
 
 Write-ColorOutput Yellow "Push de l'image frontend..."
-docker push "$REGISTRY/$NAMESPACE/ansible-builder-frontend:$Version"
-docker push "$REGISTRY/$NAMESPACE/ansible-builder-frontend:latest"
+docker push "$REGISTRY/$NAMESPACE/automation-factory-frontend:$Version"
+docker push "$REGISTRY/$NAMESPACE/automation-factory-frontend:latest"
 
 # Update Helm chart version
 Write-ColorOutput Yellow "Mise à jour des versions Helm..."
 
 # Update Chart.yaml
-$chartContent = Get-Content helm/ansible-builder/Chart.yaml
+$chartContent = Get-Content helm/automation-factory/Chart.yaml
 $chartContent = $chartContent -replace "^version:.*", "version: $Version"
 $chartContent = $chartContent -replace "^appVersion:.*", "appVersion: `"$Version`""
-$chartContent | Set-Content helm/ansible-builder/Chart.yaml
+$chartContent | Set-Content helm/automation-factory/Chart.yaml
 
 # Update values.yaml
-$valuesContent = Get-Content helm/ansible-builder/values.yaml
-$valuesContent = $valuesContent -replace "repository: ansible-builder-backend", "repository: $REGISTRY/$NAMESPACE/ansible-builder-backend"
-$valuesContent = $valuesContent -replace "repository: ansible-builder-frontend", "repository: $REGISTRY/$NAMESPACE/ansible-builder-frontend"
+$valuesContent = Get-Content helm/automation-factory/values.yaml
+$valuesContent = $valuesContent -replace "repository: automation-factory-backend", "repository: $REGISTRY/$NAMESPACE/automation-factory-backend"
+$valuesContent = $valuesContent -replace "repository: automation-factory-frontend", "repository: $REGISTRY/$NAMESPACE/automation-factory-frontend"
 $valuesContent = $valuesContent -replace 'tag: ".*"', "tag: `"$Version`""
-$valuesContent | Set-Content helm/ansible-builder/values.yaml
+$valuesContent | Set-Content helm/automation-factory/values.yaml
 
 # Create packages directory if it doesn't exist
 if (-not (Test-Path "helm/packages")) {
@@ -97,13 +97,13 @@ if (-not (Test-Path "helm/packages")) {
 
 # Package Helm chart
 Write-ColorOutput Yellow "Packaging du chart Helm..."
-helm package helm/ansible-builder/ -d helm/packages/
+helm package helm/automation-factory/ -d helm/packages/
 
 Write-ColorOutput Green "✅ Publication terminée!"
 Write-Host ""
 Write-Host "Pour déployer:"
-Write-Host "  helm upgrade --install ansible-builder ./helm/ansible-builder/ \"
-Write-Host "    --namespace ansible-builder \"
+Write-Host "  helm upgrade --install automation-factory ./helm/automation-factory/ \"
+Write-Host "    --namespace automation-factory \"
 Write-Host "    --create-namespace \"
 Write-Host "    -f custom-values.yaml"
 Write-Host ""

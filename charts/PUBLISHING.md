@@ -1,6 +1,6 @@
 # Guide de Publication du Helm Chart
 
-Ce document explique comment publier le Helm chart Ansible Builder sur GitHub Container Registry (GHCR) depuis Bitbucket.
+Ce document explique comment publier le Helm chart Automation Factory sur GitHub Container Registry (GHCR) depuis Bitbucket.
 
 ## 🚀 Méthodes de Publication
 
@@ -15,11 +15,11 @@ Le pipeline Bitbucket publiera automatiquement le chart sur GHCR lors de:
 #### Configuration Initiale (une seule fois):
 
 1. **Activer Bitbucket Pipelines:**
-   - Aller sur https://bitbucket.org/ccoupel/ansible_builder/admin/addon/admin/pipelines/settings
+   - Aller sur https://bitbucket.org/ccoupel/automation_factory/admin/addon/admin/pipelines/settings
    - Activer "Enable Pipelines"
 
 2. **Configurer les variables d'environnement:**
-   - Aller sur https://bitbucket.org/ccoupel/ansible_builder/admin/addon/admin/pipelines/repository-variables
+   - Aller sur https://bitbucket.org/ccoupel/automation_factory/admin/addon/admin/pipelines/repository-variables
    - Ajouter deux variables:
      - Name: `GITHUB_USERNAME`, Value: `ccoupel` (non sécurisée)
      - Name: `GITHUB_TOKEN`, Value: `ghp_your_token_here` (✅ **Secured**)
@@ -35,11 +35,11 @@ Le pipeline Bitbucket publiera automatiquement le chart sur GHCR lors de:
 
 ```bash
 # 1. Mettre à jour la version dans Chart.yaml
-vim helm/ansible-builder/Chart.yaml
+vim helm/automation-factory/Chart.yaml
 # Changer: version: 1.2.0
 
 # 2. Commit les changements
-git add helm/ansible-builder/Chart.yaml
+git add helm/automation-factory/Chart.yaml
 git commit -m "chore: bump chart version to 1.2.0"
 git push origin master
 
@@ -51,11 +51,11 @@ git push origin v1.2.0
 Le pipeline Bitbucket s'exécutera **automatiquement** et publiera sur GHCR! ✅
 
 **Suivi de l'exécution:**
-- https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+- https://bitbucket.org/ccoupel/automation_factory/addon/pipelines/home
 
 #### Publier manuellement via Bitbucket Pipelines:
 
-1. Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+1. Aller sur https://bitbucket.org/ccoupel/automation_factory/addon/pipelines/home
 2. Cliquer "Run pipeline" (en haut à droite)
 3. Branch: `master`
 4. Pipeline: Sélectionner "Custom: publish-chart"
@@ -141,27 +141,27 @@ Même processus, mais stocker le token localement dans les variables d'environne
 
 ### Via Bitbucket Pipelines:
 
-1. Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+1. Aller sur https://bitbucket.org/ccoupel/automation_factory/addon/pipelines/home
 2. Vérifier que le pipeline s'est exécuté avec succès (✅ vert)
 3. Consulter les logs pour voir la confirmation de publication
 
 ### Via GitHub Packages:
 
 1. Aller sur https://github.com/ccoupel?tab=packages
-2. Chercher "ansible-builder"
+2. Chercher "automation-factory"
 3. Vérifier la version publiée
 
 ### Via CLI:
 
 ```bash
 # Voir les métadonnées du chart
-helm show chart oci://ghcr.io/ccoupel/ansible-builder
+helm show chart oci://ghcr.io/ccoupel/automation-factory
 
 # Voir toutes les infos
-helm show all oci://ghcr.io/ccoupel/ansible-builder
+helm show all oci://ghcr.io/ccoupel/automation-factory
 
 # Tester l'installation
-helm install test-ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
+helm install test-automation-factory oci://ghcr.io/ccoupel/automation-factory \
   --namespace test \
   --create-namespace \
   --dry-run
@@ -175,14 +175,14 @@ helm install test-ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
 
 ```bash
 # 1. Mettre à jour la version dans Chart.yaml
-vim helm/ansible-builder/Chart.yaml
+vim helm/automation-factory/Chart.yaml
 # Changer: version: 1.2.0
 
 # 2. Mettre à jour CHANGELOG (si applicable)
 vim CHANGELOG.md
 
 # 3. Commit les changements
-git add helm/ansible-builder/Chart.yaml CHANGELOG.md
+git add helm/automation-factory/Chart.yaml CHANGELOG.md
 git commit -m "chore: release helm chart v1.2.0"
 
 # 4. Créer un tag annoté
@@ -196,7 +196,7 @@ git push origin v1.2.0
 Le pipeline Bitbucket publiera automatiquement sur GHCR! 🚀
 
 **Vérifier:**
-- Pipeline: https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+- Pipeline: https://bitbucket.org/ccoupel/automation_factory/addon/pipelines/home
 - Package: https://github.com/ccoupel?tab=packages
 
 ---
@@ -230,7 +230,7 @@ helm registry login ghcr.io -u ccoupel
 ### Bitbucket Pipeline échoue
 
 **Étape 1: Vérifier les logs**
-- Aller sur https://bitbucket.org/ccoupel/ansible_builder/addon/pipelines/home
+- Aller sur https://bitbucket.org/ccoupel/automation_factory/addon/pipelines/home
 - Cliquer sur le pipeline qui a échoué
 - Consulter les logs détaillés
 
@@ -262,7 +262,7 @@ helm registry login ghcr.io -u ccoupel
 ### Package visible uniquement par moi sur GitHub
 
 **Solution:** Rendre le package public
-1. Aller sur https://github.com/users/ccoupel/packages/container/ansible-builder
+1. Aller sur https://github.com/users/ccoupel/packages/container/automation-factory
 2. Settings > Change visibility
 3. Sélectionner "Public"
 4. Confirmer
@@ -303,8 +303,8 @@ git push origin v1.2.0
 **Pour installer le chart:**
 
 ```bash
-helm install ansible-builder oci://ghcr.io/ccoupel/ansible-builder \
-  --namespace ansible-builder \
+helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \
+  --namespace automation-factory \
   --create-namespace
 ```
 
