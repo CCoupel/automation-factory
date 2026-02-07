@@ -1,0 +1,66 @@
+# CloudNativePG - Disabled due to MooseFS permission issues
+# Using standard PostgreSQL StatefulSet instead
+cloudnative-pg:
+  enabled: false
+
+# PostgreSQL configuration via CloudNativePG
+postgresql:
+  enabled: true
+  instances: 1  # Single instance (change to 2+ for HA)
+  storage:
+    size: 5Gi  # 5GB should be sufficient for playbooks
+  auth:
+    username: ansible
+    password: "AnsibleBuilder2026!Prod"  # Strong password for production
+    database: automation_factory
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ccoupel/automation-factory-backend
+    tag: "2.3.0"
+    pullPolicy: Always
+  env:
+    DATABASE_TYPE: "postgresql"
+    SECRET_KEY: "AnsibleBuilder2026!JWTSecretKey"
+    ALGORITHM: "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+
+autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+frontend:
+  replicaCount: 1
+  image:
+    tag: "2.3.5"
+    pullPolicy: Always
+ingress:
+  className: "traefik"
+  basePath: "/automation-factory"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  hosts:
+    - host: coupel.net
+      paths:
+        - path: ''
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: automation-factory-tls
+      hosts:
+        - coupel.net
+

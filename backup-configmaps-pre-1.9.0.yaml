@@ -1,0 +1,140 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    cors-origins: http://localhost:5173,http://localhost:5174,http://localhost:5175
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: ansible-builder
+      meta.helm.sh/release-namespace: ansible-builder
+    creationTimestamp: "2025-12-04T17:12:54Z"
+    labels:
+      app.kubernetes.io/component: backend
+      app.kubernetes.io/instance: ansible-builder
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: ansible-builder
+      app.kubernetes.io/version: 1.3.7
+      helm.sh/chart: ansible-builder-1.3.7
+    name: ansible-builder-backend
+    namespace: ansible-builder
+    resourceVersion: "12541182"
+    uid: 68444539-917c-4563-b628-63e0ef700f6c
+- apiVersion: v1
+  data:
+    api-url: http://backend-service:8000/api
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: ansible-builder
+      meta.helm.sh/release-namespace: ansible-builder
+    creationTimestamp: "2025-12-04T17:12:54Z"
+    labels:
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/instance: ansible-builder
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: ansible-builder
+      app.kubernetes.io/version: 1.3.7
+      helm.sh/chart: ansible-builder-1.3.7
+    name: ansible-builder-frontend
+    namespace: ansible-builder
+    resourceVersion: "12541183"
+    uid: 5d9d7d26-13ff-4ee7-9b6a-4027c3046ec9
+- apiVersion: v1
+  data:
+    index-Bt2ydkxn.css: |
+      :root{font-family:Inter,system-ui,Avenir,Helvetica,Arial,sans-serif;line-height:1.5;font-weight:400;font-size:80%;color-scheme:light dark;color:#ffffffde;background-color:#242424;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}*{margin:0;padding:0;box-sizing:border-box}body{margin:0;display:flex;min-width:320px;min-height:100vh}#root{width:100%}:root{--base-font-size: 14px;--heading-scale: 1.35;--spacing-scale: 1;--font-xs: calc(var(--base-font-size) * .75);--font-sm: calc(var(--base-font-size) * .875);--font-base: var(--base-font-size);--font-lg: calc(var(--base-font-size) * 1.125);--font-xl: calc(var(--base-font-size) * var(--heading-scale));--font-2xl: calc(var(--base-font-size) * var(--heading-scale) * 1.2);--font-3xl: calc(var(--base-font-size) * var(--heading-scale) * 1.5);--spacing-xs: calc(4px * var(--spacing-scale));--spacing-sm: calc(8px * var(--spacing-scale));--spacing-md: calc(16px * var(--spacing-scale));--spacing-lg: calc(24px * var(--spacing-scale));--spacing-xl: calc(32px * var(--spacing-scale));--spacing-2xl: calc(48px * var(--spacing-scale));--icon-sm: calc(16px * var(--spacing-scale));--icon-md: calc(20px * var(--spacing-scale));--icon-lg: calc(24px * var(--spacing-scale));--icon-xl: calc(32px * var(--spacing-scale));--radius-sm: 4px;--radius-md: 8px;--radius-lg: 12px;--min-zone-width: 200px;--min-zone-height: 150px}body{font-size:var(--base-font-size)}.text-xs{font-size:var(--font-xs)!important}.text-sm{font-size:var(--font-sm)!important}.text-base{font-size:var(--font-base)!important}.text-lg{font-size:var(--font-lg)!important}.text-xl{font-size:var(--font-xl)!important}.text-2xl{font-size:var(--font-2xl)!important}.text-3xl{font-size:var(--font-3xl)!important}.p-xs{padding:var(--spacing-xs)!important}.p-sm{padding:var(--spacing-sm)!important}.p-md{padding:var(--spacing-md)!important}.p-lg{padding:var(--spacing-lg)!important}.p-xl{padding:var(--spacing-xl)!important}.m-xs{margin:var(--spacing-xs)!important}.m-sm{margin:var(--spacing-sm)!important}.m-md{margin:var(--spacing-md)!important}.m-lg{margin:var(--spacing-lg)!important}.m-xl{margin:var(--spacing-xl)!important}@media (max-width: 1280px){:root{--spacing-scale: .9}}@media (min-width: 1920px){:root{--spacing-scale: 1.1}}@media (min-width: 2560px){:root{--spacing-scale: 1.2}}*{transition:font-size .2s ease-in-out}.MuiTypography-root{line-height:1.5!important}.MuiButton-root{font-size:var(--font-base)!important;padding:var(--spacing-sm) var(--spacing-md)!important}.MuiIconButton-root{padding:var(--spacing-sm)!important}.MuiTextField-root{font-size:var(--font-base)!important}.MuiChip-root{font-size:var(--font-sm)!important}.MuiTab-root{font-size:var(--font-base)!important;min-height:calc(48px * var(--spacing-scale))!important;padding:var(--spacing-sm) var(--spacing-md)!important}.MuiPaper-root{padding:var(--spacing-md)}.MuiAccordion-root{margin:var(--spacing-sm) 0!important}.MuiAccordionSummary-root{padding:0 var(--spacing-md)!important;min-height:calc(48px * var(--spacing-scale))!important}.MuiAccordionDetails-root{padding:var(--spacing-md)!important}
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"index-Bt2ydkxn.css":":root{font-family:Inter,system-ui,Avenir,Helvetica,Arial,sans-serif;line-height:1.5;font-weight:400;font-size:80%;color-scheme:light dark;color:#ffffffde;background-color:#242424;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}*{margin:0;padding:0;box-sizing:border-box}body{margin:0;display:flex;min-width:320px;min-height:100vh}#root{width:100%}:root{--base-font-size: 14px;--heading-scale: 1.35;--spacing-scale: 1;--font-xs: calc(var(--base-font-size) * .75);--font-sm: calc(var(--base-font-size) * .875);--font-base: var(--base-font-size);--font-lg: calc(var(--base-font-size) * 1.125);--font-xl: calc(var(--base-font-size) * var(--heading-scale));--font-2xl: calc(var(--base-font-size) * var(--heading-scale) * 1.2);--font-3xl: calc(var(--base-font-size) * var(--heading-scale) * 1.5);--spacing-xs: calc(4px * var(--spacing-scale));--spacing-sm: calc(8px * var(--spacing-scale));--spacing-md: calc(16px * var(--spacing-scale));--spacing-lg: calc(24px * var(--spacing-scale));--spacing-xl: calc(32px * var(--spacing-scale));--spacing-2xl: calc(48px * var(--spacing-scale));--icon-sm: calc(16px * var(--spacing-scale));--icon-md: calc(20px * var(--spacing-scale));--icon-lg: calc(24px * var(--spacing-scale));--icon-xl: calc(32px * var(--spacing-scale));--radius-sm: 4px;--radius-md: 8px;--radius-lg: 12px;--min-zone-width: 200px;--min-zone-height: 150px}body{font-size:var(--base-font-size)}.text-xs{font-size:var(--font-xs)!important}.text-sm{font-size:var(--font-sm)!important}.text-base{font-size:var(--font-base)!important}.text-lg{font-size:var(--font-lg)!important}.text-xl{font-size:var(--font-xl)!important}.text-2xl{font-size:var(--font-2xl)!important}.text-3xl{font-size:var(--font-3xl)!important}.p-xs{padding:var(--spacing-xs)!important}.p-sm{padding:var(--spacing-sm)!important}.p-md{padding:var(--spacing-md)!important}.p-lg{padding:var(--spacing-lg)!important}.p-xl{padding:var(--spacing-xl)!important}.m-xs{margin:var(--spacing-xs)!important}.m-sm{margin:var(--spacing-sm)!important}.m-md{margin:var(--spacing-md)!important}.m-lg{margin:var(--spacing-lg)!important}.m-xl{margin:var(--spacing-xl)!important}@media (max-width: 1280px){:root{--spacing-scale: .9}}@media (min-width: 1920px){:root{--spacing-scale: 1.1}}@media (min-width: 2560px){:root{--spacing-scale: 1.2}}*{transition:font-size .2s ease-in-out}.MuiTypography-root{line-height:1.5!important}.MuiButton-root{font-size:var(--font-base)!important;padding:var(--spacing-sm) var(--spacing-md)!important}.MuiIconButton-root{padding:var(--spacing-sm)!important}.MuiTextField-root{font-size:var(--font-base)!important}.MuiChip-root{font-size:var(--font-sm)!important}.MuiTab-root{font-size:var(--font-base)!important;min-height:calc(48px * var(--spacing-scale))!important;padding:var(--spacing-sm) var(--spacing-md)!important}.MuiPaper-root{padding:var(--spacing-md)}.MuiAccordion-root{margin:var(--spacing-sm) 0!important}.MuiAccordionSummary-root{padding:0 var(--spacing-md)!important;min-height:calc(48px * var(--spacing-scale))!important}.MuiAccordionDetails-root{padding:var(--spacing-md)!important}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"ansible-builder-frontend-css","namespace":"ansible-builder"}}
+    creationTimestamp: "2025-12-03T09:25:09Z"
+    name: ansible-builder-frontend-css
+    namespace: ansible-builder
+    resourceVersion: "11208683"
+    uid: 6f6ee45e-caec-4163-baf9-f8b1621f0dae
+- apiVersion: v1
+  data:
+    index.html: |
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Ansible Builder</title>
+          <script type="module" crossorigin src="./assets/index-Bj1S5ilV.js"></script>
+          <link rel="stylesheet" crossorigin href="./assets/index-Bt2ydkxn.css">
+        </head>
+        <body>
+          <div id="root"></div>
+        </body>
+      </html>
+  kind: ConfigMap
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: ansible-builder
+      meta.helm.sh/release-namespace: ansible-builder
+    creationTimestamp: "2025-12-04T17:12:54Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: ansible-builder-frontend-dist
+    namespace: ansible-builder
+    resourceVersion: "12082355"
+    uid: 80e7e83c-f427-4bc9-926e-d6b48bbc5b1f
+- apiVersion: v1
+  data:
+    index.html: |
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Ansible Builder</title>
+          <script type="module" crossorigin src="./assets/index-Bj1S5ilV.js"></script>
+          <link rel="stylesheet" crossorigin href="./assets/index-Bt2ydkxn.css">
+        </head>
+        <body>
+          <div id="root"></div>
+        </body>
+      </html>
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"index.html":"\u003c!doctype html\u003e\n\u003chtml lang=\"en\"\u003e\n  \u003chead\u003e\n    \u003cmeta charset=\"UTF-8\" /\u003e\n    \u003clink rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" /\u003e\n    \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /\u003e\n    \u003ctitle\u003eAnsible Builder\u003c/title\u003e\n    \u003cscript type=\"module\" crossorigin src=\"./assets/index-Bj1S5ilV.js\"\u003e\u003c/script\u003e\n    \u003clink rel=\"stylesheet\" crossorigin href=\"./assets/index-Bt2ydkxn.css\"\u003e\n  \u003c/head\u003e\n  \u003cbody\u003e\n    \u003cdiv id=\"root\"\u003e\u003c/div\u003e\n  \u003c/body\u003e\n\u003c/html\u003e\n"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"ansible-builder-frontend-html","namespace":"ansible-builder"}}
+    creationTimestamp: "2025-12-03T08:48:55Z"
+    name: ansible-builder-frontend-html
+    namespace: ansible-builder
+    resourceVersion: "11192464"
+    uid: 60cc399b-126d-44a6-a4d6-7f68104b27f2
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIBeDCCAR+gAwIBAgIBADAKBggqhkjOPQQDAjAkMSIwIAYDVQQDDBlya2UyLXNl
+      cnZlci1jYUAxNzYzMDUzODA0MB4XDTI1MTExMzE3MTAwNFoXDTM1MTExMTE3MTAw
+      NFowJDEiMCAGA1UEAwwZcmtlMi1zZXJ2ZXItY2FAMTc2MzA1MzgwNDBZMBMGByqG
+      SM49AgEGCCqGSM49AwEHA0IABA1J78sMJr1v+SYaH/QVyDoIwXHZGJzqQzWt9bzi
+      xM1/XHV3tVgu19F78ozXOGz2CF5Nu3VKVIhKQ7VLxBYiciujQjBAMA4GA1UdDwEB
+      /wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSdmk3CkGME2batqpYo
+      nncDiYYkzjAKBggqhkjOPQQDAgNHADBEAiAcmXWUpgm/v2VR3l43pDF61oWMeaMN
+      pEEHDu5L+4KHgQIgId9VWXrBEqA5iN14CRGYg5P64bRzizZ1Tob+RupwWQs=
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2025-11-30T11:05:37Z"
+    name: kube-root-ca.crt
+    namespace: ansible-builder
+    resourceVersion: "9317365"
+    uid: dbe0e002-48ab-48df-908a-6ac3772ef21d
+kind: List
+metadata:
+  resourceVersion: ""

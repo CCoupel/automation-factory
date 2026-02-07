@@ -1,0 +1,27 @@
+apiVersion: v2
+name: automation-factory
+description: A Helm chart for Automation Factory - Visual Ansible Playbook Builder
+type: application
+version: 1.3.7
+appVersion: "1.3.7"
+keywords:
+  - ansible
+  - playbook
+  - automation
+  - builder
+home: https://bitbucket.org/ccoupel/automation_factory
+maintainers:
+  - name: Automation Factory Team
+    email: support@example.com
+dependencies:
+  # cloudnative-pg installed separately in cnpg-system namespace
+  # - name: cloudnative-pg
+  #   version: 0.26.1
+  #   repository: https://cloudnative-pg.github.io/charts
+  # PostgreSQL dependency - disabled due to image pull issues
+  # - name: postgresql
+  #   version: 15.5.33
+  #   repository: https://charts.bitnami.com/bitnami
+  - name: redis
+    version: 2.1.0
+    repository: https://charts.pascaliske.dev

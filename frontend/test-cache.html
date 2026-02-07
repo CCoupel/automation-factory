@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Galaxy Cache Test</title>
+</head>
+<body>
+    <h1>Galaxy Cache Service Test</h1>
+    <div id="status">Testing...</div>
+    
+    <script>
+        // Test direct API calls to cached data
+        async function testCacheAPI() {
+            const statusDiv = document.getElementById('status')
+            
+            try {
+                // Test cache status
+                const statusResponse = await fetch('/api/galaxy/cache/status')
+                const statusData = await statusResponse.json()
+                
+                statusDiv.innerHTML = `
+                    <h3>Cache Status:</h3>
+                    <pre>${JSON.stringify(statusData, null, 2)}</pre>
+                `
+                
+                // Test all cached data
+                const allResponse = await fetch('/api/galaxy/cache/all')
+                const allData = await allResponse.json()
+                
+                statusDiv.innerHTML += `
+                    <h3>All Cached Data:</h3>
+                    <p>Popular namespaces: ${allData.popular_namespaces?.length || 0}</p>
+                    <p>All namespaces: ${allData.all_namespaces?.length || 0}</p>
+                    <p>Collections sample: ${Object.keys(allData.collections_sample || {}).length}</p>
+                    <p>Cache status: ${allData.cache_info?.sync_status}</p>
+                    <p>Last sync: ${allData.cache_info?.last_sync || 'Unknown'}</p>
+                `
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`
+            }
+        }
+        
+        // Run test when page loads
+        testCacheAPI()
+    </script>
+</body>
+</html>

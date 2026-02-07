@@ -1,0 +1,91 @@
+services:
+# PostgreSQL désactivé pour développement local (utilise SQLite)
+  # postgresql:
+  #   image: postgres:16-alpine
+  #   container_name: automation-factory-db
+  #   environment:
+  #     POSTGRES_USER: ansible
+  #     POSTGRES_PASSWORD: ansible
+  #     POSTGRES_DB: automation_factory
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ansible"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: automation-factory-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    image: automation-factory-backend:dev
+    container_name: automation-factory-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_PATH=/tmp/automation_factory_dev.db
+      - DEBUG=True
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    image: automation-factory-frontend:dev
+    container_name: automation-factory-frontend
+    environment:
+      - BASE_PATH=
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: automation-factory-nginx
+    ports:
+      - "80:80"
+      - "5180:5173"
+    command: |
+      sh -c '
+        echo "# Nginx configuration for development environment" > /etc/nginx/conf.d/default.conf
+        echo "upstream frontend_upstream { server automation-factory-frontend:80; }" >> /etc/nginx/conf.d/default.conf
+        echo "upstream backend_upstream { server automation-factory-backend:8000; }" >> /etc/nginx/conf.d/default.conf
+        echo "server {" >> /etc/nginx/conf.d/default.conf
+        echo "  listen 80;" >> /etc/nginx/conf.d/default.conf
+        echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-proxy\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://frontend_upstream/version; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "}" >> /etc/nginx/conf.d/default.conf
+        echo "server {" >> /etc/nginx/conf.d/default.conf
+        echo "  listen 5173;" >> /etc/nginx/conf.d/default.conf
+        echo "  server_name localhost;" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /health { access_log off; add_header Content-Type application/json; return 200 \"{\\\"status\\\":\\\"healthy\\\",\\\"service\\\":\\\"nginx-direct\\\",\\\"environment\\\":\\\"development\\\"}\"; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location = /version { proxy_pass http://frontend_upstream/version; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location /api { proxy_pass http://backend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "  location / { proxy_pass http://frontend_upstream; proxy_set_header Host \$$host; proxy_set_header X-Real-IP \$$remote_addr; }" >> /etc/nginx/conf.d/default.conf
+        echo "}" >> /etc/nginx/conf.d/default.conf
+        nginx -g "daemon off;"
+      '
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

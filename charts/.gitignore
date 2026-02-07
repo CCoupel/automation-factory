@@ -1,0 +1,9 @@
+# Helm chart packages (will be pushed to OCI registry)
+*.tgz
+
+# Helm dependency charts
+charts/
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,0 +1,67 @@
+*******************************************
+*   Automation Factory deployed successfully!   *
+*******************************************
+
+Your release is named: {{ .Release.Name }}
+Your namespace is: {{ .Release.Namespace }}
+
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+
+1. Get the application URL by running these commands:
+
+  {{- if $.Values.ingress.tls }}
+  https://{{ .host }}
+  {{- else }}
+  http://{{ .host }}
+  {{- end }}
+
+{{- end }}
+{{- else if contains "NodePort" .Values.frontend.service.type }}
+
+1. Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "automation-factory.fullname" . }}-frontend)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+{{- else if contains "LoadBalancer" .Values.frontend.service.type }}
+
+1. Get the application URL by running these commands:
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "automation-factory.fullname" . }}-frontend'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "automation-factory.fullname" . }}-frontend --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.frontend.service.port }}
+
+{{- else if contains "ClusterIP" .Values.frontend.service.type }}
+
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "automation-factory.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=frontend" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+{{- end }}
+
+2. Check the status of your deployment:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+3. View the logs:
+  # Backend logs
+  kubectl logs -f -l app.kubernetes.io/component=backend -n {{ .Release.Namespace }}
+
+  # Frontend logs
+  kubectl logs -f -l app.kubernetes.io/component=frontend -n {{ .Release.Namespace }}
+
+4. Default credentials (CHANGE THESE IN PRODUCTION!):
+  Email: admin@example.com
+  Password: admin
+
+⚠️  SECURITY WARNING ⚠️
+Please change the following default passwords immediately:
+- JWT_SECRET_KEY
+- PostgreSQL password
+- Redis password
+
+For more information, see the README.md file.
+
+Happy automating! 🚀

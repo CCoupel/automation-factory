@@ -1,0 +1,107 @@
+EXEMPLE 1: TaskAttributeIcons
+==============================
+
+CODE ORIGINAL (Duplique 2+ fois):
+  40 lignes pour afficher 5 icones (when, ignoreErrors, become, loop, delegateTo)
+  - PlaySectionContent.tsx lignes 398-414
+  - WorkZone.tsx (similaire)
+
+CODE REFACTORISE:
+  - Composant TaskAttributeIcons.tsx (45 lignes)
+  - Usage: <TaskAttributeIcons task={task} showLoop={true} />
+  
+GAIN: 40 * 2 = 80 lignes -> 45 lignes composant = 35 lignes sauvegardees
+
+
+EXEMPLE 2: Block Section Headers
+==================================
+
+CODE ORIGINAL (Repete 3 fois dans PlaySectionContent.tsx):
+  - Section Normal: 30 lignes
+  - Section Rescue: 30 lignes  
+  - Section Always: 30 lignes
+  TOTAL: 90 lignes
+
+CODE REFACTORISE:
+  - BlockSectionHeader.tsx (40 lignes)
+  - BlockSectionContent.tsx (25 lignes)
+  - Usage: 3x <BlockSectionHeader /> + <BlockSectionContent /> = 9 lignes
+  
+GAIN: 90 lignes -> 65 lignes composants + 9 lignes usage = 16 lignes total
+      = 74 lignes sauvegardees
+
+
+EXEMPLE 3: START Tasks Factory
+================================
+
+CODE ORIGINAL (Repete 2 fois dans WorkZone.tsx):
+  - Initialisation Play 1: 48 lignes (lines 92-139)
+  - Fonction addPlay(): 48 lignes (lines 1481-1528)
+  TOTAL: 96 lignes
+
+CODE REFACTORISE:
+  - startTasksFactory.ts (20 lignes)
+  - Usage dans Play 1: modules: createStartTasks('play-1') = 1 ligne
+  - Usage dans addPlay(): modules: createStartTasks(newPlayId) = 1 ligne
+  
+GAIN: 96 lignes -> 22 lignes total = 74 lignes sauvegardees
+
+
+EXEMPLE 4: Form Fields
+=======================
+
+CODE ORIGINAL (Repete 7 fois dans ConfigZone.tsx):
+  7 champs * 8 lignes chacun = 56 lignes
+  
+CODE REFACTORISE:
+  - TaskAttributeFormField.tsx (40 lignes)
+  - Usage: 7 champs * 4 lignes chacun = 28 lignes
+  
+GAIN: 56 lignes -> 68 lignes total
+      (-12 lignes, mais gagne en maintenabilite)
+
+
+EXEMPLE 5: Module Lists
+=========================
+
+CODE ORIGINAL (Repete 2 fois dans ModulesZone.tsx):
+  - Tab Generic: 37 lignes (with ListItem pattern)
+  - Tab Modules: 53 lignes (similar pattern)
+  TOTAL: 90 lignes pour code tres similaire
+
+CODE REFACTORISE:
+  - DraggableModuleItem.tsx (35 lignes)
+  - Generic tab: 8 lignes avec map
+  - Modules tab: 15 lignes avec map
+  
+GAIN: 90 lignes -> 58 lignes total = 32 lignes sauvegardees
+
+
+RESUME GLOBAL
+==============
+
+Total lignes dupliquees identifiees: ~500 lignes
+Total gain avec refactoring:         ~700 lignes (+ meilleure maintenabilite)
+
+Nouveaux composants a creer: 7
+  - TaskAttributeIcons
+  - BlockSectionHeader
+  - BlockSectionContent
+  - DraggableModuleItem
+  - TaskAttributeFormField
+  - SelectOptionField
+  - BlockHeader
+
+Constantes a extraire: 3
+  - themeColors.ts
+  - layoutDimensions.ts
+  - moduleConfigs.ts
+
+Utils a creer: 3
+  - startTasksFactory.ts
+  - themeUtils.ts
+  - useDragDrop.ts (hook)
+
+Effort estimé: 20-25 heures
+Durée: 3-4 semaines
+ROI: Excellent

@@ -1,0 +1,127 @@
+services:
+  # Backend FastAPI (service name matches Kubernetes for "build once deploy everywhere")
+  automation-factory-backend:
+    image: automation-factory-backend:2.3.0-rc.2
+    container_name: automation-factory-backend-staging
+    environment:
+      - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=STAGING
+    restart: unless-stopped
+    networks:
+      - automationfactory_default
+    external_links:
+      - ansible-db:ansible-db
+
+  # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
+  # BORE: Utilise le même Dockerfile (nginx) que production - PAS de Dockerfile.dev
+  automation-factory-frontend:
+    image: automation-factory-frontend:2.3.5-rc.1
+    container_name: automation-factory-frontend-staging
+    restart: unless-stopped
+    networks:
+      - automationfactory_default
+    depends_on:
+      - automation-factory-backend
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: automation-factory-nginx-staging
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    networks:
+      - automationfactory_default
+    depends_on:
+      - automation-factory-frontend
+      - automation-factory-backend
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+
+configs:
+  nginx_conf:
+    content: |
+      worker_processes 1;
+      
+      events {
+          worker_connections 1024;
+      }
+      
+      http {
+          include       /etc/nginx/mime.types;
+          default_type  application/octet-stream;
+      
+          access_log /var/log/nginx/access.log;
+          error_log /var/log/nginx/error.log;
+      
+          gzip on;
+          gzip_vary on;
+          gzip_min_length 1024;
+          gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+      
+          server {
+              listen 80;
+              server_name localhost;
+              
+              location /api/ {
+                  proxy_pass http://automation-factory-backend:8000/api/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+
+                  add_header 'Access-Control-Allow-Origin' '*' always;
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+                  add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+
+                  if ($$request_method = 'OPTIONS') {
+                      add_header 'Access-Control-Allow-Origin' '*';
+                      add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+                      add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                      add_header 'Access-Control-Max-Age' 1728000;
+                      add_header 'Content-Type' 'text/plain; charset=utf-8';
+                      add_header 'Content-Length' 0;
+                      return 204;
+                  }
+              }
+
+              # WebSocket endpoint for real-time collaboration
+              location /ws/ {
+                  proxy_pass http://automation-factory-backend:8000/ws/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $$http_upgrade;
+                  proxy_set_header Connection "upgrade";
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+                  proxy_read_timeout 86400;
+                  proxy_send_timeout 86400;
+              }
+              
+              location = /health {
+                  access_log off;
+                  return 200 "healthy\n";
+                  add_header Content-Type text/plain;
+              }
+              
+              # BORE: Frontend utilise nginx sur port 80 (identique à production)
+              location / {
+                  proxy_pass http://automation-factory-frontend:80;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $$host;
+                  proxy_set_header X-Real-IP $$remote_addr;
+                  proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $$scheme;
+              }
+          }
+      }
+
+networks:
+  automationfactory_default:
+    external: true
