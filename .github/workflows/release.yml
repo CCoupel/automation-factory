@@ -14,7 +14,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  GITHUB_USERNAME: ${{ github.repository_owner }}
+  GITHUB_USERNAME: ccoupel  # Must be lowercase for GHCR
 
 jobs:
   build-backend:
