@@ -10,6 +10,7 @@ Features:
 
 import json
 import hashlib
+from collections import OrderedDict
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, TypeVar
 import logging
@@ -22,18 +23,24 @@ logger = logging.getLogger(__name__)
 
 class EnhancedCache:
     """
-    Enhanced in-memory cache with statistics and pattern-based operations
-    In production, replace with Redis
+    Enhanced in-memory cache with statistics, LRU eviction, and pattern-based operations.
+    Max size prevents unbounded memory growth (OOM).
+    In production, replace with Redis.
     """
-    
-    def __init__(self):
-        self._cache: Dict[str, Dict[str, Any]] = {}
+
+    # Maximum number of entries before LRU eviction kicks in
+    DEFAULT_MAX_SIZE = 500
+
+    def __init__(self, max_size: int = DEFAULT_MAX_SIZE):
+        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
+        self._max_size = max_size
         self._stats = {
             "hits": 0,
             "misses": 0,
             "sets": 0,
             "deletes": 0,
-            "expired": 0
+            "expired": 0,
+            "evicted": 0,
         }
         
     def _make_key(self, prefix: str, **kwargs) -> str:
@@ -45,33 +52,44 @@ class EnhancedCache:
         return ":".join(key_parts)
         
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache"""
+        """Get value from cache, moving the entry to the MRU position."""
         entry = self._cache.get(key)
         if not entry:
             self._stats["misses"] += 1
             return None
-            
+
         # TTL check
         if time.time() > entry["expires"]:
             del self._cache[key]
             self._stats["expired"] += 1
             self._stats["misses"] += 1
             return None
-            
+
+        # Move to end = most recently used
+        self._cache.move_to_end(key)
         self._stats["hits"] += 1
         logger.debug(f"Cache HIT for key: {key}")
         return entry["data"]
-        
+
     def set(self, key: str, value: Any, ttl_seconds: int = 300) -> None:
-        """Set value in cache with TTL"""
+        """Set value in cache with TTL. Evicts LRU entry when max_size is reached."""
+        if key in self._cache:
+            self._cache.move_to_end(key)
+
         self._cache[key] = {
             "data": value,
             "expires": time.time() + ttl_seconds,
             "created_at": time.time(),
-            "ttl": ttl_seconds
+            "ttl": ttl_seconds,
         }
         self._stats["sets"] += 1
         logger.debug(f"Cache SET for key: {key}, TTL: {ttl_seconds}s")
+
+        # LRU eviction: drop the oldest (front) entry when over limit
+        while len(self._cache) > self._max_size:
+            oldest_key, _ = self._cache.popitem(last=False)
+            self._stats["evicted"] += 1
+            logger.debug(f"Cache LRU eviction: {oldest_key} (size limit {self._max_size})")
         
     def delete(self, key: str) -> bool:
         """Delete key from cache"""
@@ -112,13 +130,15 @@ class EnhancedCache:
         
         return {
             "total_keys": len(self._cache),
+            "max_size": self._max_size,
             "hits": self._stats["hits"],
             "misses": self._stats["misses"],
             "hit_rate": f"{hit_rate:.1f}%",
             "sets": self._stats["sets"],
             "deletes": self._stats["deletes"],
             "expired": self._stats["expired"],
-            "memory_entries": len(self._cache)
+            "evicted": self._stats["evicted"],
+            "memory_entries": len(self._cache),
         }
         
     def get_keys(self, pattern: str = "*") -> List[str]:

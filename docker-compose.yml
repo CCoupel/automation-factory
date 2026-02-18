@@ -29,6 +29,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+    mem_limit: 128m
 
   backend:
     build: ./backend
@@ -43,6 +45,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
 
   frontend:
     build: ./frontend
@@ -52,6 +56,8 @@ services:
       - BASE_PATH=
     depends_on:
       - backend
+    restart: unless-stopped
+    mem_limit: 128m
 
   nginx:
     image: nginx:alpine
@@ -85,6 +91,8 @@ services:
     depends_on:
       - frontend
       - backend
+    restart: unless-stopped
+    mem_limit: 64m
 
 volumes:
   postgres_data:
