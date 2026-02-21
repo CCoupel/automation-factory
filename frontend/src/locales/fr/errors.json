@@ -1,0 +1,18 @@
+{
+  "generic": "Une erreur est survenue. Veuillez réessayer.",
+  "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+  "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
+  "forbidden": "Accès refusé.",
+  "notFound": "Ressource introuvable.",
+  "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
+  "validationError": "Erreur de validation. Veuillez vérifier votre saisie.",
+  "timeout": "La requête a expiré. Veuillez réessayer.",
+  "loginFailed": "Échec de la connexion",
+  "registrationFailed": "Échec de l'inscription",
+  "saveFailed": "Échec de l'enregistrement",
+  "loadFailed": "Échec du chargement",
+  "deleteFailed": "Échec de la suppression",
+  "exportFailed": "Échec de l'exportation",
+  "importFailed": "Échec de l'importation",
+  "fetchVersionFailed": "Échec de la récupération de la version"
+}

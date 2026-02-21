@@ -1,0 +1,98 @@
+{
+  "playbookManager": {
+    "title": "Playbook Manager",
+    "myPlaybooks": "My Playbooks",
+    "sharedWithMe": "Shared with me",
+    "newPlaybook": "New Playbook",
+    "openPlaybook": "Open Playbook",
+    "deletePlaybook": "Delete Playbook",
+    "confirmDelete": "Are you sure you want to delete this playbook?",
+    "deleteWarning": "This action cannot be undone.",
+    "noPlaybooks": "No playbooks yet",
+    "createFirst": "Create your first playbook to get started.",
+    "owner": "Owner",
+    "sharedWith": "Shared with",
+    "role": "Role",
+    "lastModified": "Last modified",
+    "transferOwnership": "Transfer Ownership",
+    "newOwner": "New Owner Username",
+    "keepAccess": "Keep access after transfer"
+  },
+  "share": {
+    "title": "Share Playbook",
+    "shareWith": "Share with",
+    "username": "Username",
+    "role": "Role",
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "share": "Share",
+    "sharedUsers": "Shared Users",
+    "noShares": "Not shared with anyone",
+    "removeShare": "Remove share",
+    "updateRole": "Update role",
+    "cannotShareSelf": "Cannot share with yourself",
+    "alreadyShared": "Already shared with this user"
+  },
+  "configuration": {
+    "title": "Configuration",
+    "preferences": "Preferences",
+    "variableTypes": "Variable Types",
+    "galaxySources": "Galaxy Sources",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "addVariable": {
+    "title": "Add Variable",
+    "editTitle": "Edit Variable",
+    "name": "Variable Name",
+    "value": "Value",
+    "description": "Description",
+    "type": "Type",
+    "required": "Required",
+    "defaultValue": "Default Value",
+    "validationPattern": "Validation Pattern"
+  },
+  "export": {
+    "title": "Export Diagram",
+    "format": "Format",
+    "abd": "ABD (Automation Factory Diagram)",
+    "mermaid": "Mermaid (Markdown)",
+    "svg": "SVG (Vector Image)",
+    "export": "Export",
+    "download": "Download",
+    "copy": "Copy to Clipboard",
+    "copied": "Copied!",
+    "options": "Options",
+    "includeUiState": "Include UI state",
+    "includeIntegrity": "Include integrity checks",
+    "prettyPrint": "Pretty print",
+    "direction": "Direction",
+    "topToBottom": "Top to Bottom",
+    "leftToRight": "Left to Right",
+    "scale": "Scale",
+    "backgroundColor": "Background Color"
+  },
+  "import": {
+    "title": "Import Diagram",
+    "selectFile": "Select File",
+    "dropHere": "Drop file here or click to select",
+    "supportedFormats": "Supported formats: .abd",
+    "import": "Import",
+    "invalidFormat": "Invalid file format",
+    "importSuccess": "Diagram imported successfully",
+    "importError": "Error importing diagram"
+  },
+  "deleteShared": {
+    "title": "Remove Shared Playbook",
+    "message": "Are you sure you want to remove this shared playbook from your list?",
+    "note": "This will only remove it from your view. The original playbook will not be deleted."
+  },
+  "about": {
+    "title": "About Automation Factory",
+    "description": "Graphical Ansible playbook builder",
+    "version": "Version",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "releaseCandidate": "Release Candidate"
+  }
+}

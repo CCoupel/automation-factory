@@ -1,0 +1,18 @@
+{
+  "generic": "An error occurred. Please try again.",
+  "network": "Network error. Please check your connection.",
+  "unauthorized": "You are not authorized to perform this action.",
+  "forbidden": "Access denied.",
+  "notFound": "Resource not found.",
+  "serverError": "Server error. Please try again later.",
+  "validationError": "Validation error. Please check your input.",
+  "timeout": "Request timed out. Please try again.",
+  "loginFailed": "Login failed",
+  "registrationFailed": "Registration failed",
+  "saveFailed": "Failed to save",
+  "loadFailed": "Failed to load",
+  "deleteFailed": "Failed to delete",
+  "exportFailed": "Export failed",
+  "importFailed": "Import failed",
+  "fetchVersionFailed": "Failed to fetch version"
+}
