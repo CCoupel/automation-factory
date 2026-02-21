@@ -54,6 +54,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 3. **Phase 1 :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` - Développement local
 4. **Phase 2 :** Voir `docs/operations/PHASE2_INTEGRATION.md` - Staging (nginx reverse proxy)
 5. **Phase 3 :** Voir `docs/operations/PHASE3_PRODUCTION.md` - Production (Kubernetes)
+6. **i18n**: All UI strings use `useTranslation()` — see `frontend/src/locales/`
 
 ## ⚠️ **RÈGLES CRITIQUES pour Claude**
 
@@ -66,6 +67,16 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **TOUJOURS** demander "go" explicite entre phases
 - **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter
 - **TOUJOURS** attendre réponse utilisateur avant continuer
+
+### 🌐 **i18n RULES**
+- **NEVER** hardcode user-facing text in React components
+- **ALWAYS** use `useTranslation()` from react-i18next for all visible text
+- **ALWAYS** add keys to both locale files (`en/` and `fr/`)
+- **Namespaces**: `common`, `auth`, `playbook`, `dialogs`, `admin`, `errors`
+- **Locale files**: `frontend/src/locales/{en,fr}/{namespace}.json`
+- **Default language**: English (`fallbackLng: 'en'`)
+- **Parity check**: Every key added in `en/` must exist in `fr/` and vice versa
+- **Completeness test**: `frontend/src/i18n/__tests__/i18n.test.ts` verifies EN/FR parity
 
 ### 🗄️ **RÈGLE STOCKAGE DONNÉES**
 - **TOUJOURS** stocker les données utilisateur en base de données (pas fichiers `/tmp`)

@@ -15,6 +15,7 @@ import {
   createTheme
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { useVersionInfo } from '../hooks/useVersionInfo'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -56,6 +57,7 @@ const loginLightTheme = createTheme({
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { login, register, isLoading } = useAuth()
+  const { t } = useTranslation('auth')
 
   // Version info from shared hook
   const { frontendVersion, backendVersion } = useVersionInfo()
@@ -85,7 +87,7 @@ const LoginPage: React.FC = () => {
 
     // Validation
     if (!loginEmail || !loginPassword) {
-      setError('Veuillez remplir tous les champs')
+      setError(t('fillAllFields'))
       return
     }
 
@@ -96,7 +98,7 @@ const LoginPage: React.FC = () => {
       // Redirect to main app
       navigate('/')
     } else {
-      setError('Email ou mot de passe incorrect')
+      setError(t('wrongCredentials'))
     }
   }
 
@@ -109,25 +111,25 @@ const LoginPage: React.FC = () => {
 
     // Validation
     if (!registerEmail || !registerUsername || !registerPassword || !registerConfirmPassword) {
-      setError('Veuillez remplir tous les champs')
+      setError(t('fillAllFields'))
       return
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(registerEmail)) {
-      setError('Email invalide')
+      setError(t('invalidEmail'))
       return
     }
 
     // Password validation
     if (registerPassword.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
+      setError(t('passwordMinLength'))
       return
     }
 
     if (registerPassword !== registerConfirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
+      setError(t('passwordMismatch'))
       return
     }
 
@@ -138,7 +140,7 @@ const LoginPage: React.FC = () => {
       // Redirect to main app
       navigate('/')
     } else {
-      setError('Erreur lors de l\'inscription. Veuillez réessayer.')
+      setError(t('registrationError'))
     }
   }
 
@@ -168,10 +170,10 @@ const LoginPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <PlayArrowIcon sx={{ fontSize: 60, color: '#667eea', mb: 1 }} />
             <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333', mb: 1 }}>
-              Automation Factory
+              {t('common:appName')}
             </Typography>
             <Typography variant="body2" sx={{ color: '#666' }}>
-              Constructeur graphique de playbooks Ansible
+              {t('common:appDescription')}
             </Typography>
           </Box>
 
@@ -185,8 +187,8 @@ const LoginPage: React.FC = () => {
             variant="fullWidth"
             sx={{ mb: 3 }}
           >
-            <Tab label="Connexion" />
-            <Tab label="Inscription" />
+            <Tab label={t('login')} />
+            <Tab label={t('register')} />
           </Tabs>
 
           {/* Error Alert */}
@@ -212,7 +214,7 @@ const LoginPage: React.FC = () => {
               />
               <TextField
                 fullWidth
-                label="Mot de passe"
+                label={t('password')}
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
@@ -235,7 +237,7 @@ const LoginPage: React.FC = () => {
                   }
                 }}
               >
-                {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Se connecter'}
+                {isLoading ? <CircularProgress size={24} color="inherit" /> : t('loginButton')}
               </Button>
             </form>
           )}
@@ -256,7 +258,7 @@ const LoginPage: React.FC = () => {
               />
               <TextField
                 fullWidth
-                label="Nom d'utilisateur"
+                label={t('username')}
                 type="text"
                 value={registerUsername}
                 onChange={(e) => setRegisterUsername(e.target.value)}
@@ -266,18 +268,18 @@ const LoginPage: React.FC = () => {
               />
               <TextField
                 fullWidth
-                label="Mot de passe"
+                label={t('password')}
                 type="password"
                 value={registerPassword}
                 onChange={(e) => setRegisterPassword(e.target.value)}
                 margin="normal"
                 required
                 disabled={isLoading}
-                helperText="Minimum 6 caractères"
+                helperText={t('passwordMinLength')}
               />
               <TextField
                 fullWidth
-                label="Confirmer le mot de passe"
+                label={t('confirmPassword')}
                 type="password"
                 value={registerConfirmPassword}
                 onChange={(e) => setRegisterConfirmPassword(e.target.value)}
@@ -300,7 +302,7 @@ const LoginPage: React.FC = () => {
                   }
                 }}
               >
-                {isLoading ? <CircularProgress size={24} color="inherit" /> : 'S\'inscrire'}
+                {isLoading ? <CircularProgress size={24} color="inherit" /> : t('registerButton')}
               </Button>
             </form>
           )}
@@ -315,7 +317,7 @@ const LoginPage: React.FC = () => {
               color: '#999'
             }}
           >
-            Mode SaaS - Vos playbooks sont sauvegardés sur le cloud
+            {t('common:saasMode')}
           </Typography>
 
           {/* Version Information */}
@@ -328,13 +330,13 @@ const LoginPage: React.FC = () => {
             }}
           >
             <Chip
-              label={`Frontend: ${frontendVersion}`}
+              label={`${t('common:frontend')}: ${frontendVersion}`}
               size="small"
               color="primary"
               variant="outlined"
             />
             <Chip
-              label={`Backend: ${backendVersion}`}
+              label={`${t('common:backend')}: ${backendVersion}`}
               size="small"
               color="secondary"
               variant="outlined"

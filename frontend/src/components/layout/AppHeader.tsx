@@ -30,6 +30,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { useVersionInfo } from '../../hooks/useVersionInfo'
 import { VersionSelector } from '../VersionSelector'
+import LanguageIcon from '@mui/icons-material/Language'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import LockIcon from '@mui/icons-material/Lock'
@@ -44,6 +45,7 @@ import ErrorIcon from '@mui/icons-material/Error'
 import ArticleIcon from '@mui/icons-material/Article'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import ShareIcon from '@mui/icons-material/Share'
+import { useTranslation } from 'react-i18next'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
 import ShareDialog from '../collaboration/ShareDialog'
@@ -90,6 +92,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
   const { themeMode, darkMode, setThemeMode, cycleThemeMode } = useTheme()
+  const { t, i18n } = useTranslation('common')
   const { forceRefreshCache, isLoading: cacheLoading, currentVersion } = useGalaxyCache()
 
   // Version info from shared hook
@@ -550,7 +553,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <ListItemIcon>
                   <LockIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Change Password</ListItemText>
+                <ListItemText>{t('changePassword')}</ListItemText>
               </MenuItem>
 
               {/* Accounts Management (Admin only) */}
@@ -559,7 +562,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   <ListItemIcon>
                     <SupervisorAccountIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Accounts Management</ListItemText>
+                  <ListItemText>{t('accountsManagement')}</ListItemText>
                 </MenuItem>
               )}
 
@@ -568,7 +571,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <ListItemIcon>
                   <SettingsIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Configuration</ListItemText>
+                <ListItemText>{t('configuration')}</ListItemText>
               </MenuItem>
 
               <Divider />
@@ -578,7 +581,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <ListItemIcon>
                   <InfoIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>About</ListItemText>
+                <ListItemText>{t('about')}</ListItemText>
               </MenuItem>
 
               <Divider />
@@ -592,9 +595,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    themeMode === 'light' ? 'Light Mode' :
-                    themeMode === 'dark' ? 'Dark Mode' :
-                    'System (Auto)'
+                    themeMode === 'light' ? t('lightMode') :
+                    themeMode === 'dark' ? t('darkMode') :
+                    t('systemAuto')
                   }
                   secondary={
                     themeMode === 'system' ? (darkMode ? 'Currently: Dark' : 'Currently: Light') : undefined
@@ -608,6 +611,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 />
               </MenuItem>
 
+              {/* Language Toggle */}
+              <MenuItem onClick={() => {
+                const next = i18n.language?.startsWith('fr') ? 'en' : 'fr'
+                i18n.changeLanguage(next)
+              }}>
+                <ListItemIcon>
+                  <LanguageIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary={t('language')} />
+                <Chip
+                  label={i18n.language?.startsWith('fr') ? 'FR' : 'EN'}
+                  size="small"
+                  variant="outlined"
+                  sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
+                />
+              </MenuItem>
+
               <Divider />
 
               {/* Logout */}
@@ -615,7 +635,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Déconnexion</ListItemText>
+                <ListItemText>{t('logout')}</ListItemText>
               </MenuItem>
             </Menu>
           </Box>
