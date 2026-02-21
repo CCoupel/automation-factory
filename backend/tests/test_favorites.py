@@ -69,3 +69,57 @@ class TestPreferences:
         )
         assert resp.status_code == 200
         assert resp.json()["success"] is True
+
+    async def test_update_galaxy_settings(self, authenticated_client):
+        resp = await authenticated_client.put(
+            "/api/user/preferences",
+            json={"galaxy_settings": {"preferred_source": "public"}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    async def test_preferences_persist(self, authenticated_client):
+        # Set
+        await authenticated_client.put(
+            "/api/user/preferences",
+            json={"interface_settings": {"zoom": "large"}},
+        )
+        # Get
+        resp = await authenticated_client.get("/api/user/preferences")
+        assert resp.status_code == 200
+        prefs = resp.json()["preferences"]
+        assert prefs.get("interface_settings", {}).get("zoom") == "large"
+
+
+class TestFavoriteModules:
+
+    async def test_get_favorite_modules(self, authenticated_client):
+        resp = await authenticated_client.get("/api/user/favorites/modules")
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    async def test_add_favorite_collection(self, authenticated_client):
+        resp = await authenticated_client.post(
+            "/api/user/favorites/collections",
+            json={"collection": "community.general"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    async def test_add_favorite_module(self, authenticated_client):
+        resp = await authenticated_client.post(
+            "/api/user/favorites/modules",
+            json={"module": "ansible.builtin.copy"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+
+    async def test_remove_favorite_collection(self, authenticated_client):
+        await authenticated_client.post(
+            "/api/user/favorites/collections",
+            json={"collection": "community.general"},
+        )
+        resp = await authenticated_client.delete(
+            "/api/user/favorites/collections/community.general"
+        )
+        assert resp.status_code == 200

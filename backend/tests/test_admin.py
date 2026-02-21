@@ -105,3 +105,37 @@ class TestDeleteUser:
         resp = await admin_client.delete(f"/api/admin/users/{admin_user.id}")
         assert resp.status_code == 400
         assert "Cannot delete your own account" in resp.json()["detail"]
+
+    async def test_delete_nonexistent_user(self, admin_client):
+        resp = await admin_client.delete("/api/admin/users/nonexistent-id")
+        assert resp.status_code == 404
+
+
+class TestAdminEdgeCases:
+
+    async def test_make_user_admin(self, admin_client, test_session):
+        user = await _regular_user(test_session)
+        resp = await admin_client.patch(
+            f"/api/admin/users/{user.id}",
+            json={"is_admin": True},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["is_admin"] is True
+
+    async def test_change_password_nonexistent(self, admin_client):
+        resp = await admin_client.put(
+            "/api/admin/users/nonexistent-id/password",
+            json={"new_password": "newpass123"},
+        )
+        assert resp.status_code == 404
+
+    async def test_update_nonexistent_user(self, admin_client):
+        resp = await admin_client.patch(
+            "/api/admin/users/nonexistent-id",
+            json={"is_active": False},
+        )
+        assert resp.status_code == 404
+
+    async def test_purge_nonexistent_user(self, admin_client):
+        resp = await admin_client.delete("/api/admin/users/nonexistent-id/playbooks")
+        assert resp.status_code == 404

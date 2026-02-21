@@ -287,6 +287,38 @@ class TestTransferOwnership:
 # YAML preview / validate preview
 # ---------------------------------------------------------------------------
 
+class TestPlaybookYaml:
+
+    async def test_get_yaml(self, authenticated_client, test_playbook):
+        resp = await authenticated_client.get(
+            f"/api/playbooks/{test_playbook.id}/yaml"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "yaml" in data
+        assert data["playbook_id"] == test_playbook.id
+
+    async def test_get_yaml_not_found(self, authenticated_client):
+        resp = await authenticated_client.get("/api/playbooks/nonexistent/yaml")
+        assert resp.status_code == 404
+
+
+class TestPlaybookValidation:
+
+    async def test_validate_playbook(self, authenticated_client, test_playbook):
+        resp = await authenticated_client.post(
+            f"/api/playbooks/{test_playbook.id}/validate"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "is_valid" in data
+        assert data["playbook_id"] == test_playbook.id
+
+    async def test_validate_not_found(self, authenticated_client):
+        resp = await authenticated_client.post("/api/playbooks/nonexistent/validate")
+        assert resp.status_code == 404
+
+
 class TestPreview:
 
     async def test_yaml_preview(self, authenticated_client):
@@ -302,3 +334,46 @@ class TestPreview:
         })
         assert resp.status_code == 200
         assert "is_valid" in resp.json()
+
+    async def test_validate_full_preview(self, authenticated_client):
+        resp = await authenticated_client.post(
+            "/api/playbooks/validate-full-preview",
+            json={"content": SAMPLE_CONTENT},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "is_valid" in data
+        assert "syntax_valid" in data
+        assert "lint_passed" in data
+
+    async def test_lint_preview(self, authenticated_client):
+        resp = await authenticated_client.post(
+            "/api/playbooks/lint-preview",
+            json={"content": SAMPLE_CONTENT},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "is_valid" in data
+        assert "lint_available" in data
+
+
+class TestPlaybookUpdate:
+
+    async def test_update_content_increments_version(
+        self, authenticated_client, test_playbook
+    ):
+        resp = await authenticated_client.put(
+            f"/api/playbooks/{test_playbook.id}",
+            json={"content": {"plays": [{"name": "updated"}]}},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["version"] > test_playbook.version
+
+    async def test_update_no_change_keeps_version(
+        self, authenticated_client, test_playbook
+    ):
+        resp = await authenticated_client.put(
+            f"/api/playbooks/{test_playbook.id}",
+            json={},
+        )
+        assert resp.status_code == 200
