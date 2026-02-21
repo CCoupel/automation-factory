@@ -54,6 +54,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 3. **Phase 1 :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` - Développement local
 4. **Phase 2 :** Voir `docs/operations/PHASE2_INTEGRATION.md` - Staging (nginx reverse proxy)
 5. **Phase 3 :** Voir `docs/operations/PHASE3_PRODUCTION.md` - Production (Kubernetes)
+6. **Tests backend :** Voir `backend/tests/` — fixtures partagées dans `conftest.py`
 
 ## ⚠️ **RÈGLES CRITIQUES pour Claude**
 
@@ -66,6 +67,15 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **TOUJOURS** demander "go" explicite entre phases
 - **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter
 - **TOUJOURS** attendre réponse utilisateur avant continuer
+
+### 🧪 **RÈGLES TESTS BACKEND**
+- **TOUJOURS** écrire des tests pour tout nouvel endpoint backend (dans `backend/tests/`)
+- **TOUJOURS** écrire des tests pour tout nouveau service backend
+- **NE JAMAIS** merger du code qui diminue la couverture de tests
+- **TOUJOURS** vérifier que les tests passent avant de passer en Phase 2 :
+  - Backend : `cd backend && python -m pytest tests/ -v --cov=app`
+- **Fixtures partagées** : Utiliser `backend/tests/conftest.py` (ne pas dupliquer les fixtures)
+- **Pattern backend** : Tests d'intégration avec SQLite en mémoire via conftest, mocks pour les services externes
 
 ### 🗄️ **RÈGLE STOCKAGE DONNÉES**
 - **TOUJOURS** stocker les données utilisateur en base de données (pas fichiers `/tmp`)
