@@ -10,25 +10,37 @@ from app.services.galaxy_roles_service import GalaxyRolesService
 class TestGalaxyRolesService:
     """Test suite for GalaxyRolesService"""
 
+    PUBLIC_SOURCE = {
+        "id": "pub-1",
+        "name": "Ansible Galaxy (Public)",
+        "source_type": "public",
+        "url": "https://galaxy.ansible.com",
+        "token": None,
+        "priority": 10,
+    }
+
+    PRIVATE_SOURCE = {
+        "id": "priv-1",
+        "name": "Private Hub",
+        "source_type": "private",
+        "url": "https://hub.mycompany.com",
+        "token": "my-secret-token",
+        "priority": 5,
+    }
+
     @pytest.fixture
     def service(self):
-        """Create a fresh service instance for each test"""
-        with patch('app.services.galaxy_roles_service.settings') as mock_settings:
-            mock_settings.GALAXY_PUBLIC_URL = "https://galaxy.ansible.com"
-            mock_settings.GALAXY_PRIVATE_URL = ""
-            mock_settings.GALAXY_PRIVATE_TOKEN = ""
-            mock_settings.GALAXY_PREFERRED_SOURCE = "public"
-            return GalaxyRolesService()
+        """Create a fresh service instance with public Galaxy only"""
+        svc = GalaxyRolesService()
+        with patch.object(svc, '_get_active_sources', return_value=[self.PUBLIC_SOURCE]):
+            yield svc
 
     @pytest.fixture
     def service_with_private(self):
-        """Create service with private Galaxy configured"""
-        with patch('app.services.galaxy_roles_service.settings') as mock_settings:
-            mock_settings.GALAXY_PUBLIC_URL = "https://galaxy.ansible.com"
-            mock_settings.GALAXY_PRIVATE_URL = "https://hub.mycompany.com"
-            mock_settings.GALAXY_PRIVATE_TOKEN = "my-secret-token"
-            mock_settings.GALAXY_PREFERRED_SOURCE = "both"
-            return GalaxyRolesService()
+        """Create service with both public and private Galaxy"""
+        svc = GalaxyRolesService()
+        with patch.object(svc, '_get_active_sources', return_value=[self.PRIVATE_SOURCE, self.PUBLIC_SOURCE]):
+            yield svc
 
     # ========================================
     # Configuration Tests
@@ -41,7 +53,6 @@ class TestGalaxyRolesService:
         assert config["public_url"] == "https://galaxy.ansible.com"
         assert config["private_configured"] is False
         assert config["private_url"] is None
-        assert config["preferred_source"] == "public"
 
     def test_get_config_with_private(self, service_with_private):
         """Test config with private Galaxy configured"""
@@ -50,7 +61,6 @@ class TestGalaxyRolesService:
         assert config["public_url"] == "https://galaxy.ansible.com"
         assert config["private_configured"] is True
         assert config["private_url"] == "https://hub.mycompany.com"
-        assert config["preferred_source"] == "both"
 
     def test_get_base_url_public(self, service):
         """Test base URL for public source"""
@@ -58,9 +68,9 @@ class TestGalaxyRolesService:
         assert url == "https://galaxy.ansible.com"
 
     def test_get_base_url_private_not_configured(self, service):
-        """Test base URL falls back to public when private not configured"""
+        """Test base URL returns None when private not configured"""
         url = service._get_base_url("private")
-        assert url == "https://galaxy.ansible.com"
+        assert url is None
 
     def test_get_base_url_private_configured(self, service_with_private):
         """Test base URL for private source"""

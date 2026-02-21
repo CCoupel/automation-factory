@@ -106,16 +106,13 @@ class TestAnsibleEndpoints:
             
     def test_get_namespace_collections_success(self):
         """Test successful namespace collections retrieval"""
-        mock_collections = {
-            "community": ["general", "aws", "mysql"],
-            "ansible": ["posix"]
-        }
-        
-        with patch('app.services.ansible_collections_service.ansible_collections_service.get_collections') as mock_get:
-            mock_get.return_value = mock_collections
-            
+        mock_ns_collections = ["general", "aws", "mysql"]
+
+        with patch('app.services.ansible_collections_service.ansible_collections_service.get_namespace_collections') as mock_get:
+            mock_get.return_value = mock_ns_collections
+
             response = client.get("/api/ansible/latest/namespaces/community/collections")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["ansible_version"] == "latest"
