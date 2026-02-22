@@ -38,6 +38,51 @@ from app.services.playbook_access_service import (
 router = APIRouter(prefix="/playbooks", tags=["collaboration"])
 
 
+# === Shared With Me Endpoint ===
+# NOTE: Must be defined BEFORE /{playbook_id} routes to avoid being
+# shadowed by the path parameter catch-all.
+
+@router.get("/shared-with-me", response_model=SharedPlaybooksListResponse)
+async def list_shared_with_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    List playbooks that have been shared with the current user.
+
+    Returns:
+        List of shared playbooks with owner info and user's role
+    """
+    # Get shares for current user with playbook and owner info
+    shares_result = await db.execute(
+        select(PlaybookShare, Playbook, User)
+        .join(Playbook, PlaybookShare.playbook_id == Playbook.id)
+        .join(User, Playbook.owner_id == User.id)
+        .where(PlaybookShare.user_id == current_user.id)
+        .order_by(Playbook.updated_at.desc())
+    )
+    results = shares_result.all()
+
+    playbooks = []
+    for share, playbook, owner in results:
+        playbooks.append(SharedPlaybookResponse(
+            id=playbook.id,
+            name=playbook.name,
+            description=playbook.description,
+            owner_id=playbook.owner_id,
+            owner_username=owner.username,
+            role=share.role,
+            version=playbook.version,
+            created_at=playbook.created_at,
+            updated_at=playbook.updated_at
+        ))
+
+    return SharedPlaybooksListResponse(
+        playbooks=playbooks,
+        total=len(playbooks)
+    )
+
+
 # === Share Endpoints ===
 
 @router.post("/{playbook_id}/shares", response_model=ShareResponse, status_code=status.HTTP_201_CREATED)
@@ -305,49 +350,6 @@ async def delete_share(
     await db.commit()
 
     return None
-
-
-# === Shared With Me Endpoint ===
-
-@router.get("/shared-with-me", response_model=SharedPlaybooksListResponse)
-async def list_shared_with_me(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    List playbooks that have been shared with the current user.
-
-    Returns:
-        List of shared playbooks with owner info and user's role
-    """
-    # Get shares for current user with playbook and owner info
-    shares_result = await db.execute(
-        select(PlaybookShare, Playbook, User)
-        .join(Playbook, PlaybookShare.playbook_id == Playbook.id)
-        .join(User, Playbook.owner_id == User.id)
-        .where(PlaybookShare.user_id == current_user.id)
-        .order_by(Playbook.updated_at.desc())
-    )
-    results = shares_result.all()
-
-    playbooks = []
-    for share, playbook, owner in results:
-        playbooks.append(SharedPlaybookResponse(
-            id=playbook.id,
-            name=playbook.name,
-            description=playbook.description,
-            owner_id=playbook.owner_id,
-            owner_username=owner.username,
-            role=share.role,
-            version=playbook.version,
-            created_at=playbook.created_at,
-            updated_at=playbook.updated_at
-        ))
-
-    return SharedPlaybooksListResponse(
-        playbooks=playbooks,
-        total=len(playbooks)
-    )
 
 
 # === Audit Log Endpoints ===

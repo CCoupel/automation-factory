@@ -334,13 +334,16 @@ class TestGalaxyRolesService:
     # ========================================
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Integration test - requires network access")
     async def test_real_api_call(self, service):
-        """Integration test - uncomment to test real API"""
-        result = await service.get_standalone_roles(
-            search="docker",
-            page_size=5
-        )
+        """Integration test — calls the real Galaxy API (skips on network failure)."""
+        try:
+            result = await service.get_standalone_roles(
+                search="docker",
+                page_size=5
+            )
+        except Exception as exc:
+            pytest.skip(f"Galaxy API unreachable: {exc}")
+        finally:
+            await service.close_session()
         assert result["count"] > 0
         assert len(result["results"]) <= 5
-        await service.close_session()
