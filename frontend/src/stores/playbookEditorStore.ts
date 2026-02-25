@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType } from '../types/playbook'
+import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType, PlaySectionName } from '../types/playbook'
 import { PlaybookContent } from '../services/playbookService'
 import { PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
 import { CustomTypeInfo } from '../utils/assertionsGenerator'
@@ -149,6 +149,13 @@ interface PlaybookEditorActions {
   setResizingBlock: (block: PlaybookEditorState['resizingBlock']) => void
   setCustomTypes: (types: CustomTypeInfo[]) => void
   setHighlightedElements: (elements: Map<string, string> | ((prev: Map<string, string>) => Map<string, string>)) => void
+
+  // Toggle helpers (used by canvas components directly)
+  toggleBlockCollapse: (blockId: string) => void
+  toggleBlockSection: (blockId: string, section: 'normal' | 'rescue' | 'always') => void
+  togglePlaySection: (playId: string, section: PlaySectionName) => void
+  isSectionCollapsed: (blockId: string, section: 'normal' | 'rescue' | 'always') => boolean
+  isPlaySectionCollapsed: (playId: string, section: PlaySectionName) => boolean
 
   // Highlight helper
   highlightElement: (elementId: string, userId: string, durationMs: number) => void
@@ -486,6 +493,91 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
     set(state => ({
       highlightedElements: typeof elementsOrFn === 'function' ? elementsOrFn(state.highlightedElements) : elementsOrFn,
     }))
+  },
+
+  // --------------------------------------------------
+  // Toggle helpers
+  // --------------------------------------------------
+
+  toggleBlockCollapse: (blockId) => {
+    set(state => {
+      const newSet = new Set(state.collapsedBlocks)
+      if (newSet.has(blockId)) {
+        newSet.delete(blockId)
+      } else {
+        newSet.add(blockId)
+      }
+      return { collapsedBlocks: newSet }
+    })
+  },
+
+  toggleBlockSection: (blockId, section) => {
+    set(state => {
+      const newSet = new Set(state.collapsedBlockSections)
+      const key = `${blockId}:${section}`
+      const wildcardKey = `*:${section}`
+      const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
+
+      if (isCurrentlyCollapsed) {
+        const otherSections: Array<'normal' | 'rescue' | 'always'> = ['normal', 'rescue', 'always']
+        otherSections.forEach(s => {
+          newSet.delete(`*:${s}`)
+          newSet.add(`${blockId}:${s}`)
+        })
+        newSet.delete(wildcardKey)
+        newSet.delete(key)
+      } else {
+        newSet.add(key)
+      }
+
+      return { collapsedBlockSections: newSet }
+    })
+  },
+
+  togglePlaySection: (playId, section) => {
+    set(state => {
+      const newSet = new Set(state.collapsedPlaySections)
+      const key = `${playId}:${section}`
+      const wildcardKey = `*:${section}`
+
+      if (section === 'variables' || section === 'roles') {
+        newSet.delete(wildcardKey)
+        if (newSet.has(key)) {
+          newSet.delete(key)
+        } else {
+          newSet.add(key)
+        }
+        return { collapsedPlaySections: newSet }
+      }
+
+      const isCurrentlyCollapsed = newSet.has(key) || newSet.has(wildcardKey)
+
+      if (isCurrentlyCollapsed) {
+        const taskSections: Array<'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'> = ['pre_tasks', 'tasks', 'post_tasks', 'handlers']
+        taskSections.forEach(s => {
+          newSet.delete(`*:${s}`)
+          newSet.add(`${playId}:${s}`)
+        })
+        newSet.delete(wildcardKey)
+        newSet.delete(key)
+      }
+
+      return { collapsedPlaySections: newSet }
+    })
+  },
+
+  isSectionCollapsed: (blockId, section) => {
+    const state = get()
+    const key = `${blockId}:${section}`
+    const wildcardKey = `*:${section}`
+    return state.collapsedBlockSections.has(key) || state.collapsedBlockSections.has(wildcardKey)
+  },
+
+  isPlaySectionCollapsed: (playId, section) => {
+    const state = get()
+    const key = `${playId}:${section}`
+    const wildcardKey = `*:${section}`
+    return state.collapsedPlaySections.has(key) || state.collapsedPlaySections.has(wildcardKey)
   },
 
   // --------------------------------------------------
