@@ -50,6 +50,7 @@ import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
 import ShareDialog from '../collaboration/ShareDialog'
 import ConfigurationDialog from '../dialogs/ConfigurationDialog'
+import { useSaveInfo } from '../../stores/playbookEditorStore'
 
 interface ConnectedUser {
   user_id: string
@@ -58,9 +59,6 @@ interface ConnectedUser {
 }
 
 interface AppHeaderProps {
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error'
-  playbookName: string
-  playbookId: string | null
   connectedUsers?: ConnectedUser[]
   isCollaborationConnected?: boolean
   onOpenPlaybookManager: () => void
@@ -82,13 +80,11 @@ interface AppHeaderProps {
  * - Auto-save status indicator
  */
 const AppHeader: React.FC<AppHeaderProps> = ({
-  saveStatus,
-  playbookName: playbookNameProp,
-  playbookId,
   connectedUsers = [],
   isCollaborationConnected = false,
   onOpenPlaybookManager
 }) => {
+  const { saveStatus, playbookName: playbookNameProp, playbookId } = useSaveInfo()
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
   const { themeMode, darkMode, setThemeMode, cycleThemeMode } = useTheme()

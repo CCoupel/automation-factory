@@ -38,6 +38,27 @@ vi.mock('../../utils/httpClient', () => ({
   getHttpClient: vi.fn(() => ({ get: vi.fn(), post: vi.fn() })),
 }))
 
+// Mock react-i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        login: 'Login',
+        register: 'Register',
+        loginButton: 'Sign In',
+        registerButton: 'Register',
+        email: 'Email',
+        password: 'Password',
+        username: 'Username',
+        confirmPassword: 'Confirm Password',
+      }
+      return translations[key] || key
+    },
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
+  Trans: ({ children }: any) => children,
+}))
+
 import LoginPage from '../LoginPage'
 
 const renderLoginPage = () =>
@@ -76,7 +97,7 @@ describe('LoginPage', () => {
     renderLoginPage()
     const user = userEvent.setup()
 
-    const submitButton = screen.getByRole('button', { name: /se connecter/i })
+    const submitButton = screen.getByRole('button', { name: /sign in/i })
     await user.click(submitButton)
 
     // Should not call login with empty fields (HTML required validation blocks it)
@@ -95,7 +116,7 @@ describe('LoginPage', () => {
     const passwordInputs = document.querySelectorAll('input[type="password"]')
     await user.type(passwordInputs[0], 'password123')
 
-    const submitButton = screen.getByRole('button', { name: /se connecter/i })
+    const submitButton = screen.getByRole('button', { name: /sign in/i })
     await user.click(submitButton)
 
     expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123')

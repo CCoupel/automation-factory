@@ -64,6 +64,35 @@ vi.mock('../../dialogs/ConfigurationDialog', () => ({
   default: () => null,
 }))
 
+vi.mock('../../../stores/playbookEditorStore', () => ({
+  useSaveInfo: vi.fn(() => ({
+    saveStatus: 'saved',
+    playbookName: 'Test Playbook',
+    playbookId: 'pb-1',
+  })),
+}))
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        changePassword: 'Change Password',
+        configuration: 'Configuration',
+        about: 'About',
+        language: 'Language',
+        darkMode: 'Dark Mode',
+        lightMode: 'Light Mode',
+        systemMode: 'System Mode',
+        admin: 'Admin',
+        logout: 'Logout',
+      }
+      return translations[key] || key
+    },
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
+  Trans: ({ children }: any) => children,
+}))
+
 // Dynamic import to get the component after mocks
 const { default: AppHeader } = await import('../AppHeader')
 
@@ -71,9 +100,6 @@ const renderAppHeader = (props = {}) =>
   render(
     <MemoryRouter>
       <AppHeader
-        saveStatus="saved"
-        playbookName="Test Playbook"
-        playbookId="pb-1"
         onOpenPlaybookManager={vi.fn()}
         {...props}
       />

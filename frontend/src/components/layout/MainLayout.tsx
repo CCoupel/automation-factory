@@ -3,53 +3,20 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { useCollaborationSync } from '../../hooks/useCollaborationSync'
-import { PlaybookUpdate } from '../../hooks/usePlaybookWebSocket'
+import { usePlaybookPersistence } from '../../hooks/usePlaybookPersistence'
+import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import WorkZone, { CollaborationCallbacks } from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
-import { PlayAttributes, ModuleSchema } from '../../types/playbook'
-import { PlaybookContent } from '../../services/playbookService'
-
-interface SelectedModule {
-  id: string
-  name: string
-  collection: string
-  taskName: string
-  when?: string
-  ignoreErrors?: boolean
-  become?: boolean
-  loop?: string
-  delegateTo?: string
-  isBlock?: boolean
-  isPlay?: boolean
-  isSystem?: boolean
-  moduleParameters?: Record<string, any>
-  moduleSchema?: ModuleSchema
-  validationState?: {
-    isValid: boolean
-    errors: string[]
-    warnings: string[]
-    lastValidated?: Date
-  }
-  description?: string
-}
-
-// Selected role for configuration
-interface SelectedRole {
-  index: number
-  role: string
-  vars?: Record<string, any>
-}
 
 const MainLayout = () => {
-  const [selectedModule, setSelectedModule] = useState<SelectedModule | null>(null)
-  const [selectedRole, setSelectedRole] = useState<SelectedRole | null>(null)
+  // Local UI state (zone widths, collapse states, resize flags)
   const [systemZoneHeight, setSystemZoneHeight] = useState(200)
   const [modulesZoneWidth, setModulesZoneWidth] = useState(280)
   const [configZoneWidth, setConfigZoneWidth] = useState(320)
@@ -59,51 +26,15 @@ const MainLayout = () => {
   const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
-  const deleteModuleCallbackRef = useRef<((id: string) => void) | null>(null)
-  const updateModuleCallbackRef = useRef<((id: string, updates: Partial<{
-    taskName?: string;
-    when?: string;
-    ignoreErrors?: boolean;
-    become?: boolean;
-    loop?: string;
-    delegateTo?: string;
-    moduleParameters?: Record<string, any>;
-    moduleSchema?: ModuleSchema;
-    validationState?: {
-      isValid: boolean;
-      errors: string[];
-      warnings: string[];
-      lastValidated?: Date;
-    }
-  }>) => void) | null>(null)
-  const getPlayAttributesCallbackRef = useRef<(() => PlayAttributes) | null>(null)
-  const updatePlayAttributesCallbackRef = useRef<((updates: Partial<PlayAttributes>) => void) | null>(null)
-  const updateRoleCallbackRef = useRef<((index: number, updates: { role?: string; vars?: Record<string, any> }) => void) | null>(null)
-  const getRolesCallbackRef = useRef<(() => (string | { role: string; vars?: Record<string, any> })[]) | null>(null)
-  const savePlaybookCallbackRef = useRef<(() => Promise<void>) | null>(null)
-  const loadPlaybookCallbackRef = useRef<((playbookId: string) => Promise<void>) | null>(null)
-  const getPlaybookContentCallbackRef = useRef<(() => PlaybookContent) | null>(null)
-
-  // Playbook save status
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [playbookName, setPlaybookName] = useState<string>(() => {
-    return sessionStorage.getItem('currentPlaybookName') || 'Untitled Playbook'
-  })
-  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(() => {
-    return sessionStorage.getItem('currentPlaybookId')
-  })
-
-  // Playbook manager dialog
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
 
-  // Active play ID (for collaboration - different from playbook ID)
-  const [activePlayId, setActivePlayId] = useState<string | null>(null)
+  // Store state
+  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
+  const activeSectionTab = usePlaybookEditorStore(s => s.activeSectionTab)
+  const applyCollaborationUpdate = usePlaybookEditorStore(s => s.applyCollaborationUpdate)
 
-  // Active section tab from WorkZone (for ModulesZone visibility)
-  const [activeSectionTab, setActiveSectionTab] = useState<'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handlers'>('tasks')
-
-  // Force re-render counter for collaboration updates that affect refs
-  const [, forceRender] = useState(0)
+  // Persistence hook (handles save/load/cache/auto-save)
+  const { loadPlaybook } = usePlaybookPersistence()
 
   // Collaboration
   const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected, lastUpdate } = useCollaboration()
@@ -126,10 +57,7 @@ const MainLayout = () => {
     sendModuleResize
   } = useCollaborationSync()
 
-  // Ref for applying collaboration updates to WorkZone
-  const applyCollaborationUpdateRef = useRef<((update: PlaybookUpdate) => void) | null>(null)
-
-  // Create collaboration callbacks object (memoized)
+  // Create collaboration callbacks object
   const collaborationCallbacks: CollaborationCallbacks = {
     sendModuleAdd,
     sendModuleMove,
@@ -149,22 +77,13 @@ const MainLayout = () => {
     sendSectionCollapse
   }
 
-  // Apply received collaboration updates to WorkZone
+  // Apply received collaboration updates directly to store
   useEffect(() => {
-    if (lastUpdate && applyCollaborationUpdateRef.current) {
+    if (lastUpdate) {
       console.log('[MainLayout] Received collaboration update:', lastUpdate.update_type)
-      applyCollaborationUpdateRef.current(lastUpdate)
-
-      // Force re-render for updates that affect refs (play_update, module_config)
-      // This ensures ConfigZone gets the updated playAttributes/selectedModule
-      if (lastUpdate.update_type === 'play_update') {
-        // Small delay to let WorkZone update its state first
-        setTimeout(() => {
-          forceRender(prev => prev + 1)
-        }, 50)
-      }
+      applyCollaborationUpdate(lastUpdate)
     }
-  }, [lastUpdate])
+  }, [lastUpdate, applyCollaborationUpdate])
 
   // Store functions in refs to avoid dependency issues
   const connectToPlaybookRef = useRef(connectToPlaybook)
@@ -188,19 +107,6 @@ const MainLayout = () => {
       disconnectFromPlaybookRef.current()
     }
   }, [currentPlaybookId])
-
-  // Persist playbook ID and name in sessionStorage for navigation
-  useEffect(() => {
-    if (currentPlaybookId) {
-      sessionStorage.setItem('currentPlaybookId', currentPlaybookId)
-    } else {
-      sessionStorage.removeItem('currentPlaybookId')
-    }
-  }, [currentPlaybookId])
-
-  useEffect(() => {
-    sessionStorage.setItem('currentPlaybookName', playbookName)
-  }, [playbookName])
 
   const handleSystemMouseDown = () => {
     setIsResizingSystem(true)
@@ -263,11 +169,8 @@ const MainLayout = () => {
         overflow: 'hidden',
       }}
     >
-      {/* App Header - User info and Logout */}
+      {/* App Header - reads from store directly */}
       <AppHeader
-        saveStatus={saveStatus}
-        playbookName={playbookName}
-        playbookId={currentPlaybookId}
         connectedUsers={connectedUsers}
         isCollaborationConnected={isConnected}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
@@ -380,39 +283,7 @@ const MainLayout = () => {
             </Tooltip>
           )}
           <WorkZone
-            onSelectModule={(module) => {
-              setSelectedModule(module)
-              if (module) setSelectedRole(null) // Deselect role when module is selected
-            }}
-            selectedModuleId={selectedModule?.id || null}
-            onDeleteModule={(callback) => { deleteModuleCallbackRef.current = callback }}
-            onUpdateModule={(callback) => { updateModuleCallbackRef.current = callback }}
-            onPlayAttributes={(getCallback, updateCallback) => {
-              getPlayAttributesCallbackRef.current = getCallback
-              updatePlayAttributesCallbackRef.current = updateCallback
-            }}
-            onSelectRole={(role) => {
-              setSelectedRole(role)
-              if (role) setSelectedModule(null) // Deselect module when role is selected
-            }}
-            selectedRoleIndex={selectedRole?.index ?? null}
-            onRoleCallbacks={(getCallback, updateCallback) => {
-              getRolesCallbackRef.current = getCallback
-              updateRoleCallbackRef.current = updateCallback
-            }}
-            onSaveStatusChange={(status, name) => {
-              setSaveStatus(status)
-              setPlaybookName(name)
-            }}
-            onSavePlaybook={(callback) => { savePlaybookCallbackRef.current = callback }}
-            onLoadPlaybook={(callback) => { loadPlaybookCallbackRef.current = callback }}
-            onGetPlaybookContent={(callback) => { getPlaybookContentCallbackRef.current = callback }}
             collaborationCallbacks={collaborationCallbacks}
-            onApplyCollaborationUpdate={(handler) => { applyCollaborationUpdateRef.current = handler }}
-            onActivePlayIdChange={setActivePlayId}
-            initialPlaybookId={currentPlaybookId}
-            onPlaybookIdChange={setCurrentPlaybookId}
-            onActiveSectionTabChange={setActiveSectionTab}
           />
         </Box>
 
@@ -459,16 +330,8 @@ const MainLayout = () => {
               />
             </Box>
             <ConfigZone
-              selectedModule={selectedModule}
               onCollapse={() => setIsConfigCollapsed(true)}
-              onDelete={(id) => deleteModuleCallbackRef.current?.(id)}
-              onUpdateModule={(id, updates) => updateModuleCallbackRef.current?.(id, updates)}
-              playAttributes={getPlayAttributesCallbackRef.current?.() || {}}
-              onUpdatePlay={(updates) => updatePlayAttributesCallbackRef.current?.(updates)}
               collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate }}
-              activePlayId={activePlayId || undefined}
-              selectedRole={selectedRole}
-              onUpdateRole={(index, updates) => updateRoleCallbackRef.current?.(index, updates)}
             />
           </Box>
         )}
@@ -532,10 +395,7 @@ const MainLayout = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          <SystemZone
-            getPlaybookContent={() => getPlaybookContentCallbackRef.current?.()}
-            onSaveComplete={saveStatus === 'saved'}
-          />
+          <SystemZone />
         </Box>
       ) : (
         <Box
@@ -568,11 +428,8 @@ const MainLayout = () => {
         onClose={() => setPlaybookManagerOpen(false)}
         onSelectPlaybook={async (playbookId) => {
           console.log('[MainLayout] onSelectPlaybook called with:', playbookId)
-          if (loadPlaybookCallbackRef.current) {
-            await loadPlaybookCallbackRef.current(playbookId)
-            console.log('[MainLayout] Playbook loaded, setting currentPlaybookId to:', playbookId)
-            setCurrentPlaybookId(playbookId)
-          }
+          await loadPlaybook(playbookId)
+          console.log('[MainLayout] Playbook loaded:', playbookId)
         }}
         currentPlaybookId={currentPlaybookId}
       />
