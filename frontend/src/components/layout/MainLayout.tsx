@@ -4,6 +4,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { useCollaborationSync } from '../../hooks/useCollaborationSync'
@@ -16,6 +17,8 @@ import SystemZone from '../zones/SystemZone'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 
 const MainLayout = () => {
+  const { playbookId: routePlaybookId } = useParams<{ playbookId: string }>()
+
   // Local UI state (zone widths, collapse states, resize flags)
   const [systemZoneHeight, setSystemZoneHeight] = useState(200)
   const [modulesZoneWidth, setModulesZoneWidth] = useState(280)
@@ -76,6 +79,15 @@ const MainLayout = () => {
     sendBlockCollapse,
     sendSectionCollapse
   }
+
+  // Auto-load playbook from route params
+  const loadPlaybookRef = useRef(loadPlaybook)
+  useEffect(() => { loadPlaybookRef.current = loadPlaybook })
+  useEffect(() => {
+    if (routePlaybookId && routePlaybookId !== currentPlaybookId) {
+      loadPlaybookRef.current(routePlaybookId)
+    }
+  }, [routePlaybookId])
 
   // Apply received collaboration updates directly to store
   useEffect(() => {
