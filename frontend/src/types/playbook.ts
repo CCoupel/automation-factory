@@ -189,6 +189,9 @@ export interface ModuleBlock {
   width?: number
   height?: number
 
+  // Ports for design-time variable validation
+  ports?: Port[]
+
   // ============================================
   // SystemBlock specific properties
   // ============================================
@@ -402,3 +405,38 @@ export type BlockSectionName = 'normal' | 'rescue' | 'always'
  * Combined section name type
  */
 export type SectionName = PlaySectionName | BlockSectionName
+
+// =====================================================
+// Port & Data Link types (Design-Time Validation)
+// =====================================================
+
+/**
+ * Direction of a port on a module
+ */
+export type PortDirection = 'input' | 'output'
+
+/**
+ * A port on a module representing a variable input or output
+ */
+export interface Port {
+  id: string                    // `${moduleId}:${direction}:${varName}`
+  moduleId: string
+  direction: PortDirection
+  varName: string
+  type: string                  // 'str' | 'int' | 'bool' | 'list' | 'dict' | 'any'
+  description?: string
+  scope?: string                // output only: 'host' | 'play' | 'global'
+  required?: boolean            // input only (from argument_specs)
+  alwaysSet?: boolean           // output only (from return_specs)
+}
+
+/**
+ * A data link connecting an output port to an input port
+ */
+export interface DataLink {
+  id: string
+  fromPortId: string
+  toPortId: string
+  varName: string
+  autoInferred: boolean
+}
