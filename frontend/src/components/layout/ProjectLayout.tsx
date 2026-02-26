@@ -11,13 +11,16 @@ import {
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CloseIcon from '@mui/icons-material/Close'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useEditorStore } from '../../stores/editorStore'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
+import InventoryEditor from '../editors/InventoryEditor'
 
 const ProjectLayout: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
@@ -28,6 +31,12 @@ const ProjectLayout: React.FC = () => {
   const fetchProject = useProjectStore(s => s.fetchProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
+
+  const editorTabs = useEditorStore(s => s.tabs)
+  const activeTabIndex = useEditorStore(s => s.activeTabIndex)
+  const setActiveTab = useEditorStore(s => s.setActiveTab)
+  const closeTab = useEditorStore(s => s.closeTab)
+  const closeAllTabs = useEditorStore(s => s.closeAllTabs)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -45,7 +54,7 @@ const ProjectLayout: React.FC = () => {
       fetchProject(projectId)
       fetchArtifacts(projectId)
     }
-    return () => { clearCurrentProject() }
+    return () => { clearCurrentProject(); closeAllTabs() }
   }, [projectId])
 
   // Resize handlers
@@ -152,7 +161,7 @@ const ProjectLayout: React.FC = () => {
         )}
 
         {/* Center area */}
-        <Box sx={{ flex: 1, overflow: 'auto', minWidth: 0, position: 'relative' }}>
+        <Box sx={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           {isLeftCollapsed && (
             <Tooltip title={t('projectTree')} placement="right">
               <IconButton
@@ -168,17 +177,88 @@ const ProjectLayout: React.FC = () => {
             </Tooltip>
           )}
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            p: 4,
-          }}>
-            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-              {t('selectArtifact')}
-            </Typography>
-          </Box>
+          {editorTabs.length > 0 ? (
+            <>
+              {/* Editor tab bar */}
+              <Box sx={{
+                display: 'flex',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                overflow: 'auto',
+                minHeight: 36,
+              }}>
+                {editorTabs.map((tab, index) => (
+                  <Box
+                    key={tab.id}
+                    onClick={() => setActiveTab(index)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 1.5,
+                      py: 0.5,
+                      cursor: 'pointer',
+                      borderRight: '1px solid',
+                      borderColor: 'divider',
+                      bgcolor: index === activeTabIndex ? 'background.default' : 'transparent',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      minWidth: 0,
+                      maxWidth: 200,
+                    }}
+                  >
+                    <Typography variant="caption" noWrap sx={{ flex: 1 }}>
+                      {tab.title}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={e => { e.stopPropagation(); closeTab(tab.id) }}
+                      sx={{ p: 0.25 }}
+                    >
+                      <CloseIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Active editor */}
+              <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                {editorTabs[activeTabIndex] && (() => {
+                  const activeTab = editorTabs[activeTabIndex]
+                  switch (activeTab.type) {
+                    case 'inventory':
+                      return (
+                        <InventoryEditor
+                          artifactPath={activeTab.artifactPath}
+                          artifactId={activeTab.artifactId}
+                          projectId={projectId || ''}
+                        />
+                      )
+                    default:
+                      return (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                          <Typography variant="body1" color="text.secondary">
+                            {t('comingSoon')}
+                          </Typography>
+                        </Box>
+                      )
+                  }
+                })()}
+              </Box>
+            </>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              p: 4,
+            }}>
+              <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                {t('selectArtifact')}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 
