@@ -283,7 +283,7 @@ const ProjectLayout: React.FC = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          <SystemZone />
+          <SystemZone projectId={projectId} />
         </Box>
       ) : (
         <Box

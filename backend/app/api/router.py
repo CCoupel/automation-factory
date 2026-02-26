@@ -6,7 +6,7 @@ Note: Legacy Galaxy endpoints (/api/galaxy/*) have been removed.
 """
 
 from fastapi import APIRouter
-from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, projects, project_artifacts, project_shares, git_credentials, yaml_parser, git_import, return_specs
+from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, projects, project_artifacts, project_shares, git_credentials, yaml_parser, git_import, return_specs, validation
 from app.version import __version__
 
 # Create main API router
@@ -28,6 +28,7 @@ api_router.include_router(galaxy_roles.router)  # Galaxy roles API (v1 standalon
 api_router.include_router(playbook_export.router)  # Diagram export (ABD, Mermaid, SVG)
 api_router.include_router(galaxy_sources.router)  # Galaxy sources admin configuration
 api_router.include_router(return_specs.router)  # Role return spec inference
+api_router.include_router(validation.router)  # Variable chain validation
 api_router.include_router(git_import.router)  # Git import (must come before projects catch-all)
 api_router.include_router(projects.router)  # Project CRUD
 api_router.include_router(project_artifacts.router)  # Project artifacts

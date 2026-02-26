@@ -1236,6 +1236,20 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
                   )}
                 </Box>
 
+                {/* Role argument_specs validation for include_role/import_role */}
+                {selectedModule.collection === 'ansible.builtin' &&
+                  (selectedModule.name === 'include_role' || selectedModule.name === 'import_role') &&
+                  moduleParameters?.name && (
+                  <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.lighter', borderRadius: 1, borderLeft: 3, borderColor: 'info.main' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ display: 'block', mb: 0.5 }}>
+                      Role: {moduleParameters.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Variable validation available in SystemZone &gt; Variables tab.
+                    </Typography>
+                  </Box>
+                )}
+
                 <Divider sx={{ my: 2 }} />
 
                 <Typography variant="caption" color="text.secondary">

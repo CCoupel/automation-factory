@@ -7,15 +7,23 @@ import WarningIcon from '@mui/icons-material/Warning'
 import InfoIcon from '@mui/icons-material/Info'
 import CodeIcon from '@mui/icons-material/Code'
 import RuleIcon from '@mui/icons-material/Rule'
+import LinkIcon from '@mui/icons-material/Link'
 import { useState, useEffect, useCallback } from 'react'
 import { playbookPreviewService, FullValidationResponse } from '../../services/playbookPreviewService'
 import { useAuth } from '../../contexts/AuthContext'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
+import VariableChainPanel from '../validation/VariableChainPanel'
+import { useTranslation } from 'react-i18next'
 
 type PreviewStatus = 'idle' | 'loading' | 'success' | 'error'
 type ValidationStatus = 'idle' | 'loading' | 'valid' | 'warnings' | 'errors'
 
-const SystemZone = () => {
+interface SystemZoneProps {
+  projectId?: string
+}
+
+const SystemZone = ({ projectId }: SystemZoneProps = {}) => {
+  const { t } = useTranslation('project')
   const serializePlaybookContent = usePlaybookEditorStore(s => s.serializePlaybookContent)
   const saveStatus = usePlaybookEditorStore(s => s.saveStatus)
   const getPlaybookContent = useCallback(() => serializePlaybookContent(), [serializePlaybookContent])
@@ -179,6 +187,14 @@ const SystemZone = () => {
               '&.Mui-selected': { color: getValidationTabColor() }
             }}
           />
+          {projectId && (
+            <Tab
+              label={t('variableChains')}
+              icon={<LinkIcon sx={{ fontSize: 16 }} />}
+              iconPosition="start"
+              sx={{ minHeight: 40 }}
+            />
+          )}
         </Tabs>
 
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -506,6 +522,14 @@ const SystemZone = () => {
               </Typography>
             )}
           </Paper>
+        )}
+
+        {/* Variables Tab */}
+        {activeTab === 2 && projectId && (
+          <VariableChainPanel
+            projectId={projectId}
+            playbookYaml={yamlContent}
+          />
         )}
       </Box>
     </Box>

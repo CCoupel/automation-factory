@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType, PlaySectionName } from '../types/playbook'
+import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType, PlaySectionName, DataLink } from '../types/playbook'
 import { PlaybookContent } from '../services/playbookService'
 import { PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
 import { CustomTypeInfo } from '../utils/assertionsGenerator'
@@ -101,6 +101,10 @@ interface PlaybookEditorState {
   highlightedElements: Map<string, string>
   resizingBlock: { id: string; startX: number; startY: number; startWidth: number; startHeight: number; startBlockX: number; startBlockY: number; direction: string } | null
   customTypes: CustomTypeInfo[]
+
+  // Design-time validation
+  dataLinks: DataLink[]
+  hoveredPortId: string | null
 }
 
 interface PlaybookEditorActions {
@@ -159,6 +163,12 @@ interface PlaybookEditorActions {
 
   // Highlight helper
   highlightElement: (elementId: string, userId: string, durationMs: number) => void
+
+  // Design-time validation (ports & data links)
+  setDataLinks: (links: DataLink[]) => void
+  addDataLink: (link: DataLink) => void
+  removeDataLink: (linkId: string) => void
+  setHoveredPortId: (portId: string | null) => void
 
   // Serialization
   serializePlaybookContent: () => PlaybookContent
@@ -223,6 +233,8 @@ const initialState: PlaybookEditorState = {
   highlightedElements: new Map(),
   resizingBlock: null,
   customTypes: [],
+  dataLinks: [],
+  hoveredPortId: null,
 }
 
 // =====================================================
@@ -599,6 +611,26 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
       })
     }, durationMs)
   },
+
+  // --------------------------------------------------
+  // Design-time validation (ports & data links)
+  // --------------------------------------------------
+
+  setDataLinks: (links) => set({ dataLinks: links }),
+
+  addDataLink: (link) => {
+    set(state => ({
+      dataLinks: [...state.dataLinks, link],
+    }))
+  },
+
+  removeDataLink: (linkId) => {
+    set(state => ({
+      dataLinks: state.dataLinks.filter(l => l.id !== linkId),
+    }))
+  },
+
+  setHoveredPortId: (portId) => set({ hoveredPortId: portId }),
 
   // --------------------------------------------------
   // Serialization
