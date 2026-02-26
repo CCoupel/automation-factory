@@ -4,7 +4,7 @@ Progressive implementation plan for [PROJECT_WORKBENCH.md](./PROJECT_WORKBENCH.m
 Each PR is self-contained and reviewable independently.
 
 **Status:** In Progress
-**Date:** 2026-02-24
+**Date:** 2026-02-26
 
 ---
 
@@ -56,13 +56,14 @@ for `/projects`, `/projects/{id}/artifacts`, `/projects/{id}/shares`,
 - **Files:** 4 new models, 4 schemas, access control service, 4 endpoint routers, 48 integration tests (222 total)
 - **Depends on:** nothing (backend-only)
 
-### PR 5 — `feat/project-list-and-tree`
+### PR 5 — `feat/project-list-and-tree` ✅ Done
 
 Frontend: Home page with Projects / Standalone Playbooks tabs. Project creation
 (empty). `ProjectTree` component in left panel. Multi-tab work zone with
 `EditorStore` (Zustand). Router changes (`/projects/:id`,
 `/projects/:id/playbooks/:path`). Playbook editor opens from project tree.
 
+- **PR:** [#9](https://github.com/CCoupel/automation-factory/pull/9)
 - **Files:** new `stores/projectStore.ts`, `stores/editorStore.ts`, `components/project/ProjectTree.tsx`, `ProjectHeader.tsx`, route changes in `App.tsx`
 - **Depends on:** PR 1-2 (frontend stores), PR 4 (backend APIs)
 
@@ -70,7 +71,7 @@ Frontend: Home page with Projects / Standalone Playbooks tabs. Project creation
 
 ## Phase C: Git integration (import)
 
-### PR 6 — `feat/git-import`
+### PR 6 — `feat/git-import` ✅ Done
 
 Backend: `GitService` — clone repo, detect Ansible structure, parse artifacts
 using `YamlParserService`, create `ProjectArtifact` entries. `GitCredential` CRUD
@@ -80,13 +81,14 @@ endpoints. `POST /projects/import-git` endpoint. Git repos stored at
 Frontend: "Import from Git" dialog with clone URL, branch, credentials, progress
 indicator.
 
+- **PR:** [#10](https://github.com/CCoupel/automation-factory/pull/10)
 - **Depends on:** PR 3 (YAML parser), PR 4 (project model)
 
 ---
 
 ## Phase D: Role authoring
 
-### PR 7 — `feat/role-editor`
+### PR 7 — `feat/role-editor` ✅ Done
 
 Frontend: `RoleEditor` component with Interface / Tasks / Handlers / Templates /
 Files tabs. Tasks tab reuses `VisualCanvas` + `PlaySectionContent`. Interface tab
@@ -95,14 +97,16 @@ shows argument_specs and return_specs tables. `return_specs.yml` editing.
 Backend: `ReturnSpecService` — parse/validate `return_specs.yml`, infer specs
 from `set_fact` scanning.
 
+- **PR:** [#11](https://github.com/CCoupel/automation-factory/pull/11)
 - **Depends on:** PR 2 (reusable canvas), PR 5 (project tree navigation)
 
-### PR 8 — `feat/design-time-validation`
+### PR 8 — `feat/design-time-validation` ✅ Done
 
 Variable chain validation across roles and playbooks using argument_specs +
 return_specs. Warnings/errors in SystemZone. Output port rendering on canvas with
 connectable wiring.
 
+- **PR:** [#12](https://github.com/CCoupel/automation-factory/pull/12)
 - **Depends on:** PR 7 (role editor with specs)
 
 ---
