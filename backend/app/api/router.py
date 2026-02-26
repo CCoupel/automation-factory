@@ -6,7 +6,7 @@ Note: Legacy Galaxy endpoints (/api/galaxy/*) have been removed.
 """
 
 from fastapi import APIRouter
-from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, projects, project_artifacts, project_shares, git_credentials
+from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, projects, project_artifacts, project_shares, git_credentials, yaml_parser
 from app.version import __version__
 
 # Create main API router
@@ -31,3 +31,4 @@ api_router.include_router(projects.router)  # Project CRUD
 api_router.include_router(project_artifacts.router)  # Project artifacts
 api_router.include_router(project_shares.router)  # Project sharing
 api_router.include_router(git_credentials.router)  # Git credentials
+api_router.include_router(yaml_parser.router)  # YAML parser (Ansible YAML → graph)
