@@ -1,0 +1,31 @@
+{
+  "projects": "Projects",
+  "standalonePlaybooks": "Standalone Playbooks",
+  "newProject": "New Project",
+  "newPlaybook": "New Standalone Playbook",
+  "projectName": "Project name",
+  "description": "Description",
+  "create": "Create",
+  "delete": "Delete",
+  "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? All artifacts will be deleted.",
+  "noProjects": "No projects yet. Create your first project.",
+  "noPlaybooks": "No standalone playbooks.",
+  "lastEdited": "Last edited",
+  "sharedWith": "Shared with {{count}} user(s)",
+  "backToHome": "Back to home",
+  "projectTree": "Project",
+  "modules": "Modules",
+  "selectArtifact": "Select an artifact from the project tree to start editing.",
+  "comingSoon": "Editor for this artifact type is coming in a future release.",
+  "artifactTypes": {
+    "playbook": "Playbooks",
+    "role": "Roles",
+    "inventory": "Inventory",
+    "variable_file": "Variables",
+    "template": "Templates",
+    "collection_requirements": "Collections",
+    "custom_module": "Modules",
+    "ansible_cfg": "Configuration",
+    "file": "Files"
+  }
+}
