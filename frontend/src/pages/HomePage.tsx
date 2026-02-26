@@ -24,6 +24,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import FolderIcon from '@mui/icons-material/Folder'
 import DescriptionIcon from '@mui/icons-material/Description'
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload'
 import LogoutIcon from '@mui/icons-material/Logout'
 import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
@@ -38,6 +39,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { playbookService, Playbook } from '../services/playbookService'
 import ProjectCard from '../components/home/ProjectCard'
 import CreateProjectDialog from '../components/home/CreateProjectDialog'
+import ImportGitDialog from '../components/home/ImportGitDialog'
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
@@ -51,6 +53,7 @@ const HomePage: React.FC = () => {
   const [fabAnchor, setFabAnchor] = useState<null | HTMLElement>(null)
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [importGitDialogOpen, setImportGitDialogOpen] = useState(false)
 
   // Projects from store
   const projects = useProjectStore(s => s.projects)
@@ -291,11 +294,20 @@ const HomePage: React.FC = () => {
           <ListItemIcon><DescriptionIcon /></ListItemIcon>
           <ListItemText>{t('newPlaybook')}</ListItemText>
         </MenuItem>
+        <MenuItem onClick={() => { setFabAnchor(null); setImportGitDialogOpen(true) }}>
+          <ListItemIcon><CloudDownloadIcon /></ListItemIcon>
+          <ListItemText>{t('importFromGit')}</ListItemText>
+        </MenuItem>
       </Menu>
 
       <CreateProjectDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
+      />
+
+      <ImportGitDialog
+        open={importGitDialogOpen}
+        onClose={() => setImportGitDialogOpen(false)}
       />
     </Box>
   )
