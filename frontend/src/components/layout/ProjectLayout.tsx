@@ -11,13 +11,16 @@ import {
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CloseIcon from '@mui/icons-material/Close'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useEditorStore } from '../../stores/editorStore'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
+import RoleEditor from '../editors/RoleEditor'
 
 const ProjectLayout: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
@@ -28,6 +31,13 @@ const ProjectLayout: React.FC = () => {
   const fetchProject = useProjectStore(s => s.fetchProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
+
+  // Editor tabs
+  const editorTabs = useEditorStore(s => s.tabs)
+  const activeTabIndex = useEditorStore(s => s.activeTabIndex)
+  const setActiveTab = useEditorStore(s => s.setActiveTab)
+  const closeTab = useEditorStore(s => s.closeTab)
+  const closeAllTabs = useEditorStore(s => s.closeAllTabs)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -45,7 +55,7 @@ const ProjectLayout: React.FC = () => {
       fetchProject(projectId)
       fetchArtifacts(projectId)
     }
-    return () => { clearCurrentProject() }
+    return () => { clearCurrentProject(); closeAllTabs() }
   }, [projectId])
 
   // Resize handlers
@@ -152,7 +162,7 @@ const ProjectLayout: React.FC = () => {
         )}
 
         {/* Center area */}
-        <Box sx={{ flex: 1, overflow: 'auto', minWidth: 0, position: 'relative' }}>
+        <Box sx={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           {isLeftCollapsed && (
             <Tooltip title={t('projectTree')} placement="right">
               <IconButton
@@ -168,17 +178,66 @@ const ProjectLayout: React.FC = () => {
             </Tooltip>
           )}
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            p: 4,
-          }}>
-            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-              {t('selectArtifact')}
-            </Typography>
-          </Box>
+          {editorTabs.length > 0 ? (
+            <>
+              {/* Editor tab bar */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
+                <Tabs
+                  value={activeTabIndex}
+                  onChange={(_e, v) => setActiveTab(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ minHeight: 32, flex: 1, '& .MuiTab-root': { minHeight: 32, py: 0, px: 1.5, fontSize: '0.8rem', textTransform: 'none' } }}
+                >
+                  {editorTabs.map(tab => (
+                    <Tab
+                      key={tab.id}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <span>{tab.title}</span>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
+                            sx={{ p: 0.25, ml: 0.5, '& .MuiSvgIcon-root': { fontSize: '0.9rem' } }}
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </Box>
+                      }
+                    />
+                  ))}
+                </Tabs>
+              </Box>
+
+              {/* Active editor content */}
+              <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                {editorTabs[activeTabIndex]?.type === 'role' && projectId ? (
+                  <RoleEditor
+                    artifactPath={editorTabs[activeTabIndex].artifactPath}
+                    projectId={projectId}
+                  />
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      {t('comingSoon')}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              p: 4,
+            }}>
+              <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                {t('selectArtifact')}
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 

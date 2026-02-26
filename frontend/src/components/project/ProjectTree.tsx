@@ -25,6 +25,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useEditorStore } from '../../stores/editorStore'
 import { ProjectArtifact } from '../../services/projectService'
 import { playbookService } from '../../services/playbookService'
 
@@ -45,6 +46,7 @@ const ProjectTree: React.FC = () => {
   const navigate = useNavigate()
   const artifacts = useProjectStore(s => s.artifacts)
   const currentProject = useProjectStore(s => s.currentProject)
+  const openTab = useEditorStore(s => s.openTab)
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['playbook']))
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'info' | 'warning' }>({
@@ -100,6 +102,20 @@ const ProjectTree: React.FC = () => {
           open: true,
           message: 'Failed to load playbooks.',
           severity: 'warning',
+        })
+      }
+    } else if (artifact.artifact_type === 'role') {
+      // Extract role name from path: "roles/{roleName}/..."
+      const pathParts = artifact.path.split('/')
+      const roleIndex = pathParts.indexOf('roles')
+      if (roleIndex >= 0 && roleIndex + 1 < pathParts.length) {
+        const roleName = pathParts[roleIndex + 1]
+        const rolePath = `roles/${roleName}`
+        openTab({
+          title: roleName,
+          type: 'role',
+          artifactId: artifact.id,
+          artifactPath: rolePath,
         })
       }
     } else {
