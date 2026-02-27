@@ -31,7 +31,7 @@ interface PresenceIndicatorProps {
 /**
  * Get a consistent color for a user based on their ID
  */
-const getUserColor = (userId: string): string => {
+export const getUserColor = (userId: string): string => {
   const colors = [
     '#f44336', '#e91e63', '#9c27b0', '#673ab7',
     '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4',

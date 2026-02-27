@@ -14,6 +14,7 @@ from sqlalchemy import select, and_
 from fastapi import HTTPException, status
 import logging
 
+from app.core.database import AsyncSessionLocal
 from app.models.project import Project
 from app.models.project_collaboration import ProjectShare, ProjectRole
 
@@ -104,3 +105,28 @@ async def check_project_access(
             return project, None
 
     return project, share.role
+
+
+async def check_project_access_standalone(
+    project_id: str,
+    user_id: str
+) -> Optional[str]:
+    """
+    Check project access without an existing DB session (for WebSocket).
+
+    Args:
+        project_id: The project ID
+        user_id: The user ID
+
+    Returns:
+        Role string ('owner', 'editor', 'viewer') or None if no access
+    """
+    async with AsyncSessionLocal() as db:
+        project, role = await check_project_access(
+            project_id=project_id,
+            user_id=user_id,
+            db=db,
+            raise_on_not_found=False,
+            raise_on_forbidden=False,
+        )
+        return role

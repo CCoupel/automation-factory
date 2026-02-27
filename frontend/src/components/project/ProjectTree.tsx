@@ -10,6 +10,7 @@ import {
   Chip,
   Snackbar,
   Alert,
+  Tooltip,
 } from '@mui/material'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
@@ -28,6 +29,8 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { ProjectArtifact } from '../../services/projectService'
 import { playbookService } from '../../services/playbookService'
+import { getUserColor } from '../collaboration'
+import { useProjectCollaboration } from '../../contexts/ProjectCollaborationContext'
 
 const ARTIFACT_TYPE_CONFIG: Record<string, { icon: React.ReactElement; order: number }> = {
   playbook: { icon: <DescriptionIcon fontSize="small" />, order: 0 },
@@ -48,6 +51,7 @@ const ProjectTree: React.FC = () => {
   const currentProject = useProjectStore(s => s.currentProject)
 
   const openTab = useEditorStore(s => s.openTab)
+  const { getUsersOnArtifact } = useProjectCollaboration()
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['playbook']))
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'info' | 'warning' }>({
     open: false, message: '', severity: 'info',
@@ -165,21 +169,46 @@ const ProjectTree: React.FC = () => {
               </ListItemButton>
               <Collapse in={isExpanded} timeout="auto">
                 <List dense disablePadding>
-                  {items.map(artifact => (
-                    <ListItemButton
-                      key={artifact.id}
-                      sx={{ pl: 4, py: 0.25 }}
-                      onDoubleClick={() => handleArtifactDoubleClick(artifact)}
-                    >
-                      <ListItemText
-                        primary={
-                          <Typography variant="body2" noWrap>
-                            {artifact.path}
-                          </Typography>
-                        }
-                      />
-                    </ListItemButton>
-                  ))}
+                  {items.map(artifact => {
+                    const focusedUsers = getUsersOnArtifact(artifact.id)
+                    return (
+                      <ListItemButton
+                        key={artifact.id}
+                        sx={{ pl: 4, py: 0.25 }}
+                        onDoubleClick={() => handleArtifactDoubleClick(artifact)}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant="body2" noWrap sx={{ flex: 1 }}>
+                                {artifact.path}
+                              </Typography>
+                              {focusedUsers.length > 0 && (
+                                <Tooltip
+                                  title={focusedUsers.map(u => u.username).join(', ')}
+                                  arrow
+                                >
+                                  <Box sx={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                                    {focusedUsers.slice(0, 3).map(u => (
+                                      <Box
+                                        key={u.user_id}
+                                        sx={{
+                                          width: 8,
+                                          height: 8,
+                                          borderRadius: '50%',
+                                          bgcolor: getUserColor(u.user_id),
+                                        }}
+                                      />
+                                    ))}
+                                  </Box>
+                                </Tooltip>
+                              )}
+                            </Box>
+                          }
+                        />
+                      </ListItemButton>
+                    )
+                  })}
                 </List>
               </Collapse>
             </React.Fragment>

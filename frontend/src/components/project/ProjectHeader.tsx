@@ -41,6 +41,8 @@ import CommitDialog from './CommitDialog'
 import SyncButton from './SyncButton'
 import ConflictResolver from './ConflictResolver'
 import CreatePRDialog from './CreatePRDialog'
+import { PresenceIndicator } from '../collaboration'
+import { useProjectCollaboration } from '../../contexts/ProjectCollaborationContext'
 
 interface ProjectHeaderProps {
   projectName: string
@@ -58,6 +60,7 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
   const currentProject = useProjectStore(s => s.currentProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const closeAllTabs = useEditorStore(s => s.closeAllTabs)
+  const { connectedUsers } = useProjectCollaboration()
 
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
   const [prDialogOpen, setPrDialogOpen] = useState(false)
@@ -178,6 +181,8 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
           <Typography variant="body1" fontWeight="bold" noWrap sx={{ mr: 1 }}>
             {projectName}
           </Typography>
+
+          <PresenceIndicator users={connectedUsers} currentUserId={user?.id} />
 
           {/* Git controls */}
           {hasGit && (

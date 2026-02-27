@@ -15,6 +15,7 @@ from app.core.security import decode_access_token
 from app.models import Playbook, PlaybookShare, PlaybookRole
 from app.services.websocket_manager import websocket_manager
 from app.services.playbook_access_service import check_playbook_access_standalone
+from app.services.project_access_service import check_project_access_standalone
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +203,130 @@ async def get_playbook_presence(playbook_id: str):
     users = websocket_manager.get_room_users(playbook_id)
     return {
         "playbook_id": playbook_id,
+        "users": users,
+        "count": len(users)
+    }
+
+
+# --- Project WebSocket ---
+
+
+@router.websocket("/ws/project/{project_id}")
+async def project_websocket(
+    websocket: WebSocket,
+    project_id: str,
+    token: Optional[str] = Query(None)
+):
+    """
+    WebSocket endpoint for real-time project presence tracking
+
+    Connect: ws://host/ws/project/{project_id}?token={jwt_token}
+
+    Messages from client:
+    - {"type": "ping"} - Keep-alive ping
+    - {"type": "artifact_focus", "artifact_id": "..." | null} - Artifact focus change
+    - {"type": "get_presence"} - Request current presence
+
+    Messages to client:
+    - {"type": "presence", "users": [...]} - Current users with focus info
+    - {"type": "user_joined", ...} - User joined project
+    - {"type": "user_left", ...} - User left project
+    - {"type": "artifact_focus_changed", ...} - Another user changed focus
+    - {"type": "pong"} - Response to ping
+    - {"type": "error", "message": "..."} - Error message
+    """
+    logger.info(f"[WS] Project connection attempt - project={project_id}")
+
+    # Authenticate user
+    user = await get_current_user_ws(websocket, token)
+    if not user:
+        logger.warning(f"[WS] Auth failed for project={project_id}")
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    user_id = user["user_id"]
+    username = user["username"]
+
+    try:
+        # Check project access
+        user_role = await check_project_access_standalone(project_id, user_id)
+        if not user_role:
+            logger.warning(f"[WS] Access denied for user={user_id} to project={project_id}")
+            await websocket.close(code=4003, reason="Access denied to this project")
+            return
+
+        # Connect to project room
+        await websocket_manager.connect_project(websocket, project_id, user_id, username)
+
+        # Send initial role info
+        await websocket_manager.send_personal(
+            websocket,
+            {"type": "connected", "role": user_role, "project_id": project_id}
+        )
+
+        # Main message loop
+        while True:
+            try:
+                data = await websocket.receive_json()
+                await handle_project_message(websocket, project_id, user_id, username, data)
+            except json.JSONDecodeError:
+                await websocket_manager.send_personal(
+                    websocket,
+                    {"type": "error", "message": "Invalid JSON"}
+                )
+
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected: user={user_id}, project={project_id}")
+    except Exception as e:
+        logger.error(f"Project WebSocket error: {e}")
+    finally:
+        await websocket_manager.disconnect_project(project_id, user_id)
+
+
+async def handle_project_message(
+    websocket: WebSocket,
+    project_id: str,
+    user_id: str,
+    username: str,
+    data: dict
+):
+    """Handle incoming project WebSocket message"""
+    msg_type = data.get("type")
+
+    if msg_type == "ping":
+        await websocket_manager.send_personal(
+            websocket,
+            {"type": "pong", "timestamp": data.get("timestamp")}
+        )
+
+    elif msg_type == "artifact_focus":
+        artifact_id = data.get("artifact_id")
+        await websocket_manager.set_artifact_focus(project_id, user_id, artifact_id)
+
+    elif msg_type == "get_presence":
+        users = websocket_manager.get_project_room_users(project_id)
+        await websocket_manager.send_personal(
+            websocket,
+            {
+                "type": "presence",
+                "users": users,
+                "project_id": project_id
+            }
+        )
+
+    else:
+        await websocket_manager.send_personal(
+            websocket,
+            {"type": "error", "message": f"Unknown message type: {msg_type}"}
+        )
+
+
+@router.get("/ws/project/{project_id}/presence")
+async def get_project_presence(project_id: str):
+    """Get current users connected to a project (REST endpoint)"""
+    users = websocket_manager.get_project_room_users(project_id)
+    return {
+        "project_id": project_id,
         "users": users,
         "count": len(users)
     }

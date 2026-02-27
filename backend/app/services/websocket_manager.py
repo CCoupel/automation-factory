@@ -59,6 +59,57 @@ class PlaybookRoom:
         return len(self.connections) == 0
 
 
+@dataclass
+class ProjectConnectedUser:
+    """Represents a user connected to a project room"""
+    user_id: str
+    username: str
+    websocket: WebSocket
+    artifact_focus: Optional[str] = None
+    connected_at: datetime = field(default_factory=datetime.utcnow)
+
+
+@dataclass
+class ProjectRoom:
+    """Represents a room for a project with connected users and artifact focus"""
+    project_id: str
+    connections: Dict[str, ProjectConnectedUser] = field(default_factory=dict)
+
+    def add_user(self, user_id: str, username: str, websocket: WebSocket):
+        """Add a user to the room"""
+        self.connections[user_id] = ProjectConnectedUser(
+            user_id=user_id,
+            username=username,
+            websocket=websocket
+        )
+
+    def remove_user(self, user_id: str):
+        """Remove a user from the room"""
+        if user_id in self.connections:
+            del self.connections[user_id]
+
+    def get_users(self) -> List[Dict]:
+        """Get list of connected users with artifact focus"""
+        return [
+            {
+                "user_id": conn.user_id,
+                "username": conn.username,
+                "connected_at": conn.connected_at.isoformat(),
+                "artifact_focus": conn.artifact_focus
+            }
+            for conn in self.connections.values()
+        ]
+
+    def set_artifact_focus(self, user_id: str, artifact_id: Optional[str]):
+        """Set the artifact a user is currently focused on"""
+        if user_id in self.connections:
+            self.connections[user_id].artifact_focus = artifact_id
+
+    def is_empty(self) -> bool:
+        """Check if room is empty"""
+        return len(self.connections) == 0
+
+
 class WebSocketManager:
     """
     Manages WebSocket connections for real-time collaboration
@@ -75,6 +126,8 @@ class WebSocketManager:
         self.rooms: Dict[str, PlaybookRoom] = {}
         # user_id -> set of playbook_ids (user can be in multiple rooms)
         self.user_rooms: Dict[str, Set[str]] = {}
+        # project_id -> ProjectRoom
+        self.project_rooms: Dict[str, ProjectRoom] = {}
 
     async def connect(
         self,
@@ -296,6 +349,138 @@ class WebSocketManager:
         if playbook_id not in self.rooms:
             return False
         return user_id in self.rooms[playbook_id].connections
+
+    # --- Project room methods ---
+
+    async def connect_project(
+        self,
+        websocket: WebSocket,
+        project_id: str,
+        user_id: str,
+        username: str
+    ):
+        """Connect a user to a project room"""
+        await websocket.accept()
+
+        if project_id not in self.project_rooms:
+            self.project_rooms[project_id] = ProjectRoom(project_id=project_id)
+
+        room = self.project_rooms[project_id]
+        room.add_user(user_id, username, websocket)
+
+        logger.info(f"User {username} ({user_id}) connected to project {project_id}")
+
+        # Notify others that user joined
+        await self.broadcast_to_project(
+            project_id,
+            {
+                "type": "user_joined",
+                "user_id": user_id,
+                "username": username,
+                "timestamp": datetime.utcnow().isoformat()
+            },
+            exclude_user=user_id
+        )
+
+        # Send current presence to the new user
+        await self.send_personal(
+            websocket,
+            {
+                "type": "presence",
+                "users": room.get_users(),
+                "project_id": project_id
+            }
+        )
+
+    async def disconnect_project(self, project_id: str, user_id: str):
+        """Disconnect a user from a project room"""
+        if project_id not in self.project_rooms:
+            return
+
+        room = self.project_rooms[project_id]
+
+        username = None
+        if user_id in room.connections:
+            username = room.connections[user_id].username
+
+        room.remove_user(user_id)
+
+        logger.info(f"User {username} ({user_id}) disconnected from project {project_id}")
+
+        if room.is_empty():
+            del self.project_rooms[project_id]
+            logger.info(f"Project room {project_id} is now empty and removed")
+        else:
+            await self.broadcast_to_project(
+                project_id,
+                {
+                    "type": "user_left",
+                    "user_id": user_id,
+                    "username": username,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+
+    async def broadcast_to_project(
+        self,
+        project_id: str,
+        message: dict,
+        exclude_user: Optional[str] = None
+    ):
+        """Broadcast a message to all users in a project room"""
+        if project_id not in self.project_rooms:
+            return
+
+        room = self.project_rooms[project_id]
+        disconnected = []
+
+        for user_id, conn in room.connections.items():
+            if exclude_user and user_id == exclude_user:
+                continue
+
+            try:
+                await conn.websocket.send_json(message)
+            except Exception as e:
+                logger.warning(f"Failed to send to user {user_id} in project room: {e}")
+                disconnected.append(user_id)
+
+        for user_id in disconnected:
+            await self.disconnect_project(project_id, user_id)
+
+    async def set_artifact_focus(
+        self,
+        project_id: str,
+        user_id: str,
+        artifact_id: Optional[str]
+    ):
+        """Set artifact focus for a user and broadcast to project room"""
+        if project_id not in self.project_rooms:
+            return
+
+        room = self.project_rooms[project_id]
+        room.set_artifact_focus(user_id, artifact_id)
+
+        username = None
+        if user_id in room.connections:
+            username = room.connections[user_id].username
+
+        await self.broadcast_to_project(
+            project_id,
+            {
+                "type": "artifact_focus_changed",
+                "user_id": user_id,
+                "username": username,
+                "artifact_id": artifact_id,
+                "timestamp": datetime.utcnow().isoformat()
+            },
+            exclude_user=user_id
+        )
+
+    def get_project_room_users(self, project_id: str) -> List[Dict]:
+        """Get list of users connected to a project"""
+        if project_id not in self.project_rooms:
+            return []
+        return self.project_rooms[project_id].get_users()
 
 
 # Global instance

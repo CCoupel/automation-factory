@@ -22,6 +22,7 @@ import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 import CollectionEditor from '../editors/CollectionEditor'
 import ChangesPanel from '../project/ChangesPanel'
+import { ProjectCollaborationProvider, useProjectCollaboration } from '../../contexts/ProjectCollaborationContext'
 
 const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { t } = useTranslation('project')
@@ -29,6 +30,18 @@ const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
   const activeTabIndex = useEditorStore(s => s.activeTabIndex)
   const setActiveTab = useEditorStore(s => s.setActiveTab)
   const closeTab = useEditorStore(s => s.closeTab)
+  const { sendArtifactFocus } = useProjectCollaboration()
+
+  // Send artifact focus when active tab changes
+  const activeTab = tabs[activeTabIndex]
+  const prevArtifactIdRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    const artifactId = activeTab?.artifactId ?? null
+    if (artifactId !== prevArtifactIdRef.current) {
+      prevArtifactIdRef.current = artifactId
+      sendArtifactFocus(artifactId)
+    }
+  }, [activeTab?.artifactId, sendArtifactFocus])
 
   if (tabs.length === 0) {
     return (
@@ -39,8 +52,6 @@ const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
       </Box>
     )
   }
-
-  const activeTab = tabs[activeTabIndex]
 
   return (
     <>
@@ -93,7 +104,7 @@ const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
   )
 }
 
-const ProjectLayout: React.FC = () => {
+const ProjectLayoutInner: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
   const { t } = useTranslation('project')
 
@@ -102,6 +113,8 @@ const ProjectLayout: React.FC = () => {
   const fetchProject = useProjectStore(s => s.fetchProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
+
+  const { connectToProject, disconnectFromProject } = useProjectCollaboration()
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -118,8 +131,12 @@ const ProjectLayout: React.FC = () => {
     if (projectId) {
       fetchProject(projectId)
       fetchArtifacts(projectId)
+      connectToProject(projectId)
     }
-    return () => { clearCurrentProject() }
+    return () => {
+      clearCurrentProject()
+      disconnectFromProject()
+    }
   }, [projectId])
 
   // Resize handlers
@@ -318,6 +335,14 @@ const ProjectLayout: React.FC = () => {
         </Box>
       )}
     </Box>
+  )
+}
+
+const ProjectLayout: React.FC = () => {
+  return (
+    <ProjectCollaborationProvider>
+      <ProjectLayoutInner />
+    </ProjectCollaborationProvider>
   )
 }
 

@@ -109,6 +109,9 @@
   "prProviderUnsupported": "Pull requests are only supported for GitHub and GitLab repositories",
   "prUrl": "View on GitHub",
   "prUrlGitLab": "View on GitLab",
+  "collaborators": "Collaborators",
+  "connectedUsers": "{{count}} user(s) connected",
+  "editingArtifact": "Editing: {{path}}",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Roles",
