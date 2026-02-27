@@ -106,8 +106,9 @@
   "prCreating": "Creating...",
   "prCreateSuccess": "Pull request created successfully",
   "prCreateError": "Failed to create pull request",
-  "prProviderUnsupported": "Pull requests are only supported for GitHub repositories",
+  "prProviderUnsupported": "Pull requests are only supported for GitHub and GitLab repositories",
   "prUrl": "View on GitHub",
+  "prUrlGitLab": "View on GitLab",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Roles",

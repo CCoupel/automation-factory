@@ -106,8 +106,9 @@
   "prCreating": "Création...",
   "prCreateSuccess": "Pull request créée avec succès",
   "prCreateError": "Échec de la création de la pull request",
-  "prProviderUnsupported": "Les pull requests ne sont supportées que pour les dépôts GitHub",
+  "prProviderUnsupported": "Les pull requests ne sont supportées que pour les dépôts GitHub et GitLab",
   "prUrl": "Voir sur GitHub",
+  "prUrlGitLab": "Voir sur GitLab",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Rôles",

@@ -54,7 +54,7 @@ def _require_supported_provider(git_url: str) -> str:
     if provider == "unsupported":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pull request creation is only supported for GitHub repositories.",
+            detail="Pull request creation is only supported for GitHub and GitLab repositories.",
         )
     return provider
 
@@ -85,22 +85,34 @@ async def create_pull_request(
         project_id, current_user.id, db, required_role="editor"
     )
     git_url, git_branch, token = await _resolve_git_config(project, db)
-    _require_supported_provider(git_url)
+    provider = _require_supported_provider(git_url)
     token = _require_token(token)
 
     repo_info = PRService.extract_repo_info(git_url)
 
     try:
-        result = await pr_service.create_pull_request(
-            token=token,
-            owner=repo_info["owner"],
-            repo=repo_info["repo"],
-            title=body.title,
-            description=body.description,
-            source_branch=git_branch,
-            target_branch=body.target_branch,
-            draft=body.draft,
-        )
+        if provider == "gitlab":
+            result = await pr_service.create_gitlab_merge_request(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                title=body.title,
+                description=body.description,
+                source_branch=git_branch,
+                target_branch=body.target_branch,
+                draft=body.draft,
+            )
+        else:
+            result = await pr_service.create_pull_request(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                title=body.title,
+                description=body.description,
+                source_branch=git_branch,
+                target_branch=body.target_branch,
+                draft=body.draft,
+            )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -125,18 +137,26 @@ async def get_pull_request(
         project_id, current_user.id, db, required_role="editor"
     )
     git_url, _, token = await _resolve_git_config(project, db)
-    _require_supported_provider(git_url)
+    provider = _require_supported_provider(git_url)
     token = _require_token(token)
 
     repo_info = PRService.extract_repo_info(git_url)
 
     try:
-        result = await pr_service.get_pull_request(
-            token=token,
-            owner=repo_info["owner"],
-            repo=repo_info["repo"],
-            pr_number=pr_number,
-        )
+        if provider == "gitlab":
+            result = await pr_service.get_gitlab_merge_request(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                mr_iid=pr_number,
+            )
+        else:
+            result = await pr_service.get_pull_request(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                pr_number=pr_number,
+            )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -161,19 +181,30 @@ async def list_pull_requests(
         project_id, current_user.id, db, required_role="editor"
     )
     git_url, git_branch, token = await _resolve_git_config(project, db)
-    _require_supported_provider(git_url)
+    provider = _require_supported_provider(git_url)
     token = _require_token(token)
 
     repo_info = PRService.extract_repo_info(git_url)
 
     try:
-        results = await pr_service.list_pull_requests(
-            token=token,
-            owner=repo_info["owner"],
-            repo=repo_info["repo"],
-            state=state,
-            head_branch=git_branch,
-        )
+        if provider == "gitlab":
+            # Map state values: GitHub uses "open", GitLab uses "opened"
+            gitlab_state = {"open": "opened", "closed": "closed", "all": "all"}[state]
+            results = await pr_service.list_gitlab_merge_requests(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                state=gitlab_state,
+                source_branch=git_branch,
+            )
+        else:
+            results = await pr_service.list_pull_requests(
+                token=token,
+                owner=repo_info["owner"],
+                repo=repo_info["repo"],
+                state=state,
+                head_branch=git_branch,
+            )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

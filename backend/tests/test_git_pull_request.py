@@ -59,6 +59,18 @@ MOCK_PR = {
     "provider": "github",
 }
 
+MOCK_MR = {
+    "number": 10,
+    "title": "Add feature",
+    "description": "A new feature",
+    "url": "https://gitlab.com/example/repo/-/merge_requests/10",
+    "status": "open",
+    "source_branch": "main",
+    "target_branch": "main",
+    "created_at": "2026-01-15T10:00:00Z",
+    "provider": "gitlab",
+}
+
 
 # ---------------------------------------------------------------------------
 # Tests: POST /projects/{id}/git/pull-request
@@ -102,7 +114,7 @@ class TestCreatePullRequest:
         cred = await _create_credential(test_session, test_user)
         project = await _create_git_project(
             test_session, test_user,
-            git_url="https://gitlab.com/example/repo.git",
+            git_url="https://bitbucket.org/example/repo.git",
             cred_id=cred.id,
         )
 
@@ -112,7 +124,7 @@ class TestCreatePullRequest:
         )
 
         assert response.status_code == 400
-        assert "GitHub" in response.json()["detail"]
+        assert "GitHub and GitLab" in response.json()["detail"]
 
     async def test_create_pr_no_git_url(self, authenticated_client, test_user, test_session):
         project = Project(
@@ -239,3 +251,77 @@ class TestListPullRequests:
 
         assert response.status_code == 200
         assert response.json()["pull_requests"] == []
+
+
+# ---------------------------------------------------------------------------
+# Tests: GitLab merge requests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestGitLabMergeRequests:
+
+    async def test_create_pr_gitlab_success(self, authenticated_client, test_user, test_session):
+        cred = await _create_credential(test_session, test_user)
+        project = await _create_git_project(
+            test_session, test_user,
+            git_url="https://gitlab.com/example/repo.git",
+            cred_id=cred.id,
+        )
+
+        with patch(
+            "app.services.pr_service.pr_service.create_gitlab_merge_request",
+            new_callable=AsyncMock,
+            return_value=MOCK_MR,
+        ):
+            response = await authenticated_client.post(
+                f"/api/projects/{project.id}/git/pull-request",
+                json={"title": "Add feature", "description": "A new feature"},
+            )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["number"] == 10
+        assert data["provider"] == "gitlab"
+
+    async def test_get_pr_gitlab_success(self, authenticated_client, test_user, test_session):
+        cred = await _create_credential(test_session, test_user)
+        project = await _create_git_project(
+            test_session, test_user,
+            git_url="https://gitlab.com/example/repo.git",
+            cred_id=cred.id,
+        )
+
+        with patch(
+            "app.services.pr_service.pr_service.get_gitlab_merge_request",
+            new_callable=AsyncMock,
+            return_value=MOCK_MR,
+        ):
+            response = await authenticated_client.get(
+                f"/api/projects/{project.id}/git/pull-request/10"
+            )
+
+        assert response.status_code == 200
+        assert response.json()["number"] == 10
+        assert response.json()["provider"] == "gitlab"
+
+    async def test_list_prs_gitlab_success(self, authenticated_client, test_user, test_session):
+        cred = await _create_credential(test_session, test_user)
+        project = await _create_git_project(
+            test_session, test_user,
+            git_url="https://gitlab.com/example/repo.git",
+            cred_id=cred.id,
+        )
+
+        with patch(
+            "app.services.pr_service.pr_service.list_gitlab_merge_requests",
+            new_callable=AsyncMock,
+            return_value=[MOCK_MR],
+        ):
+            response = await authenticated_client.get(
+                f"/api/projects/{project.id}/git/pull-requests"
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["pull_requests"]) == 1
+        assert data["pull_requests"][0]["provider"] == "gitlab"

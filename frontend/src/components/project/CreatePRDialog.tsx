@@ -30,7 +30,7 @@ const CreatePRDialog: React.FC<CreatePRDialogProps> = ({ open, onClose, projectI
   const [targetBranch, setTargetBranch] = useState('main')
   const [draft, setDraft] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error'; url?: string }>({
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error'; url?: string; provider?: string }>({
     open: false, message: '', severity: 'success',
   })
 
@@ -49,6 +49,7 @@ const CreatePRDialog: React.FC<CreatePRDialogProps> = ({ open, onClose, projectI
         message: t('prCreateSuccess'),
         severity: 'success',
         url: pr.url,
+        provider: pr.provider,
       })
       onPRCreated(pr)
       onClose()
@@ -142,7 +143,7 @@ const CreatePRDialog: React.FC<CreatePRDialogProps> = ({ open, onClose, projectI
             <>
               {' — '}
               <Link href={snackbar.url} target="_blank" rel="noopener">
-                {t('prUrl')}
+                {t(snackbar.provider === 'gitlab' ? 'prUrlGitLab' : 'prUrl')}
               </Link>
             </>
           )}

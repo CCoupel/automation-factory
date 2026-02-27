@@ -1,13 +1,14 @@
 """
-Pull Request service — GitHub API client.
+Pull Request service — GitHub & GitLab API client.
 
 Detects the hosting provider from the git URL and creates/lists/gets
-pull requests via the provider's REST API.  Only GitHub is supported
-for now; other providers return "unsupported".
+pull requests (or merge requests) via the provider's REST API.
+Supported providers: GitHub, GitLab.
 """
 
 import logging
 import re
+import urllib.parse
 from urllib.parse import urlparse
 
 from app.core.http_service import BaseHTTPService
@@ -15,6 +16,7 @@ from app.core.http_service import BaseHTTPService
 logger = logging.getLogger(__name__)
 
 GITHUB_API = "https://api.github.com"
+GITLAB_API = "https://gitlab.com/api/v4"
 
 
 class PRService(BaseHTTPService):
@@ -37,6 +39,8 @@ class PRService(BaseHTTPService):
 
         if hostname == "github.com":
             return "github"
+        if hostname == "gitlab.com":
+            return "gitlab"
         return "unsupported"
 
     @staticmethod
@@ -63,6 +67,39 @@ class PRService(BaseHTTPService):
     # ------------------------------------------------------------------
     # GitHub API helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _gitlab_headers(token: str) -> dict[str, str]:
+        return {"PRIVATE-TOKEN": token}
+
+    @staticmethod
+    def _gitlab_project_id(owner: str, repo: str) -> str:
+        """URL-encode owner/repo for GitLab API path."""
+        return urllib.parse.quote(f"{owner}/{repo}", safe="")
+
+    @staticmethod
+    def _map_gitlab_mr(data: dict) -> dict:
+        """Map a GitLab MR JSON object to our PullRequestInfo shape."""
+        if data.get("state") == "merged":
+            mr_status = "merged"
+        elif data.get("draft"):
+            mr_status = "draft"
+        elif data.get("state") == "closed":
+            mr_status = "closed"
+        else:
+            mr_status = "open"
+
+        return {
+            "number": data["iid"],
+            "title": data["title"],
+            "description": data.get("description"),
+            "url": data["web_url"],
+            "status": mr_status,
+            "source_branch": data["source_branch"],
+            "target_branch": data["target_branch"],
+            "created_at": data["created_at"],
+            "provider": "gitlab",
+        }
 
     @staticmethod
     def _github_headers(token: str) -> dict[str, str]:
@@ -169,6 +206,82 @@ class PRService(BaseHTTPService):
                 return [self._map_pr(pr) for pr in body]
             detail = body.get("message", "Unknown GitHub error")
             raise ValueError(f"GitHub API error ({resp.status}): {detail}")
+
+    # ------------------------------------------------------------------
+    # GitLab CRUD
+    # ------------------------------------------------------------------
+
+    async def create_gitlab_merge_request(
+        self,
+        token: str,
+        owner: str,
+        repo: str,
+        title: str,
+        description: str,
+        source_branch: str,
+        target_branch: str,
+        draft: bool = False,
+    ) -> dict:
+        """Create a merge request on GitLab."""
+        session = await self.get_session()
+        project_id = self._gitlab_project_id(owner, repo)
+        url = f"{GITLAB_API}/projects/{project_id}/merge_requests"
+        mr_title = f"Draft: {title}" if draft else title
+        payload = {
+            "title": mr_title,
+            "description": description,
+            "source_branch": source_branch,
+            "target_branch": target_branch,
+        }
+        logger.info("Creating MR on %s/%s: %s → %s", owner, repo, source_branch, target_branch)
+
+        async with session.post(url, json=payload, headers=self._gitlab_headers(token)) as resp:
+            body = await resp.json()
+            if resp.status == 201:
+                return self._map_gitlab_mr(body)
+            detail = body.get("message", body.get("error", "Unknown GitLab error"))
+            if isinstance(detail, list):
+                detail = "; ".join(str(d) for d in detail)
+            logger.warning("GitLab MR creation failed (%s): %s", resp.status, detail)
+            raise ValueError(f"GitLab API error ({resp.status}): {detail}")
+
+    async def get_gitlab_merge_request(
+        self, token: str, owner: str, repo: str, mr_iid: int
+    ) -> dict:
+        """Get a single merge request by IID."""
+        session = await self.get_session()
+        project_id = self._gitlab_project_id(owner, repo)
+        url = f"{GITLAB_API}/projects/{project_id}/merge_requests/{mr_iid}"
+
+        async with session.get(url, headers=self._gitlab_headers(token)) as resp:
+            body = await resp.json()
+            if resp.status == 200:
+                return self._map_gitlab_mr(body)
+            detail = body.get("message", body.get("error", "Unknown GitLab error"))
+            raise ValueError(f"GitLab API error ({resp.status}): {detail}")
+
+    async def list_gitlab_merge_requests(
+        self,
+        token: str,
+        owner: str,
+        repo: str,
+        state: str = "opened",
+        source_branch: str | None = None,
+    ) -> list[dict]:
+        """List merge requests, optionally filtered by source branch."""
+        session = await self.get_session()
+        project_id = self._gitlab_project_id(owner, repo)
+        url = f"{GITLAB_API}/projects/{project_id}/merge_requests"
+        params: dict[str, str] = {"state": state}
+        if source_branch:
+            params["source_branch"] = source_branch
+
+        async with session.get(url, params=params, headers=self._gitlab_headers(token)) as resp:
+            body = await resp.json()
+            if resp.status == 200:
+                return [self._map_gitlab_mr(mr) for mr in body]
+            detail = body.get("message", body.get("error", "Unknown GitLab error"))
+            raise ValueError(f"GitLab API error ({resp.status}): {detail}")
 
 
 # Singleton
