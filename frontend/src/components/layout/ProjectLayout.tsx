@@ -21,6 +21,7 @@ import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 import CollectionEditor from '../editors/CollectionEditor'
+import ChangesPanel from '../project/ChangesPanel'
 
 const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { t } = useTranslation('project')
@@ -191,11 +192,15 @@ const ProjectLayout: React.FC = () => {
             >
               <Tab label={t('projectTree')} />
               <Tab label={t('modules')} />
+              {currentProject?.git_url && <Tab label={t('changes')} />}
             </Tabs>
 
             <Box sx={{ flex: 1, overflow: 'auto' }}>
               {leftTab === 0 && <ProjectTree />}
               {leftTab === 1 && <ModulesZoneCached />}
+              {leftTab === 2 && currentProject?.git_url && projectId && (
+                <ChangesPanel projectId={projectId} />
+              )}
             </Box>
 
             {/* Resize handle */}
