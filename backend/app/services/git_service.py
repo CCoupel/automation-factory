@@ -50,7 +50,8 @@ class GitService:
         return urlunparse(parsed._replace(netloc=netloc))
 
     async def clone_repository(
-        self, url: str, branch: str, project_id: str, token: Optional[str] = None
+        self, url: str, branch: str, project_id: str,
+        token: Optional[str] = None, depth: Optional[int] = 1,
     ) -> Path:
         """Clone a git repository. Returns the repo path."""
         repo_path = self._repo_path(project_id)
@@ -66,7 +67,10 @@ class GitService:
             clone_url = self._build_authenticated_url(url, token)
 
         def _clone():
-            Repo.clone_from(clone_url, str(repo_path), branch=branch, depth=1)
+            kwargs = {"branch": branch}
+            if depth is not None:
+                kwargs["depth"] = depth
+            Repo.clone_from(clone_url, str(repo_path), **kwargs)
 
         await asyncio.to_thread(_clone)
 
@@ -507,6 +511,142 @@ class GitService:
         )
 
         return artifacts, warnings
+
+    # ------------------------------------------------------------------
+    # Sync / conflict resolution helpers
+    # ------------------------------------------------------------------
+
+    async def fetch_remote(
+        self,
+        project_id: str,
+        git_url: str,
+        git_branch: str,
+        token: Optional[str] = None,
+    ) -> None:
+        """Fetch from remote, unshallow if needed."""
+        repo_path = self._repo_path(project_id)
+        repo = Repo(str(repo_path))
+
+        if token:
+            auth_url = self._build_authenticated_url(git_url, token)
+            repo.git.remote("set-url", "origin", auth_url)
+
+        def _fetch():
+            # Unshallow if this is a shallow clone
+            if repo.git.rev_parse("--is-shallow-repository").strip() == "true":
+                try:
+                    repo.git.fetch("--unshallow")
+                except GitCommandError:
+                    pass
+            repo.git.fetch("origin")
+
+        await asyncio.to_thread(_fetch)
+
+    async def get_divergence_info(
+        self, project_id: str, git_branch: str,
+    ) -> dict:
+        """Return merge-base SHA and ahead/behind counts."""
+        repo_path = self._repo_path(project_id)
+        repo = Repo(str(repo_path))
+
+        def _divergence():
+            try:
+                merge_base = repo.git.merge_base("HEAD", f"origin/{git_branch}").strip()
+            except GitCommandError:
+                return {"merge_base": None, "local_ahead": 0, "remote_ahead": 0}
+
+            local_ahead = int(repo.git.rev_list("--count", f"{merge_base}..HEAD").strip())
+            remote_ahead = int(
+                repo.git.rev_list("--count", f"{merge_base}..origin/{git_branch}").strip()
+            )
+            return {
+                "merge_base": merge_base,
+                "local_ahead": local_ahead,
+                "remote_ahead": remote_ahead,
+            }
+
+        return await asyncio.to_thread(_divergence)
+
+    async def get_file_at_ref(
+        self, project_id: str, ref: str, path: str,
+    ) -> Optional[str]:
+        """Return file content at a given ref, or None if it doesn't exist."""
+        repo_path = self._repo_path(project_id)
+        repo = Repo(str(repo_path))
+
+        def _show():
+            try:
+                return repo.git.show(f"{ref}:{path}")
+            except GitCommandError:
+                return None
+
+        return await asyncio.to_thread(_show)
+
+    async def get_changed_files_between(
+        self, project_id: str, ref_a: str, ref_b: str,
+    ) -> list[str]:
+        """Return list of file paths changed between two refs."""
+        repo_path = self._repo_path(project_id)
+        repo = Repo(str(repo_path))
+
+        def _diff():
+            output = repo.git.diff("--name-only", ref_a, ref_b)
+            return [p for p in output.strip().splitlines() if p.strip()]
+
+        return await asyncio.to_thread(_diff)
+
+    async def create_merge_commit(
+        self,
+        project_id: str,
+        git_branch: str,
+        author_name: str,
+        author_email: str,
+        message: str,
+        db: AsyncSession,
+    ) -> dict:
+        """
+        Create a merge commit with two parents: HEAD and origin/{branch}.
+
+        Serializes DB artifacts to disk first, then stages and commits.
+        """
+        repo_path = self._repo_path(project_id)
+        await self.serialize_artifacts_to_disk(project_id, repo_path, db)
+
+        repo = Repo(str(repo_path))
+
+        def _merge_commit():
+            repo.git.add("--all")
+            author = Actor(author_name, author_email)
+
+            # Get the two parent commits
+            head_commit = repo.head.commit
+            remote_commit = repo.commit(f"origin/{git_branch}")
+
+            # Create a merge commit with explicit parents
+            tree = repo.index.write_tree()
+            commit_obj = repo.head.commit.__class__.create_from_tree(
+                repo, tree, message,
+                parent_commits=[head_commit, remote_commit],
+                author=author, committer=author,
+            )
+            # Update HEAD to point to the new merge commit
+            repo.head.set_commit(commit_obj)
+
+            return {"commit_sha": str(commit_obj), "message": message}
+
+        return await asyncio.to_thread(_merge_commit)
+
+    async def fast_forward(
+        self, project_id: str, git_branch: str,
+    ) -> None:
+        """Fast-forward local branch to match remote."""
+        repo_path = self._repo_path(project_id)
+        repo = Repo(str(repo_path))
+
+        def _ff():
+            repo.git.merge("--ff-only", f"origin/{git_branch}")
+
+        await asyncio.to_thread(_ff)
 
     def cleanup_repo(self, project_id: str) -> None:
         """Remove the cloned repository from disk."""

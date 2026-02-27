@@ -151,9 +151,15 @@ async def push_changes(
             detail=str(e),
         )
     except GitCommandError as e:
+        stderr = e.stderr.strip() if e.stderr else str(e)
+        if "rejected" in stderr or "non-fast-forward" in stderr:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Push rejected: remote has new commits. Sync required.",
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Git push failed: {e.stderr.strip() if e.stderr else str(e)}",
+            detail=f"Git push failed: {stderr}",
         )
 
     return GitPushResponse(**result)

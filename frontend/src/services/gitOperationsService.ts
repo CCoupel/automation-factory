@@ -76,6 +76,9 @@ export const gitOperationsService = {
       return response.data
     } catch (error: any) {
       console.error('Git push API error:', error)
+      if (error.response?.status === 409) {
+        throw error  // Keep response data for conflict handling
+      }
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
       }

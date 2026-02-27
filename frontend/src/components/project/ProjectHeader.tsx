@@ -34,8 +34,11 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { gitOperationsService } from '../../services/gitOperationsService'
+import { GitSyncResponse } from '../../services/gitSyncService'
 import BranchPicker from './BranchPicker'
 import CommitDialog from './CommitDialog'
+import SyncButton from './SyncButton'
+import ConflictResolver from './ConflictResolver'
 
 interface ProjectHeaderProps {
   projectName: string
@@ -57,6 +60,8 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
   const [pushing, setPushing] = useState(false)
   const [changeCount, setChangeCount] = useState(0)
+  const [syncResult, setSyncResult] = useState<GitSyncResponse | null>(null)
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false)
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   })
@@ -86,10 +91,46 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
       setSnackbar({ open: true, message: t('pushSuccess'), severity: 'success' })
       refreshChangeCount()
     } catch (err: any) {
-      setSnackbar({ open: true, message: err.message || t('pushError'), severity: 'error' })
+      if (err.response?.status === 409) {
+        setSnackbar({ open: true, message: t('pushRejected'), severity: 'error' })
+        // Auto-trigger sync
+        try {
+          const { gitSyncService } = await import('../../services/gitSyncService')
+          const syncData = await gitSyncService.sync(projectId)
+          handleSyncResult(syncData)
+        } catch {
+          // Sync also failed, just show the push error
+        }
+      } else {
+        setSnackbar({ open: true, message: err.message || t('pushError'), severity: 'error' })
+      }
     } finally {
       setPushing(false)
     }
+  }
+
+  const handleSyncResult = (result: GitSyncResponse) => {
+    setSyncResult(result)
+
+    if (result.status === 'up_to_date') {
+      setSnackbar({ open: true, message: t('syncUpToDate'), severity: 'success' })
+    } else if (result.status === 'fast_forward' || result.status === 'auto_merged') {
+      setSnackbar({
+        open: true,
+        message: result.status === 'fast_forward' ? t('syncFastForward') : t('syncAutoMerged'),
+        severity: 'success',
+      })
+      if (projectId) fetchArtifacts(projectId)
+      refreshChangeCount()
+    } else if (result.status === 'conflicts') {
+      setConflictDialogOpen(true)
+    }
+  }
+
+  const handleConflictResolved = () => {
+    setSnackbar({ open: true, message: t('resolveSuccess'), severity: 'success' })
+    if (projectId) fetchArtifacts(projectId)
+    refreshChangeCount()
   }
 
   const handleCommitSuccess = () => {
@@ -178,6 +219,12 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
                   {pushing ? t('pushing') : t('push')}
                 </Button>
               </Tooltip>
+
+              <SyncButton
+                projectId={projectId}
+                onSyncResult={handleSyncResult}
+                onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
+              />
             </Box>
           )}
 
@@ -251,6 +298,17 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
           onClose={() => setCommitDialogOpen(false)}
           projectId={projectId}
           onCommitSuccess={handleCommitSuccess}
+        />
+      )}
+
+      {/* Conflict resolver dialog */}
+      {hasGit && syncResult && syncResult.status === 'conflicts' && (
+        <ConflictResolver
+          open={conflictDialogOpen}
+          onClose={() => setConflictDialogOpen(false)}
+          projectId={projectId}
+          syncResult={syncResult}
+          onResolved={handleConflictResolved}
         />
       )}
 
