@@ -16,6 +16,7 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.models.playbook import Playbook
+from app.models.project import Project
 
 # HTTP Bearer token scheme
 security = HTTPBearer()
@@ -240,6 +241,37 @@ def check_owner_or_403(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Only the owner can {action}"
         )
+
+
+async def get_project_or_404(
+    db: AsyncSession,
+    project_id: str,
+    detail: str = "Project not found"
+) -> Project:
+    """
+    Get project by ID or raise 404
+
+    Args:
+        db: Database session
+        project_id: Project ID to fetch
+        detail: Custom error message
+
+    Returns:
+        Project object
+
+    Raises:
+        HTTPException 404: If project not found
+    """
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail
+        )
+
+    return project
 
 
 def check_not_self_or_400(
