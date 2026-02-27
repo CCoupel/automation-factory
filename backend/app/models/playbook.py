@@ -48,12 +48,16 @@ class Playbook(Base):
     # Version for optimistic locking (incremented on each update)
     version = Column(Integer, default=1, nullable=False)
 
+    # Project association (nullable — standalone playbooks have no project)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     owner = relationship("User", back_populates="playbooks")
+    project = relationship("Project", back_populates="playbooks")
 
     # Cascade delete for shares and audit logs (SQLite doesn't enforce FK constraints by default)
     shares = relationship(
