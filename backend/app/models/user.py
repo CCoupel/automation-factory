@@ -48,6 +48,8 @@ class User(Base):
     # Relationships
     playbooks = relationship("Playbook", back_populates="owner", cascade="all, delete-orphan")
     preferences = relationship("UserPreferences", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    git_credentials = relationship("GitCredential", back_populates="owner", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.username} (id={self.id})>"

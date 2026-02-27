@@ -22,6 +22,7 @@ import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playb
 import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 import { moduleConfigs } from '../../constants/moduleConfigs'
+import { usePlaybookEditorStore, useSelectedModuleData, usePlayAttributes, useActivePlayId } from '../../stores/playbookEditorStore'
 
 // Collaboration callback type for config updates
 export interface CollaborationConfigCallback {
@@ -30,61 +31,8 @@ export interface CollaborationConfigCallback {
 }
 
 interface ConfigZoneProps {
-  selectedModule?: {
-    id: string
-    name: string
-    collection: string
-    taskName: string
-    when?: string
-    ignoreErrors?: boolean
-    become?: boolean
-    loop?: string
-    delegateTo?: string
-    tags?: string[]
-    isBlock?: boolean
-    isPlay?: boolean
-    isSystem?: boolean
-    moduleParameters?: Record<string, any>
-    moduleSchema?: ModuleSchema
-    validationState?: {
-      isValid: boolean
-      errors: string[]
-      warnings: string[]
-      lastValidated?: Date
-    }
-    description?: string
-  } | null
   onCollapse?: () => void
-  onDelete?: (id: string) => void
-  onUpdateModule?: (id: string, updates: Partial<{
-    taskName?: string
-    when?: string
-    ignoreErrors?: boolean
-    become?: boolean
-    loop?: string
-    delegateTo?: string
-    tags?: string[]
-    moduleParameters?: Record<string, any>
-    moduleSchema?: ModuleSchema
-    validationState?: {
-      isValid: boolean
-      errors: string[]
-      warnings: string[]
-      lastValidated?: Date
-    }
-  }>) => void
-  playAttributes?: PlayAttributes
-  onUpdatePlay?: (updates: Partial<PlayAttributes>) => void
-  // Collaboration callbacks for real-time sync
   collaborationCallbacks?: CollaborationConfigCallback
-  activePlayId?: string // For play update collaboration
-  // Role configuration
-  selectedRole?: {
-    index: number
-    role: string
-    vars?: Record<string, any>
-  } | null
-  onUpdateRole?: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
 }
 
 /**
@@ -272,7 +220,20 @@ const RoleConfigSection = ({ selectedRole, onUpdateRole }: RoleConfigSectionProp
   )
 }
 
-const ConfigZone = ({ selectedModule, onCollapse, onDelete, onUpdateModule, playAttributes, onUpdatePlay, collaborationCallbacks, activePlayId, selectedRole, onUpdateRole }: ConfigZoneProps) => {
+const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => {
+  // Read from store
+  const selectedModule = useSelectedModuleData()
+  const playAttributes = usePlayAttributes()
+  const activePlayId = useActivePlayId()
+  const selectedRole = usePlaybookEditorStore(s => s.selectedRole)
+  const { deleteModule: storeDeleteModule, updateModuleAttributes, updatePlayAttributes: storeUpdatePlayAttributes, updateRole: storeUpdateRole } = usePlaybookEditorStore()
+
+  // Wrappers matching the old callback signatures
+  const onDelete = (id: string) => storeDeleteModule(id)
+  const onUpdateModule = (id: string, updates: Partial<any>) => updateModuleAttributes(id, updates)
+  const onUpdatePlay = (updates: Partial<PlayAttributes>) => storeUpdatePlayAttributes(updates)
+  const onUpdateRole = (index: number, updates: { role?: string; vars?: Record<string, any> }) => storeUpdateRole(index, updates)
+
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
   const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
