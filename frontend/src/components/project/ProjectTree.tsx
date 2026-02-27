@@ -115,6 +115,13 @@ const ProjectTree: React.FC = () => {
         artifactId: artifact.id,
         artifactPath: artifact.path,
       })
+    } else if (['template', 'file', 'custom_module', 'ansible_cfg'].includes(artifact.artifact_type)) {
+      openTab({
+        title: artifact.path,
+        type: artifact.artifact_type as 'template' | 'file' | 'custom_module' | 'ansible_cfg',
+        artifactId: artifact.id,
+        artifactPath: artifact.path,
+      })
     } else {
       setSnackbar({
         open: true,

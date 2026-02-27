@@ -21,6 +21,9 @@ import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 import CollectionEditor from '../editors/CollectionEditor'
+import TemplateEditor from '../editors/TemplateEditor'
+import CodeEditor from '../editors/CodeEditor'
+import AnsibleCfgEditor from '../editors/AnsibleCfgEditor'
 import ChangesPanel from '../project/ChangesPanel'
 import { ProjectCollaborationProvider, useProjectCollaboration } from '../../contexts/ProjectCollaborationContext'
 
@@ -94,6 +97,27 @@ const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         {activeTab?.type === 'collection_requirements' && (
           <CollectionEditor
+            artifactPath={activeTab.artifactPath}
+            artifactId={activeTab.artifactId}
+            projectId={projectId}
+          />
+        )}
+        {activeTab?.type === 'template' && (
+          <TemplateEditor
+            artifactPath={activeTab.artifactPath}
+            artifactId={activeTab.artifactId}
+            projectId={projectId}
+          />
+        )}
+        {(activeTab?.type === 'file' || activeTab?.type === 'custom_module') && (
+          <CodeEditor
+            artifactPath={activeTab.artifactPath}
+            artifactId={activeTab.artifactId}
+            projectId={projectId}
+          />
+        )}
+        {activeTab?.type === 'ansible_cfg' && (
+          <AnsibleCfgEditor
             artifactPath={activeTab.artifactPath}
             artifactId={activeTab.artifactId}
             projectId={projectId}

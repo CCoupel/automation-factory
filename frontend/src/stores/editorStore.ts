@@ -3,7 +3,7 @@ import { create } from 'zustand'
 export interface EditorTab {
   id: string
   title: string
-  type: 'playbook' | 'role' | 'inventory' | 'variable_file' | 'template' | 'file' | 'collection_requirements'
+  type: 'playbook' | 'role' | 'inventory' | 'variable_file' | 'template' | 'file' | 'collection_requirements' | 'ansible_cfg' | 'custom_module'
   artifactId: string
   artifactPath: string
 }
