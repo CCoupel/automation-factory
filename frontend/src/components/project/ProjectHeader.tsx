@@ -27,6 +27,7 @@ import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import LanguageIcon from '@mui/icons-material/Language'
 import CommitIcon from '@mui/icons-material/SaveAlt'
 import PublishIcon from '@mui/icons-material/Publish'
+import CallMergeIcon from '@mui/icons-material/CallMerge'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
@@ -39,6 +40,7 @@ import BranchPicker from './BranchPicker'
 import CommitDialog from './CommitDialog'
 import SyncButton from './SyncButton'
 import ConflictResolver from './ConflictResolver'
+import CreatePRDialog from './CreatePRDialog'
 
 interface ProjectHeaderProps {
   projectName: string
@@ -58,6 +60,7 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
   const closeAllTabs = useEditorStore(s => s.closeAllTabs)
 
   const [commitDialogOpen, setCommitDialogOpen] = useState(false)
+  const [prDialogOpen, setPrDialogOpen] = useState(false)
   const [pushing, setPushing] = useState(false)
   const [changeCount, setChangeCount] = useState(0)
   const [syncResult, setSyncResult] = useState<GitSyncResponse | null>(null)
@@ -225,6 +228,18 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
                 onSyncResult={handleSyncResult}
                 onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
               />
+
+              <Tooltip title={t('createPR')}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CallMergeIcon />}
+                  onClick={() => setPrDialogOpen(true)}
+                  sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                >
+                  {t('createPR')}
+                </Button>
+              </Tooltip>
             </Box>
           )}
 
@@ -309,6 +324,18 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ projectName }) => {
           projectId={projectId}
           syncResult={syncResult}
           onResolved={handleConflictResolved}
+        />
+      )}
+
+      {/* Create PR dialog */}
+      {hasGit && (
+        <CreatePRDialog
+          open={prDialogOpen}
+          onClose={() => setPrDialogOpen(false)}
+          projectId={projectId}
+          onPRCreated={(pr) => {
+            setSnackbar({ open: true, message: `${t('prCreateSuccess')} — #${pr.number}`, severity: 'success' })
+          }}
         />
       )}
 
