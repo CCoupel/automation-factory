@@ -9,15 +9,88 @@ import {
   Tooltip,
 } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import CloseIcon from '@mui/icons-material/Close'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useEditorStore } from '../../stores/editorStore'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
+import CollectionEditor from '../editors/CollectionEditor'
+
+const EditorArea: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const { t } = useTranslation('project')
+  const tabs = useEditorStore(s => s.tabs)
+  const activeTabIndex = useEditorStore(s => s.activeTabIndex)
+  const setActiveTab = useEditorStore(s => s.setActiveTab)
+  const closeTab = useEditorStore(s => s.closeTab)
+
+  if (tabs.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+        <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+          {t('selectArtifact')}
+        </Typography>
+      </Box>
+    )
+  }
+
+  const activeTab = tabs[activeTabIndex]
+
+  return (
+    <>
+      {/* Editor Tab Bar */}
+      <Box sx={{ display: 'flex', borderBottom: 1, borderColor: 'divider', minHeight: 36, overflow: 'auto' }}>
+        {tabs.map((tab, index) => (
+          <Box
+            key={tab.id}
+            onClick={() => setActiveTab(index)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: 1.5,
+              py: 0.5,
+              cursor: 'pointer',
+              borderRight: 1,
+              borderColor: 'divider',
+              bgcolor: index === activeTabIndex ? 'background.paper' : 'action.hover',
+              '&:hover': { bgcolor: 'action.selected' },
+              fontSize: '0.8rem',
+              minHeight: 36,
+            }}
+          >
+            <Typography variant="caption" noWrap sx={{ maxWidth: 150 }}>
+              {tab.title}
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); closeTab(tab.id) }}
+              sx={{ p: 0.25, ml: 0.5 }}
+            >
+              <CloseIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Active Editor */}
+      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        {activeTab?.type === 'collection_requirements' && (
+          <CollectionEditor
+            artifactPath={activeTab.artifactPath}
+            artifactId={activeTab.artifactId}
+            projectId={projectId}
+          />
+        )}
+      </Box>
+    </>
+  )
+}
 
 const ProjectLayout: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
@@ -152,7 +225,7 @@ const ProjectLayout: React.FC = () => {
         )}
 
         {/* Center area */}
-        <Box sx={{ flex: 1, overflow: 'auto', minWidth: 0, position: 'relative' }}>
+        <Box sx={{ flex: 1, overflow: 'hidden', minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           {isLeftCollapsed && (
             <Tooltip title={t('projectTree')} placement="right">
               <IconButton
@@ -168,17 +241,7 @@ const ProjectLayout: React.FC = () => {
             </Tooltip>
           )}
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            p: 4,
-          }}>
-            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-              {t('selectArtifact')}
-            </Typography>
-          </Box>
+          <EditorArea projectId={projectId || ''} />
         </Box>
       </Box>
 

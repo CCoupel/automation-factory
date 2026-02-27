@@ -25,6 +25,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useEditorStore } from '../../stores/editorStore'
 import { ProjectArtifact } from '../../services/projectService'
 import { playbookService } from '../../services/playbookService'
 
@@ -46,6 +47,7 @@ const ProjectTree: React.FC = () => {
   const artifacts = useProjectStore(s => s.artifacts)
   const currentProject = useProjectStore(s => s.currentProject)
 
+  const openTab = useEditorStore(s => s.openTab)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['playbook']))
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'info' | 'warning' }>({
     open: false, message: '', severity: 'info',
@@ -102,6 +104,13 @@ const ProjectTree: React.FC = () => {
           severity: 'warning',
         })
       }
+    } else if (artifact.artifact_type === 'collection_requirements') {
+      openTab({
+        title: artifact.path,
+        type: 'collection_requirements',
+        artifactId: artifact.id,
+        artifactPath: artifact.path,
+      })
     } else {
       setSnackbar({
         open: true,
