@@ -35,7 +35,8 @@ Pour chaque demande, produire :
 - Toujours prévoir les tests en même temps que le code (pas en option)
 - Toujours prévoir les clés i18n dans `en/` ET `fr/` simultanément
 - Toujours prévoir le stockage en DB (jamais `/tmp`)
-- Signaler au CDP si une phase DB migration est nécessaire
+- Signaler au CDP si une migration DB est nécessaire
+- Signaler au CDP si des changements d'infrastructure sont requis (Helm, Docker, K8s)
 
 ## Comportement Teammates
 

@@ -21,6 +21,7 @@ Sans demander confirmation :
 | `qa` | `qa` | `"Lis .claude/agents/qa.md et applique ces instructions pour toute la session."` |
 | `doc-updater` | `doc-updater` | `"Lis .claude/agents/doc-updater.md et applique ces instructions pour toute la session."` |
 | `deployer` | `deployer` | `"Lis .claude/agents/deployer.md et applique ces instructions pour toute la session."` |
+| `infra` | `infra` | `"Lis .claude/agents/infra.md et applique ces instructions pour toute la session."` |
 | `dev-backend` | `dev-backend` | `"Lis .claude/agents/dev-backend.md et applique ces instructions pour toute la session."` |
 | `dev-frontend` | `dev-frontend` | `"Lis .claude/agents/dev-frontend.md et applique ces instructions pour toute la session."` |
 
