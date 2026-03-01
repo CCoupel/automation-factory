@@ -7,10 +7,9 @@ $ARGUMENTS
 Sans demander confirmation, exécuter dans l'ordre :
 
 ### Étape 1 — Archivage documentation
-SendMessage à `doc-updater` :
-"FIN DE SESSION : Mets à jour WORK_IN_PROGRESS.md pour refléter l'état final. Archive tout travail terminé dans DONE.md. Confirme quand c'est fait."
-
-Attendre la confirmation de `doc-updater`.
+Lire la config team (`~/.claude/teams/Team-AF/config.json`).
+- Si `doc-updater` est actif : SendMessage à `doc-updater` : "FIN DE SESSION : Mets à jour WORK_IN_PROGRESS.md pour refléter l'état final. Archive tout travail terminé dans DONE.md. Confirme quand c'est fait." — attendre sa confirmation.
+- Sinon : mettre à jour directement `docs/work/WORK_IN_PROGRESS.md` et `docs/work/DONE.md`.
 
 ### Étape 2 — Mise à jour MEMORY
 Mettre à jour `.claude/memory/MEMORY.md` avec :
