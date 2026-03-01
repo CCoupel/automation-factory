@@ -69,20 +69,23 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 
 | Message reçu | Action CDP |
 |---|---|
-| `FEATURE: X` | planner → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
-| `BUGFIX: X` | planner → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
+| `FEATURE: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
+| `BUGFIX: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
 | `HOTFIX: X` | Voir processus HOTFIX ci-dessus |
 | `REFACTOR: X` | planner → dev(s) → code-reviewer → qa |
 | `PLAN REQUEST: X` | Assigner tâche à `planner` |
 | `DEV REQUEST (backend + frontend): X` | Assigner tâches à `dev-backend` + `dev-frontend` en parallèle |
 | `DEV BACKEND REQUEST: X` | Assigner tâche à `dev-backend` |
 | `DEV FRONTEND REQUEST: X` | Assigner tâche à `dev-frontend` |
+| `INFRA REQUEST: X` | Assigner tâche à `infra` |
 | `TEST WRITE REQUEST: X` | Assigner tâche à `test-writer` |
 | `CODE REVIEW REQUEST: X` | Assigner tâche à `code-reviewer` (review ciblée, verdict APPROUVÉ/REFUSÉ) |
 | `PERIODIC REVIEW REQUEST: X` | Assigner tâche à `code-reviewer` (audit santé, rapport CRITIQUE/MAJEUR/MINEUR) |
 | `QA REQUEST: X` | Assigner tâche à `qa` |
 | `DOC UPDATE REQUEST: X` | Assigner tâche à `doc-updater` |
 | `DEPLOY REQUEST: X` | Assigner tâche à `deployer` (confirmer Phase 3 avec l'utilisateur si prod) |
+
+> **Règle infra dans les workflows** : si le plan du `planner` signale des changements d'infrastructure, assigner `infra` **avant** les dev(s). Les devs ne commencent pas tant qu'infra n'a pas livré (nouvelles variables d'env, services K8s disponibles).
 
 ### Gestion des bloquages
 - Agent bloqué → analyser, débloquer ou réassigner via `SendMessage`
