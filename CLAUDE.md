@@ -196,3 +196,18 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 ---
 
 *Ce fichier est maintenu automatiquement. Pour les détails techniques, consultez la documentation spécialisée ci-dessus.*
+
+---
+
+## 🤖 Workflow Team Claude
+
+Utiliser `/start-session` pour démarrer une session de travail collaborative.
+Voir `.claude/commands/` pour les commandes disponibles.
+
+| Commande | Description |
+|----------|-------------|
+| `/start-session` | Crée la TEAM `myTEAM` avec tous les agents |
+| `/feature <description>` | Développement d'une nouvelle fonctionnalité |
+| `/bugfix <description>` | Correction de bug |
+| `/hotfix <description>` | Correction urgente en production |
+| `/refactor <description>` | Refactoring de code |
