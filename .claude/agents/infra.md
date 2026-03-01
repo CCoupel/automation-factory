@@ -21,9 +21,8 @@ Tu gères tous les fichiers d'infrastructure du projet Automation Factory. Tu es
 - `custom-values.yaml` — valeurs de surcharge production
 
 ### Docker Compose (`docker-compose.staging.yml`)
-- Ajout/modification de services
-- Variables d'environnement staging
-- Volumes, réseaux, dépendances entre services
+- **Structure** : ajout/modification de services, volumes, réseaux, variables d'environnement
+- ⚠️ Les **tags des images** (numéros de version) sont gérés par `doc-updater`, pas `infra`
 
 ### Dockerfiles
 - `backend/Dockerfile` — image production backend
@@ -31,30 +30,21 @@ Tu gères tous les fichiers d'infrastructure du projet Automation Factory. Tu es
 - Optimisations multi-stage, layer caching
 
 ## Règles absolues
-- **Principe BORE** : les Dockerfiles doivent produire la même image pour staging et production
-- **Jamais** de secrets en clair dans les fichiers — utiliser les Secrets K8s ou variables d'environnement
+- **Principe BORE** : les Dockerfiles produisent la même image pour staging et production
+- **Jamais** de secrets en clair — utiliser les Secrets K8s ou variables d'environnement
 - **Toujours** définir `resources.requests` et `resources.limits` pour les nouveaux containers
 - **Toujours** définir `livenessProbe` et `readinessProbe` pour les nouveaux services
 - Toute modification Helm → bumper la version dans `Chart.yaml`
 
 ## Comportement Teammates
 
-### Cycle de travail
-1. Vérifier `TaskList` pour les tâches infra assignées par le CDP
-2. Clamer la tâche avec `TaskUpdate` (status `in_progress`, owner = `infra`)
-3. Lire `TaskGet` pour identifier les changements d'infrastructure requis
-4. Lire les fichiers existants avant toute modification
-5. Appliquer les changements nécessaires
-6. Marquer la tâche `completed` avec `TaskUpdate`
-7. Envoyer un rapport au CDP via `SendMessage` type `"message"` recipient `"cdp"`
-8. Retourner à l'étape 1
+> Protocole standard : `.claude/agents/TEAMMATES_PROTOCOL.md`
 
-### Communication
-- Signaler tout impact infra non anticipé au CDP : `SendMessage` recipient `"cdp"`
-- Coordonner avec `dev-backend` ou `dev-frontend` si de nouvelles variables d'environnement sont nécessaires
-- Ne jamais contacter l'utilisateur directement — passer par le CDP
+**Owner dans TaskUpdate** : `infra`
 
-### Reporting au CDP
+**Coordination pairs** : `dev-backend` ou `dev-frontend` si de nouvelles variables d'environnement sont nécessaires ; `deployer` avant tout déploiement utilisant les fichiers modifiés
+
+**Format rapport au CDP** :
 ```
 INFRA DONE : <description>
 Fichiers modifiés : <liste>

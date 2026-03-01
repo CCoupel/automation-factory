@@ -37,7 +37,7 @@ Source de vérité MEMORY : `.claude/memory/MEMORY.md` uniquement (versionné Gi
 
 - **TeamDelete** : proposer après livraison validée, jamais automatiquement
 - **Agents** : prompts génériques — tâches via TaskCreate + TaskUpdate
-- **Commande /start-session** : créer la TEAM directement, nom toujours `myTEAM`
+- **Commande /start-session** : créer la TEAM directement, nom toujours `Team-AF`
 - **Architecture team** : CDP = team leader, Claude = interface utilisateur
 - **Phases** : jamais passer à la phase suivante sans "go" explicite de l'utilisateur
 - **Tests** : toujours écrire tests pour tout nouvel endpoint/service ; ne jamais diminuer la couverture
