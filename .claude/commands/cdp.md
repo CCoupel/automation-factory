@@ -2,9 +2,9 @@
 
 $ARGUMENTS
 
-> **Prérequis** : la team `Team-AF` doit être démarrée (`/start-session`)
-
 ## Instructions
+Si la team `Team-AF` n'est pas active : `TeamCreate` `Team-AF` + spawner `cdp` (`"Lis .claude/agents/cdp.md et applique ces instructions. Spawn les agents nécessaires selon la demande entrante."`)
+
 Envoie un message direct au CDP de la team `Team-AF` :
 
 ```

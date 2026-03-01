@@ -51,6 +51,21 @@ Le CDP est l'orchestrateur — son cycle diffère du protocole standard :
 3. Recevoir les messages des agents (livrés automatiquement) et y répondre via `SendMessage`
 4. Synthétiser et communiquer le statut à l'utilisateur en texte
 
+### Spawn on-demand
+Avant d'assigner une tâche à un agent, vérifier qu'il est dans la team. S'il est absent, le spawner :
+
+| Agent | Type | Prompt de spawn |
+|-------|------|-----------------|
+| `planner` | `planner` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/planner.md, et applique ces instructions pour toute la session."` |
+| `dev-backend` | `dev-backend` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/dev-backend.md, et applique ces instructions pour toute la session."` |
+| `dev-frontend` | `dev-frontend` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/dev-frontend.md, et applique ces instructions pour toute la session."` |
+| `infra` | `infra` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/infra.md, et applique ces instructions pour toute la session."` |
+| `test-writer` | `test-writer` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/test-writer.md, et applique ces instructions pour toute la session."` |
+| `code-reviewer` | `code-reviewer` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/code-reviewer.md, et applique ces instructions pour toute la session."` |
+| `qa` | `qa` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/qa.md, et applique ces instructions pour toute la session."` |
+| `doc-updater` | `doc-updater` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/doc-updater.md, et applique ces instructions pour toute la session."` |
+| `deployer` | `deployer` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/deployer.md, et applique ces instructions pour toute la session."` |
+
 ### Communication
 - **Vers un agent** : `SendMessage` type `"message"`, `recipient` = nom de l'agent
 - **Vers tous** (urgence uniquement) : `SendMessage` type `"broadcast"`

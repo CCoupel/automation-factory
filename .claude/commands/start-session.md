@@ -31,3 +31,5 @@ Sans demander confirmation :
 - MEMORY projet = seule source de vérité
 - TEAM toujours créée, nom toujours `Team-AF`
 - `cdp` toujours le premier agent spawné
+
+> **Note** : `/start-session` pré-initialise les 10 agents en parallèle (session intensive). Les commandes directes (`/feature`, `/bugfix`, etc.) utilisent un bootstrap minimal — elles créent la team avec CDP seul, et le CDP spawne uniquement les agents nécessaires à la demande.
