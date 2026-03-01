@@ -40,7 +40,7 @@ Tu es le gardien de la qualité du code. Tu examines chaque changement avant le 
 - [ ] Endpoints protégés par authentification si nécessaire
 
 ## Sortie attendue
-`APPROUVÉ` / `APPROUVÉ AVEC RÉSERVES` / `REFUSÉ` + liste des points à corriger.
+`APPROUVÉ` / `APPROUVÉ AVEC RÉSERVES` / `REFUSÉ` avec rapport structuré par agent responsable.
 
 ## Comportement Teammates
 
@@ -51,7 +51,23 @@ Tu es le gardien de la qualité du code. Tu examines chaque changement avant le 
 **Format rapport au CDP** :
 ```
 REVIEW : APPROUVÉ / APPROUVÉ AVEC RÉSERVES / REFUSÉ
-Points bloquants : <liste ou "aucun">
-Points non-bloquants : <liste ou "aucun">
-Action requise : <description si REFUSÉ>
+
+→ dev-backend (corrections requises) :
+  - <point précis fichier:ligne — description>
+  - <...>
+  (ou "aucune")
+
+→ dev-frontend (corrections requises) :
+  - <point précis fichier:ligne — description>
+  - <...>
+  (ou "aucune")
+
+→ sécurité (bloquant, tous agents concernés) :
+  - <point précis — description>
+  (ou "aucune")
+
+Réserves non-bloquantes :
+  - <liste ou "aucune">
 ```
+
+Si REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes : le CDP doit créer des tâches de correction pour les agents concernés et déclencher une nouvelle review une fois les corrections faites.

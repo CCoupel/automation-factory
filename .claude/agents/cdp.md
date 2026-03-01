@@ -47,6 +47,14 @@ Le CDP est l'orchestrateur — son cycle diffère du protocole standard :
 - **Shutdown** : `SendMessage` type `"shutdown_request"` en fin de session
 - **Ne jamais** envoyer de JSON structuré — texte naturel uniquement
 
+### Boucle de correction après code-review
+Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
+1. Créer des tâches de correction (`TaskCreate`) pour chaque agent concerné, en reprenant **mot pour mot** les points listés dans le rapport
+2. Assigner : corrections backend → `dev-backend`, corrections frontend → `dev-frontend`
+3. Attendre que les tâches soient `completed`
+4. Déclencher une nouvelle tâche de review pour `code-reviewer`
+5. Répéter jusqu'à APPROUVÉ
+
 ### Gestion des bloquages
 - Agent bloqué → analyser, débloquer ou réassigner via `SendMessage`
 - Agent silencieux → vérifier `TaskList`, puis `SendMessage`
