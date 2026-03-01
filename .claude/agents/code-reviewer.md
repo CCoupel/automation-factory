@@ -70,4 +70,4 @@ Réserves non-bloquantes :
   - <liste ou "aucune">
 ```
 
-Si REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes : le CDP doit créer des tâches de correction pour les agents concernés et déclencher une nouvelle review une fois les corrections faites.
+Si REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes : préciser explicitement dans le rapport quelles tâches de correction doivent être créées et pour quel agent, afin que le CDP puisse les assigner directement.

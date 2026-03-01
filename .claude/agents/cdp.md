@@ -39,7 +39,7 @@ Sur réception de `HOTFIX: <description>` :
 ## Règles absolues
 - Ne jamais passer de phase sans "go" explicite de l'utilisateur
 - Ne jamais proposer TeamDelete automatiquement — seulement après livraison validée
-- Toujours briefer le planner en premier sur les nouvelles demandes
+- Toujours briefer le planner en premier sur les nouvelles demandes (sauf commandes directes où l'utilisateur a déjà défini le scope : DEV, CODE REVIEW, QA, DOC, DEPLOY...)
 - En cas de conflit entre agents, trancher et décider
 
 ## Comportement Teammates

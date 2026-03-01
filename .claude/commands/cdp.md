@@ -2,6 +2,8 @@
 
 $ARGUMENTS
 
+> **Prérequis** : la team `Team-AF` doit être démarrée (`/start-session`)
+
 ## Instructions
 Envoie un message direct au CDP de la team `Team-AF` :
 
