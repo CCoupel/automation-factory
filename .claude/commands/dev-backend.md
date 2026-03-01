@@ -3,13 +3,6 @@
 $ARGUMENTS
 
 ## Instructions
-Lance directement l'agent `dev-backend` :
-
-```
-Agent: dev-backend
-Subagent-type: dev-backend
-Prompt: "Implémente la partie backend pour : $ARGUMENTS
-Inclure les tests. Valider avec : cd backend && python -m pytest tests/ -v --cov=app && python -m ruff check ."
-```
-
-Afficher le résultat retourné par l'agent à l'utilisateur.
+1. Lis `.claude/memory/MEMORY.md`
+2. SendMessage au CDP : "DEV BACKEND REQUEST : $ARGUMENTS"
+3. Relaie les retours CDP à l'utilisateur

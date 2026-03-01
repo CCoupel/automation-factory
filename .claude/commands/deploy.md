@@ -2,20 +2,11 @@
 
 $ARGUMENTS
 
+## Points de contrôle obligatoires
+- Phase 3 (production) : demander confirmation explicite à l'utilisateur avant de transmettre au CDP
+
 ## Instructions
-Lance directement l'agent `deployer` :
-
-```
-Agent: deployer
-Subagent-type: deployer
-Prompt: "Exécute le déploiement : $ARGUMENTS
-Préciser la phase (Phase 2 staging ou Phase 3 production) et la version cible.
-Phase 2 : build images sur 192.168.1.217, docker-compose up, health checks.
-Phase 3 : retag staging→prod, push ghcr.io, helm upgrade EXCLUSIVEMENT.
-JAMAIS kubectl set image. JAMAIS rebuild en Phase 3."
-```
-
-Afficher le rapport de déploiement à l'utilisateur.
-
-## Point de contrôle obligatoire
-Demander confirmation explicite de l'utilisateur avant tout déploiement production (Phase 3).
+1. Lis `.claude/memory/MEMORY.md`
+2. Si Phase 3 : demander confirmation à l'utilisateur avant de continuer
+3. SendMessage au CDP : "DEPLOY REQUEST : $ARGUMENTS (Phase 2 staging ou Phase 3 production)"
+4. Relaie le rapport de déploiement retourné par le CDP à l'utilisateur

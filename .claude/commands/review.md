@@ -1,17 +1,8 @@
-# Commande /review - Revue Périodique
+# Commande /review - Audit Périodique
 
 $ARGUMENTS
 
 ## Instructions
-Lance une revue périodique complète de la codebase via `code-reviewer` :
-
-```
-Agent: code-reviewer
-Subagent-type: code-reviewer
-Prompt: "Effectue une revue périodique de la codebase Automation Factory.
-Périmètre : $ARGUMENTS (ou tout le code modifié depuis le dernier merge si non précisé).
-Focus : dette technique, violations des règles du projet, sécurité, couverture de tests.
-Produire un rapport priorisé : CRITIQUE / MAJEUR / MINEUR."
-```
-
-Afficher le rapport complet à l'utilisateur avec recommandations priorisées.
+1. Lis `.claude/memory/MEMORY.md`
+2. SendMessage au CDP : "PERIODIC REVIEW REQUEST : $ARGUMENTS (périmètre : tout le code modifié depuis le dernier merge si non précisé)"
+3. Relaie le rapport priorisé (CRITIQUE / MAJEUR / MINEUR) à l'utilisateur
