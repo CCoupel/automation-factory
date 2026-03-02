@@ -448,6 +448,78 @@ class GalaxyRolesService(BaseHTTPService):
             return []
 
     # ========================================
+    # Collection Search (for requirements.yml)
+    # ========================================
+
+    async def search_collections(
+        self,
+        query: str,
+        source: str = "public",
+        limit: int = 20
+    ) -> List[Dict[str, Any]]:
+        """
+        Search for collections via Galaxy v3 API.
+
+        Uses the collection-versions search endpoint with is_highest=true
+        to get the latest version of each matching collection.
+
+        Args:
+            query: Search keywords
+            source: "public" or "private"
+            limit: Max results to return
+
+        Returns:
+            List of collection search results with namespace, name, fqcn,
+            version, description, download_count
+        """
+        cache_key = f"galaxy_collection_search:{source}:{query}:{limit}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        try:
+            base_url = self._get_base_url(source)
+            if not base_url:
+                logger.warning(f"No Galaxy source configured for type '{source}'")
+                return []
+
+            url = f"{base_url}/api/v3/plugin/ansible/search/collection-versions/"
+            params = {
+                "keywords": query,
+                "limit": limit,
+                "is_highest": "true",
+            }
+
+            session = await self.get_session()
+            headers = self._get_headers(source)
+
+            async with session.get(url, params=params, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    results = []
+                    for item in data.get("data", []):
+                        namespace = item.get("namespace", "")
+                        name = item.get("name", "")
+                        results.append({
+                            "namespace": namespace,
+                            "name": name,
+                            "fqcn": f"{namespace}.{name}",
+                            "version": item.get("version", ""),
+                            "description": item.get("description", ""),
+                            "download_count": item.get("download_count"),
+                        })
+                    cache.set(cache_key, results, self.CACHE_TTL_ROLES)
+                    logger.info(f"Collection search '{query}' returned {len(results)} results")
+                    return results
+                else:
+                    logger.warning(f"Galaxy collection search returned {response.status}")
+                    return []
+
+        except Exception as e:
+            logger.error(f"Error searching collections: {str(e)}")
+            return []
+
+    # ========================================
     # Configuration
     # ========================================
 
