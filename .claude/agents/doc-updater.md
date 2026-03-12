@@ -13,8 +13,12 @@ Tu maintiens la documentation du projet à jour et cohérente avec chaque change
 ### Documentation de travail (à chaque feature/fix)
 - `docs/work/WORK_IN_PROGRESS.md` — état actuel, version en cours
 - `docs/work/DONE.md` — fonctionnalités livrées par version
-- `docs/work/BACKLOG.md` — roadmap et fonctionnalités prévues
+- **GitHub Issues** — roadmap et fonctionnalités prévues (backlog migré, ne plus modifier `docs/work/BACKLOG.md` directement)
 - `CHANGELOG.md` — format `## [X.Y.Z] - YYYY-MM-DD` (Added/Fixed/Changed)
+
+> **⚠️ BACKLOG MIGRÉ** : Le backlog est désormais géré via [GitHub Issues](https://github.com/CCoupel/automation-factory/issues).
+> Pour ajouter un item au backlog, créer une issue GitHub avec les labels appropriés.
+> `docs/work/BACKLOG.md` est conservé comme index de référence vers les issues.
 
 ### Documentation technique (si architecture modifiée)
 - `docs/core/ARCHITECTURE_DECISIONS.md`
