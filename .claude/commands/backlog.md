@@ -2,60 +2,73 @@
 
 $ARGUMENTS
 
-## Instructions
-Traiter directement (sans agent) :
+## Source de vérité
+Le backlog est géré via **GitHub Issues** : https://github.com/CCoupel/automation-factory/issues
 
-> **⚠️ BACKLOG MIGRÉ** : Le backlog est géré via **GitHub Issues**.
-> URL : https://github.com/CCoupel/automation-factory/issues
+Le token GitHub est dans `github_token.txt` (ou dans la variable d'environnement `GITHUB_TOKEN`).
+
+---
+
+## Instructions
 
 ### Si $ARGUMENTS est vide — Afficher le backlog
-Afficher à l'utilisateur le résumé suivant :
+Interroger l'API GitHub pour lister les issues ouvertes, puis les afficher groupées par milestone/label de version :
 
-```
-📋 Backlog → GitHub Issues
-https://github.com/CCoupel/automation-factory/issues
-
-Issues par milestone :
-- v2.4.0 Event Sourcing   : #20
-- v2.1.x Collaboration    : #24, #25
-- v2.2.x Import/Export    : #26-#34
-- v2.3.x Sécurité         : #35-#37
-- v2.5.x Annotations/Inv. : #38-#42
-- v2.6.x Notifications    : #43, #44
-- v2.7.x Git Integration  : #45-#47
-- v2.8.x Marketing        : #48-#50
-- Tests & Tech             : #51-#68
-- v3.0+ Long terme         : #69-#72
-
-🔥 Next priority : #20 Event Sourcing v2.4.0
-```
-
-Pour afficher le détail d'une issue spécifique, utiliser l'API GitHub :
 ```bash
-curl -s -H "Authorization: token <TOKEN>" \
-  https://api.github.com/repos/CCoupel/automation-factory/issues/<NUMBER>
+curl -s -H "Authorization: token $(cat github_token.txt)" \
+  "https://api.github.com/repos/CCoupel/automation-factory/issues?state=open&per_page=100" \
+  | python3 -c "
+import sys, json
+issues = json.load(sys.stdin)
+# Grouper par label de version
+by_version = {}
+no_version = []
+for i in issues:
+    if i.get('pull_request'):
+        continue
+    labels = [l['name'] for l in i.get('labels', [])]
+    version = next((l for l in labels if l.startswith('v')), None)
+    if version:
+        by_version.setdefault(version, []).append(i)
+    else:
+        no_version.append(i)
+for v in sorted(by_version.keys()):
+    print(f'\n### {v}')
+    for i in by_version[v]:
+        labels = [l['name'] for l in i['labels'] if not l['name'].startswith('v')]
+        print(f'  #{i[\"number\"]} {i[\"title\"]} [{', '.join(labels)}]')
+if no_version:
+    print('\n### Sans version')
+    for i in no_version:
+        labels = [l['name'] for l in i['labels']]
+        print(f'  #{i[\"number\"]} {i[\"title\"]} [{', '.join(labels)}]')
+"
 ```
 
-### Si $ARGUMENTS contient un item — Ajouter au backlog GitHub
-Créer une issue GitHub via l'API avec les informations fournies.
+Afficher le résultat à l'utilisateur de façon lisible.
 
-**Paramètres API :**
-```
-POST https://api.github.com/repos/CCoupel/automation-factory/issues
-{
-  "title": "<titre de l'item>",
-  "body": "<description détaillée>",
-  "labels": ["feature", "priority: medium"]  // adapter selon le contexte
-}
+### Si $ARGUMENTS contient un item — Ajouter une issue GitHub
+Créer une nouvelle issue via l'API GitHub :
+
+```bash
+curl -s -X POST \
+  -H "Authorization: token $(cat github_token.txt)" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/repos/CCoupel/automation-factory/issues \
+  -d '{
+    "title": "<titre>",
+    "body": "<description>",
+    "labels": ["feature", "priority: medium"]
+  }'
 ```
 
+Adapter le titre, la description et les labels selon le contexte de $ARGUMENTS.
 Confirmer à l'utilisateur le numéro et l'URL de l'issue créée.
 
-### Labels disponibles
-- Priorité : `priority: high`, `priority: medium`, `priority: low`
-- Type : `feature`, `enhancement`, `technical-debt`, `bug`
-- Version : `v2.4.0`, `v2.5.x`, `v2.6.x`, `v2.7.x`, `v2.8.x`, `v3.0+`
-- Catégorie : `galaxy`, `collaboration`, `import-export`, `security`, `inventory`, `notifications`, `git-integration`, `marketing`, `testing`, `devops`, `ux-ui`, `ai-ml`, `performance`, `backend`, `frontend`, `architecture`
+---
 
-## Référence
-`docs/work/BACKLOG.md` — Index de référence vers les issues GitHub
+## Labels disponibles
+- **Priorité** : `priority: high`, `priority: medium`, `priority: low`
+- **Type** : `feature`, `enhancement`, `technical-debt`, `bug`
+- **Version** : `v2.4.0`, `v2.5.x`, `v2.6.x`, `v2.7.x`, `v2.8.x`, `v3.0+`
+- **Catégorie** : `galaxy`, `collaboration`, `import-export`, `security`, `inventory`, `notifications`, `git-integration`, `marketing`, `testing`, `devops`, `ux-ui`, `ai-ml`, `performance`, `backend`, `frontend`, `architecture`
