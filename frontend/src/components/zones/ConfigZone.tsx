@@ -23,6 +23,7 @@ import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 import { moduleConfigs } from '../../constants/moduleConfigs'
 import { usePlaybookEditorStore, useSelectedModuleData, usePlayAttributes, useActivePlayId } from '../../stores/playbookEditorStore'
+import { useShallow } from 'zustand/react/shallow'
 
 // Collaboration callback type for config updates
 export interface CollaborationConfigCallback {
@@ -226,7 +227,14 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
   const playAttributes = usePlayAttributes()
   const activePlayId = useActivePlayId()
   const selectedRole = usePlaybookEditorStore(s => s.selectedRole)
-  const { deleteModule: storeDeleteModule, updateModuleAttributes, updatePlayAttributes: storeUpdatePlayAttributes, updateRole: storeUpdateRole } = usePlaybookEditorStore()
+  const { deleteModule: storeDeleteModule, updateModuleAttributes, updatePlayAttributes: storeUpdatePlayAttributes, updateRole: storeUpdateRole } = usePlaybookEditorStore(
+    useShallow(s => ({
+      deleteModule: s.deleteModule,
+      updateModuleAttributes: s.updateModuleAttributes,
+      updatePlayAttributes: s.updatePlayAttributes,
+      updateRole: s.updateRole,
+    }))
+  )
 
   // Wrappers matching the old callback signatures
   const onDelete = (id: string) => storeDeleteModule(id)

@@ -42,6 +42,7 @@ import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play, P
 import { generateAssertionsBlocks, SYSTEM_ASSERTIONS_BLOCK_PREFIX, SYSTEM_TASK_PREFIX, SYSTEM_LINK_PREFIX, updateAssertionsBlocks, isSystemAssertionsId, isSystemLink, CustomTypeInfo } from '../../utils/assertionsGenerator'
 import { variableTypesService } from '../../services/variableTypesService'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
+import { useShallow } from 'zustand/react/shallow'
 import { useUserPreferences } from '../../contexts/UserPreferencesContext'
 
 // Collaboration callback types for real-time sync
@@ -114,7 +115,7 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
   const { preferences } = useUserPreferences()
 
   // =====================================================
-  // ZUSTAND STORE
+  // ZUSTAND STORE — use useShallow to avoid re-renders on unrelated changes
   // =====================================================
   const {
     plays, setPlays,
@@ -139,7 +140,30 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
     highlightElement,
     setModulesForActivePlay,
     setLinksForActivePlay,
-  } = usePlaybookEditorStore()
+  } = usePlaybookEditorStore(useShallow(s => ({
+    plays: s.plays, setPlays: s.setPlays,
+    activePlayIndex: s.activePlayIndex, setActivePlayIndex: s.setActivePlayIndex,
+    selectedModuleId: s.selectedModuleId, selectModule: s.selectModule,
+    selectedRole: s.selectedRole, selectRole: s.selectRole,
+    currentPlaybookId: s.currentPlaybookId, setCurrentPlaybookId: s.setCurrentPlaybookId,
+    playbookName: s.playbookName, setPlaybookName: s.setPlaybookName,
+    saveStatus: s.saveStatus, setSaveStatus: s.setSaveStatus,
+    lastSavedAt: s.lastSavedAt,
+    activeSectionTab: s.activeSectionTab, setActiveSectionTab: s.setActiveSectionTab,
+    gridEnabled: s.gridEnabled, setGridEnabled: s.setGridEnabled,
+    draggedModuleId: s.draggedModuleId, setDraggedModuleId: s.setDraggedModuleId,
+    hoveredLinkId: s.hoveredLinkId, setHoveredLinkId: s.setHoveredLinkId,
+    editingTabIndex: s.editingTabIndex, setEditingTabIndex: s.setEditingTabIndex,
+    collapsedBlocks: s.collapsedBlocks, setCollapsedBlocks: s.setCollapsedBlocks,
+    collapsedBlockSections: s.collapsedBlockSections, setCollapsedBlockSections: s.setCollapsedBlockSections,
+    collapsedPlaySections: s.collapsedPlaySections, setCollapsedPlaySections: s.setCollapsedPlaySections,
+    resizingBlock: s.resizingBlock, setResizingBlock: s.setResizingBlock,
+    customTypes: s.customTypes, setCustomTypes: s.setCustomTypes,
+    highlightedElements: s.highlightedElements, setHighlightedElements: s.setHighlightedElements,
+    highlightElement: s.highlightElement,
+    setModulesForActivePlay: s.setModulesForActivePlay,
+    setLinksForActivePlay: s.setLinksForActivePlay,
+  })))
 
   // Aliases for backward compatibility with existing code
   const setModules = setModulesForActivePlay
