@@ -1,0 +1,98 @@
+{
+  "playbookManager": {
+    "title": "Gestionnaire de Playbooks",
+    "myPlaybooks": "Mes Playbooks",
+    "sharedWithMe": "Partagés avec moi",
+    "newPlaybook": "Nouveau Playbook",
+    "openPlaybook": "Ouvrir le Playbook",
+    "deletePlaybook": "Supprimer le Playbook",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce playbook ?",
+    "deleteWarning": "Cette action est irréversible.",
+    "noPlaybooks": "Aucun playbook",
+    "createFirst": "Créez votre premier playbook pour commencer.",
+    "owner": "Propriétaire",
+    "sharedWith": "Partagé avec",
+    "role": "Rôle",
+    "lastModified": "Dernière modification",
+    "transferOwnership": "Transférer la propriété",
+    "newOwner": "Nom d'utilisateur du nouveau propriétaire",
+    "keepAccess": "Garder l'accès après le transfert"
+  },
+  "share": {
+    "title": "Partager le Playbook",
+    "shareWith": "Partager avec",
+    "username": "Nom d'utilisateur",
+    "role": "Rôle",
+    "viewer": "Lecteur",
+    "editor": "Éditeur",
+    "share": "Partager",
+    "sharedUsers": "Utilisateurs partagés",
+    "noShares": "Non partagé",
+    "removeShare": "Retirer le partage",
+    "updateRole": "Modifier le rôle",
+    "cannotShareSelf": "Impossible de partager avec vous-même",
+    "alreadyShared": "Déjà partagé avec cet utilisateur"
+  },
+  "configuration": {
+    "title": "Configuration",
+    "preferences": "Préférences",
+    "variableTypes": "Types de variables",
+    "galaxySources": "Sources Galaxy",
+    "theme": "Thème",
+    "language": "Langue"
+  },
+  "addVariable": {
+    "title": "Ajouter une variable",
+    "editTitle": "Modifier la variable",
+    "name": "Nom de la variable",
+    "value": "Valeur",
+    "description": "Description",
+    "type": "Type",
+    "required": "Requis",
+    "defaultValue": "Valeur par défaut",
+    "validationPattern": "Motif de validation"
+  },
+  "export": {
+    "title": "Exporter le diagramme",
+    "format": "Format",
+    "abd": "ABD (Automation Factory Diagram)",
+    "mermaid": "Mermaid (Markdown)",
+    "svg": "SVG (Image vectorielle)",
+    "export": "Exporter",
+    "download": "Télécharger",
+    "copy": "Copier dans le presse-papiers",
+    "copied": "Copié !",
+    "options": "Options",
+    "includeUiState": "Inclure l'état de l'interface",
+    "includeIntegrity": "Inclure les vérifications d'intégrité",
+    "prettyPrint": "Formatage lisible",
+    "direction": "Direction",
+    "topToBottom": "Haut vers bas",
+    "leftToRight": "Gauche vers droite",
+    "scale": "Échelle",
+    "backgroundColor": "Couleur de fond"
+  },
+  "import": {
+    "title": "Importer un diagramme",
+    "selectFile": "Sélectionner un fichier",
+    "dropHere": "Déposez le fichier ici ou cliquez pour sélectionner",
+    "supportedFormats": "Formats supportés : .abd",
+    "import": "Importer",
+    "invalidFormat": "Format de fichier invalide",
+    "importSuccess": "Diagramme importé avec succès",
+    "importError": "Erreur lors de l'importation du diagramme"
+  },
+  "deleteShared": {
+    "title": "Retirer le playbook partagé",
+    "message": "Êtes-vous sûr de vouloir retirer ce playbook partagé de votre liste ?",
+    "note": "Cela le retirera uniquement de votre vue. Le playbook original ne sera pas supprimé."
+  },
+  "about": {
+    "title": "À propos d'Automation Factory",
+    "description": "Constructeur graphique de playbooks Ansible",
+    "version": "Version",
+    "frontend": "Frontend",
+    "backend": "Backend",
+    "releaseCandidate": "Version candidate"
+  }
+}
