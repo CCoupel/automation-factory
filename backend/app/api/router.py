@@ -6,22 +6,30 @@ Note: Legacy Galaxy endpoints (/api/galaxy/*) have been removed.
 """
 
 from fastapi import APIRouter
-from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources
+from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, projects, project_artifacts, project_shares, git_credentials, yaml_parser, git_import
 from app.version import __version__
 
 # Create main API router
 api_router = APIRouter()
 
 # Include all endpoint routers
+# NOTE: collaboration must come before playbooks so that /shared-with-me
+# is matched before the /{playbook_id} catch-all in playbooks.router.
 api_router.include_router(auth.router)
+api_router.include_router(collaboration.router)  # Playbook sharing and collaboration
 api_router.include_router(playbooks.router)
 api_router.include_router(admin.router)
 api_router.include_router(common.router)
 api_router.include_router(user_favorites.router)
 api_router.include_router(admin_configuration.router)
 api_router.include_router(ansible.router)  # Ansible documentation API
-api_router.include_router(collaboration.router)  # Playbook sharing and collaboration
 api_router.include_router(variable_types.router)  # Custom variable types management
 api_router.include_router(galaxy_roles.router)  # Galaxy roles API (v1 standalone + v3 collection)
 api_router.include_router(playbook_export.router)  # Diagram export (ABD, Mermaid, SVG)
 api_router.include_router(galaxy_sources.router)  # Galaxy sources admin configuration
+api_router.include_router(git_import.router)  # Git import (must come before projects catch-all)
+api_router.include_router(projects.router)  # Project CRUD
+api_router.include_router(project_artifacts.router)  # Project artifacts
+api_router.include_router(project_shares.router)  # Project sharing
+api_router.include_router(git_credentials.router)  # Git credentials
+api_router.include_router(yaml_parser.router)  # YAML parser (Ansible YAML → graph)
