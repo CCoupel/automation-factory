@@ -193,11 +193,23 @@ export const usePlaybookPersistence = () => {
   }, [])
 
   // Auto-save with debounce (only after data has been loaded)
+  // Filter out saveStatus/lastSavedAt changes to avoid save -> status change -> save loop
   useEffect(() => {
     if (!isAuthenticated) return
 
+    let prevSaveStatus = store.getState().saveStatus
+    let prevLastSavedAt = store.getState().lastSavedAt
+
     const unsub = store.subscribe(() => {
       if (!hasLoaded.current) return
+
+      const state = store.getState()
+      // Skip if only saveStatus or lastSavedAt changed (avoids infinite loop)
+      if (state.saveStatus !== prevSaveStatus || state.lastSavedAt !== prevLastSavedAt) {
+        prevSaveStatus = state.saveStatus
+        prevLastSavedAt = state.lastSavedAt
+        return
+      }
 
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
       autoSaveTimerRef.current = setTimeout(() => {

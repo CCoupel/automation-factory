@@ -5,7 +5,7 @@
  * Manages WebSocket connections, presence tracking, and update notifications.
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { usePlaybookWebSocket, ConnectedUser, PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
 import { useAuth } from './AuthContext'
 
@@ -135,7 +135,7 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     }
   }, [])
 
-  const value: CollaborationContextType = {
+  const value = useMemo<CollaborationContextType>(() => ({
     isConnected,
     connectedUsers,
     currentPlaybookId,
@@ -145,7 +145,17 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     lastUpdate,
     highlightedElement,
     clearHighlight
-  }
+  }), [
+    isConnected,
+    connectedUsers,
+    currentPlaybookId,
+    connectToPlaybook,
+    disconnectFromPlaybook,
+    sendUpdate,
+    lastUpdate,
+    highlightedElement,
+    clearHighlight
+  ])
 
   return (
     <CollaborationContext.Provider value={value}>

@@ -78,12 +78,16 @@ const MainLayout = () => {
   }
 
   // Apply received collaboration updates directly to store
+  // Use ref for applyCollaborationUpdate to avoid re-triggering on store selector changes
+  const applyCollaborationUpdateRef = useRef(applyCollaborationUpdate)
+  applyCollaborationUpdateRef.current = applyCollaborationUpdate
+
   useEffect(() => {
     if (lastUpdate) {
       console.log('[MainLayout] Received collaboration update:', lastUpdate.update_type)
-      applyCollaborationUpdate(lastUpdate)
+      applyCollaborationUpdateRef.current(lastUpdate)
     }
-  }, [lastUpdate, applyCollaborationUpdate])
+  }, [lastUpdate])
 
   // Store functions in refs to avoid dependency issues
   const connectToPlaybookRef = useRef(connectToPlaybook)
