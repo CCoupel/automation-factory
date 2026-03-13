@@ -32,6 +32,8 @@ const ensureStartModules = (playId: string, modules: any[]): any[] => {
 export const usePlaybookPersistence = () => {
   const { isAuthenticated } = useAuth()
   const hasRestoredFromCache = useRef(false)
+  const hasLoaded = useRef(false)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const store = usePlaybookEditorStore
 
@@ -88,7 +90,18 @@ export const usePlaybookPersistence = () => {
       return
     }
 
+    if (!hasLoaded.current) {
+      console.log('[Persistence] Skipping save — data not loaded yet')
+      return
+    }
+
     const state = store.getState()
+
+    if (!state.currentPlaybookId) {
+      console.log('[Persistence] Skipping save — no playbook loaded')
+      return
+    }
+
     state.setSaveStatus('saving')
 
     try {
@@ -120,6 +133,12 @@ export const usePlaybookPersistence = () => {
 
   // Load a specific playbook by ID
   const loadPlaybook = useCallback(async (playbookId: string) => {
+    // Cancel any pending auto-save to prevent overwriting with stale state
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+      autoSaveTimerRef.current = null
+    }
+
     try {
       const detailed = await playbookService.getPlaybook(playbookId)
 
@@ -128,7 +147,10 @@ export const usePlaybookPersistence = () => {
 
       if (content.plays && content.plays.length > 0) {
         restoredPlays = content.plays.map(play => {
-          const playModules = content.modules.filter(() => true)
+          // Filter modules belonging to this play (tagged with playId during serialization)
+          const playModules = content.modules.filter(
+            (m: any) => m.playId === play.id || !m.playId
+          )
           const modulesWithStarts = ensureStartModules(play.id, playModules)
 
           return {
@@ -144,12 +166,12 @@ export const usePlaybookPersistence = () => {
               ...((v as any).defaultValue && { defaultValue: (v as any).defaultValue }),
               ...((v as any).regexp && { regexp: (v as any).regexp }),
             })),
-            attributes: {
+            attributes: play.attributes || {
               hosts: play.hosts || 'all',
-              remoteUser: undefined,
+              remoteUser: play.remoteUser,
               gatherFacts: play.gatherFacts !== undefined ? play.gatherFacts : true,
               become: play.become || false,
-              connection: 'ssh',
+              connection: play.connection || 'ssh',
               roles: [],
             },
           }
@@ -163,27 +185,33 @@ export const usePlaybookPersistence = () => {
         collapsedBlocks: content.collapsedBlocks,
         collapsedBlockSections: content.collapsedBlockSections,
       })
+
+      hasLoaded.current = true
     } catch (error) {
       console.error('Failed to load playbook:', error)
     }
   }, [])
 
-  // Auto-save with debounce
+  // Auto-save with debounce (only after data has been loaded)
   useEffect(() => {
     if (!isAuthenticated) return
 
-    // Subscribe to state changes that should trigger auto-save
-    let timer: ReturnType<typeof setTimeout> | null = null
     const unsub = store.subscribe(() => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
+      if (!hasLoaded.current) return
+
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+      autoSaveTimerRef.current = setTimeout(() => {
+        autoSaveTimerRef.current = null
         savePlaybook()
       }, 3000)
     })
 
     return () => {
       unsub()
-      if (timer) clearTimeout(timer)
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current)
+        autoSaveTimerRef.current = null
+      }
     }
   }, [isAuthenticated, savePlaybook])
 
@@ -204,6 +232,12 @@ export const usePlaybookPersistence = () => {
           return false
         }
 
+        // Cancel any pending auto-save before restoring
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current)
+          autoSaveTimerRef.current = null
+        }
+
         console.log('[Persistence] Restoring playbook from cache:', cacheData.name)
         store.getState().loadPlaybookState({
           plays: cacheData.plays,
@@ -213,6 +247,7 @@ export const usePlaybookPersistence = () => {
           collapsedBlockSections: cacheData.collapsedBlockSections,
         })
         hasRestoredFromCache.current = true
+        hasLoaded.current = true
         return true
       } catch (e) {
         console.warn('[Persistence] Failed to restore from cache:', e)
