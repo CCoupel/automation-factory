@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType } from '../types/playbook'
 import { PlaybookContent } from '../services/playbookService'
 import { PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
@@ -860,27 +861,27 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
 // =====================================================
 
 export const useCurrentPlay = () =>
-  usePlaybookEditorStore(state => state.plays[state.activePlayIndex] || state.plays[0])
+  usePlaybookEditorStore(useShallow(state => state.plays[state.activePlayIndex] || state.plays[0]))
 
 export const useSelectedModuleData = () =>
-  usePlaybookEditorStore(state => {
+  usePlaybookEditorStore(useShallow(state => {
     if (!state.selectedModuleId) return null
     const play = state.plays[state.activePlayIndex] || state.plays[0]
     return play?.modules.find(m => m.id === state.selectedModuleId) || null
-  })
+  }))
 
 export const usePlayAttributes = () =>
-  usePlaybookEditorStore(state => {
+  usePlaybookEditorStore(useShallow(state => {
     const play = state.plays[state.activePlayIndex]
     return play?.attributes || {}
-  })
+  }))
 
 export const useSaveInfo = () =>
-  usePlaybookEditorStore(state => ({
+  usePlaybookEditorStore(useShallow(state => ({
     saveStatus: state.saveStatus,
     playbookName: state.playbookName,
     playbookId: state.currentPlaybookId,
-  }))
+  })))
 
 export const useActivePlayId = () =>
   usePlaybookEditorStore(state => {
