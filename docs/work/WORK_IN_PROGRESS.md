@@ -106,7 +106,8 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ## 📋 **Prochaines Priorités**
 
-- Voir [BACKLOG.md](BACKLOG.md) pour la roadmap complète
+- 📋 **[→ GitHub Issues](https://github.com/CCoupel/automation-factory/issues)** — Roadmap complète (backlog migré)
+- 🔥 **[#20 - Event Sourcing v2.4.0](https://github.com/CCoupel/automation-factory/issues/20)** — Next priority
 
 ---
 
@@ -123,9 +124,9 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 - [Phase 2 - Intégration](../operations/PHASE2_INTEGRATION.md)
 - [Phase 3 - Production](../operations/PHASE3_PRODUCTION.md)
 
-### Historique
+### Historique & Roadmap
 - [Réalisations (DONE.md)](DONE.md)
-- [Backlog](BACKLOG.md)
+- [Backlog → GitHub Issues](https://github.com/CCoupel/automation-factory/issues)
 
 ---
 

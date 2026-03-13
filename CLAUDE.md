@@ -41,7 +41,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ### 📋 **Travail en Cours**
 - **[Travail en Cours](docs/work/WORK_IN_PROGRESS.md)** - Versions, features, bugs en cours
-- **[Backlog Projet](docs/work/BACKLOG.md)** - Roadmap et fonctionnalités prévues
+- **[GitHub Issues](https://github.com/CCoupel/automation-factory/issues)** - Roadmap et fonctionnalités prévues (backlog migré)
 - **[Historique Réalisations](docs/work/DONE.md)** - Fonctionnalités implémentées par version
 - **[Métriques Performance](docs/work/PERFORMANCE_METRICS.md)** - Mesures et optimisations
 
