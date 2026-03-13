@@ -216,12 +216,30 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
 
   // Generate/update system assertions blocks when variables or custom types change
   // Creates ONE BLOCK PER VARIABLE for better visual organization
+  // Guard ref to break the loop: setModules changes plays -> currentPlay ref changes ->
+  // currentPlay.variables is a new ref -> useEffect re-triggers. Compare by value instead.
+  const prevVariablesJsonRef = useRef<string>('')
+  const prevPlayIdRef = useRef<string>('')
+  const prevCustomTypesJsonRef = useRef<string>('')
+
   useEffect(() => {
+    const variablesJson = JSON.stringify(currentPlay.variables)
+    const customTypesJson = JSON.stringify(customTypes)
+
+    // Skip if variables, playId, and customTypes haven't actually changed by value
+    if (
+      variablesJson === prevVariablesJsonRef.current &&
+      currentPlay.id === prevPlayIdRef.current &&
+      customTypesJson === prevCustomTypesJsonRef.current
+    ) {
+      return
+    }
+    prevVariablesJsonRef.current = variablesJson
+    prevPlayIdRef.current = currentPlay.id
+    prevCustomTypesJsonRef.current = customTypesJson
+
     // Get existing system blocks (to preserve positions)
     const existingSystemBlocks = modules.filter(m => m.id.startsWith(SYSTEM_ASSERTIONS_BLOCK_PREFIX))
-
-    console.log('[SystemBlocks] Variables:', currentPlay.variables)
-    console.log('[SystemBlocks] Existing system blocks:', existingSystemBlocks.length)
 
     const result = updateAssertionsBlocks(
       existingSystemBlocks,
@@ -230,13 +248,8 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
       customTypes
     )
 
-    console.log('[SystemBlocks] Generation result:', result)
-
     if (result) {
       const { blocks, tasks, links: systemLinks } = result
-
-      console.log('[SystemBlocks] Generated blocks:', blocks.map(b => ({ id: b.id, isSystem: b.isSystem, isBlock: b.isBlock, systemType: b.systemType })))
-      console.log('[SystemBlocks] Generated tasks:', tasks.map(t => ({ id: t.id, isSystem: t.isSystem, parentId: t.parentId })))
 
       // Remove all existing system assertion blocks and tasks
       const cleanedModules = modules.filter(m => !isSystemAssertionsId(m.id))
@@ -246,7 +259,6 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
 
       // Add all blocks and their tasks
       const newModules = [...blocks, ...tasks, ...cleanedModules]
-      console.log('[SystemBlocks] Total modules after merge:', newModules.length, 'System blocks:', newModules.filter(m => m.isSystem).length)
 
       setModules(newModules)
       setLinks([...systemLinks, ...cleanedLinks])
@@ -934,7 +946,8 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
       document.removeEventListener('mousemove', handleResizeMove)
       document.removeEventListener('mouseup', handleResizeEnd)
     }
-  }, [resizingBlock, modules])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resizingBlock])
 
   // Send resize sync when resizing ends
   useEffect(() => {
