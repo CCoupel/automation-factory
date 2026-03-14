@@ -563,7 +563,7 @@ tasks:
 
 class TestBlockChildLinks:
     def test_block_with_two_tasks_generates_links(self, parser):
-        """Block with 2 normal tasks: block→task1, task1→task2."""
+        """Block with 2 normal tasks: mini-START→task1, task1→task2."""
         yaml_content = """
 - name: Block links test
   hosts: all
@@ -589,8 +589,9 @@ class TestBlockChildLinks:
         block_links = [l for l in links if l["type"] == "normal"]
         assert len(block_links) == 2
 
-        # block → first child
-        assert block_links[0]["from"] == block["id"]
+        # mini-START → first child (uses virtual mini-START ID)
+        mini_start_id = f"{block['id']}-normal-start"
+        assert block_links[0]["from"] == mini_start_id
         assert block_links[0]["to"] == children[0]["id"]
 
         # first child → second child
@@ -598,7 +599,7 @@ class TestBlockChildLinks:
         assert block_links[1]["to"] == children[1]["id"]
 
     def test_block_rescue_always_links(self, parser):
-        """Each block section gets its own chain of links."""
+        """Each block section gets its own chain of links from mini-START."""
         yaml_content = """
 - name: Block sections links
   hosts: all
@@ -629,23 +630,23 @@ class TestBlockChildLinks:
 
         block = [m for m in play["modules"] if m.get("isBlock")][0]
 
-        # Normal section: block→N1, N1→N2 = 2 links
+        # Normal section: mini-START→N1, N1→N2 = 2 links
         normal_links = [l for l in links if l["type"] == "normal"]
         assert len(normal_links) == 2
-        assert normal_links[0]["from"] == block["id"]
+        assert normal_links[0]["from"] == f"{block['id']}-normal-start"
 
-        # Rescue section: block→R1 = 1 link
+        # Rescue section: mini-START→R1 = 1 link
         rescue_links = [l for l in links if l["type"] == "rescue"]
         assert len(rescue_links) == 1
-        assert rescue_links[0]["from"] == block["id"]
+        assert rescue_links[0]["from"] == f"{block['id']}-rescue-start"
 
-        # Always section: block→A1, A1→A2 = 2 links
+        # Always section: mini-START→A1, A1→A2 = 2 links
         always_links = [l for l in links if l["type"] == "always"]
         assert len(always_links) == 2
-        assert always_links[0]["from"] == block["id"]
+        assert always_links[0]["from"] == f"{block['id']}-always-start"
 
     def test_nested_block_links(self, parser):
-        """Links are generated at each nesting level."""
+        """Links use mini-START IDs at each nesting level."""
         yaml_content = """
 - name: Nested block links
   hosts: all
@@ -671,19 +672,15 @@ class TestBlockChildLinks:
         outer = [m for m in play["modules"] if m.get("isBlock") and m["name"] == "Outer block"][0]
         inner = [m for m in play["modules"] if m.get("isBlock") and m["name"] == "Inner block"][0]
 
-        # Outer block normal links: outer→inner, inner→sibling = 2
-        outer_normal_links = [
-            l for l in links
-            if l["type"] == "normal" and l["from"] in (outer["id"], inner["id"])
-            and l["to"] != inner["blockSections"]["normal"][0]  # exclude inner's own child links
-        ]
-        # Simpler: check outer→inner link exists
-        assert any(l["from"] == outer["id"] and l["to"] == inner["id"] for l in links)
+        # Outer block: mini-START→inner link exists
+        outer_start = f"{outer['id']}-normal-start"
+        assert any(l["from"] == outer_start and l["to"] == inner["id"] for l in links)
 
-        # Inner block normal links: inner→deep1, deep1→deep2 = 2
+        # Inner block: mini-START→deep1, deep1→deep2
+        inner_start = f"{inner['id']}-normal-start"
         deep1 = [m for m in play["modules"] if m.get("taskName") == "Deep 1"][0]
         deep2 = [m for m in play["modules"] if m.get("taskName") == "Deep 2"][0]
-        assert any(l["from"] == inner["id"] and l["to"] == deep1["id"] for l in links)
+        assert any(l["from"] == inner_start and l["to"] == deep1["id"] for l in links)
         assert any(l["from"] == deep1["id"] and l["to"] == deep2["id"] for l in links)
 
     def test_block_link_count(self, parser):
@@ -709,6 +706,6 @@ class TestBlockChildLinks:
         play = result["plays"][0]
 
         # Section-level links: START→pre, pre→block, block→post = 3
-        # Block child links: block→B1, B1→B2 = 2
+        # Block child links: mini-START→B1, B1→B2 = 2
         # Total = 5
         assert len(play["links"]) == 5

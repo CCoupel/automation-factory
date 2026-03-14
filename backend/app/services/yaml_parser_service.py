@@ -276,12 +276,14 @@ class YamlParserService:
                         child_links.extend(grandchild_links)
 
                 # Create links within this block section
+                # Use virtual mini-START ID matching frontend convention
+                mini_start_id = f"{block_id}-{block_section_name}-start"
                 if section_child_ids:
-                    # Link from block to first child
+                    # Link from mini-START to first child
                     id_counter[0] += 1
                     child_links.append({
                         "id": f"link-{id_counter[0]}",
-                        "from": block_id,
+                        "from": mini_start_id,
                         "to": section_child_ids[0],
                         "type": block_section_name,
                     })
