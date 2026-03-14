@@ -22,13 +22,17 @@ TASK_LEVEL_KEYS = {
 }
 
 
-# Layout constants matching frontend (canvasHelpers.ts, assertionsGenerator.ts)
+# Layout constants matching frontend (canvasHelpers.ts lines 73-78)
 TASK_HEIGHT = 60
-TASK_SPACING = 10        # Vertical spacing between tasks inside a block
-BLOCK_MIN_HEIGHT = 100
-BLOCK_SPACING = 40       # Vertical spacing after a block
-BLOCK_WIDTH = 220
-SECTION_TASK_SPACING = 80  # Spacing between top-level elements in a section
+TASK_SPACING = 10              # Vertical spacing between tasks inside a block
+BLOCK_HEADER_HEIGHT = 50       # Block header bar
+BLOCK_SECTION_HEADER = 25     # Each section header (normal/rescue/always)
+BLOCK_MIN_SECTION_CONTENT = 200  # Minimum section content height
+BLOCK_BOTTOM_PADDING = 20     # Padding below last child in section
+BLOCK_SPACING = 40             # Vertical spacing after a block in parent
+BLOCK_BASE_WIDTH = 250         # Base block width
+BLOCK_DEFAULT_HEIGHT = BLOCK_HEADER_HEIGHT + 3 * BLOCK_SECTION_HEADER + BLOCK_MIN_SECTION_CONTENT
+SECTION_TASK_SPACING = 80      # Spacing between top-level elements in a section
 
 
 class YamlParserService:
@@ -214,7 +218,7 @@ class YamlParserService:
 
             # Advance y based on element height
             if module.get("isBlock"):
-                current_y += module.get("height", BLOCK_MIN_HEIGHT) + BLOCK_SPACING
+                current_y += module.get("height", BLOCK_DEFAULT_HEIGHT) + BLOCK_SPACING
             else:
                 current_y += SECTION_TASK_SPACING
 
@@ -289,7 +293,7 @@ class YamlParserService:
 
                         # Advance y based on child height
                         if child_module.get("isBlock"):
-                            child_y += child_module.get("height", BLOCK_MIN_HEIGHT) + BLOCK_SPACING
+                            child_y += child_module.get("height", BLOCK_DEFAULT_HEIGHT) + BLOCK_SPACING
                         else:
                             child_y += TASK_HEIGHT + TASK_SPACING
 
@@ -332,7 +336,7 @@ class YamlParserService:
                 "name": task_dict.get("name", "Block"),
                 "x": 0,
                 "y": 0,
-                "width": BLOCK_WIDTH,
+                "width": BLOCK_BASE_WIDTH,
                 "height": block_content_height,
                 "isBlock": True,
                 "blockSections": block_sections,
@@ -389,22 +393,33 @@ class YamlParserService:
         block_sections: dict[str, list[str]],
         child_modules: list[dict],
     ) -> int:
-        """Compute block height from the tallest section's children."""
-        child_map = {m["id"]: m for m in child_modules}
-        max_section_height = 0
+        """
+        Compute block height matching frontend getBlockDimensions logic.
 
+        Frontend formula (canvasHelpers.ts):
+          totalHeight = headerHeight + 3*sectionHeaderHeight + sectionContentHeight
+          sectionContentHeight = max(maxBottomY + bottomPadding, minSectionContentHeight)
+          maxBottomY = max(taskY + taskHeight for each child)
+        """
+        child_map = {m["id"]: m for m in child_modules}
+
+        # Find the tallest section content
+        max_section_content = BLOCK_MIN_SECTION_CONTENT
         for section_ids in block_sections.values():
-            section_bottom = 0
+            if not section_ids:
+                continue
+            max_bottom_y = 0
             for child_id in section_ids:
                 child = child_map.get(child_id)
                 if child:
-                    child_bottom = child.get("y", 0) + child.get("height", TASK_HEIGHT)
-                    section_bottom = max(section_bottom, child_bottom)
-            max_section_height = max(max_section_height, section_bottom)
+                    child_y = child.get("y", 10)
+                    child_height = child.get("height", TASK_HEIGHT)
+                    max_bottom_y = max(max_bottom_y, child_y + child_height)
+            section_content = max(max_bottom_y + BLOCK_BOTTOM_PADDING, BLOCK_MIN_SECTION_CONTENT)
+            max_section_content = max(max_section_content, section_content)
 
-        # Header (50) + 3 section headers (25 each) + content + padding (20)
-        header_height = 50 + 3 * 25 + 20
-        return max(BLOCK_MIN_HEIGHT, max_section_height + header_height)
+        total = BLOCK_HEADER_HEIGHT + 3 * BLOCK_SECTION_HEADER + max_section_content
+        return total
 
     def _identify_module_key(self, task_dict: dict) -> Optional[str]:
         """
