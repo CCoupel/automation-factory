@@ -76,11 +76,14 @@
     "title": "Importer un diagramme",
     "selectFile": "Sélectionner un fichier",
     "dropHere": "Déposez le fichier ici ou cliquez pour sélectionner",
-    "supportedFormats": "Formats supportés : .abd",
+    "supportedFormats": "Formats supportés : .abd, .yml, .yaml",
     "import": "Importer",
     "invalidFormat": "Format de fichier invalide",
     "importSuccess": "Diagramme importé avec succès",
-    "importError": "Erreur lors de l'importation du diagramme"
+    "importError": "Erreur lors de l'importation du diagramme",
+    "yamlImportSuccess": "Playbook YAML importé avec succès",
+    "yamlParseError": "Impossible de parser le playbook YAML",
+    "yamlApiError": "Impossible de contacter le service de parsing YAML"
   },
   "deleteShared": {
     "title": "Retirer le playbook partagé",

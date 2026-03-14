@@ -14,6 +14,7 @@ import { useCanvasDragDrop } from '../../hooks/useCanvasDragDrop'
 import { useCanvasResize } from '../../hooks/useCanvasResize'
 import {
   getBlockDimensions,
+  getBlockSectionContentHeight,
   getModuleDimensions,
   getBlockTheme,
   getSectionColor,
@@ -280,14 +281,14 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                       >
                         {isSectionCollapsedStore(task.id, sec) ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
                         <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(sec), fontSize: '0.7rem' }}>
-                          {sec === 'normal' ? 'Tasks' : sec.charAt(0).toUpperCase() + sec.slice(1)}
+                          {sec === 'normal' ? 'Tasks' : sec.charAt(0).toUpperCase() + sec.slice(1)} ({task.blockSections?.[sec]?.length || 0})
                         </Typography>
                       </Box>
                       {!isSectionCollapsedStore(task.id, sec) && (
                         <Box
                           onDragOver={(e) => { e.preventDefault() }}
                           onDrop={(e) => handleBlockSectionDrop(task.id, sec, e)}
-                          sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor(sec)}08`, p: 0.5 }}
+                          sx={{ height: getBlockSectionContentHeight(task, sec, modules, collapsedBlocks, collapsedBlockSections), position: 'relative', bgcolor: `${getSectionColor(sec)}08`, p: 0.5, overflow: 'auto', flexShrink: 0 }}
                         >
                           <BlockSectionContent blockId={task.id} section={sec} collaborationCallbacks={collaborationCallbacks} />
                         </Box>

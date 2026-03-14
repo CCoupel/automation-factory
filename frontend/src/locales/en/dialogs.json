@@ -76,11 +76,14 @@
     "title": "Import Diagram",
     "selectFile": "Select File",
     "dropHere": "Drop file here or click to select",
-    "supportedFormats": "Supported formats: .abd",
+    "supportedFormats": "Supported formats: .abd, .yml, .yaml",
     "import": "Import",
     "invalidFormat": "Invalid file format",
     "importSuccess": "Diagram imported successfully",
-    "importError": "Error importing diagram"
+    "importError": "Error importing diagram",
+    "yamlImportSuccess": "YAML playbook imported successfully",
+    "yamlParseError": "Failed to parse YAML playbook",
+    "yamlApiError": "Could not reach the YAML parser service"
   },
   "deleteShared": {
     "title": "Remove Shared Playbook",

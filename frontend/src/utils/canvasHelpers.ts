@@ -88,19 +88,20 @@ export const getBlockDimensions = (
   // All section headers contribute height
   totalHeight += sections.length * sectionHeaderHeight
 
-  // Content of the open section
-  const openSection = sections.find(
-    section => !isSectionCollapsed(block.id, section, collapsedBlockSections),
-  )
+  // Compute content height for each open section
+  let maxSectionRightX = 0
 
-  if (openSection && block.blockSections) {
-    const taskIds = block.blockSections[openSection] || []
+  for (const sec of sections) {
+    if (isSectionCollapsed(block.id, sec, collapsedBlockSections)) {
+      continue // collapsed sections contribute no content height
+    }
+
+    const taskIds = block.blockSections?.[sec] || []
 
     if (taskIds.length === 0) {
       totalHeight += minSectionContentHeight
     } else {
       let maxBottomY = 0
-      let maxRightX = 0
 
       taskIds.forEach(taskId => {
         const task = modules.find(m => m.id === taskId)
@@ -111,9 +112,9 @@ export const getBlockDimensions = (
           if (task.isBlock) {
             const nestedBlockDims = getBlockDimensions(task, modules, collapsedBlocks, collapsedBlockSections)
             taskHeight = nestedBlockDims.height
-            maxRightX = Math.max(maxRightX, (task.x || 10) + nestedBlockDims.width)
+            maxSectionRightX = Math.max(maxSectionRightX, (task.x || 10) + nestedBlockDims.width)
           } else {
-            maxRightX = Math.max(maxRightX, (task.x || 10) + 140)
+            maxSectionRightX = Math.max(maxSectionRightX, (task.x || 10) + 140)
           }
 
           maxBottomY = Math.max(maxBottomY, taskY + taskHeight)
@@ -125,26 +126,66 @@ export const getBlockDimensions = (
         minSectionContentHeight,
       )
       totalHeight += sectionContentHeight
-
-      const calculatedWidth = Math.max(
-        baseWidth,
-        maxRightX + sectionPadding * 2 + 20,
-      )
-
-      return {
-        width: Math.max(manualWidth, calculatedWidth),
-        height: Math.max(manualHeight, totalHeight),
-      }
     }
   }
 
-  // Empty or no blockSections
-  const defaultHeight = totalHeight + minSectionContentHeight
+  // If no sections are open, add default content height
+  const hasOpenSection = sections.some(
+    sec => !isSectionCollapsed(block.id, sec, collapsedBlockSections),
+  )
+  if (!hasOpenSection) {
+    totalHeight += minSectionContentHeight
+  }
+
+  const calculatedWidth = Math.max(
+    baseWidth,
+    maxSectionRightX + sectionPadding * 2 + 20,
+  )
 
   return {
-    width: Math.max(manualWidth, baseWidth),
-    height: Math.max(manualHeight, defaultHeight),
+    width: Math.max(manualWidth, calculatedWidth),
+    height: Math.max(manualHeight, totalHeight),
   }
+}
+
+/**
+ * Compute the content height for a single block section.
+ * Used by section containers to set their own height.
+ */
+export const getBlockSectionContentHeight = (
+  block: ModuleBlock,
+  section: 'normal' | 'rescue' | 'always',
+  modules: ModuleBlock[],
+  collapsedBlocks: Set<string>,
+  collapsedBlockSections: Set<string>,
+): number => {
+  const minSectionContentHeight = 200
+  const bottomPadding = 20
+
+  const taskIds = block.blockSections?.[section] || []
+
+  if (taskIds.length === 0) {
+    return minSectionContentHeight
+  }
+
+  let maxBottomY = 0
+
+  taskIds.forEach(taskId => {
+    const task = modules.find(m => m.id === taskId)
+    if (task) {
+      const taskY = task.y || 10
+      let taskHeight = 60
+
+      if (task.isBlock) {
+        const nestedBlockDims = getBlockDimensions(task, modules, collapsedBlocks, collapsedBlockSections)
+        taskHeight = nestedBlockDims.height
+      }
+
+      maxBottomY = Math.max(maxBottomY, taskY + taskHeight)
+    }
+  })
+
+  return Math.max(maxBottomY + bottomPadding, minSectionContentHeight)
 }
 
 /**
