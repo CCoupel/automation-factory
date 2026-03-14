@@ -22,6 +22,15 @@ TASK_LEVEL_KEYS = {
 }
 
 
+# Layout constants matching frontend (canvasHelpers.ts, assertionsGenerator.ts)
+TASK_HEIGHT = 60
+TASK_SPACING = 10        # Vertical spacing between tasks inside a block
+BLOCK_MIN_HEIGHT = 100
+BLOCK_SPACING = 40       # Vertical spacing after a block
+BLOCK_WIDTH = 220
+SECTION_TASK_SPACING = 80  # Spacing between top-level elements in a section
+
+
 class YamlParserService:
     """
     Parses raw Ansible YAML into the frontend Play[] graph structure.
@@ -187,8 +196,9 @@ class YamlParserService:
         modules = [start_module]
         links: list[dict] = []
         prev_id = start_id
+        current_y = 20
 
-        for task_index, task_dict in enumerate(tasks):
+        for task_dict in tasks:
             if not isinstance(task_dict, dict):
                 continue
 
@@ -198,9 +208,15 @@ class YamlParserService:
             if module is None:
                 continue
 
-            # Position top-level tasks
+            # Position top-level tasks with cumulative y
             module["x"] = 200
-            module["y"] = 20 + task_index * 120
+            module["y"] = current_y
+
+            # Advance y based on element height
+            if module.get("isBlock"):
+                current_y += module.get("height", BLOCK_MIN_HEIGHT) + BLOCK_SPACING
+            else:
+                current_y += SECTION_TASK_SPACING
 
             modules.append(module)
             modules.extend(child_modules)
@@ -257,6 +273,7 @@ class YamlParserService:
                 if not isinstance(section_tasks, list):
                     continue
                 section_child_ids: list[str] = []
+                child_y = 20
                 for child_task in section_tasks:
                     if not isinstance(child_task, dict):
                         continue
@@ -268,7 +285,14 @@ class YamlParserService:
                     if child_module:
                         # Position children relative to block
                         child_module["x"] = 50
-                        child_module["y"] = 20 + len(block_sections[block_section_name]) * 120
+                        child_module["y"] = child_y
+
+                        # Advance y based on child height
+                        if child_module.get("isBlock"):
+                            child_y += child_module.get("height", BLOCK_MIN_HEIGHT) + BLOCK_SPACING
+                        else:
+                            child_y += TASK_HEIGHT + TASK_SPACING
+
                         block_sections[block_section_name].append(child_module["id"])
                         section_child_ids.append(child_module["id"])
                         child_modules.append(child_module)
@@ -297,12 +321,19 @@ class YamlParserService:
                             "type": block_section_name,
                         })
 
+            # Compute block height from children
+            block_content_height = self._compute_block_height(
+                block_sections, child_modules,
+            )
+
             module = {
                 "id": block_id,
                 "collection": "",
                 "name": task_dict.get("name", "Block"),
                 "x": 0,
                 "y": 0,
+                "width": BLOCK_WIDTH,
+                "height": block_content_height,
                 "isBlock": True,
                 "blockSections": block_sections,
                 "parentSection": parent_section or section,
@@ -352,6 +383,28 @@ class YamlParserService:
         self._apply_task_attributes(module, task_dict)
 
         return module, child_modules, child_links
+
+    def _compute_block_height(
+        self,
+        block_sections: dict[str, list[str]],
+        child_modules: list[dict],
+    ) -> int:
+        """Compute block height from the tallest section's children."""
+        child_map = {m["id"]: m for m in child_modules}
+        max_section_height = 0
+
+        for section_ids in block_sections.values():
+            section_bottom = 0
+            for child_id in section_ids:
+                child = child_map.get(child_id)
+                if child:
+                    child_bottom = child.get("y", 0) + child.get("height", TASK_HEIGHT)
+                    section_bottom = max(section_bottom, child_bottom)
+            max_section_height = max(max_section_height, section_bottom)
+
+        # Header (50) + 3 section headers (25 each) + content + padding (20)
+        header_height = 50 + 3 * 25 + 20
+        return max(BLOCK_MIN_HEIGHT, max_section_height + header_height)
 
     def _identify_module_key(self, task_dict: dict) -> Optional[str]:
         """
