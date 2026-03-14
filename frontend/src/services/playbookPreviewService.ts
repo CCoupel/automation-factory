@@ -302,7 +302,7 @@ function getTasksForSection(
 /**
  * Transform frontend PlaybookContent to Ansible-format playbook
  */
-function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlaybook[] {
+export function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlaybook[] {
   const plays: AnsiblePlaybook[] = []
 
   // Handle each play
@@ -387,7 +387,7 @@ function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlaybook[] {
 /**
  * Transform a single play structure (simpler case)
  */
-function transformSinglePlayToAnsible(content: PlaybookContent): AnsiblePlaybook {
+export function transformSinglePlayToAnsible(content: PlaybookContent): AnsiblePlaybook {
   const plays = transformToAnsibleFormat(content)
 
   if (plays.length > 0) {

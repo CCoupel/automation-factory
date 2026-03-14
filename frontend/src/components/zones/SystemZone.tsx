@@ -18,6 +18,7 @@ type ValidationStatus = 'idle' | 'loading' | 'valid' | 'warnings' | 'errors'
 const SystemZone = () => {
   const serializePlaybookContent = usePlaybookEditorStore(s => s.serializePlaybookContent)
   const saveStatus = usePlaybookEditorStore(s => s.saveStatus)
+  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
   const getPlaybookContent = useCallback(() => serializePlaybookContent(), [serializePlaybookContent])
   const onSaveComplete = saveStatus === 'saved'
   const [activeTab, setActiveTab] = useState(0)
@@ -74,10 +75,10 @@ const SystemZone = () => {
     }
   }, [getPlaybookContent, isAuthenticated])
 
-  // Fetch on initial mount
+  // Fetch when playbook is loaded or changed (currentPlaybookId changes)
   useEffect(() => {
     fetchPreview()
-  }, []) // Only on mount
+  }, [currentPlaybookId, fetchPreview])
 
   // Fetch when save is complete (onSaveComplete changes)
   useEffect(() => {
