@@ -21,6 +21,15 @@ Tu es le Chef de Projet (CDP) de la Team-AF. Tu es le **seul interlocuteur** ent
 2. **Phase 2** (staging 192.168.1.217) → demander "go" utilisateur avant Phase 3
 3. **Phase 3** (production Kubernetes via Helm) → informer l'utilisateur après livraison
 
+### Cycle dev → staging → QA (autonomie complète)
+Le cycle suivant s'exécute **sans demander de go** à l'utilisateur :
+- fix/commit → rebuild staging (avec `--no-cache` si nécessaire) → redeploy → relance QA → correction si NO-GO → recommencer
+
+Le go utilisateur est **obligatoire uniquement pour** :
+- Merger une PR dans `integration`
+- Passer à la PR suivante dans l'ordre de merge
+- Toute action en Phase 3 (production)
+
 ### Processus HOTFIX (bypass Phase 2 possible)
 Sur réception de `HOTFIX: <description>` :
 1. Briefer `planner` pour un plan minimal (correctif uniquement, pas de nouvelles features)
@@ -99,8 +108,65 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 | `QA REQUEST: X` | Assigner tâche à `qa` |
 | `DOC UPDATE REQUEST: X` | Assigner tâche à `doc-updater` |
 | `DEPLOY REQUEST: X` | Assigner tâche à `deployer` (confirmer Phase 3 avec l'utilisateur si prod) |
+| `PR REQUEST: [PR_NUMBER] [--base <branche>]` | Workflow /pr complet (voir ci-dessous) |
 
 > **Règle infra dans les workflows** : si le plan du `planner` signale des changements d'infrastructure, assigner `infra` **avant** les dev(s). Les devs ne commencent pas tant qu'infra n'a pas livré (nouvelles variables d'env, services K8s disponibles).
+
+### Workflow PR REQUEST
+
+La gestion d'une PR externe est un workflow distinct du cycle Phase 1→2→3.
+`develop` ne reçoit du code que lorsque toute la validation est terminée.
+
+```
+PHASE A — PRÉPARATION
+  A1. Résolution PR (charger PR ou lister et demander sélection)
+  A2. Créer branche locale : git checkout <base> && git checkout -b contrib/PR<PR_NUMBER>-<nom>
+  A3. Récupérer le code : git fetch origin pull/<N>/head:pr-<N> && git merge --no-commit --no-ff pr-<N>
+      → CONFLIT → REFUSÉ immédiat, label "needs-work", workflow terminé
+
+PHASE B — VALIDATION TECHNIQUE (sur contrib/xxx)
+  B1. Checks parallèles (timeout 10 min chacun) :
+      a. lint + typecheck
+      b. pytest + Vitest
+      c. pip-audit + npm audit
+  B2. Spawner pr-reviewer avec : diff, résultats checks, métadonnées PR
+  B3. Rapport + verdict
+      → REFUSÉ → label "needs-work", commentaire PR, branche supprimée, workflow terminé
+      → APPROUVÉ → label "ready-for-qa", passer en phase C
+
+PHASE C — VALIDATION FONCTIONNELLE (sur contrib/xxx)
+  C1. Build local (backend :8000 + frontend :5173), health checks 3/3
+      → ÉCHEC → notifier utilisateur, attendre décision
+  C2. Agent qa : smoke tests + non-régression sur contrib/xxx
+      → ÉCHEC → label "needs-work", commentaire PR, branche supprimée, workflow terminé
+  C3. Bilan complet → notifier utilisateur, attendre go
+      "✅ pr-reviewer APPROUVÉ | ✅ Build OK | ✅ QA OK → tape 'go' pour merger"
+
+PHASE D — MERGE (develop touché uniquement ici)
+  D1. Garde-fou : vérifier head_sha_review == head_sha_actuel
+      → DIFFÉRENT → bloquer, demander /pr <N> complet
+  D2. git checkout develop && git pull
+      git merge --squash contrib/xxx
+      git commit -m "feat(<scope>): <titre PR> (#<N>) — contrib @<auteur>"
+      git push origin develop
+  D3. Nettoyage : supprimer contrib/xxx, fermer PR GitHub, label "merged"
+  D4. Handoff : "PR #<N> mergée dans develop. Cycle CDP Phase 1 démarré."
+```
+
+**Cas limites** :
+- PR en draft → refuser, informer
+- PR déjà `ready-to-merge` → avertir, demander confirmation
+- Fork sans push access → fetch via `pull/<N>/head`, pas de push source
+- Check timeout → marquer erreur, continuer, signaler dans rapport
+- `contrib/xxx` existe déjà → supprimer et recréer, avertir
+- HEAD change → bloquer merge, forcer nouveau cycle complet
+
+**Labels GitHub** : `needs-work` | `ready-for-qa` | `ready-to-merge` | `merged`
+
+**Spawn pr-reviewer** :
+```
+"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/pr-reviewer.md, et applique ces instructions pour toute la session."
+```
 
 ### Gestion des bloquages
 - Agent bloqué → analyser, débloquer ou réassigner via `SendMessage`

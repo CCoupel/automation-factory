@@ -1,8 +1,8 @@
 {
-    "env": {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(dir /B /S)",
@@ -298,7 +298,32 @@
       "Bash(git reflog expire:*)",
       "Bash(git gc:*)",
       "Bash(git merge:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && ./node_modules/.bin/tsc --noEmit 2>&1 | head -30)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && ls node_modules/.bin/ | grep tsc 2>/dev/null; npm ls typescript 2>/dev/null | head -5)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npm test 2>&1 | tail -40)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npm test 2>&1 | grep \"FAIL\")",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npx vitest run src/stores/__tests__/playbookEditorStore.test.ts 2>&1 | tail -15)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npm test 2>&1 | tail -10)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npm test 2>&1 | tail -5)",
+      "Bash(cd /c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend && npx vitest run src/stores/__tests__/playbookEditorStore.test.ts 2>&1 | tail -10)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && npx vitest run --reporter=verbose src/stores/__tests__/playbookEditorStore.test.ts 2>&1 | tail -40)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && node test-yaml-debug.mjs)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && npx vitest run --reporter=verbose src/services/__tests__/playbookPreviewService.test.ts 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && npx vitest run 2>&1 | tail -30)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && npx vitest run src/contexts/__tests__/ThemeContext.test.tsx 2>&1 | tail -5)",
+      "Bash(cd \"C:\\\\Users\\\\cyril\\\\Documents\\\\VScode\\\\GITHUB\\\\Automation-Factory\\\\frontend\" && npx vitest run src/services/__tests__/playbookPreviewService.test.ts src/stores/__tests__/playbookEditorStore.test.ts 2>&1 | tail -10)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODA5ZDEzNC05ZWIzLTQ4YWYtYmMzOS0wNTAyNmI4NTQyNTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzczNDc4MzU0fQ.qx_WZiam4VCaCRuSyH0fTFj8zeUFRIwK8Ag_f38Hrb0\" && curl -s -L \"http://192.168.1.217/api/playbooks/\" -H \"Authorization: Bearer $TOKEN\" 2>&1 | head -c 1000)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODA5ZDEzNC05ZWIzLTQ4YWYtYmMzOS0wNTAyNmI4NTQyNTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzczNDc4MzU0fQ.qx_WZiam4VCaCRuSyH0fTFj8zeUFRIwK8Ag_f38Hrb0\" && curl -s \"http://192.168.1.217/api/playbooks\" -H \"Authorization: Bearer $TOKEN\" 2>&1 | python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(f'{p[\\\\\"id\\\\\"]}: {p[\\\\\"name\\\\\"]}'\\) for p in data]\" 2>&1 | head -20)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODA5ZDEzNC05ZWIzLTQ4YWYtYmMzOS0wNTAyNmI4NTQyNTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzczNDc4MzU0fQ.qx_WZiam4VCaCRuSyH0fTFj8zeUFRIwK8Ag_f38Hrb0\" && curl -s \"http://192.168.1.217/api/playbooks\" -H \"Authorization: Bearer $TOKEN\" 2>&1 | head -c 2000)",
+      "Bash(T=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODA5ZDEzNC05ZWIzLTQ4YWYtYmMzOS0wNTAyNmI4NTQyNTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzczNDc4NDUwfQ.5JeeiQeCmASm4sI17UkX7jjvt0kIcioKT8kaXijrPnQ\" && curl -s \"http://192.168.1.217/api/playbooks\" -H \"Authorization: Bearer $T\" -H \"Content-Type: application/json\" 2>&1 | head -c 2000)",
+      "Bash(T=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhODA5ZDEzNC05ZWIzLTQ4YWYtYmMzOS0wNTAyNmI4NTQyNTQiLCJ1c2VybmFtZSI6ImFkbWluIiwiZXhwIjoxNzczNDc4NDUwfQ.5JeeiQeCmASm4sI17UkX7jjvt0kIcioKT8kaXijrPnQ\" && curl -sv \"http://192.168.1.217/api/playbooks\" -H \"Authorization: Bearer $T\" 2>&1 | tail -20)",
+      "Bash(cd \"C:/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend\" && npx vitest run --reporter=verbose src/services/__tests__/playbookPreviewService.test.ts 2>&1 | tail -40)",
+      "Bash(cd \"C:/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/frontend\" && npx vitest run --reporter=verbose 2>&1 | tail -60)",
+      "Bash(gh pr:*)",
+      "Bash(pip-audit:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm audit --json:*)"
     ],
     "deny": [],
     "ask": []
