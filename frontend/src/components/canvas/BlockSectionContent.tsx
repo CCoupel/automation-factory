@@ -14,6 +14,7 @@ import { useCanvasDragDrop } from '../../hooks/useCanvasDragDrop'
 import { useCanvasResize } from '../../hooks/useCanvasResize'
 import {
   getBlockDimensions,
+  getBlockSectionContentHeight,
   getModuleDimensions,
   getBlockTheme,
   getSectionColor,
@@ -287,7 +288,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                         <Box
                           onDragOver={(e) => { e.preventDefault() }}
                           onDrop={(e) => handleBlockSectionDrop(task.id, sec, e)}
-                          sx={{ flex: 1, minHeight: 0, position: 'relative', bgcolor: `${getSectionColor(sec)}08`, p: 0.5 }}
+                          sx={{ height: getBlockSectionContentHeight(task, sec, modules, collapsedBlocks, collapsedBlockSections), position: 'relative', bgcolor: `${getSectionColor(sec)}08`, p: 0.5, overflow: 'auto', flexShrink: 0 }}
                         >
                           <BlockSectionContent blockId={task.id} section={sec} collaborationCallbacks={collaborationCallbacks} />
                         </Box>
