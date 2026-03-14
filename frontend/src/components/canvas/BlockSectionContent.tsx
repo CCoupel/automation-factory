@@ -281,7 +281,7 @@ const BlockSectionContent: React.FC<BlockSectionContentProps> = ({
                       >
                         {isSectionCollapsedStore(task.id, sec) ? <ExpandMoreIcon sx={{ fontSize: 14 }} /> : <ExpandLessIcon sx={{ fontSize: 14 }} />}
                         <Typography variant="caption" sx={{ fontWeight: 'bold', color: getSectionColor(sec), fontSize: '0.7rem' }}>
-                          {sec === 'normal' ? 'Tasks' : sec.charAt(0).toUpperCase() + sec.slice(1)}
+                          {sec === 'normal' ? 'Tasks' : sec.charAt(0).toUpperCase() + sec.slice(1)} ({task.blockSections?.[sec]?.length || 0})
                         </Typography>
                       </Box>
                       {!isSectionCollapsedStore(task.id, sec) && (
