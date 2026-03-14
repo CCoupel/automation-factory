@@ -192,7 +192,7 @@ class YamlParserService:
             if not isinstance(task_dict, dict):
                 continue
 
-            module, child_modules = self._parse_task(
+            module, child_modules, child_links = self._parse_task(
                 task_dict, play_id, section, id_counter,
             )
             if module is None:
@@ -204,6 +204,7 @@ class YamlParserService:
 
             modules.append(module)
             modules.extend(child_modules)
+            links.extend(child_links)
 
             # Chain link from previous to current
             id_counter[0] += 1
@@ -225,14 +226,15 @@ class YamlParserService:
         id_counter: list[int],
         parent_id: Optional[str] = None,
         parent_section: Optional[str] = None,
-    ) -> tuple[Optional[dict], list[dict]]:
+    ) -> tuple[Optional[dict], list[dict], list[dict]]:
         """
         Parse a single task or block.
 
         Returns:
-            (module dict or None, list of child modules for blocks)
+            (module dict or None, list of child modules, list of child links)
         """
         child_modules: list[dict] = []
+        child_links: list[dict] = []
 
         # Check if this is a block
         if "block" in task_dict:
@@ -254,10 +256,11 @@ class YamlParserService:
                 section_tasks = task_dict.get(block_key, [])
                 if not isinstance(section_tasks, list):
                     continue
+                section_child_ids: list[str] = []
                 for child_task in section_tasks:
                     if not isinstance(child_task, dict):
                         continue
-                    child_module, grandchildren = self._parse_task(
+                    child_module, grandchildren, grandchild_links = self._parse_task(
                         child_task, play_id, section, id_counter,
                         parent_id=block_id,
                         parent_section=block_section_name,
@@ -267,8 +270,30 @@ class YamlParserService:
                         child_module["x"] = 50
                         child_module["y"] = 20 + len(block_sections[block_section_name]) * 120
                         block_sections[block_section_name].append(child_module["id"])
+                        section_child_ids.append(child_module["id"])
                         child_modules.append(child_module)
                         child_modules.extend(grandchildren)
+                        child_links.extend(grandchild_links)
+
+                # Create links within this block section
+                if section_child_ids:
+                    # Link from block to first child
+                    id_counter[0] += 1
+                    child_links.append({
+                        "id": f"link-{id_counter[0]}",
+                        "from": block_id,
+                        "to": section_child_ids[0],
+                        "type": block_section_name,
+                    })
+                    # Sequential links between children
+                    for i in range(len(section_child_ids) - 1):
+                        id_counter[0] += 1
+                        child_links.append({
+                            "id": f"link-{id_counter[0]}",
+                            "from": section_child_ids[i],
+                            "to": section_child_ids[i + 1],
+                            "type": block_section_name,
+                        })
 
             module = {
                 "id": block_id,
@@ -289,12 +314,12 @@ class YamlParserService:
 
             self._apply_task_attributes(module, task_dict)
 
-            return module, child_modules
+            return module, child_modules, child_links
 
         # Regular task — identify module key
         module_key = self._identify_module_key(task_dict)
         if module_key is None:
-            return None, []
+            return None, [], []
 
         id_counter[0] += 1
         module_id = f"module-{id_counter[0]}"
@@ -324,7 +349,7 @@ class YamlParserService:
 
         self._apply_task_attributes(module, task_dict)
 
-        return module, child_modules
+        return module, child_modules, child_links
 
     def _identify_module_key(self, task_dict: dict) -> Optional[str]:
         """
