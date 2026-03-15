@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-02-21**
+## 🚀 **Status Actuel - 2026-03-14**
 
 ### Versions Déployées
 
@@ -18,12 +18,16 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 **Staging :**
 - **Version :** `2.3.6-rc.1`
-- **Phase :** Phase 2 - Intégration
+- **Phase :** Phase 2 - Intégration (pr7-rc8 déployé et validé)
 - **URL :** http://192.168.1.217
+
+**Branche `integration` :**
+- **Version :** `2.3.6-rc.1`
+- **PR #7 mergée** : feat: Add YAML parser service (9 commits, 14 fichiers, +1843 lignes)
 
 ---
 
-## 🔧 **Version 2.3.6 - Phase 2 Intégration**
+## 🔧 **Version 2.3.6 - Intégrée (branche `integration`)**
 
 ### Bugfix - Synchronisation Collaborative Variables & Rôles
 
@@ -37,10 +41,11 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - Appels de synchronisation dans tous les handlers de variables et rôles
 - Handlers dans `applyCollaborationUpdate` pour traiter les nouveaux types
 
-### Feature - YAML Playbook Import (Phase 1 & 2)
+### Feature - YAML Parser Service (PR #7 - Mergée)
 
 **Fonctionnalités :**
-- Import de fichiers YAML simples (.yml/.yaml) via parsing backend
+- Backend `POST /api/yaml/parse` : parsing YAML Ansible vers structure interne
+- Frontend import fichiers .yml/.yaml via dialog
 - Import d'archives ZIP avec découverte de playbooks et rôles
 - Résolution des `include_tasks` / `import_tasks` dans les archives
 - Résolution des `vars_files` depuis le contexte archive
@@ -49,19 +54,22 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - Chargement des `group_vars` / `host_vars` dans les métadonnées
 - Dialog frontend multi-étapes (upload, sélection, résultat)
 
-**Fichiers ajoutés/modifiés :**
-- `backend/app/services/playbook_yaml_parser.py` (file_context support)
-- `backend/app/services/playbook_archive_service.py` (nouveau)
-- `backend/app/api/endpoints/playbook_archive_import.py` (nouveau)
-- `backend/app/api/router.py`
-- `frontend/src/services/playbookImportService.ts`
-- `frontend/src/components/dialogs/ImportPlaybookDialog.tsx`
-- `backend/tests/test_playbook_import.py` (9 tests file_context)
-- `backend/tests/test_playbook_archive_import.py` (39 tests)
+**Bugfixes inclus (7) :**
+- Liens enfants dans les blocks YAML
+- IDs mini-START manquants (START→block[0])
+- Récursivité liens blocks
+- Taille blocks / positionnement au contenu
+- Hauteur sections block non calculée dynamiquement
+- Containers sections : hauteur dynamique par section + overflow scroll
+- Parité rendu nested blocks vs parent blocks
 
 **Status des tests :**
-- ✅ 251 backend tests passent (0 échecs)
-- ✅ Frontend compile sans erreur TypeScript
+- ✅ 207 backend tests (pytest)
+- ✅ 187 frontend tests (Vitest)
+
+### 🔧 Suivi à faire
+
+- [ ] Tooltip toolbar "Import diagram (.abd)" à mettre à jour pour refléter le support YAML
 
 ---
 
@@ -140,4 +148,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-02-21 - v2.3.6-rc.1 Phase 2 Intégration*
+*Dernière mise à jour : 2026-03-14 - v2.3.6-rc.1 PR #7 mergée dans integration*

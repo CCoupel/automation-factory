@@ -26,6 +26,44 @@ spec:
       serviceAccountName: {{ include "automation-factory.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ['sh', '-c', 'echo "Waiting for PostgreSQL at $POSTGRES_HOST:$POSTGRES_PORT..."; i=0; until nc -z $POSTGRES_HOST $POSTGRES_PORT; do i=$((i+2)); if [ $i -ge 60 ]; then echo "Timeout waiting for PostgreSQL"; exit 1; fi; echo "Waiting for PostgreSQL... ${i}s"; sleep 2; done; echo "PostgreSQL is ready!"']
+        env:
+        - name: POSTGRES_HOST
+          value: {{ include "automation-factory.postgresql.host" . | quote }}
+        - name: POSTGRES_PORT
+          value: {{ include "automation-factory.postgresql.port" . | quote }}
+      - name: init-schema
+        image: "{{ .Values.global.imageRegistry }}{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        command: ['python', '-c', 'import asyncio; from app.core.database import init_db; asyncio.run(init_db()); print("Schema initialized")']
+        env:
+        - name: DATABASE_TYPE
+          value: {{ .Values.backend.env.DATABASE_TYPE | quote }}
+        - name: POSTGRES_HOST
+          value: {{ include "automation-factory.postgresql.host" . | quote }}
+        - name: POSTGRES_PORT
+          value: {{ include "automation-factory.postgresql.port" . | quote }}
+        - name: POSTGRES_DB
+          value: {{ include "automation-factory.postgresql.database" . | quote }}
+        - name: POSTGRES_USER
+          value: {{ include "automation-factory.postgresql.username" . | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "automation-factory.fullname" . }}-backend
+              key: postgres-password
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "automation-factory.fullname" . }}-backend
+              key: secret-key
+        - name: ALGORITHM
+          value: {{ .Values.backend.env.ALGORITHM | quote }}
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          value: {{ .Values.backend.env.ACCESS_TOKEN_EXPIRE_MINUTES | quote }}
       containers:
       - name: backend
         securityContext:

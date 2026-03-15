@@ -25,7 +25,7 @@ backend:
   replicaCount: 1
   image:
     repository: ghcr.io/ccoupel/automation-factory-backend
-    tag: "2.3.0"
+    tag: "2.3.6"
     pullPolicy: Always
   env:
     DATABASE_TYPE: "postgresql"
@@ -44,7 +44,7 @@ autoscaling:
 frontend:
   replicaCount: 1
   image:
-    tag: "2.3.5"
+    tag: "2.3.6"
     pullPolicy: Always
 ingress:
   className: "traefik"
@@ -53,9 +53,13 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
     traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: "automation-factory-automation-factory-stripprefix@kubernetescrd"
   hosts:
     - host: coupel.net
       paths:
+        - path: '/api'
+          pathType: Prefix
+          service: backend
         - path: ''
           pathType: Prefix
           service: frontend

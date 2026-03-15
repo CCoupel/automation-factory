@@ -1,0 +1,13 @@
+{{- if and .Values.ingress.enabled .Values.ingress.basePath }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "automation-factory.fullname" . }}-stripprefix
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "automation-factory.labels" . | nindent 4 }}
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ .Values.ingress.basePath | quote }}
+{{- end }}
