@@ -2,6 +2,15 @@
 
 $ARGUMENTS
 
+## Syntaxe
+
+```
+/pr <PR_NUMBER> [--base <branche>]
+```
+
+- `--base <branche>` : branche cible du merge (défaut : `integration`)
+- Exemples : `/pr 8` → merge dans `integration` | `/pr 8 --base main` → merge dans `main`
+
 ## Instructions
 
 1. Lis `.claude/memory/MEMORY.md`
@@ -14,3 +23,4 @@ $ARGUMENTS
 
 - Phase C3 (bilan complet) : attendre "go" explicite utilisateur avant le merge
 - Vérification HEAD SHA avant merge (garde-fou D1)
+- Phase D : merger dans `integration` par défaut (ou `--base` si fourni) — **JAMAIS directement dans `main`** sans `--base main` explicite
