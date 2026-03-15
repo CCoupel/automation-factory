@@ -8,19 +8,19 @@ import InfoIcon from '@mui/icons-material/Info'
 import CodeIcon from '@mui/icons-material/Code'
 import RuleIcon from '@mui/icons-material/Rule'
 import { useState, useEffect, useCallback } from 'react'
-import { PlaybookContent } from '../../services/playbookService'
 import { playbookPreviewService, FullValidationResponse } from '../../services/playbookPreviewService'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface SystemZoneProps {
-  getPlaybookContent?: () => PlaybookContent | undefined
-  onSaveComplete?: boolean // Triggered when playbook is saved
-}
+import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 
 type PreviewStatus = 'idle' | 'loading' | 'success' | 'error'
 type ValidationStatus = 'idle' | 'loading' | 'valid' | 'warnings' | 'errors'
 
-const SystemZone = ({ getPlaybookContent, onSaveComplete }: SystemZoneProps) => {
+const SystemZone = () => {
+  const serializePlaybookContent = usePlaybookEditorStore(s => s.serializePlaybookContent)
+  const saveStatus = usePlaybookEditorStore(s => s.saveStatus)
+  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
+  const getPlaybookContent = useCallback(() => serializePlaybookContent(), [serializePlaybookContent])
+  const onSaveComplete = saveStatus === 'saved'
   const [activeTab, setActiveTab] = useState(0)
   const [yamlContent, setYamlContent] = useState<string>('')
   const [validation, setValidation] = useState<FullValidationResponse | null>(null)
@@ -75,10 +75,10 @@ const SystemZone = ({ getPlaybookContent, onSaveComplete }: SystemZoneProps) => 
     }
   }, [getPlaybookContent, isAuthenticated])
 
-  // Fetch on initial mount
+  // Fetch when playbook is loaded or changed (currentPlaybookId changes)
   useEffect(() => {
     fetchPreview()
-  }, []) // Only on mount
+  }, [currentPlaybookId, fetchPreview])
 
   // Fetch when save is complete (onSaveComplete changes)
   useEffect(() => {

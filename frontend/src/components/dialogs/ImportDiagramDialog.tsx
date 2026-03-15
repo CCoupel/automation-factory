@@ -27,12 +27,24 @@ import ErrorIcon from '@mui/icons-material/Error'
 import InfoIcon from '@mui/icons-material/Info'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import { useTranslation } from 'react-i18next'
 import {
   importDiagram,
   readFileAsText,
   ImportResult
 } from '../../services/diagramImportService'
+import { importYamlDiagram } from '../../services/yamlImportService'
 import { ValidationError, ImportOptions, DIAGRAM_FORMAT } from '../../types/diagram-export'
+
+const ACCEPTED_EXTENSIONS = '.abd,.yml,.yaml'
+
+function isYamlFile(filename: string): boolean {
+  return /\.(ya?ml)$/i.test(filename)
+}
+
+function isAbdFile(filename: string): boolean {
+  return filename.endsWith(DIAGRAM_FORMAT.FILE_EXTENSION)
+}
 
 interface ImportDiagramDialogProps {
   open: boolean
@@ -45,6 +57,8 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
   onClose,
   onImport
 }) => {
+  const { t } = useTranslation('dialogs')
+
   // State
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -52,9 +66,11 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
   const [dragOver, setDragOver] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
 
-  // Options
+  // Options (only for .abd files)
   const [restoreUIState, setRestoreUIState] = useState(true)
   const [validateIntegrity, setValidateIntegrity] = useState(true)
+
+  const isYaml = file ? isYamlFile(file.name) : false
 
   // Reset state when dialog closes
   const handleClose = useCallback(() => {
@@ -68,8 +84,10 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
 
   // Handle file selection
   const handleFileSelect = useCallback(async (selectedFile: File) => {
+    const filename = selectedFile.name
+
     // Validate file extension
-    if (!selectedFile.name.endsWith(DIAGRAM_FORMAT.FILE_EXTENSION)) {
+    if (!isAbdFile(filename) && !isYamlFile(filename)) {
       setResult({
         success: false,
         plays: [],
@@ -86,7 +104,7 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
           needsMigration: false,
           errors: [{
             code: 'INVALID_EXTENSION',
-            message: `Invalid file extension. Expected ${DIAGRAM_FORMAT.FILE_EXTENSION}`,
+            message: t('import.invalidFormat'),
             severity: 'error',
           }],
           warnings: [],
@@ -102,12 +120,19 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
 
     try {
       const content = await readFileAsText(selectedFile)
-      const options: ImportOptions = {
-        restoreUIState,
-        validateIntegrity,
-        allowWarnings: false,
+
+      let importResult: ImportResult
+      if (isYamlFile(filename)) {
+        importResult = await importYamlDiagram(content, filename)
+      } else {
+        const options: ImportOptions = {
+          restoreUIState,
+          validateIntegrity,
+          allowWarnings: false,
+        }
+        importResult = await importDiagram(content, options)
       }
-      const importResult = await importDiagram(content, options)
+
       setResult(importResult)
     } catch (error) {
       setResult({
@@ -136,7 +161,7 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [restoreUIState, validateIntegrity])
+  }, [restoreUIState, validateIntegrity, t])
 
   // Handle file input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,7 +230,7 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Import Diagram</DialogTitle>
+      <DialogTitle>{t('import.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           {/* File Drop Zone */}
@@ -232,16 +257,16 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
             <input
               id="diagram-file-input"
               type="file"
-              accept={DIAGRAM_FORMAT.FILE_EXTENSION}
+              accept={ACCEPTED_EXTENSIONS}
               onChange={handleInputChange}
               style={{ display: 'none' }}
             />
             <UploadFileIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
             <Typography variant="body1" gutterBottom>
-              {file ? file.name : 'Drop a diagram file here or click to select'}
+              {file ? file.name : t('import.dropHere')}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Supported format: {DIAGRAM_FORMAT.FILE_EXTENSION} (Automation Factory Diagram)
+              {t('import.supportedFormats')}
             </Typography>
           </Paper>
 
@@ -347,8 +372,8 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
             </Box>
           )}
 
-          {/* Import Options */}
-          {!result && !loading && (
+          {/* Import Options — only for .abd files */}
+          {!result && !loading && !isYaml && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
                 Import Options
@@ -393,7 +418,7 @@ const ImportDiagramDialog: React.FC<ImportDiagramDialogProps> = ({
           variant="contained"
           disabled={!result || !result.success}
         >
-          Import
+          {t('import.import')}
         </Button>
       </DialogActions>
     </Dialog>

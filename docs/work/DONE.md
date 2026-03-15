@@ -4,6 +4,47 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.3.6** - *2026-03-14*
+
+### 🔧 YAML Parser Service (PR #7)
+
+- **Backend YAML Parsing**
+  - Nouvel endpoint `POST /api/yaml/parse` pour parsing YAML Ansible
+  - Support fichiers YAML simples (.yml/.yaml)
+  - Support archives ZIP avec découverte de playbooks et rôles
+  - Résolution `include_tasks` / `import_tasks` dans les archives
+  - Résolution `vars_files` depuis le contexte archive
+  - Résolution `import_playbook` avec détection de cycles
+  - Parsing des rôles en playbooks synthétiques (tasks, handlers, defaults, vars, meta)
+  - Chargement `group_vars` / `host_vars` dans les métadonnées
+
+- **Frontend YAML Import**
+  - Service `yamlImportService.ts` pour import YAML
+  - Dialog frontend multi-étapes (upload, sélection, résultat)
+  - Support fichiers .yml/.yaml dans ImportPlaybookDialog
+
+- **Bugfixes (7)**
+  - Liens enfants dans les blocks YAML
+  - IDs mini-START manquants (START→block[0])
+  - Récursivité liens blocks
+  - Taille blocks / positionnement au contenu
+  - Hauteur sections block non calculée dynamiquement
+  - Containers sections : hauteur dynamique par section + overflow scroll
+  - Parité rendu nested blocks vs parent blocks
+
+- **Bugfix Collaboration**
+  - Synchronisation collaborative variables (variable_add, variable_delete)
+  - Synchronisation collaborative rôles (role_add, role_delete, role_update)
+
+### 📊 Métriques
+- **Version** : 2.3.6-rc.1
+- **Branche** : integration (PR #7 mergée)
+- **Staging** : pr7-rc8 déployé et validé
+- **Tests** : pytest 207/207, Vitest 187/187
+- **Commits** : 9 commits, 14 fichiers, +1843 lignes
+
+---
+
 ## ✅ **Version 2.3.5** - *2026-01-09*
 
 ### 🎨 UX - Icône Playbook Manager améliorée

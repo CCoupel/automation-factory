@@ -8,12 +8,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 2.2.1 / Frontend 2.2.1
-**Version Production :** Backend 2.2.1 / Frontend 2.2.1  ✅ **DEPLOYED**
+**Version Développement :** Backend 2.3.6 / Frontend 2.3.6
+**Version Production :** Backend 2.3.6 / Frontend 2.3.6  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **URL Marketing :** https://ccoupel.bitbucket.io
-**Dernière mise à jour :** 2026-01-16
+**Dernière mise à jour :** 2026-03-15
 
 ## 📚 **Documentation Organisée**
 
@@ -54,6 +54,8 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 3. **Phase 1 :** Voir `docs/operations/PHASE1_DEVELOPMENT.md` - Développement local
 4. **Phase 2 :** Voir `docs/operations/PHASE2_INTEGRATION.md` - Staging (nginx reverse proxy)
 5. **Phase 3 :** Voir `docs/operations/PHASE3_PRODUCTION.md` - Production (Kubernetes)
+6. **Tests :** Voir `backend/tests/` et `frontend/src/**/__tests__/`
+7. **i18n**: All UI strings use `useTranslation()` — see `frontend/src/locales/`
 
 ## ⚠️ **RÈGLES CRITIQUES pour Claude**
 
@@ -66,6 +68,28 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **TOUJOURS** demander "go" explicite entre phases
 - **TOUJOURS** relire PHASE[X]_[NAME].md avant débuter
 - **TOUJOURS** attendre réponse utilisateur avant continuer
+
+### 🧪 **RÈGLES TESTS**
+- **TOUJOURS** écrire des tests pour tout nouvel endpoint backend (dans `backend/tests/`)
+- **TOUJOURS** écrire des tests pour tout nouveau service backend
+- **TOUJOURS** écrire des tests frontend pour tout nouveau service, hook ou contexte
+- **NE JAMAIS** merger du code qui diminue la couverture de tests
+- **TOUJOURS** vérifier que les tests passent avant de passer en Phase 2 :
+  - Backend : `cd backend && python -m pytest tests/ -v --cov=app`
+  - Frontend : `cd frontend && npm test`
+- **Fixtures partagées** : Utiliser `backend/tests/conftest.py` (ne pas dupliquer les fixtures)
+- **Pattern backend** : Tests d'intégration avec SQLite en mémoire via conftest, mocks pour les services externes
+- **Pattern frontend** : Vitest + React Testing Library, mock httpClient via `vi.mock()`
+
+### 🌐 **i18n RULES**
+- **NEVER** hardcode user-facing text in React components
+- **ALWAYS** use `useTranslation()` from react-i18next for all visible text
+- **ALWAYS** add keys to both locale files (`en/` and `fr/`)
+- **Namespaces**: `common`, `auth`, `playbook`, `dialogs`, `admin`, `errors`
+- **Locale files**: `frontend/src/locales/{en,fr}/{namespace}.json`
+- **Default language**: English (`fallbackLng: 'en'`)
+- **Parity check**: Every key added in `en/` must exist in `fr/` and vice versa
+- **Completeness test**: `frontend/src/i18n/__tests__/i18n.test.ts` verifies EN/FR parity
 
 ### 🗄️ **RÈGLE STOCKAGE DONNÉES**
 - **TOUJOURS** stocker les données utilisateur en base de données (pas fichiers `/tmp`)

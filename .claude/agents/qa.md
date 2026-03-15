@@ -45,11 +45,25 @@ curl -I http://192.168.1.217/               # Frontend OK
 
 **Coordination pairs** : `deployer` si les health checks post-déploiement échouent
 
-**Format rapport au CDP** :
+**Format rapport** :
+
+Le QA envoie un message **après CHAQUE test individuel** directement au **team-lead** (pas au CDP) avec ce format :
+```
+Tests: total=X | réalisés=Y | validés=N | échecs=Z
+[Dernier test] <nom du test> : OK | KO | BLOCKING
+<détail si KO ou BLOCKING>
+```
+
+Rapport final (aussi au **team-lead**) :
 ```
 QA PHASE [1/2/3] : VALIDÉ / BLOQUÉ
-Checks exécutés : <liste>
-Résultats : <détails>
+Tests: total=X | réalisés=Y | validés=N | échecs=Z
+Checks exécutés : <liste avec résultat OK/KO/BLOCKING>
 Blocages : <liste ou "aucun">
 Recommandation : GO / NO-GO
 ```
+
+**Règles de routage** :
+- **Après chaque test individuel** → envoyer au **team-lead** avec le format compteur + dernier test
+- **Rapport final** (GO/NO-GO) → envoyer au **CDP** pour qu'il puisse poursuivre le workflow
+- La ligne `Tests:` est obligatoire dans chaque message (individuel ET final)

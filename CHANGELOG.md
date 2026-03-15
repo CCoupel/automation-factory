@@ -7,6 +7,36 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.3.6] - 2026-03-14
+
+### ✨ Nouvelles fonctionnalités
+- **YAML Parser Service:** Nouvel endpoint `POST /api/yaml/parse` pour parsing YAML Ansible
+  - Support fichiers YAML simples (.yml/.yaml)
+  - Support archives ZIP avec découverte playbooks et rôles
+  - Résolution include_tasks, import_tasks, vars_files, import_playbook
+  - Parsing rôles en playbooks synthétiques
+  - Chargement group_vars / host_vars
+- **Frontend YAML Import:** Import fichiers .yml/.yaml via dialog multi-étapes
+  - Service yamlImportService.ts
+  - Support YAML dans ImportPlaybookDialog
+
+### 🛠️ Corrections
+- **Blocks YAML:** Liens enfants correctement créés dans les blocks
+- **Mini-START IDs:** Lien START→block[0] manquant corrigé
+- **Récursivité blocks:** Liens récursifs dans blocks imbriqués
+- **Sizing blocks:** Taille et positionnement adaptés au contenu
+- **Hauteur sections:** Calcul dynamique hauteur sections block
+- **Sections overflow:** Hauteur dynamique par section + overflow scroll
+- **Nested blocks:** Parité rendu nested blocks vs parent blocks
+- **Collaboration variables:** Synchronisation variable_add / variable_delete
+- **Collaboration rôles:** Synchronisation role_add / role_delete / role_update
+
+### 📊 Métriques
+- Tests: pytest 207/207, Vitest 187/187
+- 9 commits, 14 fichiers, +1843 lignes
+
+---
+
 ## [1.8.1] - 2025-12-12
 
 ### ✨ Nouvelles fonctionnalités
