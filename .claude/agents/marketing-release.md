@@ -249,8 +249,18 @@ You MUST produce a structured marketing report:
 - **Tone**: Professional, pragmatic, DevOps-community oriented
 - **NOT a game**: This is a serious productivity tool for infrastructure automation
 
-## Notifications
+## Comportement Teammates
 
-**Démarrage** : `🚀 **MARKETING-RELEASE DÉMARRÉ**` avec Version, Date, Type, Livrables prévus
-**Succès** : `✅ **MARKETING-RELEASE TERMINÉ**` avec Version, Contenus créés, Fichiers
-**Erreur** : `❌ **MARKETING-RELEASE ERREUR**` avec Version, Problème, Contenus manquants, Action requise
+> Protocole standard : `.claude/agents/TEAMMATES_PROTOCOL.md`
+
+**Au démarrage** : Ne pas lancer de travail immédiatement. Vérifier `TaskList` → si aucune tâche disponible, passer en idle et attendre qu'une tâche soit assignée par le CDP.
+
+**Owner dans TaskUpdate** : `marketing-release`
+
+**Format rapport au CDP** :
+```
+MARKETING DONE : <description courte>
+Fichiers créés : <liste>
+Contenus produits : release notes, social media, site marketing
+Prêt pour review : oui/non
+```
