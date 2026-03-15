@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Automation Factory - Historique des releases et notes de version.">
+    <meta name="keywords" content="Ansible, Playbook, Builder, DevOps, Releases, Changelog">
+    <title>Releases - Automation Factory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .releases-hero {
+            padding: 120px 0 60px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            text-align: center;
+        }
+        .releases-hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+        }
+        .releases-hero p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .releases-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 24px 120px;
+        }
+        .release-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 36px;
+            margin-bottom: 32px;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+        .release-card:hover {
+            border-color: #6366f1;
+        }
+        .release-card.latest {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 1px #6366f1, 0 4px 32px rgba(99,102,241,0.15);
+        }
+        .release-card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .release-version {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+        .release-date {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        .release-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-latest {
+            background: #6366f1;
+            color: #fff;
+        }
+        .badge-patch {
+            background: #0ea5e9;
+            color: #fff;
+        }
+        .badge-minor {
+            background: #10b981;
+            color: #fff;
+        }
+        .badge-major {
+            background: #f59e0b;
+            color: #0f172a;
+        }
+        .release-codename {
+            font-size: 1.1rem;
+            font-style: italic;
+            color: #a5b4fc;
+            margin-bottom: 16px;
+        }
+        .release-highlights {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 10px;
+        }
+        .release-highlights li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+        }
+        .release-highlights li::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6366f1;
+            flex-shrink: 0;
+        }
+        .release-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-release-notes {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: #6366f1;
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-release-notes:hover {
+            background: #4f46e5;
+        }
+        .btn-changelog {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .btn-changelog:hover {
+            border-color: #6366f1;
+            color: #a5b4fc;
+        }
+        .type-icon {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+                    <span class="brand-icon">AF</span>
+                    <span class="brand-text">Automation Factory</span>
+                </a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html#features">Fonctionnalites</a></li>
+                <li><a href="features.html">Toutes les features</a></li>
+                <li><a href="releases.html" style="color:#a5b4fc;">Releases</a></li>
+                <li><a href="index.html#installation">Installation</a></li>
+            </ul>
+            <div class="nav-right">
+                <a href="https://coupel.net/automation-factory" class="nav-cta" target="_blank">Acceder a l'App</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="releases-hero">
+        <h1>Historique des Releases</h1>
+        <p>Suivez l'evolution d'Automation Factory. Chaque version apporte de nouvelles capacites pour vos workflows DevOps.</p>
+    </div>
+
+    <!-- Releases List -->
+    <div class="releases-container">
+
+        <!-- v2.3.6 — Actuelle -->
+        <div class="release-card latest">
+            <div class="release-card-header">
+                <span class="release-version">v2.3.6</span>
+                <span class="release-badge badge-latest">Actuelle</span>
+                <span class="release-badge badge-patch">Patch</span>
+                <span class="release-date">14 mars 2026</span>
+            </div>
+            <div class="release-codename">"Sync Everywhere"</div>
+            <ul class="release-highlights">
+                <li>Parseur YAML natif — importez vos playbooks existants</li>
+                <li>Import archives ZIP avec decouverte automatique des roles</li>
+                <li>Synchronisation variables en temps reel entre collaborateurs</li>
+                <li>Synchronisation roles en temps reel (ajout, suppression, ordre)</li>
+                <li>Correction du dimensionnement et de la hauteur des blocks</li>
+                <li>207 tests backend + 187 tests frontend au vert</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/docs/releases/v2.3.6/release-notes.md" class="btn-release-notes" target="_blank">
+                    Notes de release completes
+                </a>
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG technique
+                </a>
+                <a href="https://coupel.net/automation-factory" class="btn-changelog" target="_blank">
+                    Acceder a l'app
+                </a>
+            </div>
+        </div>
+
+        <!-- v2.3.0 -->
+        <div class="release-card">
+            <div class="release-card-header">
+                <span class="release-version">v2.3.0</span>
+                <span class="release-badge badge-minor">Minor</span>
+                <span class="release-date">6 janvier 2026</span>
+            </div>
+            <div class="release-codename">"Galaxy Admin Configuration"</div>
+            <ul class="release-highlights">
+                <li>Interface admin pour gerer les sources Galaxy</li>
+                <li>Support multi-sources Galaxy privees (AAP, Galaxy NG)</li>
+                <li>Chiffrement Fernet AES pour les tokens prives</li>
+                <li>Test de connexion avec indicateurs de statut</li>
+                <li>Rechargement a chaud de la configuration Galaxy</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG technique
+                </a>
+            </div>
+        </div>
+
+        <!-- v2.2.0 -->
+        <div class="release-card">
+            <div class="release-card-header">
+                <span class="release-version">v2.2.0</span>
+                <span class="release-badge badge-minor">Minor</span>
+                <span class="release-date">4 janvier 2026</span>
+            </div>
+            <div class="release-codename">"Code Rationalization"</div>
+            <ul class="release-highlights">
+                <li>Classe de base unifiee pour les services HTTP backend</li>
+                <li>CacheManager generique pour le frontend</li>
+                <li>API favoris consolidee : 9 endpoints reduits a 3</li>
+                <li>Elimination de ~400 lignes de code duplique</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG technique
+                </a>
+            </div>
+        </div>
+
+        <!-- v2.1.0 -->
+        <div class="release-card">
+            <div class="release-card-header">
+                <span class="release-version">v2.1.0</span>
+                <span class="release-badge badge-minor">Minor</span>
+                <span class="release-date">3 janvier 2026</span>
+            </div>
+            <div class="release-codename">"Diagram Export/Import"</div>
+            <ul class="release-highlights">
+                <li>Export diagramme JSON (.abd) — sauvegarde complete avec positions</li>
+                <li>Export diagramme Mermaid (.md) — pour la documentation</li>
+                <li>Export diagramme SVG — image vectorielle pour presentations</li>
+                <li>Import .abd avec validation et controle d'integrite</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG technique
+                </a>
+            </div>
+        </div>
+
+        <!-- v2.0.0 -->
+        <div class="release-card">
+            <div class="release-card-header">
+                <span class="release-version">v2.0.0</span>
+                <span class="release-badge badge-major">Major</span>
+                <span class="release-date">1 janvier 2026</span>
+            </div>
+            <div class="release-codename">"Galaxy Roles Integration"</div>
+            <ul class="release-highlights">
+                <li>36 000+ roles Ansible Galaxy disponibles via drag & drop</li>
+                <li>Support Galaxy API v1 (roles standalone) et v3 (roles collections)</li>
+                <li>Support Galaxy prive (AAP Automation Hub, Galaxy NG)</li>
+                <li>Configuration rôle avec panneau de variables integre</li>
+                <li>Activation/desactivation des roles avec indicateur visuel</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG technique
+                </a>
+            </div>
+        </div>
+
+        <!-- v1.x -->
+        <div class="release-card">
+            <div class="release-card-header">
+                <span class="release-version">v1.x</span>
+                <span class="release-badge badge-minor">Archive</span>
+                <span class="release-date">Nov 2025 - Dec 2025</span>
+            </div>
+            <div class="release-codename">Fondations</div>
+            <ul class="release-highlights">
+                <li>Collaboration multi-utilisateur temps reel via WebSockets</li>
+                <li>Integration Ansible-lint avec retours temps reel</li>
+                <li>Vue arborescente (TreeView) des modules Galaxy</li>
+                <li>Variables typees avec assertions automatiques</li>
+                <li>Export/import diagramme en format proprietaire .abd</li>
+            </ul>
+            <div class="release-actions">
+                <a href="https://github.com/CCoupel/automation-factory/blob/main/CHANGELOG.md" class="btn-changelog" target="_blank">
+                    CHANGELOG complet v1.x
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer style="background:#0f172a;border-top:1px solid #1e293b;padding:40px 24px;text-align:center;color:#64748b;">
+        <p>Automation Factory — Createur visuel de playbooks Ansible</p>
+        <p style="margin-top:8px;">
+            <a href="https://coupel.net/automation-factory" style="color:#6366f1;text-decoration:none;">Application</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/CCoupel/automation-factory" style="color:#6366f1;text-decoration:none;">GitHub</a>
+            &nbsp;·&nbsp;
+            <a href="index.html" style="color:#6366f1;text-decoration:none;">Accueil</a>
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

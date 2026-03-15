@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Automation Factory - Toutes les fonctionnalites du createur visuel de playbooks Ansible.">
+    <meta name="keywords" content="Ansible, Playbook, Builder, DevOps, Features, Galaxy, Collaboration, YAML">
+    <title>Fonctionnalites - Automation Factory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .features-hero {
+            padding: 120px 0 60px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            text-align: center;
+        }
+        .features-hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+        }
+        .features-hero p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+        .features-page-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 24px 120px;
+        }
+        .features-category {
+            margin-bottom: 64px;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .category-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        .icon-interface { background: rgba(99,102,241,0.15); }
+        .icon-import { background: rgba(16,185,129,0.15); }
+        .icon-integration { background: rgba(245,158,11,0.15); }
+        .icon-collab { background: rgba(14,165,233,0.15); }
+        .icon-security { background: rgba(239,68,68,0.15); }
+        .icon-perf { background: rgba(168,85,247,0.15); }
+
+        .category-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+        .category-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .feature-card:hover {
+            border-color: #6366f1;
+            transform: translateY(-2px);
+        }
+        .feature-card.new {
+            border-color: #10b981;
+        }
+        .feature-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin: 0;
+        }
+        .feature-new-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #10b981;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+        .feature-version-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #334155;
+            color: #94a3b8;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .feature-card p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .feature-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0;
+        }
+        .feature-card ul li {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            padding: 3px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .feature-card ul li::before {
+            content: "";
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #6366f1;
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+        .version-tag {
+            display: inline-block;
+            padding: 1px 6px;
+            background: rgba(99,102,241,0.15);
+            color: #a5b4fc;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .cta-banner {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 16px;
+            padding: 48px 40px;
+            text-align: center;
+            margin-top: 64px;
+        }
+        .cta-banner h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .cta-banner p {
+            color: rgba(255,255,255,0.8);
+            font-size: 1.1rem;
+            margin-bottom: 28px;
+        }
+        .cta-banner a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: #fff;
+            color: #4f46e5;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+        .cta-banner a:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+                    <span class="brand-icon">AF</span>
+                    <span class="brand-text">Automation Factory</span>
+                </a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="features.html" style="color:#a5b4fc;">Toutes les features</a></li>
+                <li><a href="releases.html">Releases</a></li>
+                <li><a href="index.html#installation">Installation</a></li>
+                <li><a href="index.html#galaxy">Galaxy</a></li>
+            </ul>
+            <div class="nav-right">
+                <a href="https://coupel.net/automation-factory" class="nav-cta" target="_blank">Acceder a l'App</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="features-hero">
+        <h1>Toutes les Fonctionnalites</h1>
+        <p>Automation Factory est un constructeur visuel de playbooks Ansible pour les equipes DevOps. Voici tout ce qu'il sait faire.</p>
+        <p style="margin-top:12px;font-size:0.9rem;color:#475569;">Version actuelle : v2.3.6 — 14 mars 2026</p>
+    </div>
+
+    <!-- Content -->
+    <div class="features-page-container">
+
+        <!-- INTERFACE -->
+        <div class="features-category">
+            <div class="category-header">
+                <div class="category-icon icon-interface">
+                    <span>UI</span>
+                </div>
+                <div>
+                    <div class="category-title">Interface &amp; Editeur Visuel</div>
+                    <div class="category-subtitle">Construction et navigation dans vos playbooks</div>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Drag &amp; Drop intuitif</h3>
+                        <span class="feature-version-badge">v1.0+</span>
+                    </div>
+                    <p>Glissez-deposez modules, blocs et roles pour construire vos playbooks visuellement. Reordonnez les taches en quelques clics.</p>
+                    <ul>
+                        <li>5 zones de travail : pre_tasks, tasks, post_tasks, handlers, roles</li>
+                        <li>Blocs imbriques avec rescue/always</li>
+                        <li>Liens visuels entre taches</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Preview YAML en temps reel</h3>
+                        <span class="feature-version-badge">v1.0+</span>
+                    </div>
+                    <p>Visualisez le YAML genere en temps reel pendant que vous construisez votre playbook visuellement. Zero surprises a l'execution.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Theme clair / sombre</h3>
+                        <span class="feature-version-badge">v2.2.1</span>
+                    </div>
+                    <p>Trois modes : Clair, Sombre et Systeme (suit la preference du systeme d'exploitation). La page de login est toujours en mode clair.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Validation Ansible-lint</h3>
+                        <span class="feature-version-badge">v1.12+</span>
+                    </div>
+                    <p>Validation en temps reel avec ansible-lint integre. Corrigez les erreurs avant meme d'executer votre playbook.</p>
+                    <ul>
+                        <li>Severite : erreur, avertissement, info</li>
+                        <li>IDs de regles Ansible-lint</li>
+                        <li>Numeros de lignes precis</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Variables typees</h3>
+                        <span class="feature-version-badge">v1.15+</span>
+                    </div>
+                    <p>Definissez le type (string, int, bool, list, dict), le caractere obligatoire/optionnel et la valeur par defaut de chaque variable.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Assertions automatiques</h3>
+                        <span class="feature-version-badge">v1.17+</span>
+                    </div>
+                    <p>Generation automatique de blocs d'assertions pour valider les variables d'entree. Un bloc par variable, visible mais verrouillee.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- IMPORT / EXPORT -->
+        <div class="features-category">
+            <div class="category-header">
+                <div class="category-icon icon-import">
+                    <span>IO</span>
+                </div>
+                <div>
+                    <div class="category-title">Import &amp; Export</div>
+                    <div class="category-subtitle">Migrez vos playbooks existants, exportez dans tous les formats</div>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card new">
+                    <div class="feature-card-header">
+                        <h3>Import YAML Ansible</h3>
+                        <span class="feature-new-badge">Nouveau v2.3.6</span>
+                    </div>
+                    <p>Importez directement vos fichiers .yml/.yaml existants dans l'editeur visuel. Le parseur resout automatiquement include_tasks, import_tasks, vars_files et import_playbook.</p>
+                    <ul>
+                        <li>Support .yml et .yaml</li>
+                        <li>Resolution des includes et imports</li>
+                        <li>Chargement group_vars / host_vars</li>
+                    </ul>
+                </div>
+                <div class="feature-card new">
+                    <div class="feature-card-header">
+                        <h3>Import archives ZIP</h3>
+                        <span class="feature-new-badge">Nouveau v2.3.6</span>
+                    </div>
+                    <p>Importez une archive ZIP contenant un role Ansible complet. L'outil decouvre automatiquement les playbooks, les roles, les group_vars et host_vars.</p>
+                    <ul>
+                        <li>Decouverte automatique de la structure</li>
+                        <li>Parsing des roles en playbooks synthetiques</li>
+                        <li>Dialog multi-etapes avec feedback</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Export JSON (.abd)</h3>
+                        <span class="feature-version-badge">v2.1+</span>
+                    </div>
+                    <p>Sauvegardez votre diagramme complet avec positions des blocs, etat de l'interface et metadonnees. Versionnage et verification d'integrite integres.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Export Mermaid (.md)</h3>
+                        <span class="feature-version-badge">v2.1+</span>
+                    </div>
+                    <p>Generez un diagramme Mermaid de votre playbook, directement integrable dans votre documentation GitHub, GitLab ou Confluence.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Export SVG</h3>
+                        <span class="feature-version-badge">v2.1+</span>
+                    </div>
+                    <p>Exportez votre diagramme en image vectorielle SVG, ideale pour les presentations et la documentation technique.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Export YAML</h3>
+                        <span class="feature-version-badge">v1.0+</span>
+                    </div>
+                    <p>Generez le YAML Ansible propre et valide, pret a etre execute. Les roles desactives sont exclus, les variables correctement serialisees.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- INTEGRATIONS -->
+        <div class="features-category">
+            <div class="category-header">
+                <div class="category-icon icon-integration">
+                    <span>G</span>
+                </div>
+                <div>
+                    <div class="category-title">Integrations Galaxy &amp; Ansible</div>
+                    <div class="category-subtitle">Acces a l'ecosysteme Ansible complet</div>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>36 000+ roles Galaxy</h3>
+                        <span class="feature-version-badge">v2.0+</span>
+                    </div>
+                    <p>Acces direct aux roles Ansible Galaxy via les API v1 (roles standalone) et v3 (roles de collections). Drag & drop vers votre playbook.</p>
+                    <ul>
+                        <li>API v1 pour les roles legacy (auteur.role)</li>
+                        <li>API v3 pour les roles de collections</li>
+                        <li>Cache 30 minutes pour les listes</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Galaxy prive (AAP / Galaxy NG)</h3>
+                        <span class="feature-version-badge">v2.0+</span>
+                    </div>
+                    <p>Connectez votre instance Ansible Automation Platform ou Galaxy NG privee. Bascule entre Galaxy public et prive en un clic.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Administration des sources Galaxy</h3>
+                        <span class="feature-version-badge">v2.3+</span>
+                    </div>
+                    <p>Interface d'administration pour gerer les sources Galaxy. Activation/desactivation du Galaxy public, multi-sources privees avec priorite par drag & drop.</p>
+                    <ul>
+                        <li>Chiffrement Fernet AES pour les tokens</li>
+                        <li>Test de connexion en temps reel</li>
+                        <li>Rechargement a chaud de la configuration</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Documentation Ansible integree</h3>
+                        <span class="feature-version-badge">v1.10+</span>
+                    </div>
+                    <p>Detection dynamique de la version Ansible depuis la documentation officielle. Acces direct aux parametres de chaque module avec tooltips.</p>
+                    <ul>
+                        <li>70+ collections par version Ansible</li>
+                        <li>Cache 24h pour les versions</li>
+                        <li>Fallback hors-ligne</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Vue arborescente (TreeView)</h3>
+                        <span class="feature-version-badge">v1.14+</span>
+                    </div>
+                    <p>Navigation hierarchique namespace / collection / module avec chargement paresseux. Drag & drop direct depuis la TreeView vers le playbook.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLLABORATION -->
+        <div class="features-category">
+            <div class="category-header">
+                <div class="category-icon icon-collab">
+                    <span>CO</span>
+                </div>
+                <div>
+                    <div class="category-title">Collaboration Temps Reel</div>
+                    <div class="category-subtitle">Travaillez ensemble sur vos playbooks, simultanement</div>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Edition collaborative WebSocket</h3>
+                        <span class="feature-version-badge">v1.13+</span>
+                    </div>
+                    <p>Plusieurs utilisateurs editent le meme playbook simultanement. Les modifications de chacun s'affichent en temps reel sur tous les ecrans.</p>
+                    <ul>
+                        <li>Roles : Proprietaire, Editeur, Visualiseur</li>
+                        <li>Partage par nom d'utilisateur</li>
+                        <li>Avatars des utilisateurs connectes</li>
+                    </ul>
+                </div>
+                <div class="feature-card new">
+                    <div class="feature-card-header">
+                        <h3>Sync variables en temps reel</h3>
+                        <span class="feature-new-badge">Ameliore v2.3.6</span>
+                    </div>
+                    <p>Les ajouts, modifications et suppressions de variables se synchronisent maintenant correctement chez tous les collaborateurs en temps reel.</p>
+                </div>
+                <div class="feature-card new">
+                    <div class="feature-card-header">
+                        <h3>Sync roles en temps reel</h3>
+                        <span class="feature-new-badge">Ameliore v2.3.6</span>
+                    </div>
+                    <p>Les ajouts de roles, suppressions, reordonnancement et bascules actif/inactif se propagent instantanement a tous les collaborateurs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Gestion des conflits</h3>
+                        <span class="feature-version-badge">v1.14+</span>
+                    </div>
+                    <p>Versionnage des playbooks pour la detection de conflits d'edition. Updates granulaires (module, config, liens, plays) avec debounce 300ms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Audit log</h3>
+                        <span class="feature-version-badge">v1.13+</span>
+                    </div>
+                    <p>Toutes les modifications collaboratives sont enregistrees avec horodatage et identite de l'auteur. Transfert de propriete automatique a la suppression.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECURITE -->
+        <div class="features-category">
+            <div class="category-header">
+                <div class="category-icon icon-security">
+                    <span>S</span>
+                </div>
+                <div>
+                    <div class="category-title">Securite &amp; Acces</div>
+                    <div class="category-subtitle">Controle d'acces et protection des donnees</div>
+                </div>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Authentification JWT</h3>
+                        <span class="feature-version-badge">v1.0+</span>
+                    </div>
+                    <p>Authentification securisee par tokens JWT. Session automatiquement renouvelee, isolation complete entre utilisateurs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Acces admin protege</h3>
+                        <span class="feature-version-badge">v1.8+</span>
+                    </div>
+                    <p>Interface d'administration reservee aux administrateurs. Gestion des namespaces standards, sources Galaxy, types de variables personnalises.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Chiffrement des tokens Galaxy</h3>
+                        <span class="feature-version-badge">v2.3+</span>
+                    </div>
+                    <p>Les tokens d'acces aux instances Galaxy privees sont chiffres en base de donnees avec Fernet (AES 128-bit). Jamais stockes en clair.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-header">
+                        <h3>Multi-tenant</h3>
+                        <span class="feature-version-badge">v1.0+</span>
+                    </div>
+                    <p>Toutes les donnees utilisateur (playbooks, variables, favoris, types) sont strictement isolees par utilisateur. Architecture scalable horizontalement.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-banner">
+            <h2>Pret a essayer ?</h2>
+            <p>Automation Factory est disponible gratuitement. Commencez a construire vos playbooks Ansible visuellement en quelques secondes.</p>
+            <a href="https://coupel.net/automation-factory" target="_blank">
+                Acceder a l'Application
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer style="background:#0f172a;border-top:1px solid #1e293b;padding:40px 24px;text-align:center;color:#64748b;">
+        <p>Automation Factory — Createur visuel de playbooks Ansible</p>
+        <p style="margin-top:8px;">
+            <a href="https://coupel.net/automation-factory" style="color:#6366f1;text-decoration:none;">Application</a>
+            &nbsp;·&nbsp;
+            <a href="https://github.com/CCoupel/automation-factory" style="color:#6366f1;text-decoration:none;">GitHub</a>
+            &nbsp;·&nbsp;
+            <a href="releases.html" style="color:#6366f1;text-decoration:none;">Releases</a>
+            &nbsp;·&nbsp;
+            <a href="index.html" style="color:#6366f1;text-decoration:none;">Accueil</a>
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

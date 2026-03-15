@@ -15,7 +15,7 @@ const translations = {
         'nav.cta': 'Accéder à l\'App',
 
         // Hero Section
-        'hero.badge': 'Version 2.3.0 - Galaxy Admin Configuration',
+        'hero.badge': 'Version 2.3.6 — Import YAML & Sync Universel',
         'hero.title': 'Créez vos Playbooks Ansible',
         'hero.title.highlight': 'Visuellement',
         'hero.subtitle': 'Interface drag & drop intuitive, intégration Galaxy complète avec 36 000+ rôles, collaboration temps réel et validation Ansible-lint instantanée.',
@@ -146,6 +146,20 @@ const translations = {
         'versions.legend.collab': 'Collab',
         'versions.legend.all': 'Tous',
 
+
+        // Version 2.3.6
+        'versions.v236.date': 'Mars 2026',
+        'versions.v236.title': 'YAML Import & Sync Universel',
+        'versions.v236.f1': 'YAML Parser',
+        'versions.v236.f1.detail': 'Importez vos playbooks .yml/.yaml et archives ZIP existants directement dans l\'editeur visuel',
+        'versions.v236.f2': 'Import ZIP',
+        'versions.v236.f2.detail': 'Support archives ZIP avec decouverte automatique des playbooks, roles, group_vars et host_vars',
+        'versions.v236.f3': 'Sync Variables',
+        'versions.v236.f3.detail': 'Les ajouts, modifications et suppressions de variables se synchronisent maintenant chez tous les collaborateurs',
+        'versions.v236.f4': 'Sync Roles',
+        'versions.v236.f4.detail': 'Les ajouts, suppressions, reordonnancements et bascules actif/inactif des roles se synchronisent en temps reel',
+        'versions.v236.f5': '207 tests OK',
+        'versions.v236.f5.detail': '207 tests backend + 187 tests frontend — couverture complete, zero regression',
 
         // Version 2.3.0
         'versions.v230.date': 'Janvier 2026',
@@ -370,7 +384,7 @@ const translations = {
         'nav.cta': 'Access App',
 
         // Hero Section
-        'hero.badge': 'Version 2.3.0 - Galaxy Admin Configuration',
+        'hero.badge': 'Version 2.3.6 — YAML Import & Universal Sync',
         'hero.title': 'Build your Ansible Playbooks',
         'hero.title.highlight': 'Visually',
         'hero.subtitle': 'Intuitive drag & drop interface, complete Galaxy integration with 36,000+ roles, real-time collaboration and instant Ansible-lint validation.',
@@ -501,6 +515,20 @@ const translations = {
         'versions.legend.collab': 'Collab',
         'versions.legend.all': 'All',
 
+
+        // Version 2.3.6
+        'versions.v236.date': 'March 2026',
+        'versions.v236.title': 'YAML Import & Universal Sync',
+        'versions.v236.f1': 'YAML Parser',
+        'versions.v236.f1.detail': 'Import existing .yml/.yaml playbooks and ZIP archives directly into the visual editor',
+        'versions.v236.f2': 'ZIP Import',
+        'versions.v236.f2.detail': 'ZIP archive support with automatic discovery of playbooks, roles, group_vars and host_vars',
+        'versions.v236.f3': 'Variable Sync',
+        'versions.v236.f3.detail': 'Variable additions, modifications and deletions now sync in real time across all collaborators',
+        'versions.v236.f4': 'Role Sync',
+        'versions.v236.f4.detail': 'Role additions, deletions, reordering and enable/disable toggle sync in real time',
+        'versions.v236.f5': '207 tests OK',
+        'versions.v236.f5.detail': '207 backend tests + 187 frontend tests — full coverage, zero regression',
 
         // Version 2.3.0
         'versions.v230.date': 'January 2026',
