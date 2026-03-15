@@ -24,12 +24,13 @@ Sans demander confirmation :
 | `infra` | `infra` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/infra.md, et applique ces instructions pour toute la session."` |
 | `dev-backend` | `dev-backend` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/dev-backend.md, et applique ces instructions pour toute la session."` |
 | `dev-frontend` | `dev-frontend` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/dev-frontend.md, et applique ces instructions pour toute la session."` |
+| `marketing-release` | `marketing-release` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/marketing-release.md, et applique ces instructions pour toute la session."` |
 
-3. Confirme la liste des 10 agents créés à l'utilisateur.
+3. Confirme la liste des 11 agents créés à l'utilisateur.
 
 ## Règles
 - MEMORY projet = seule source de vérité
 - TEAM toujours créée, nom toujours `Team-AF`
 - `cdp` toujours le premier agent spawné
 
-> **Note** : `/start-session` pré-initialise les 10 agents en parallèle (session intensive). Les commandes directes (`/feature`, `/bugfix`, etc.) utilisent un bootstrap minimal — elles créent la team avec CDP seul, et le CDP spawne uniquement les agents nécessaires à la demande.
+> **Note** : `/start-session` pré-initialise les 11 agents en parallèle (session intensive). Les commandes directes (`/feature`, `/bugfix`, etc.) utilisent un bootstrap minimal — elles créent la team avec CDP seul, et le CDP spawne uniquement les agents nécessaires à la demande.

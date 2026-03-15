@@ -74,6 +74,7 @@ Avant d'assigner une tâche à un agent, vérifier qu'il est dans la team. S'il 
 | `qa` | `qa` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/qa.md, et applique ces instructions pour toute la session."` |
 | `doc-updater` | `doc-updater` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/doc-updater.md, et applique ces instructions pour toute la session."` |
 | `deployer` | `deployer` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/deployer.md, et applique ces instructions pour toute la session."` |
+| `marketing-release` | `marketing-release` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/marketing-release.md, et applique ces instructions pour toute la session."` |
 
 ### Communication
 - **Vers un agent** : `SendMessage` type `"message"`, `recipient` = nom de l'agent
@@ -93,7 +94,7 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 
 | Message reçu | Action CDP |
 |---|---|
-| `FEATURE: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
+| `FEATURE: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer → **marketing-release si Phase 3** |
 | `BUGFIX: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
 | `HOTFIX: X` | Voir processus HOTFIX ci-dessus |
 | `REFACTOR: X` | planner → dev(s) → code-reviewer → qa |
@@ -108,6 +109,7 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 | `QA REQUEST: X` | Assigner tâche à `qa` |
 | `DOC UPDATE REQUEST: X` | Assigner tâche à `doc-updater` |
 | `DEPLOY REQUEST: X` | Assigner tâche à `deployer` (confirmer Phase 3 avec l'utilisateur si prod) |
+| `MARKETING REQUEST: X` | Assigner tâche à `marketing-release` |
 | `PR REQUEST: [PR_NUMBER] [--base <branche>]` | Workflow /pr complet (voir ci-dessous) |
 
 > **Règle infra dans les workflows** : si le plan du `planner` signale des changements d'infrastructure, assigner `infra` **avant** les dev(s). Les devs ne commencent pas tant qu'infra n'a pas livré (nouvelles variables d'env, services K8s disponibles).

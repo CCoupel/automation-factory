@@ -25,7 +25,7 @@ Mettre à jour `.claude/memory/MEMORY.md` avec :
 ### Étape 4 — Shutdown de la team
 Lire la config team (`~/.claude/teams/Team-AF/config.json`) pour connaître les agents actifs.
 Envoyer `shutdown_request` uniquement aux agents présents, dans l'ordre :
-`infra` → `deployer` → `qa` → `doc-updater` → `code-reviewer` → `test-writer` → `dev-frontend` → `dev-backend` → `planner` → `cdp` (en dernier)
+`infra` → `deployer` → `marketing-release` → `qa` → `doc-updater` → `code-reviewer` → `test-writer` → `dev-frontend` → `dev-backend` → `planner` → `cdp` (en dernier)
 
 Attendre les confirmations de shutdown avant TeamDelete.
 
