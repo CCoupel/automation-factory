@@ -74,6 +74,7 @@ Avant d'assigner une tâche à un agent, vérifier qu'il est dans la team. S'il 
 | `qa` | `qa` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/qa.md, et applique ces instructions pour toute la session."` |
 | `doc-updater` | `doc-updater` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/doc-updater.md, et applique ces instructions pour toute la session."` |
 | `deployer` | `deployer` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/deployer.md, et applique ces instructions pour toute la session."` |
+| `marketing-release` | `marketing-release` | `"Lis .claude/agents/TEAMMATES_PROTOCOL.md puis .claude/agents/marketing-release.md, et applique ces instructions pour toute la session."` |
 
 ### Communication
 - **Vers un agent** : `SendMessage` type `"message"`, `recipient` = nom de l'agent
@@ -93,7 +94,7 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 
 | Message reçu | Action CDP |
 |---|---|
-| `FEATURE: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
+| `FEATURE: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer → **marketing-release si Phase 3** |
 | `BUGFIX: X` | planner → **infra si signalé** → dev(s) → test-writer → code-reviewer → qa → doc-updater → deployer |
 | `HOTFIX: X` | Voir processus HOTFIX ci-dessus |
 | `REFACTOR: X` | planner → dev(s) → code-reviewer → qa |
@@ -108,21 +109,32 @@ Quand `code-reviewer` retourne REFUSÉ ou APPROUVÉ AVEC RÉSERVES bloquantes :
 | `QA REQUEST: X` | Assigner tâche à `qa` |
 | `DOC UPDATE REQUEST: X` | Assigner tâche à `doc-updater` |
 | `DEPLOY REQUEST: X` | Assigner tâche à `deployer` (confirmer Phase 3 avec l'utilisateur si prod) |
-| `PR REQUEST: [PR_NUMBER] [--base <branche>]` | Workflow /pr complet (voir ci-dessous) |
+| `MARKETING REQUEST: X` | Assigner tâche à `marketing-release` |
+| `PR REQUEST: <PR_NUMBER> [--base <branche>]` | Workflow /pr complet (voir ci-dessous) — branche cible = `integration` par défaut, sauf `--base` explicite |
 
 > **Règle infra dans les workflows** : si le plan du `planner` signale des changements d'infrastructure, assigner `infra` **avant** les dev(s). Les devs ne commencent pas tant qu'infra n'a pas livré (nouvelles variables d'env, services K8s disponibles).
 
 ### Workflow PR REQUEST
 
 La gestion d'une PR externe est un workflow distinct du cycle Phase 1→2→3.
-`develop` ne reçoit du code que lorsque toute la validation est terminée.
+La branche cible ne reçoit du code que lorsque toute la validation est terminée.
+
+**Résolution de la branche cible :**
+- Par défaut : `integration`
+- Si `--base <branche>` est fourni dans la commande : utiliser `<branche>`
+- **JAMAIS merger dans `main` sans `--base main` explicite**
 
 ```
 PHASE A — PRÉPARATION
+  A0. Résoudre la branche cible : `integration` par défaut, ou valeur de `--base`
   A1. Résolution PR (charger PR ou lister et demander sélection)
-  A2. Créer branche locale : git checkout <base> && git checkout -b contrib/PR<PR_NUMBER>-<nom>
+  A2. Créer branche locale depuis la branche cible :
+      git checkout <cible> && git pull
+      git checkout -b contrib/PR<PR_NUMBER>-<nom>
+      (Si <cible> n'existe pas localement : git checkout -b <cible> origin/<cible> ou depuis main)
   A3. Récupérer le code : git fetch origin pull/<N>/head:pr-<N> && git merge --no-commit --no-ff pr-<N>
-      → CONFLIT → REFUSÉ immédiat, label "needs-work", workflow terminé
+      → CONFLIT trivial → signaler à l'utilisateur, demander autorisation de résoudre
+      → CONFLIT non-trivial → REFUSÉ immédiat, label "needs-work", workflow terminé
 
 PHASE B — VALIDATION TECHNIQUE (sur contrib/xxx)
   B1. Checks parallèles (timeout 10 min chacun) :
@@ -139,18 +151,18 @@ PHASE C — VALIDATION FONCTIONNELLE (sur contrib/xxx)
       → ÉCHEC → notifier utilisateur, attendre décision
   C2. Agent qa : smoke tests + non-régression sur contrib/xxx
       → ÉCHEC → label "needs-work", commentaire PR, branche supprimée, workflow terminé
-  C3. Bilan complet → notifier utilisateur, attendre go
-      "✅ pr-reviewer APPROUVÉ | ✅ Build OK | ✅ QA OK → tape 'go' pour merger"
+  C3. Bilan complet → notifier utilisateur, attendre go EXPLICITE
+      "✅ pr-reviewer APPROUVÉ | ✅ Build OK | ✅ QA OK → tape 'go' pour merger dans <cible>"
 
-PHASE D — MERGE (develop touché uniquement ici)
+PHASE D — MERGE (<cible> touchée uniquement ici)
   D1. Garde-fou : vérifier head_sha_review == head_sha_actuel
       → DIFFÉRENT → bloquer, demander /pr <N> complet
-  D2. git checkout develop && git pull
+  D2. git checkout <cible> && git pull
       git merge --squash contrib/xxx
       git commit -m "feat(<scope>): <titre PR> (#<N>) — contrib @<auteur>"
-      git push origin develop
+      git push origin <cible>
   D3. Nettoyage : supprimer contrib/xxx, fermer PR GitHub, label "merged"
-  D4. Handoff : "PR #<N> mergée dans develop. Cycle CDP Phase 1 démarré."
+  D4. Handoff : "PR #<N> mergée dans <cible>. Cycle CDP Phase 1 démarré."
 ```
 
 **Cas limites** :
