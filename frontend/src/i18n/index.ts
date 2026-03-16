@@ -8,6 +8,7 @@ import playbookEN from '../locales/en/playbook.json'
 import dialogsEN from '../locales/en/dialogs.json'
 import adminEN from '../locales/en/admin.json'
 import errorsEN from '../locales/en/errors.json'
+import projectEN from '../locales/en/project.json'
 
 import commonFR from '../locales/fr/common.json'
 import authFR from '../locales/fr/auth.json'
@@ -15,6 +16,7 @@ import playbookFR from '../locales/fr/playbook.json'
 import dialogsFR from '../locales/fr/dialogs.json'
 import adminFR from '../locales/fr/admin.json'
 import errorsFR from '../locales/fr/errors.json'
+import projectFR from '../locales/fr/project.json'
 
 i18n
   .use(LanguageDetector)
@@ -28,6 +30,7 @@ i18n
         dialogs: dialogsEN,
         admin: adminEN,
         errors: errorsEN,
+        project: projectEN,
       },
       fr: {
         common: commonFR,
@@ -36,11 +39,12 @@ i18n
         dialogs: dialogsFR,
         admin: adminFR,
         errors: errorsFR,
+        project: projectFR,
       },
     },
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'auth', 'playbook', 'dialogs', 'admin', 'errors'],
+    ns: ['common', 'auth', 'playbook', 'dialogs', 'admin', 'errors', 'project'],
     interpolation: {
       escapeValue: false,
     },

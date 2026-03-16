@@ -51,5 +51,8 @@
   "passwordMinLength": "Password must be at least 6 characters",
   "passwordMismatch": "Passwords do not match",
   "wrongCurrentPassword": "Current password is incorrect",
-  "inventory": "Inventory"
+  "inventory": "Inventory",
+  "themeChipLight": "Light",
+  "themeChipDark": "Dark",
+  "themeChipAuto": "Auto"
 }
