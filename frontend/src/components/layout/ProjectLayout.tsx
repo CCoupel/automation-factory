@@ -16,6 +16,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
+import { useResizable } from '../../hooks/useResizable'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
@@ -37,14 +38,12 @@ const ProjectLayout: React.FC = () => {
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(280)
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
-  const [isResizingLeft, setIsResizingLeft] = useState(false)
+  const leftPanel = useResizable({ direction: 'horizontal', initialSize: 280, minSize: 200, maxSize: 500 })
 
   // Bottom panel state
-  const [systemZoneHeight, setSystemZoneHeight] = useState(200)
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(true)
-  const [isResizingSystem, setIsResizingSystem] = useState(false)
+  const systemPanel = useResizable({ direction: 'vertical', initialSize: 200, minSize: 100, maxSize: 600 })
 
   useEffect(() => {
     if (projectId) {
@@ -53,40 +52,6 @@ const ProjectLayout: React.FC = () => {
     }
     return () => { clearCurrentProject() }
   }, [projectId])
-
-  // Resize handlers
-  const handleLeftMouseDown = () => setIsResizingLeft(true)
-  const handleSystemMouseDown = () => setIsResizingSystem(true)
-
-  const handleMouseMove: EventListener = (evt) => {
-    const e = evt as MouseEvent
-    if (isResizingLeft) {
-      const newWidth = e.clientX
-      if (newWidth >= 200 && newWidth <= 500) setLeftPanelWidth(newWidth)
-    } else if (isResizingSystem) {
-      const newHeight = window.innerHeight - e.clientY
-      if (newHeight >= 100 && newHeight <= 600) setSystemZoneHeight(newHeight)
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsResizingLeft(false)
-    setIsResizingSystem(false)
-  }
-
-  React.useEffect(() => {
-    if (isResizingLeft || isResizingSystem) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isResizingLeft, isResizingSystem])
 
   // 404: project not found after loading
   const isNotFound = !isLoading && !currentProject && !!projectId
@@ -127,7 +92,7 @@ const ProjectLayout: React.FC = () => {
         {!isLeftCollapsed && (
           <Box
             sx={{
-              width: `${leftPanelWidth}px`,
+              width: `${leftPanel.size}px`,
               borderRight: '1px solid',
               borderColor: 'divider',
               flexShrink: 0,
@@ -154,13 +119,13 @@ const ProjectLayout: React.FC = () => {
 
             {/* Resize handle */}
             <Box
-              onMouseDown={handleLeftMouseDown}
+              onMouseDown={leftPanel.onMouseDown}
               sx={{
                 position: 'absolute',
                 top: 0, right: 0, bottom: 0,
                 width: '6px',
                 cursor: 'ew-resize',
-                bgcolor: isResizingLeft ? 'primary.main' : 'transparent',
+                bgcolor: leftPanel.isResizing ? 'primary.main' : 'transparent',
                 '&:hover': { bgcolor: 'primary.light' },
                 transition: 'background-color 0.2s',
                 zIndex: 10,
@@ -172,7 +137,7 @@ const ProjectLayout: React.FC = () => {
                 transform: 'translate(-50%, -50%)',
                 width: '3px', height: '40px',
                 borderRadius: '2px',
-                bgcolor: isResizingLeft ? 'white' : '#999',
+                bgcolor: leftPanel.isResizing ? 'white' : '#999',
               }} />
             </Box>
           </Box>
@@ -213,7 +178,7 @@ const ProjectLayout: React.FC = () => {
       {!isSystemCollapsed ? (
         <Box
           sx={{
-            height: `${systemZoneHeight}px`,
+            height: `${systemPanel.size}px`,
             borderTop: '1px solid',
             borderColor: 'divider',
             flexShrink: 0,
@@ -221,13 +186,13 @@ const ProjectLayout: React.FC = () => {
           }}
         >
           <Box
-            onMouseDown={handleSystemMouseDown}
+            onMouseDown={systemPanel.onMouseDown}
             sx={{
               position: 'absolute',
               top: 0, left: 0, right: 0,
               height: '6px',
               cursor: 'ns-resize',
-              bgcolor: isResizingSystem ? 'primary.main' : 'transparent',
+              bgcolor: systemPanel.isResizing ? 'primary.main' : 'transparent',
               '&:hover': { bgcolor: 'primary.light' },
               transition: 'background-color 0.2s',
               zIndex: 10,
@@ -236,7 +201,7 @@ const ProjectLayout: React.FC = () => {
               justifyContent: 'center',
             }}
           >
-            <Box sx={{ width: '40px', height: '3px', borderRadius: '2px', bgcolor: isResizingSystem ? 'white' : '#999' }} />
+            <Box sx={{ width: '40px', height: '3px', borderRadius: '2px', bgcolor: systemPanel.isResizing ? 'white' : '#999' }} />
             <Tooltip title={t('modules')} placement="top">
               <IconButton
                 size="small"

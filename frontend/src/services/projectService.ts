@@ -9,7 +9,7 @@ export interface Project {
   git_url: string | null
   git_branch: string | null
   git_credentials_id: string | null
-  settings: Record<string, any> | null
+  settings: Record<string, unknown> | null
   created_at: string
   updated_at: string
   owner_username: string | null
@@ -22,10 +22,10 @@ export interface ProjectArtifact {
   project_id: string
   artifact_type: string
   path: string
-  content: any
+  content: Record<string, unknown> | null
   raw_content: string | null
   version: number
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }
@@ -40,7 +40,7 @@ export interface ProjectUpdate {
   description?: string
   git_url?: string | null
   git_branch?: string | null
-  settings?: Record<string, any> | null
+  settings?: Record<string, unknown> | null
 }
 
 export const projectService = {

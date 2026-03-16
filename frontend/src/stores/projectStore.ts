@@ -29,8 +29,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
     try {
       const projects = await projectService.listProjects()
       set({ projects, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error), isLoading: false })
     }
   },
 
@@ -39,8 +39,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
     try {
       const project = await projectService.getProject(id)
       set({ currentProject: project, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error), isLoading: false })
     }
   },
 
@@ -48,8 +48,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
     try {
       const artifacts = await projectService.listArtifacts(projectId)
       set({ artifacts })
-    } catch (error: any) {
-      set({ error: error.message })
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
     }
   },
 
@@ -62,8 +62,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
         isLoading: false,
       }))
       return project
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error), isLoading: false })
       throw error
     }
   },
@@ -76,8 +76,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
         projects: state.projects.filter(p => p.id !== id),
         isLoading: false,
       }))
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error), isLoading: false })
       throw error
     }
   },
