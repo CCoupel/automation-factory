@@ -48,7 +48,7 @@ export const projectService = {
     try {
       const client = getHttpClient()
       const response = await client.get('/projects')
-      return response.data
+      return response.data.projects
     } catch (error: unknown) {
       console.error('List projects API error:', error)
       if (axios.isAxiosError(error) && error.response?.data?.detail) {
@@ -117,7 +117,7 @@ export const projectService = {
     try {
       const client = getHttpClient()
       const response = await client.get(`/projects/${projectId}/artifacts`)
-      return response.data
+      return response.data.artifacts
     } catch (error: unknown) {
       console.error('List artifacts API error:', error)
       if (axios.isAxiosError(error) && error.response?.data?.detail) {
