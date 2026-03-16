@@ -54,5 +54,6 @@
   "inventory": "Inventory",
   "themeChipLight": "Light",
   "themeChipDark": "Dark",
-  "themeChipAuto": "Auto"
+  "themeChipAuto": "Auto",
+  "backToHome": "Back to home"
 }

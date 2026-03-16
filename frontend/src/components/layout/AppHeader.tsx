@@ -45,7 +45,7 @@ import ErrorIcon from '@mui/icons-material/Error'
 import ArticleIcon from '@mui/icons-material/Article'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import ShareIcon from '@mui/icons-material/Share'
-import HomeIcon from '@mui/icons-material/Home'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useTranslation } from 'react-i18next'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
@@ -288,14 +288,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </Box>
         </Tooltip>
 
-        {/* Home button */}
-        <Tooltip title={t('back', { defaultValue: 'Home' })} placement="bottom">
+        {/* Back to home button */}
+        <Tooltip title={t('backToHome')} placement="bottom">
           <IconButton
             onClick={() => navigate('/')}
             size="small"
             sx={{ color: 'white', mr: 'var(--spacing-xs, 4px)' }}
           >
-            <HomeIcon fontSize="small" />
+            <ArrowBackIcon fontSize="small" />
           </IconButton>
         </Tooltip>
 
