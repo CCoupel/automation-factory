@@ -30,6 +30,8 @@
   "redirectingHome": "Redirecting to home page...",
   "noArtifacts": "No artifacts in this project yet.",
   "noArtifactsHint": "Artifacts will appear here as you add playbooks, roles, inventories and other files to your project.",
+  "openArtifact": "Open",
+  "deleteArtifact": "Delete",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Roles",

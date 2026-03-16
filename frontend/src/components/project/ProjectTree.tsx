@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import {
   Box,
   List,
@@ -10,9 +10,13 @@ import {
   Chip,
   Snackbar,
   Alert,
+  Menu,
+  MenuItem,
 } from '@mui/material'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import DeleteIcon from '@mui/icons-material/Delete'
 import DescriptionIcon from '@mui/icons-material/Description'
 import BuildIcon from '@mui/icons-material/Build'
 import StorageIcon from '@mui/icons-material/Storage'
@@ -26,7 +30,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
 import { ProjectArtifact } from '../../services/projectService'
-import { playbookService } from '../../services/playbookService'
+import { playbookService, Playbook } from '../../services/playbookService'
 
 const ARTIFACT_TYPE_CONFIG: Record<string, { icon: React.ReactElement; order: number }> = {
   playbook: { icon: <DescriptionIcon fontSize="small" />, order: 0 },
@@ -47,9 +51,23 @@ const ProjectTree: React.FC = () => {
   const currentProject = useProjectStore(s => s.currentProject)
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['playbook']))
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'info' | 'warning' }>({
     open: false, message: '', severity: 'info',
   })
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number; artifact: ProjectArtifact } | null>(null)
+
+  // Cached playbooks to avoid repeated API calls
+  const playbooksCacheRef = useRef<Playbook[] | null>(null)
+
+  const getPlaybooks = useCallback(async (): Promise<Playbook[]> => {
+    if (playbooksCacheRef.current) return playbooksCacheRef.current
+    const playbooks = await playbookService.listPlaybooks()
+    playbooksCacheRef.current = playbooks
+    return playbooks
+  }, [])
 
   // Group artifacts by type
   const grouped = artifacts.reduce<Record<string, ProjectArtifact[]>>((acc, artifact) => {
@@ -75,13 +93,10 @@ const ProjectTree: React.FC = () => {
     })
   }
 
-  const handleArtifactDoubleClick = async (artifact: ProjectArtifact) => {
+  const handleOpenArtifact = async (artifact: ProjectArtifact) => {
     if (artifact.artifact_type === 'playbook') {
-      // Try to find matching playbook by searching user's playbooks
       try {
-        const playbooks = await playbookService.listPlaybooks()
-        // Find playbook linked to this project artifact
-        // The artifact content may contain a playbook_id reference, or match by name
+        const playbooks = await getPlaybooks()
         const matchingPlaybook = playbooks.find(p =>
           p.id === artifact.content?.playbook_id ||
           (currentProject && p.name === artifact.path)
@@ -109,6 +124,36 @@ const ProjectTree: React.FC = () => {
         severity: 'info',
       })
     }
+  }
+
+  const handleArtifactClick = (artifact: ProjectArtifact) => {
+    setSelectedArtifactId(artifact.id)
+  }
+
+  const handleArtifactDoubleClick = (artifact: ProjectArtifact) => {
+    handleOpenArtifact(artifact)
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, artifact: ProjectArtifact) => {
+    e.preventDefault()
+    setSelectedArtifactId(artifact.id)
+    setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, artifact })
+  }
+
+  const handleContextMenuClose = () => {
+    setContextMenu(null)
+  }
+
+  const handleContextOpen = () => {
+    if (contextMenu) {
+      handleOpenArtifact(contextMenu.artifact)
+    }
+    handleContextMenuClose()
+  }
+
+  const handleContextDelete = () => {
+    // TODO: implement artifact deletion via API when available
+    handleContextMenuClose()
   }
 
   const getTypeIcon = (type: string) => {
@@ -162,8 +207,11 @@ const ProjectTree: React.FC = () => {
                   {items.map(artifact => (
                     <ListItemButton
                       key={artifact.id}
+                      selected={selectedArtifactId === artifact.id}
                       sx={{ pl: 4, py: 0.25 }}
+                      onClick={() => handleArtifactClick(artifact)}
                       onDoubleClick={() => handleArtifactDoubleClick(artifact)}
+                      onContextMenu={(e) => handleContextMenu(e, artifact)}
                     >
                       <ListItemText
                         primary={
@@ -180,6 +228,27 @@ const ProjectTree: React.FC = () => {
           )
         })}
       </List>
+
+      {/* Context menu */}
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleContextMenuClose}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        <MenuItem onClick={handleContextOpen}>
+          <ListItemIcon><OpenInNewIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>{t('openArtifact')}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleContextDelete}>
+          <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>{t('deleteArtifact')}</ListItemText>
+        </MenuItem>
+      </Menu>
 
       <Snackbar
         open={snackbar.open}
