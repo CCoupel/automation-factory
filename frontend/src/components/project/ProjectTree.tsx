@@ -121,9 +121,12 @@ const ProjectTree: React.FC = () => {
 
   if (artifacts.length === 0) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-          {t('selectArtifact')}
+          {t('noArtifacts')}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+          {t('noArtifactsHint')}
         </Typography>
       </Box>
     )

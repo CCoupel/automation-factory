@@ -7,11 +7,13 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
 import ProjectHeader from '../project/ProjectHeader'
@@ -21,14 +23,17 @@ import SystemZone from '../zones/SystemZone'
 
 const ProjectLayout: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
   const { t } = useTranslation('project')
   const { t: tc } = useTranslation('common')
 
   const currentProject = useProjectStore(s => s.currentProject)
   const isLoading = useProjectStore(s => s.isLoading)
+  const error = useProjectStore(s => s.error)
   const fetchProject = useProjectStore(s => s.fetchProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
+  const clearError = useProjectStore(s => s.clearError)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -83,10 +88,30 @@ const ProjectLayout: React.FC = () => {
     }
   }, [isResizingLeft, isResizingSystem])
 
+  // 404: project not found after loading
+  const isNotFound = !isLoading && !currentProject && !!projectId
+
+  useEffect(() => {
+    if (isNotFound) {
+      const timer = setTimeout(() => navigate('/'), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [isNotFound, navigate])
+
   if (isLoading && !currentProject) {
     return (
       <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (isNotFound) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+        <Typography variant="h6">{t('projectNotFound')}</Typography>
+        <Typography variant="body2" color="text.secondary">{t('projectNotFoundDesc')}</Typography>
+        <Typography variant="caption" color="text.secondary">{t('redirectingHome')}</Typography>
       </Box>
     )
   }
@@ -251,6 +276,18 @@ const ProjectLayout: React.FC = () => {
           </Tooltip>
         </Box>
       )}
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={clearError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={clearError}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

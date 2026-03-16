@@ -25,6 +25,11 @@
   "failedLoadPlaybooks": "Failed to load playbooks.",
   "untitledPlaybook": "Untitled Playbook",
   "defaultPlayName": "Play 1",
+  "projectNotFound": "Project not found.",
+  "projectNotFoundDesc": "This project does not exist or you do not have access to it.",
+  "redirectingHome": "Redirecting to home page...",
+  "noArtifacts": "No artifacts in this project yet.",
+  "noArtifactsHint": "Artifacts will appear here as you add playbooks, roles, inventories and other files to your project.",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Roles",

@@ -25,6 +25,11 @@
   "failedLoadPlaybooks": "Échec du chargement des playbooks.",
   "untitledPlaybook": "Playbook sans titre",
   "defaultPlayName": "Play 1",
+  "projectNotFound": "Projet introuvable.",
+  "projectNotFoundDesc": "Ce projet n'existe pas ou vous n'y avez pas accès.",
+  "redirectingHome": "Redirection vers la page d'accueil...",
+  "noArtifacts": "Aucun artefact dans ce projet.",
+  "noArtifactsHint": "Les artefacts apparaîtront ici lorsque vous ajouterez des playbooks, rôles, inventaires et autres fichiers à votre projet.",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Rôles",
