@@ -1,10 +1,11 @@
 import { create } from 'zustand'
-import { projectService, Project, ProjectArtifact, ProjectCreate } from '../services/projectService'
+import { projectService, Project, ProjectArtifact, ProjectCreate, ProjectArtifactCreate, ProjectArtifactUpdate } from '../services/projectService'
 
 interface ProjectState {
   projects: Project[]
   currentProject: Project | null
   artifacts: ProjectArtifact[]
+  selectedArtifactId: string | null
   isLoading: boolean
   error: string | null
 
@@ -13,6 +14,10 @@ interface ProjectState {
   fetchArtifacts: (projectId: string) => Promise<void>
   createProject: (data: ProjectCreate) => Promise<Project>
   deleteProject: (id: string) => Promise<void>
+  createArtifact: (projectId: string, data: ProjectArtifactCreate) => Promise<ProjectArtifact>
+  updateArtifact: (projectId: string, artifactId: string, data: ProjectArtifactUpdate) => Promise<ProjectArtifact>
+  deleteArtifact: (projectId: string, artifactId: string) => Promise<void>
+  setSelectedArtifact: (id: string | null) => void
   clearCurrentProject: () => void
   clearError: () => void
 }
@@ -21,6 +26,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
   currentProject: null,
   artifacts: [],
+  selectedArtifactId: null,
   isLoading: false,
   error: null,
 
@@ -83,6 +89,50 @@ export const useProjectStore = create<ProjectState>((set) => ({
     }
   },
 
-  clearCurrentProject: () => set({ currentProject: null, artifacts: [] }),
+  createArtifact: async (projectId: string, data: ProjectArtifactCreate) => {
+    set({ error: null })
+    try {
+      const artifact = await projectService.createArtifact(projectId, data)
+      set(state => ({
+        artifacts: [...state.artifacts, artifact],
+      }))
+      return artifact
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  },
+
+  updateArtifact: async (projectId: string, artifactId: string, data: ProjectArtifactUpdate) => {
+    set({ error: null })
+    try {
+      const artifact = await projectService.updateArtifact(projectId, artifactId, data)
+      set(state => ({
+        artifacts: state.artifacts.map(a => a.id === artifactId ? artifact : a),
+      }))
+      return artifact
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  },
+
+  deleteArtifact: async (projectId: string, artifactId: string) => {
+    set({ error: null })
+    try {
+      await projectService.deleteArtifact(projectId, artifactId)
+      set(state => ({
+        artifacts: state.artifacts.filter(a => a.id !== artifactId),
+        selectedArtifactId: state.selectedArtifactId === artifactId ? null : state.selectedArtifactId,
+      }))
+    } catch (error: unknown) {
+      set({ error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+  },
+
+  setSelectedArtifact: (id: string | null) => set({ selectedArtifactId: id }),
+
+  clearCurrentProject: () => set({ currentProject: null, artifacts: [], selectedArtifactId: null }),
   clearError: () => set({ error: null }),
 }))
