@@ -273,21 +273,19 @@ const MainLayout = () => {
             }}
           >
             {/* Tabs header */}
-            {linkedProjectId && (
-              <Tabs
-                value={leftTab}
-                onChange={(_e, v) => setLeftTab(v)}
-                variant="fullWidth"
-                sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8rem' } }}
-              >
-                <Tab label={t('projectTree')} />
-                <Tab label={t('modules')} />
-              </Tabs>
-            )}
+            <Tabs
+              value={leftTab}
+              onChange={(_e, v) => setLeftTab(v)}
+              variant="fullWidth"
+              sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8rem' } }}
+            >
+              <Tab label={t('projectTree')} />
+              <Tab label={t('modules')} />
+            </Tabs>
 
             {/* Tab content */}
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {linkedProjectId && leftTab === 0 ? (
+              {leftTab === 0 ? (
                 <ProjectTree />
               ) : (
                 <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
