@@ -49,7 +49,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
       const artifacts = await projectService.listArtifacts(projectId)
       set({ artifacts })
     } catch (error: unknown) {
-      set({ error: error instanceof Error ? error.message : String(error) })
+      // Only set error if no prior error exists (avoid overwriting fetchProject errors)
+      set(state => state.error ? {} : { error: error instanceof Error ? error.message : String(error) })
     }
   },
 

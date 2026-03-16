@@ -144,11 +144,14 @@ const ProjectTree: React.FC = () => {
     setContextMenu(null)
   }
 
-  const handleContextOpen = () => {
+  const handleContextOpen = async () => {
     if (contextMenu) {
-      handleOpenArtifact(contextMenu.artifact)
+      const artifact = contextMenu.artifact
+      handleContextMenuClose()
+      await handleOpenArtifact(artifact)
+    } else {
+      handleContextMenuClose()
     }
-    handleContextMenuClose()
   }
 
   const handleContextDelete = () => {
