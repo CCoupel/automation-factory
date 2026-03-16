@@ -53,8 +53,8 @@ const ProjectLayout: React.FC = () => {
     return () => { clearCurrentProject() }
   }, [projectId])
 
-  // 404: project not found after loading
-  const isNotFound = !isLoading && !currentProject && !!projectId
+  // 404: project not found after a fetch was attempted (error set) or fetch succeeded with no result
+  const isNotFound = !isLoading && !currentProject && !!error && !!projectId
 
   useEffect(() => {
     if (isNotFound) {
@@ -63,7 +63,8 @@ const ProjectLayout: React.FC = () => {
     }
   }, [isNotFound, navigate])
 
-  if (isLoading && !currentProject) {
+  // Show loading spinner: during fetch OR before first fetch result (initial state)
+  if (isLoading || (!currentProject && !error)) {
     return (
       <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress />
