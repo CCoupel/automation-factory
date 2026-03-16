@@ -15,7 +15,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../../contexts/AuthContext'
 import { useProjectStore } from '../../stores/projectStore'
 import { useResizable } from '../../hooks/useResizable'
 import ProjectHeader from '../project/ProjectHeader'
@@ -29,7 +28,6 @@ const ProjectLayout: React.FC = () => {
   const { t } = useTranslation('project')
   const { t: tc } = useTranslation('common')
 
-  const { isLoading: authLoading } = useAuth()
   const currentProject = useProjectStore(s => s.currentProject)
   const isLoading = useProjectStore(s => s.isLoading)
   const error = useProjectStore(s => s.error)
@@ -37,6 +35,9 @@ const ProjectLayout: React.FC = () => {
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
   const clearError = useProjectStore(s => s.clearError)
+
+  // Track whether initial fetch has been attempted (survives strict mode double-mount)
+  const [hasFetched, setHasFetched] = useState(false)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -47,15 +48,18 @@ const ProjectLayout: React.FC = () => {
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(true)
   const systemPanel = useResizable({ direction: 'vertical', initialSize: 200, minSize: 100, maxSize: 600 })
 
-  // Wait for auth to be ready, then fetch project first, then artifacts
+  // Fetch project then artifacts (auth is guaranteed ready by PrivateRoute)
   useEffect(() => {
-    if (!projectId || authLoading) return
+    if (!projectId) return
 
     let cancelled = false
     const load = async () => {
       await fetchProject(projectId)
       if (!cancelled) {
         await fetchArtifacts(projectId)
+      }
+      if (!cancelled) {
+        setHasFetched(true)
       }
     }
     load()
@@ -64,10 +68,10 @@ const ProjectLayout: React.FC = () => {
       cancelled = true
       clearCurrentProject()
     }
-  }, [projectId, authLoading])
+  }, [projectId])
 
-  // 404: project not found after a fetch was attempted (error set) or fetch succeeded with no result
-  const isNotFound = !isLoading && !currentProject && !!error && !!projectId
+  // 404: project not found after fetch completed
+  const isNotFound = hasFetched && !isLoading && !currentProject
 
   useEffect(() => {
     if (isNotFound) {
@@ -76,8 +80,8 @@ const ProjectLayout: React.FC = () => {
     }
   }, [isNotFound, navigate])
 
-  // Show loading spinner: during auth init, fetch, or before first fetch result
-  if (authLoading || isLoading || (!currentProject && !error)) {
+  // Show loading spinner while fetching
+  if (!hasFetched || isLoading) {
     return (
       <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress />

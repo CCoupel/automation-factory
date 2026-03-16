@@ -6,11 +6,13 @@ import AccountsManagementPage from './pages/AccountsManagementPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import PrivateRoute from './components/auth/PrivateRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function App() {
   return (
     <>
       <CssBaseline />
+      <ErrorBoundary>
       <Routes>
         {/* Login page - public */}
         <Route path="/login" element={<LoginPage />} />
@@ -49,6 +51,7 @@ function App() {
         {/* Redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ErrorBoundary>
     </>
   )
 }
