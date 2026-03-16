@@ -43,6 +43,22 @@ export interface ProjectUpdate {
   settings?: Record<string, unknown> | null
 }
 
+export interface ProjectArtifactCreate {
+  artifact_type: string
+  path: string
+  content?: Record<string, unknown> | null
+  raw_content?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface ProjectArtifactUpdate {
+  artifact_type?: string
+  path?: string
+  content?: Record<string, unknown> | null
+  raw_content?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
 export const projectService = {
   async listProjects(): Promise<Project[]> {
     try {
@@ -124,6 +140,61 @@ export const projectService = {
         throw new Error(error.response.data.detail)
       }
       throw new Error('Failed to list artifacts')
+    }
+  },
+
+  async getArtifact(projectId: string, artifactId: string): Promise<ProjectArtifact> {
+    try {
+      const client = getHttpClient()
+      const response = await client.get(`/projects/${projectId}/artifacts/${artifactId}`)
+      return response.data
+    } catch (error: unknown) {
+      console.error('Get artifact API error:', error)
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to get artifact')
+    }
+  },
+
+  async createArtifact(projectId: string, data: ProjectArtifactCreate): Promise<ProjectArtifact> {
+    try {
+      const client = getHttpClient()
+      const response = await client.post(`/projects/${projectId}/artifacts`, data)
+      return response.data
+    } catch (error: unknown) {
+      console.error('Create artifact API error:', error)
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to create artifact')
+    }
+  },
+
+  async updateArtifact(projectId: string, artifactId: string, data: ProjectArtifactUpdate): Promise<ProjectArtifact> {
+    try {
+      const client = getHttpClient()
+      const response = await client.put(`/projects/${projectId}/artifacts/${artifactId}`, data)
+      return response.data
+    } catch (error: unknown) {
+      console.error('Update artifact API error:', error)
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to update artifact')
+    }
+  },
+
+  async deleteArtifact(projectId: string, artifactId: string): Promise<void> {
+    try {
+      const client = getHttpClient()
+      await client.delete(`/projects/${projectId}/artifacts/${artifactId}`)
+    } catch (error: unknown) {
+      console.error('Delete artifact API error:', error)
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to delete artifact')
     }
   },
 }
