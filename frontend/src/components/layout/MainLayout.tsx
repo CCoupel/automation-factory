@@ -1,16 +1,20 @@
-import { Box, IconButton, Tooltip } from '@mui/material'
+import { Box, IconButton, Tooltip, Tabs, Tab, Typography } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import React, { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { useCollaborationSync } from '../../hooks/useCollaborationSync'
 import { usePlaybookPersistence } from '../../hooks/usePlaybookPersistence'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
+import { useProjectStore } from '../../stores/projectStore'
+import { projectService } from '../../services/projectService'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
+import ProjectTree from '../project/ProjectTree'
 import WorkZone, { CollaborationCallbacks } from '../zones/WorkZone'
 import ConfigZone from '../zones/ConfigZone'
 import SystemZone from '../zones/SystemZone'
@@ -18,6 +22,7 @@ import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 
 const MainLayout = () => {
   const { playbookId: routePlaybookId } = useParams<{ playbookId: string }>()
+  const { t } = useTranslation('project')
 
   // Local UI state (zone widths, collapse states, resize flags)
   const [systemZoneHeight, setSystemZoneHeight] = useState(200)
@@ -30,11 +35,19 @@ const MainLayout = () => {
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
+  const [leftTab, setLeftTab] = useState(0)
+  const [linkedProjectId, setLinkedProjectId] = useState<string | null>(null)
+  const [projectLookupDone, setProjectLookupDone] = useState(false)
 
   // Store state
   const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
   const activeSectionTab = usePlaybookEditorStore(s => s.activeSectionTab)
   const applyCollaborationUpdate = usePlaybookEditorStore(s => s.applyCollaborationUpdate)
+
+  // Project store (for ProjectTree tab)
+  const fetchProject = useProjectStore(s => s.fetchProject)
+  const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
+  const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
 
   // Persistence hook (handles save/load/cache/auto-save)
   const { loadPlaybook } = usePlaybookPersistence()
@@ -86,6 +99,51 @@ const MainLayout = () => {
   useEffect(() => {
     if (routePlaybookId && routePlaybookId !== currentPlaybookId) {
       loadPlaybookRef.current(routePlaybookId)
+    }
+  }, [routePlaybookId])
+
+  // Lookup which project this playbook belongs to
+  useEffect(() => {
+    if (!routePlaybookId) {
+      setLinkedProjectId(null)
+      setProjectLookupDone(true)
+      return
+    }
+
+    let cancelled = false
+    const lookup = async () => {
+      setProjectLookupDone(false)
+      try {
+        const projects = await projectService.listProjects()
+        for (const project of projects) {
+          const artifacts = await projectService.listArtifacts(project.id)
+          const match = artifacts.find(a =>
+            a.artifact_type === 'playbook' && a.content?.playbook_id === routePlaybookId
+          )
+          if (match && !cancelled) {
+            setLinkedProjectId(project.id)
+            await fetchProject(project.id)
+            if (!cancelled) await fetchArtifacts(project.id)
+            setProjectLookupDone(true)
+            return
+          }
+        }
+        if (!cancelled) {
+          setLinkedProjectId(null)
+          setProjectLookupDone(true)
+        }
+      } catch {
+        if (!cancelled) {
+          setLinkedProjectId(null)
+          setProjectLookupDone(true)
+        }
+      }
+    }
+    lookup()
+
+    return () => {
+      cancelled = true
+      clearCurrentProject()
     }
   }, [routePlaybookId])
 
@@ -201,18 +259,41 @@ const MainLayout = () => {
           minHeight: 0,
         }}
       >
-        {/* Zone Modules - Gauche redimensionnable */}
+        {/* Zone Gauche - Tabs (Project + Modules) redimensionnable */}
         {!isModulesCollapsed && (
           <Box
             sx={{
               width: `${modulesZoneWidth}px`,
               borderRight: '1px solid #ddd',
               flexShrink: 0,
-              overflow: 'auto',
+              overflow: 'hidden',
               position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
+            {/* Tabs header */}
+            {linkedProjectId && (
+              <Tabs
+                value={leftTab}
+                onChange={(_e, v) => setLeftTab(v)}
+                variant="fullWidth"
+                sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8rem' } }}
+              >
+                <Tab label={t('projectTree')} />
+                <Tab label={t('modules')} />
+              </Tabs>
+            )}
+
+            {/* Tab content */}
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {linkedProjectId && leftTab === 0 ? (
+                <ProjectTree />
+              ) : (
+                <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
+              )}
+            </Box>
+
             {/* Poignée de redimensionnement */}
             <Box
               onMouseDown={handleModulesMouseDown}
