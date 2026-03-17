@@ -17,10 +17,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
 import { useResizable } from '../../hooks/useResizable'
+import { useCollaboration } from '../../contexts/CollaborationContext'
+import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 import { playbookService } from '../../services/playbookService'
-import ProjectHeader from '../project/ProjectHeader'
+import AppHeader from './AppHeader'
 import ProjectTree from '../project/ProjectTree'
 import PlaybookEditor from '../editor/PlaybookEditor'
+import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 
@@ -41,8 +44,14 @@ const ProjectLayout: React.FC = () => {
   const clearError = useProjectStore(s => s.clearError)
   const updateArtifact = useProjectStore(s => s.updateArtifact)
 
+  const setSelectedArtifact = useProjectStore(s => s.setSelectedArtifact)
+  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
+
+  const { connectedUsers, isConnected } = useCollaboration()
+
   const [hasFetched, setHasFetched] = useState(false)
   const [isCreatingPlaybook, setIsCreatingPlaybook] = useState(false)
+  const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -153,7 +162,11 @@ const ProjectLayout: React.FC = () => {
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <ProjectHeader projectName={currentProject?.name || '...'} />
+      <AppHeader
+        connectedUsers={connectedUsers}
+        isCollaborationConnected={isConnected}
+        onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
+      />
 
       {/* Main content area */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
@@ -321,6 +334,18 @@ const ProjectLayout: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* Playbook Manager Dialog */}
+      <PlaybookManagerDialog
+        open={playbookManagerOpen}
+        onClose={() => setPlaybookManagerOpen(false)}
+        onSelectPlaybook={(playbookId) => {
+          const artifact = artifacts.find(a => a.content?.playbook_id === playbookId)
+          if (artifact) setSelectedArtifact(artifact.id)
+          setPlaybookManagerOpen(false)
+        }}
+        currentPlaybookId={currentPlaybookId}
+      />
 
       {/* Error Snackbar */}
       <Snackbar
