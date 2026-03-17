@@ -19,6 +19,7 @@
   "timeHoursAgo": "il y a {{count}}h",
   "timeDaysAgo": "il y a {{count}}j",
   "noLinkedPlaybook": "Aucun playbook lié trouvé pour cet artefact.",
+  "createAndOpenPlaybook": "Créer et ouvrir le playbook",
   "failedLoadPlaybooks": "Échec du chargement des playbooks.",
   "untitledPlaybook": "Playbook sans titre",
   "defaultPlayName": "Play 1",

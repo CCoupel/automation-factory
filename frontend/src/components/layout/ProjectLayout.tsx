@@ -9,6 +9,7 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  Button,
 } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -17,6 +18,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
 import { useResizable } from '../../hooks/useResizable'
+import { playbookService } from '../../services/playbookService'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
 import PlaybookEditor from '../editor/PlaybookEditor'
@@ -38,20 +40,21 @@ const ProjectLayout: React.FC = () => {
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
   const clearError = useProjectStore(s => s.clearError)
+  const updateArtifact = useProjectStore(s => s.updateArtifact)
 
-  // Track whether initial fetch has been attempted (survives strict mode double-mount)
   const [hasFetched, setHasFetched] = useState(false)
+  const [isCreatingPlaybook, setIsCreatingPlaybook] = useState(false)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const leftPanel = useResizable({ direction: 'horizontal', initialSize: 280, minSize: 200, maxSize: 500 })
 
-  // Bottom panel state
+  // Bottom panel state (only used when PlaybookEditor is NOT shown)
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(true)
   const systemPanel = useResizable({ direction: 'vertical', initialSize: 200, minSize: 100, maxSize: 600 })
 
-  // Fetch project then artifacts (auth is guaranteed ready by PrivateRoute)
+  // Fetch project then artifacts
   useEffect(() => {
     if (!projectId) return
 
@@ -82,6 +85,41 @@ const ProjectLayout: React.FC = () => {
       return () => clearTimeout(timer)
     }
   }, [isNotFound, navigate])
+
+  // Resolve selected artifact
+  const selectedArtifact = selectedArtifactId
+    ? artifacts.find(a => a.id === selectedArtifactId) ?? null
+    : null
+
+  const linkedPlaybookId = selectedArtifact?.artifact_type === 'playbook'
+    ? (selectedArtifact.content?.playbook_id as string | undefined) ?? null
+    : null
+
+  // PlaybookEditor is shown when a playbook artifact with a linked playbook_id is selected
+  const isPlaybookEditorShown = !!linkedPlaybookId
+
+  // Create a new playbook and link it to the selected artifact
+  const handleCreateAndLink = async () => {
+    if (!projectId || !selectedArtifact) return
+    setIsCreatingPlaybook(true)
+    try {
+      const newPlaybook = await playbookService.createPlaybook({
+        name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
+        content: {
+          modules: [], links: [], plays: [],
+          collapsedBlocks: [], collapsedBlockSections: [],
+          metadata: {}, variables: [],
+        },
+      })
+      await updateArtifact(projectId, selectedArtifact.id, {
+        content: { playbook_id: newPlaybook.id },
+      })
+    } catch {
+      // error shown via store snackbar
+    } finally {
+      setIsCreatingPlaybook(false)
+    }
+  }
 
   // Show loading spinner while fetching
   if (!hasFetched || isLoading) {
@@ -181,105 +219,109 @@ const ProjectLayout: React.FC = () => {
             </Tooltip>
           )}
 
-          {(() => {
-            const selectedArtifact = selectedArtifactId
-              ? artifacts.find(a => a.id === selectedArtifactId)
-              : null
-
-            if (selectedArtifact?.artifact_type === 'playbook' && selectedArtifact.content?.playbook_id) {
-              return (
-                <PlaybookEditor playbookId={selectedArtifact.content.playbook_id as string} />
-              )
-            }
-
-            if (selectedArtifact) {
-              return (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+          {/* PlaybookEditor fills the entire center when shown (handles its own SystemZone) */}
+          {isPlaybookEditorShown ? (
+            <PlaybookEditor playbookId={linkedPlaybookId!} />
+          ) : (
+            <>
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+                {!selectedArtifact && (
+                  <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    {t('selectArtifact')}
+                  </Typography>
+                )}
+                {selectedArtifact?.artifact_type === 'playbook' && !linkedPlaybookId && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                      {t('noLinkedPlaybook')}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      onClick={handleCreateAndLink}
+                      disabled={isCreatingPlaybook}
+                    >
+                      {isCreatingPlaybook ? tc('loading') : t('createAndOpenPlaybook')}
+                    </Button>
+                  </Box>
+                )}
+                {selectedArtifact && selectedArtifact.artifact_type !== 'playbook' && (
                   <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
                     {t('comingSoon')}
                   </Typography>
-                </Box>
-              )
-            }
-
-            return (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
-                <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-                  {t('selectArtifact')}
-                </Typography>
+                )}
               </Box>
-            )
-          })()}
+
+              {/* System zone only shown when no PlaybookEditor */}
+              {!isSystemCollapsed ? (
+                <Box
+                  sx={{
+                    height: `${systemPanel.size}px`,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    flexShrink: 0,
+                    position: 'relative',
+                  }}
+                >
+                  <Box
+                    onMouseDown={systemPanel.onMouseDown}
+                    sx={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0,
+                      height: '6px',
+                      cursor: 'ns-resize',
+                      bgcolor: systemPanel.isResizing ? 'primary.main' : 'transparent',
+                      '&:hover': { bgcolor: 'primary.light' },
+                      transition: 'background-color 0.2s',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Box sx={{ width: '40px', height: '3px', borderRadius: '2px', bgcolor: systemPanel.isResizing ? 'white' : '#999' }} />
+                    <Tooltip title={t('modules')} placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={() => setIsSystemCollapsed(true)}
+                        sx={{
+                          position: 'absolute', right: 8,
+                          bgcolor: 'background.paper', boxShadow: 1,
+                          '&:hover': { bgcolor: 'primary.light' },
+                        }}
+                      >
+                        <ExpandMoreIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <SystemZone />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    height: '30px',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                  onClick={() => setIsSystemCollapsed(false)}
+                >
+                  <Tooltip title={tc('showSystemZone')} placement="top">
+                    <IconButton size="small">
+                      <ExpandLessIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
+            </>
+          )}
         </Box>
       </Box>
-
-      {/* System zone (bottom) */}
-      {!isSystemCollapsed ? (
-        <Box
-          sx={{
-            height: `${systemPanel.size}px`,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            flexShrink: 0,
-            position: 'relative',
-          }}
-        >
-          <Box
-            onMouseDown={systemPanel.onMouseDown}
-            sx={{
-              position: 'absolute',
-              top: 0, left: 0, right: 0,
-              height: '6px',
-              cursor: 'ns-resize',
-              bgcolor: systemPanel.isResizing ? 'primary.main' : 'transparent',
-              '&:hover': { bgcolor: 'primary.light' },
-              transition: 'background-color 0.2s',
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Box sx={{ width: '40px', height: '3px', borderRadius: '2px', bgcolor: systemPanel.isResizing ? 'white' : '#999' }} />
-            <Tooltip title={t('modules')} placement="top">
-              <IconButton
-                size="small"
-                onClick={() => setIsSystemCollapsed(true)}
-                sx={{
-                  position: 'absolute', right: 8,
-                  bgcolor: 'background.paper', boxShadow: 1,
-                  '&:hover': { bgcolor: 'primary.light' },
-                }}
-              >
-                <ExpandMoreIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <SystemZone />
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            height: '30px',
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'background.paper',
-            cursor: 'pointer',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-          onClick={() => setIsSystemCollapsed(false)}
-        >
-          <Tooltip title={tc('showSystemZone')} placement="top">
-            <IconButton size="small">
-              <ExpandLessIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
 
       {/* Error Snackbar */}
       <Snackbar
