@@ -178,8 +178,14 @@ export const usePlaybookPersistence = () => {
         })
       }
 
+      // If the playbook has no plays yet, reset the store first so the editor
+      // starts from a clean default state (avoids inheriting previous plays)
+      if (restoredPlays.length === 0) {
+        store.getState().resetStore()
+      }
+
       store.getState().loadPlaybookState({
-        plays: restoredPlays,
+        plays: restoredPlays.length > 0 ? restoredPlays : store.getState().plays,
         currentPlaybookId: detailed.id,
         playbookName: detailed.name,
         collapsedBlocks: content.collapsedBlocks,
