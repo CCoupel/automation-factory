@@ -179,7 +179,7 @@ export const usePlaybookPersistence = () => {
       }
 
       store.getState().loadPlaybookState({
-        plays: restoredPlays.length > 0 ? restoredPlays : store.getState().plays,
+        plays: restoredPlays,
         currentPlaybookId: detailed.id,
         playbookName: detailed.name,
         collapsedBlocks: content.collapsedBlocks,
