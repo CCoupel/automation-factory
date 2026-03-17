@@ -29,7 +29,7 @@ const ensureStartModules = (playId: string, modules: any[]): any[] => {
   return [...missingStartModules, ...modules]
 }
 
-export const usePlaybookPersistence = () => {
+export const usePlaybookPersistence = (targetPlaybookId?: string) => {
   const { isAuthenticated } = useAuth()
   const hasRestoredFromCache = useRef(false)
   const hasLoaded = useRef(false)
@@ -234,9 +234,14 @@ export const usePlaybookPersistence = () => {
   }, [isAuthenticated, savePlaybook])
 
   // Load playbook on mount - try cache first for instant restore
+  // Skip entirely when targetPlaybookId is provided: the caller handles loading explicitly
   useEffect(() => {
     if (!isAuthenticated) return
     if (hasRestoredFromCache.current) return
+    if (targetPlaybookId) {
+      hasRestoredFromCache.current = true
+      return
+    }
 
     const tryRestoreFromCache = (): boolean => {
       try {

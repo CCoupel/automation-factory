@@ -29,7 +29,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
   const applyCollaborationUpdate = usePlaybookEditorStore(s => s.applyCollaborationUpdate)
 
   // Persistence hook (handles save/load/cache/auto-save)
-  const { loadPlaybook } = usePlaybookPersistence()
+  const { loadPlaybook } = usePlaybookPersistence(playbookId)
 
   // Collaboration
   const { connectToPlaybook, disconnectFromPlaybook, lastUpdate } = useCollaboration()
