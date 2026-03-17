@@ -4,8 +4,6 @@ import {
   Toolbar,
   Typography,
   Box,
-  Tabs,
-  Tab,
   Fab,
   Menu,
   MenuItem,
@@ -14,16 +12,11 @@ import {
   Avatar,
   IconButton,
   Chip,
-  List,
-  ListItem,
-  ListItemButton,
   CircularProgress,
   Alert,
   Divider,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import FolderIcon from '@mui/icons-material/Folder'
-import DescriptionIcon from '@mui/icons-material/Description'
 import LogoutIcon from '@mui/icons-material/Logout'
 import Brightness4Icon from '@mui/icons-material/Brightness4'
 import Brightness7Icon from '@mui/icons-material/Brightness7'
@@ -35,7 +28,6 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useProjectStore } from '../stores/projectStore'
-import { playbookService, Playbook } from '../services/playbookService'
 import ProjectCard from '../components/home/ProjectCard'
 import CreateProjectDialog from '../components/home/CreateProjectDialog'
 
@@ -47,8 +39,6 @@ const HomePage: React.FC = () => {
   const { user, logout } = useAuth()
   const { themeMode, darkMode, cycleThemeMode } = useTheme()
 
-  const [activeTab, setActiveTab] = useState(0)
-  const [fabAnchor, setFabAnchor] = useState<null | HTMLElement>(null)
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
@@ -58,54 +48,9 @@ const HomePage: React.FC = () => {
   const error = useProjectStore(s => s.error)
   const fetchProjects = useProjectStore(s => s.fetchProjects)
 
-  // Standalone playbooks
-  const [playbooks, setPlaybooks] = useState<Playbook[]>([])
-  const [playbooksLoading, setPlaybooksLoading] = useState(false)
-
   useEffect(() => {
     fetchProjects()
-    loadPlaybooks()
   }, [])
-
-  const loadPlaybooks = async () => {
-    setPlaybooksLoading(true)
-    try {
-      const data = await playbookService.listPlaybooks()
-      setPlaybooks(data)
-    } catch {
-      // Handled silently
-    } finally {
-      setPlaybooksLoading(false)
-    }
-  }
-
-  const handleCreatePlaybook = async () => {
-    setFabAnchor(null)
-    try {
-      const newPlaybook = await playbookService.createPlaybook({
-        name: t('untitledPlaybook'),
-        description: '',
-        content: {
-          modules: [],
-          links: [],
-          plays: [{
-            id: 'play-1',
-            name: t('defaultPlayName'),
-            hosts: 'all',
-            gatherFacts: true,
-            become: false,
-          }],
-          collapsedBlocks: [],
-          collapsedBlockSections: [],
-          metadata: { playbookName: t('untitledPlaybook') },
-          variables: [],
-        },
-      })
-      navigate(`/playbooks/${newPlaybook.id}`)
-    } catch {
-      // Handled silently
-    }
-  }
 
   const handleLogout = async () => {
     setUserMenuAnchor(null)
@@ -192,106 +137,43 @@ const HomePage: React.FC = () => {
 
       {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_e, v) => setActiveTab(v)}
-          sx={{ mb: 3 }}
-        >
-          <Tab label={`${t('projects')} (${projects.length})`} />
-          <Tab label={`${t('standalonePlaybooks')} (${playbooks.length})`} />
-        </Tabs>
+        <Typography variant="h5" sx={{ mb: 3 }}>
+          {t('projects')} ({projects.length})
+        </Typography>
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
         )}
 
-        {/* Projects Tab */}
-        {activeTab === 0 && (
-          <Box>
-            {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : projects.length === 0 ? (
-              <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                {t('noProjects')}
-              </Typography>
-            ) : (
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 2,
-              }}>
-                {projects.map(project => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </Box>
-            )}
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
           </Box>
-        )}
-
-        {/* Standalone Playbooks Tab */}
-        {activeTab === 1 && (
-          <Box>
-            {playbooksLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : playbooks.length === 0 ? (
-              <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                {t('noPlaybooks')}
-              </Typography>
-            ) : (
-              <List>
-                {playbooks.map(playbook => (
-                  <ListItem key={playbook.id} disablePadding>
-                    <ListItemButton onClick={() => navigate(`/playbooks/${playbook.id}`)}>
-                      <ListItemIcon><DescriptionIcon /></ListItemIcon>
-                      <ListItemText
-                        primary={playbook.name}
-                        secondary={playbook.description || undefined}
-                      />
-                      {playbook.is_shared && (
-                        <Chip
-                          label={playbook.user_role}
-                          size="small"
-                          variant="outlined"
-                          color="info"
-                        />
-                      )}
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            )}
+        ) : projects.length === 0 ? (
+          <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+            {t('noProjects')}
+          </Typography>
+        ) : (
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 2,
+          }}>
+            {projects.map(project => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
           </Box>
         )}
       </Box>
 
-      {/* FAB with dropdown */}
+      {/* FAB - New Project */}
       <Fab
         color="primary"
         sx={{ position: 'fixed', bottom: 24, right: 24 }}
-        onClick={(e) => setFabAnchor(e.currentTarget)}
+        onClick={() => setCreateDialogOpen(true)}
       >
         <AddIcon />
       </Fab>
-      <Menu
-        anchorEl={fabAnchor}
-        open={Boolean(fabAnchor)}
-        onClose={() => setFabAnchor(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <MenuItem onClick={() => { setFabAnchor(null); setCreateDialogOpen(true) }}>
-          <ListItemIcon><FolderIcon /></ListItemIcon>
-          <ListItemText>{t('newProject')}</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleCreatePlaybook}>
-          <ListItemIcon><DescriptionIcon /></ListItemIcon>
-          <ListItemText>{t('newPlaybook')}</ListItemText>
-        </MenuItem>
-      </Menu>
 
       <CreateProjectDialog
         open={createDialogOpen}
