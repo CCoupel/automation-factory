@@ -231,7 +231,7 @@ const ProjectLayout: React.FC = () => {
 
           {/* PlaybookEditor fills the entire center when shown (handles its own SystemZone) */}
           {isPlaybookEditorShown ? (
-            <PlaybookEditor key={linkedPlaybookId} playbookId={linkedPlaybookId!} />
+            <PlaybookEditor playbookId={linkedPlaybookId!} />
           ) : (
             <>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
