@@ -51,6 +51,22 @@ export interface ProjectArtifactCreate {
   metadata?: Record<string, unknown> | null
 }
 
+export interface ProjectShareUserInfo {
+  id: string
+  username: string
+  email?: string
+}
+
+export interface ProjectShare {
+  id: string
+  project_id: string
+  user_id: string
+  role: 'editor' | 'viewer'
+  created_at: string
+  created_by?: string
+  user?: ProjectShareUserInfo
+}
+
 export interface ProjectArtifactUpdate {
   artifact_type?: string
   path?: string
@@ -195,6 +211,57 @@ export const projectService = {
         throw new Error(error.response.data.detail)
       }
       throw new Error('Failed to delete artifact')
+    }
+  },
+
+  async getProjectShares(projectId: string): Promise<ProjectShare[]> {
+    try {
+      const client = getHttpClient()
+      const response = await client.get(`/projects/${projectId}/shares`)
+      return response.data.shares
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to get project shares')
+    }
+  },
+
+  async createProjectShare(projectId: string, username: string, role: string): Promise<ProjectShare> {
+    try {
+      const client = getHttpClient()
+      const response = await client.post(`/projects/${projectId}/shares`, { username, role })
+      return response.data
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to share project')
+    }
+  },
+
+  async updateProjectShare(projectId: string, shareId: string, role: string): Promise<ProjectShare> {
+    try {
+      const client = getHttpClient()
+      const response = await client.put(`/projects/${projectId}/shares/${shareId}`, { role })
+      return response.data
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to update share')
+    }
+  },
+
+  async deleteProjectShare(projectId: string, shareId: string): Promise<void> {
+    try {
+      const client = getHttpClient()
+      await client.delete(`/projects/${projectId}/shares/${shareId}`)
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      throw new Error('Failed to remove share')
     }
   },
 }

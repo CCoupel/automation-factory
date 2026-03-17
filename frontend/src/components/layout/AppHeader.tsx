@@ -44,12 +44,10 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import ArticleIcon from '@mui/icons-material/Article'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
-import ShareIcon from '@mui/icons-material/Share'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useTranslation } from 'react-i18next'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
-import ShareDialog from '../collaboration/ShareDialog'
 import ConfigurationDialog from '../dialogs/ConfigurationDialog'
 import { useSaveInfo } from '../../stores/playbookEditorStore'
 
@@ -97,9 +95,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   // Playbook fields state (local for other fields)
   const [inventory, setInventory] = useState('hosts')
-
-  // Share dialog state
-  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   // Refresh notification state
   const [refreshSnackbar, setRefreshSnackbar] = useState(false)
@@ -455,24 +450,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           />
         )}
 
-        {/* Share Button - Only show when playbook is loaded */}
-        {playbookId && (
-          <Tooltip title="Share Playbook">
-            <IconButton
-              onClick={() => setShareDialogOpen(true)}
-              size="small"
-              sx={{
-                color: 'white',
-                mx: 1,
-                '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.1)'
-                }
-              }}
-            >
-              <ShareIcon />
-            </IconButton>
-          </Tooltip>
-        )}
 
         {/* Right side - User info and Menu */}
         {user && (
@@ -889,16 +866,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         message={refreshMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-
-      {/* Share Dialog */}
-      {playbookId && (
-        <ShareDialog
-          open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
-          playbookId={playbookId}
-          playbookName={playbookNameProp}
-        />
-      )}
 
       {/* Configuration Dialog */}
       <ConfigurationDialog

@@ -20,10 +20,12 @@ import { useResizable } from '../../hooks/useResizable'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 import { playbookService } from '../../services/playbookService'
+import ShareIcon from '@mui/icons-material/Share'
 import AppHeader from './AppHeader'
 import ProjectTree from '../project/ProjectTree'
 import PlaybookEditor from '../editor/PlaybookEditor'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
+import ProjectShareDialog from '../dialogs/ProjectShareDialog'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 
@@ -52,6 +54,7 @@ const ProjectLayout: React.FC = () => {
   const [hasFetched, setHasFetched] = useState(false)
   const [isCreatingPlaybook, setIsCreatingPlaybook] = useState(false)
   const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   // Left panel state
   const [leftTab, setLeftTab] = useState(0)
@@ -194,6 +197,16 @@ const ProjectLayout: React.FC = () => {
               <Tab label={t('modules')} />
             </Tabs>
 
+            {leftTab === 0 && (
+              <Box sx={{ px: 1, py: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Tooltip title={t('shareProject')} placement="right">
+                  <IconButton size="small" onClick={() => setShareDialogOpen(true)}>
+                    <ShareIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+
             <Box sx={{ flex: 1, overflow: 'auto' }}>
               {leftTab === 0 && <ProjectTree />}
               {leftTab === 1 && <ModulesZoneCached />}
@@ -334,6 +347,14 @@ const ProjectLayout: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* Project Share Dialog */}
+      <ProjectShareDialog
+        open={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+        projectId={projectId!}
+        projectName={currentProject?.name ?? ''}
+      />
 
       {/* Playbook Manager Dialog */}
       <PlaybookManagerDialog
