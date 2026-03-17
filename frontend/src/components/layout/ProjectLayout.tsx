@@ -166,7 +166,7 @@ const ProjectLayout: React.FC = () => {
       {/* Header */}
       <AppHeader
         connectedUsers={connectedUsers}
-        isCollaborationConnected={isConnected}
+        isCollaborationConnected={isPlaybookEditorShown ? isConnected : true}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
       />
 
