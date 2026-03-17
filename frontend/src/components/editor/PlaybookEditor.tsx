@@ -32,7 +32,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
   const { loadPlaybook } = usePlaybookPersistence()
 
   // Collaboration
-  const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected, lastUpdate } = useCollaboration()
+  const { connectToPlaybook, disconnectFromPlaybook, lastUpdate } = useCollaboration()
   const {
     sendModuleAdd,
     sendModuleMove,
