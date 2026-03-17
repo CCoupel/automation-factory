@@ -9,7 +9,6 @@ import {
   Tooltip,
   Snackbar,
   Alert,
-  Button,
 } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
@@ -95,31 +94,42 @@ const ProjectLayout: React.FC = () => {
     ? (selectedArtifact.content?.playbook_id as string | undefined) ?? null
     : null
 
+  // Auto-create and link a playbook when a playbook artifact has no playbook_id
+  useEffect(() => {
+    if (!projectId || !selectedArtifact) return
+    if (selectedArtifact.artifact_type !== 'playbook') return
+    if (selectedArtifact.content?.playbook_id) return
+    if (isCreatingPlaybook) return
+
+    let cancelled = false
+    const autoCreate = async () => {
+      setIsCreatingPlaybook(true)
+      try {
+        const newPlaybook = await playbookService.createPlaybook({
+          name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
+          content: {
+            modules: [], links: [], plays: [],
+            collapsedBlocks: [], collapsedBlockSections: [],
+            metadata: {}, variables: [],
+          },
+        })
+        if (!cancelled) {
+          await updateArtifact(projectId, selectedArtifact.id, {
+            content: { playbook_id: newPlaybook.id },
+          })
+        }
+      } catch {
+        // silent — store shows error snackbar if needed
+      } finally {
+        if (!cancelled) setIsCreatingPlaybook(false)
+      }
+    }
+    autoCreate()
+    return () => { cancelled = true }
+  }, [selectedArtifact?.id])
+
   // PlaybookEditor is shown when a playbook artifact with a linked playbook_id is selected
   const isPlaybookEditorShown = !!linkedPlaybookId
-
-  // Create a new playbook and link it to the selected artifact
-  const handleCreateAndLink = async () => {
-    if (!projectId || !selectedArtifact) return
-    setIsCreatingPlaybook(true)
-    try {
-      const newPlaybook = await playbookService.createPlaybook({
-        name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
-        content: {
-          modules: [], links: [], plays: [],
-          collapsedBlocks: [], collapsedBlockSections: [],
-          metadata: {}, variables: [],
-        },
-      })
-      await updateArtifact(projectId, selectedArtifact.id, {
-        content: { playbook_id: newPlaybook.id },
-      })
-    } catch {
-      // error shown via store snackbar
-    } finally {
-      setIsCreatingPlaybook(false)
-    }
-  }
 
   // Show loading spinner while fetching
   if (!hasFetched || isLoading) {
@@ -221,7 +231,7 @@ const ProjectLayout: React.FC = () => {
 
           {/* PlaybookEditor fills the entire center when shown (handles its own SystemZone) */}
           {isPlaybookEditorShown ? (
-            <PlaybookEditor playbookId={linkedPlaybookId!} />
+            <PlaybookEditor key={linkedPlaybookId} playbookId={linkedPlaybookId!} />
           ) : (
             <>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
@@ -231,18 +241,7 @@ const ProjectLayout: React.FC = () => {
                   </Typography>
                 )}
                 {selectedArtifact?.artifact_type === 'playbook' && !linkedPlaybookId && (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-                      {t('noLinkedPlaybook')}
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      onClick={handleCreateAndLink}
-                      disabled={isCreatingPlaybook}
-                    >
-                      {isCreatingPlaybook ? tc('loading') : t('createAndOpenPlaybook')}
-                    </Button>
-                  </Box>
+                  <CircularProgress size={24} />
                 )}
                 {selectedArtifact && selectedArtifact.artifact_type !== 'playbook' && (
                   <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
