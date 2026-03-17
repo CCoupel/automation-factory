@@ -651,7 +651,7 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
 
   loadPlaybookState: (loaded) => {
     set({
-      plays: loaded.plays,
+      plays: loaded.plays.length > 0 ? loaded.plays : initialState.plays,
       currentPlaybookId: loaded.currentPlaybookId,
       playbookName: loaded.playbookName,
       activePlayIndex: 0,
