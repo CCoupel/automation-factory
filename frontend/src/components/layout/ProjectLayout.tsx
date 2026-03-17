@@ -20,7 +20,6 @@ import { useResizable } from '../../hooks/useResizable'
 import { useCollaboration } from '../../contexts/CollaborationContext'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 import { playbookService } from '../../services/playbookService'
-import ShareIcon from '@mui/icons-material/Share'
 import AppHeader from './AppHeader'
 import ProjectTree from '../project/ProjectTree'
 import PlaybookEditor from '../editor/PlaybookEditor'
@@ -197,18 +196,8 @@ const ProjectLayout: React.FC = () => {
               <Tab label={t('modules')} />
             </Tabs>
 
-            {leftTab === 0 && (
-              <Box sx={{ px: 1, py: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Tooltip title={t('shareProject')} placement="right">
-                  <IconButton size="small" onClick={() => setShareDialogOpen(true)}>
-                    <ShareIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            )}
-
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-              {leftTab === 0 && <ProjectTree />}
+              {leftTab === 0 && <ProjectTree onShare={() => setShareDialogOpen(true)} />}
               {leftTab === 1 && <ModulesZoneCached />}
             </Box>
 

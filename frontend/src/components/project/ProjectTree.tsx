@@ -35,6 +35,7 @@ import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
 import ExtensionIcon from '@mui/icons-material/Extension'
 import SettingsIcon from '@mui/icons-material/Settings'
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
+import ShareIcon from '@mui/icons-material/Share'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
@@ -98,7 +99,11 @@ type DialogMode =
   | { type: 'deleteFile'; node: TreeNode }
   | { type: 'deleteFolder'; node: TreeNode }
 
-const ProjectTree: React.FC = () => {
+interface ProjectTreeProps {
+  onShare?: () => void
+}
+
+const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
   const { t } = useTranslation('project')
   const { t: tc } = useTranslation('common')
   const navigate = useNavigate()
@@ -534,6 +539,13 @@ const ProjectTree: React.FC = () => {
             <NoteAddIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        {onShare && (
+          <Tooltip title={t('shareProject')}>
+            <IconButton size="small" onClick={onShare}>
+              <ShareIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
         <Box sx={{ flex: 1 }} />
         <Tooltip title={t('expandAll')}>
           <IconButton size="small" onClick={handleExpandAll}>
