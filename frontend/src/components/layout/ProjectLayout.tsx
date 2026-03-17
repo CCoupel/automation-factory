@@ -19,6 +19,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useResizable } from '../../hooks/useResizable'
 import ProjectHeader from '../project/ProjectHeader'
 import ProjectTree from '../project/ProjectTree'
+import PlaybookEditor from '../editor/PlaybookEditor'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
 import SystemZone from '../zones/SystemZone'
 
@@ -31,6 +32,8 @@ const ProjectLayout: React.FC = () => {
   const currentProject = useProjectStore(s => s.currentProject)
   const isLoading = useProjectStore(s => s.isLoading)
   const error = useProjectStore(s => s.error)
+  const artifacts = useProjectStore(s => s.artifacts)
+  const selectedArtifactId = useProjectStore(s => s.selectedArtifactId)
   const fetchProject = useProjectStore(s => s.fetchProject)
   const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
@@ -162,7 +165,7 @@ const ProjectLayout: React.FC = () => {
         )}
 
         {/* Center area */}
-        <Box sx={{ flex: 1, overflow: 'auto', minWidth: 0, position: 'relative' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' }}>
           {isLeftCollapsed && (
             <Tooltip title={t('projectTree')} placement="right">
               <IconButton
@@ -178,17 +181,35 @@ const ProjectLayout: React.FC = () => {
             </Tooltip>
           )}
 
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            p: 4,
-          }}>
-            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
-              {t('selectArtifact')}
-            </Typography>
-          </Box>
+          {(() => {
+            const selectedArtifact = selectedArtifactId
+              ? artifacts.find(a => a.id === selectedArtifactId)
+              : null
+
+            if (selectedArtifact?.artifact_type === 'playbook' && selectedArtifact.content?.playbook_id) {
+              return (
+                <PlaybookEditor playbookId={selectedArtifact.content.playbook_id as string} />
+              )
+            }
+
+            if (selectedArtifact) {
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    {t('comingSoon')}
+                  </Typography>
+                </Box>
+              )
+            }
+
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+                <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                  {t('selectArtifact')}
+                </Typography>
+              </Box>
+            )
+          })()}
         </Box>
       </Box>
 
