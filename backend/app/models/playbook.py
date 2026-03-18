@@ -48,6 +48,9 @@ class Playbook(Base):
     # Version for optimistic locking (incremented on each update)
     version = Column(Integer, default=1, nullable=False)
 
+    # Last event sequence_number folded into the content/snapshot
+    snapshot_sequence = Column(Integer, default=0, nullable=False)
+
     # Project association (nullable — standalone playbooks have no project)
     project_id = Column(String, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
 

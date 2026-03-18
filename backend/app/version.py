@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "2.3.6"
+__version__ = "2.3.6-rc.2"
 __description__ = "Automation Factory API - Collaboration Bugfix"
 
 # Environment: PROD (default), STAGING, DEV
