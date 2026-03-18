@@ -53,13 +53,13 @@ async def _take_snapshot(project_id: str, artifact_id: str):
             if not events:
                 return
 
-            # The latest event's data already contains the full content
-            # (the frontend sends the complete state on each update).
-            # We take the data from the most recent event as the snapshot.
+            # Advance snapshot_sequence to the latest persisted event so that
+            # future loads only replay the delta since this point.
+            # We keep playbook.content (the last full snapshot) unchanged because
+            # individual events carry only delta data, not the full playbook state.
             latest = events[-1]
-            content = latest.data if latest.data else playbook.content
             await playbook_event_service.create_snapshot(
-                artifact_id, content, latest.sequence_number, db
+                artifact_id, playbook.content, latest.sequence_number, db
             )
             await db.commit()
             websocket_manager.reset_event_counter(project_id, artifact_id)
@@ -220,12 +220,16 @@ async def handle_project_message(
 
         update_data = data.get("data", {})
         update_type = data.get("update_type", "content")
-        artifact_id = data.get("artifact_id")
+        # artifact_id is inside the data payload, not at the top level of the WS message
+        artifact_id = update_data.get("artifact_id") if isinstance(update_data, dict) else None
         event_type = data.get("event_type", update_type)
+
+        # Update types that are not playbook-content events and should not be persisted
+        NON_PERSISTABLE = {"artifact_add", "artifact_update", "artifact_delete", "request_full_sync"}
 
         # --- Event sourcing: persist event BEFORE broadcasting ---
         sequence_number = None
-        if artifact_id:
+        if artifact_id and update_type not in NON_PERSISTABLE:
             try:
                 async with AsyncSessionLocal() as db:
                     event = await playbook_event_service.save_event(
@@ -241,11 +245,7 @@ async def handle_project_message(
                 websocket_manager.record_event(project_id, artifact_id)
             except Exception as e:
                 logger.error("Failed to persist event: %s", e)
-                await websocket_manager.send_personal(
-                    websocket,
-                    {"type": "error", "message": "Failed to persist event"}
-                )
-                return
+                # Don't return — still broadcast to collaborators
 
         # ACK to sender
         ack = {"type": "event_ack"}
