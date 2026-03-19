@@ -13,9 +13,10 @@ import SystemZone from '../zones/SystemZone'
 
 interface PlaybookEditorProps {
   playbookId: string
+  artifactId?: string
 }
 
-const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
+const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId }) => {
   // Resize state for config and system panels
   const [systemZoneHeight, setSystemZoneHeight] = useState(200)
   const [configZoneWidth, setConfigZoneWidth] = useState(320)
@@ -32,7 +33,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
   const { loadPlaybook } = usePlaybookPersistence(playbookId)
 
   // Collaboration
-  const { connectToPlaybook, disconnectFromPlaybook, lastUpdate } = useCollaboration()
+  const { lastUpdate, isConnected, sendSetArtifact, connectedUsers, sendUpdate } = useCollaboration()
   const {
     sendModuleAdd,
     sendModuleMove,
@@ -40,6 +41,8 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
     sendModuleConfig,
     sendLinkAdd,
     sendLinkDelete,
+    sendPlayAdd,
+    sendPlayDelete,
     sendPlayUpdate,
     sendVariableAdd,
     sendVariableUpdate,
@@ -50,7 +53,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
     sendBlockCollapse,
     sendSectionCollapse,
     sendModuleResize,
-  } = useCollaborationSync()
+  } = useCollaborationSync({ artifactId, playbookId })
 
   // Collaboration callbacks object
   const collaborationCallbacks: CollaborationCallbacks = {
@@ -61,6 +64,8 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
     sendModuleResize,
     sendLinkAdd,
     sendLinkDelete,
+    sendPlayAdd,
+    sendPlayDelete,
     sendPlayUpdate,
     sendVariableAdd,
     sendVariableUpdate,
@@ -70,13 +75,25 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
     sendRoleUpdate,
     sendBlockCollapse,
     sendSectionCollapse,
+    sendFullSync: () => {
+      if (!artifactId) return
+      const state = usePlaybookEditorStore.getState()
+      sendUpdate('full_sync', {
+        artifact_id: artifactId,
+        playbook_id: playbookId,
+        plays: state.plays as unknown as Record<string, unknown>[],
+        playbookName: state.playbookName,
+        collapsedBlocks: Array.from(state.collapsedBlocks),
+        collapsedBlockSections: Array.from(state.collapsedBlockSections),
+      } as unknown as Record<string, unknown>)
+    },
   }
 
   // Auto-load playbook
   const loadPlaybookRef = useRef(loadPlaybook)
   useEffect(() => { loadPlaybookRef.current = loadPlaybook })
   useEffect(() => {
-    if (playbookId && playbookId !== currentPlaybookId) {
+    if (playbookId) {
       loadPlaybookRef.current(playbookId)
     }
   }, [playbookId])
@@ -86,32 +103,64 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
   applyCollaborationUpdateRef.current = applyCollaborationUpdate
 
   useEffect(() => {
-    if (lastUpdate) {
-      console.log('[PlaybookEditor] Received collaboration update:', lastUpdate.update_type)
-      applyCollaborationUpdateRef.current(lastUpdate)
+    if (!lastUpdate) return
+
+    // Filter: only apply updates for this artifact (or updates without artifact_id for backward compat)
+    const updateArtifactId = lastUpdate.data?.artifact_id as string | undefined
+    if (artifactId && updateArtifactId && updateArtifactId !== artifactId) {
+      console.log('[PlaybookEditor] Ignoring update for different artifact:', updateArtifactId)
+      return
     }
-  }, [lastUpdate])
 
-  // Connect to playbook collaboration
-  const connectToPlaybookRef = useRef(connectToPlaybook)
-  const disconnectFromPlaybookRef = useRef(disconnectFromPlaybook)
+    // Handle full sync request: another user needs our current state
+    if (lastUpdate.update_type === 'request_full_sync') {
+      const state = usePlaybookEditorStore.getState()
+      const hasContent = state.plays.some(p => p.modules.filter(m => !m.isPlay).length > 0)
+      // Guard: only respond if our store matches this playbook (not a stale load)
+      if (artifactId && state.currentPlaybookId && state.currentPlaybookId === playbookId && hasContent) {
+        console.log('[PlaybookEditor] Responding to request_full_sync')
+        sendUpdate('full_sync', {
+          artifact_id: artifactId,
+          playbook_id: playbookId,
+          plays: state.plays as unknown as Record<string, unknown>[],
+          playbookName: state.playbookName,
+          collapsedBlocks: Array.from(state.collapsedBlocks),
+          collapsedBlockSections: Array.from(state.collapsedBlockSections),
+        } as unknown as Record<string, unknown>)
+      }
+      return
+    }
+
+    console.log('[PlaybookEditor] Received collaboration update:', lastUpdate.update_type)
+    applyCollaborationUpdateRef.current(lastUpdate)
+  }, [lastUpdate, artifactId])
+
+  // Request full state sync from existing collaborators on this artifact (late joiner)
+  const hasSentSyncRequestRef = useRef<Record<string, boolean>>({})
+  useEffect(() => {
+    if (!artifactId || !isConnected) return
+    if (hasSentSyncRequestRef.current[artifactId]) return
+
+    const othersOnArtifact = connectedUsers.filter(u => u.current_artifact_id === artifactId)
+    if (othersOnArtifact.length > 0) {
+      hasSentSyncRequestRef.current[artifactId] = true
+      console.log('[PlaybookEditor] Sending request_full_sync for artifact:', artifactId)
+      sendUpdate('request_full_sync', { artifact_id: artifactId } as Record<string, unknown>)
+    }
+  }, [connectedUsers, artifactId, isConnected])
+
+  // Announce current artifact to other collaborators
+  const sendSetArtifactRef = useRef(sendSetArtifact)
+  useEffect(() => { sendSetArtifactRef.current = sendSetArtifact })
 
   useEffect(() => {
-    connectToPlaybookRef.current = connectToPlaybook
-    disconnectFromPlaybookRef.current = disconnectFromPlaybook
-  })
-
-  useEffect(() => {
-    console.log('[PlaybookEditor] currentPlaybookId changed to:', currentPlaybookId)
-    if (currentPlaybookId) {
-      console.log('[PlaybookEditor] Calling connectToPlaybook with:', currentPlaybookId)
-      connectToPlaybookRef.current(currentPlaybookId)
+    if (artifactId && isConnected) {
+      sendSetArtifactRef.current(artifactId)
     }
     return () => {
-      console.log('[PlaybookEditor] Cleanup - disconnecting from playbook')
-      disconnectFromPlaybookRef.current()
+      sendSetArtifactRef.current('')
     }
-  }, [currentPlaybookId])
+  }, [artifactId, isConnected])
 
   // Resize handlers
   const handleSystemMouseDown = () => setIsResizingSystem(true)
@@ -214,7 +263,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId }) => {
             </Box>
             <ConfigZone
               onCollapse={() => setIsConfigCollapsed(true)}
-              collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate }}
+              collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate, sendModuleDelete }}
             />
           </Box>
         )}

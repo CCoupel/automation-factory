@@ -20,6 +20,9 @@ interface ProjectState {
   setSelectedArtifact: (id: string | null) => void
   clearCurrentProject: () => void
   clearError: () => void
+  applyArtifactAdd: (artifact: ProjectArtifact) => void
+  applyArtifactUpdate: (artifact: ProjectArtifact) => void
+  applyArtifactDelete: (artifactId: string) => void
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -135,4 +138,19 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   clearCurrentProject: () => set({ currentProject: null, artifacts: [], selectedArtifactId: null }),
   clearError: () => set({ error: null }),
+
+  applyArtifactAdd: (artifact: ProjectArtifact) => set(state => ({
+    artifacts: state.artifacts.some(a => a.id === artifact.id)
+      ? state.artifacts
+      : [...state.artifacts, artifact],
+  })),
+
+  applyArtifactUpdate: (artifact: ProjectArtifact) => set(state => ({
+    artifacts: state.artifacts.map(a => a.id === artifact.id ? artifact : a),
+  })),
+
+  applyArtifactDelete: (artifactId: string) => set(state => ({
+    artifacts: state.artifacts.filter(a => a.id !== artifactId),
+    selectedArtifactId: state.selectedArtifactId === artifactId ? null : state.selectedArtifactId,
+  })),
 }))

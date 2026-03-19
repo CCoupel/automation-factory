@@ -40,6 +40,7 @@ from app.services.playbook_access_service import (
     check_playbook_access,
     log_playbook_action
 )
+from app.services import playbook_event_service
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
 
@@ -141,7 +142,8 @@ async def create_playbook(
         name=playbook_data.name,
         description=playbook_data.description,
         content=playbook_data.content,
-        owner_id=current_user.id
+        owner_id=current_user.id,
+        project_id=playbook_data.project_id
     )
 
     db.add(playbook)
@@ -181,7 +183,16 @@ async def get_playbook(
         HTTPException 403: Not authorized to access this playbook
     """
     playbook, role = await check_playbook_access(playbook_id, current_user.id, db)
-    return playbook
+
+    # Fetch events since the last snapshot
+    events = await playbook_event_service.get_events_since(
+        playbook_id, playbook.snapshot_sequence, db
+    )
+
+    # Build response with events_delta
+    response = PlaybookDetailResponse.model_validate(playbook)
+    response.events_delta = events
+    return response
 
 
 @router.put("/{playbook_id}", response_model=PlaybookDetailResponse)

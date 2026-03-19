@@ -34,6 +34,7 @@
   "version": "Version",
   "saasMode": "Mode SaaS - Vos playbooks sont sauvegardés sur le cloud",
   "openPlaybookManager": "Ouvrir le gestionnaire de playbooks",
+  "openPlaybookManagerDisconnected": "Ouvrir le gestionnaire de playbooks (WebSocket déconnecté)",
   "showModules": "Afficher les modules",
   "showConfiguration": "Afficher la configuration",
   "showSystemZone": "Afficher la zone système",

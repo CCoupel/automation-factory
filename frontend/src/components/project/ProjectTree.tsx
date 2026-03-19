@@ -16,6 +16,8 @@ import {
   InputLabel,
   Snackbar,
   Alert,
+  Avatar,
+  AvatarGroup,
 } from '@mui/material'
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView'
 import { TreeItem } from '@mui/x-tree-view/TreeItem'
@@ -38,6 +40,8 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 import ShareIcon from '@mui/icons-material/Share'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useCollaboration } from '../../contexts/CollaborationContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useProjectStore } from '../../stores/projectStore'
 import { ProjectArtifact } from '../../services/projectService'
 import { playbookService, Playbook } from '../../services/playbookService'
@@ -92,6 +96,23 @@ function collectChildArtifacts(node: TreeNode): ProjectArtifact[] {
   return result
 }
 
+function stringToColor(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const h = Math.abs(hash) % 360
+  return `hsl(${h}, 55%, 45%)`
+}
+
+function getInitials(username: string): string {
+  const parts = username.trim().split(/[\s._-]+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return username.substring(0, 2).toUpperCase()
+}
+
 type DialogMode =
   | { type: 'createFile'; parentPath: string }
   | { type: 'createFolder'; parentPath: string }
@@ -107,6 +128,8 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
   const { t } = useTranslation('project')
   const { t: tc } = useTranslation('common')
   const navigate = useNavigate()
+  const { connectedUsers, sendUpdate } = useCollaboration()
+  const { user: currentUser } = useAuth()
 
   const artifacts = useProjectStore(s => s.artifacts)
   const currentProject = useProjectStore(s => s.currentProject)
@@ -187,7 +210,8 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
           setDialogLoading(false)
           return
         }
-        await createArtifact(projectId, { artifact_type: dialogFileType, path })
+        const artifact = await createArtifact(projectId, { artifact_type: dialogFileType, path })
+        sendUpdate('artifact_add', { artifact })
         setSnackbar({ open: true, message: t('createFile'), severity: 'success' })
       } else if (dialog.type === 'createFolder') {
         const path = dialog.parentPath ? `${dialog.parentPath}/${dialogName}` : dialogName
@@ -197,33 +221,38 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
           setDialogLoading(false)
           return
         }
-        await createArtifact(projectId, { artifact_type: 'file', path: folderPath })
+        const artifact = await createArtifact(projectId, { artifact_type: 'file', path: folderPath })
+        sendUpdate('artifact_add', { artifact })
         setSnackbar({ open: true, message: t('createFolder'), severity: 'success' })
       } else if (dialog.type === 'rename') {
         const { node } = dialog
         if (node.isFolder) {
           const childArtifacts = collectChildArtifacts(node)
-          await Promise.all(childArtifacts.map(a => {
+          const updated = await Promise.all(childArtifacts.map(a => {
             const newPath = a.path.replace(node.path, node.path.replace(node.name, dialogName))
             return updateArtifact(projectId, a.id, { path: newPath })
           }))
+          updated.forEach(artifact => sendUpdate('artifact_update', { artifact }))
         } else if (node.artifact) {
           const parts = node.path.split('/')
           parts[parts.length - 1] = dialogName
           const newPath = parts.join('/')
-          await updateArtifact(projectId, node.artifact.id, { path: newPath })
+          const artifact = await updateArtifact(projectId, node.artifact.id, { path: newPath })
+          sendUpdate('artifact_update', { artifact })
         }
         setSnackbar({ open: true, message: t('rename'), severity: 'success' })
       } else if (dialog.type === 'deleteFile') {
         const { node } = dialog
         if (node.artifact) {
           await deleteArtifact(projectId, node.artifact.id)
+          sendUpdate('artifact_delete', { artifactId: node.artifact.id })
         }
         setSnackbar({ open: true, message: t('deleteFile'), severity: 'success' })
       } else if (dialog.type === 'deleteFolder') {
         const { node } = dialog
         const childArtifacts = collectChildArtifacts(node)
         await Promise.all(childArtifacts.map(a => deleteArtifact(projectId, a.id)))
+        childArtifacts.forEach(a => sendUpdate('artifact_delete', { artifactId: a.id }))
         setSnackbar({ open: true, message: t('deleteFolder'), severity: 'success' })
       }
       setDialog(null)
@@ -314,6 +343,43 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
     </Box>
   )
 
+  // --- Collaborator avatars ---
+
+  const getArtifactCollaborators = useCallback((artifactId: string) => {
+    return connectedUsers.filter(
+      u => u.current_artifact_id === artifactId && u.user_id !== currentUser?.id
+    )
+  }, [connectedUsers, currentUser?.id])
+
+  const ArtifactCollaborators: React.FC<{ artifactId: string }> = ({ artifactId }) => {
+    const collaborators = getArtifactCollaborators(artifactId)
+    if (collaborators.length === 0) return null
+
+    return (
+      <AvatarGroup
+        max={3}
+        sx={{
+          ml: 0.5,
+          '& .MuiAvatar-root': {
+            width: 20,
+            height: 20,
+            fontSize: 10,
+            border: '1.5px solid',
+            borderColor: 'background.paper',
+          },
+        }}
+      >
+        {collaborators.map(u => (
+          <Tooltip key={u.user_id} title={u.username} placement="top">
+            <Avatar sx={{ bgcolor: stringToColor(u.username) }}>
+              {getInitials(u.username)}
+            </Avatar>
+          </Tooltip>
+        ))}
+      </AvatarGroup>
+    )
+  }
+
   // --- Recursive tree rendering ---
 
   const renderTreeNode = (node: TreeNode): React.ReactNode => {
@@ -363,6 +429,7 @@ const ProjectTree: React.FC<ProjectTreeProps> = ({ onShare }) => {
             <Typography variant="body2" noWrap sx={{ flex: 1 }}>
               {node.name}
             </Typography>
+            {node.artifact && <ArtifactCollaborators artifactId={node.artifact.id} />}
             <FileActions node={node} />
           </Box>
         }

@@ -42,9 +42,16 @@ import Brightness7Icon from '@mui/icons-material/Brightness7'
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
-import ArticleIcon from '@mui/icons-material/Article'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import DescriptionIcon from '@mui/icons-material/Description'
+import BuildIcon from '@mui/icons-material/Build'
+import StorageIcon from '@mui/icons-material/Storage'
+import TuneIcon from '@mui/icons-material/Tune'
+import CodeIcon from '@mui/icons-material/Code'
+import LibraryBooksIcon from '@mui/icons-material/LibraryBooks'
+import ExtensionIcon from '@mui/icons-material/Extension'
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile'
 import { useTranslation } from 'react-i18next'
 import { getHttpClient } from '../../utils/httpClient'
 import PresenceIndicator from '../collaboration/PresenceIndicator'
@@ -57,10 +64,28 @@ interface ConnectedUser {
   connected_at: string
 }
 
+const ARTIFACT_ICONS: Record<string, React.ReactElement> = {
+  playbook: <DescriptionIcon fontSize="small" />,
+  role: <BuildIcon fontSize="small" />,
+  inventory: <StorageIcon fontSize="small" />,
+  variable_file: <TuneIcon fontSize="small" />,
+  template: <CodeIcon fontSize="small" />,
+  collection_requirements: <LibraryBooksIcon fontSize="small" />,
+  custom_module: <ExtensionIcon fontSize="small" />,
+  ansible_cfg: <SettingsIcon fontSize="small" />,
+}
+
+function getArtifactIcon(type?: string): React.ReactElement {
+  return ARTIFACT_ICONS[type || ''] ?? <InsertDriveFileIcon fontSize="small" />
+}
+
 interface AppHeaderProps {
   connectedUsers?: ConnectedUser[]
   isCollaborationConnected?: boolean
   onOpenPlaybookManager: () => void
+  projectName?: string
+  artifactName?: string
+  artifactType?: string
 }
 
 /**
@@ -81,7 +106,10 @@ interface AppHeaderProps {
 const AppHeader: React.FC<AppHeaderProps> = ({
   connectedUsers = [],
   isCollaborationConnected = false,
-  onOpenPlaybookManager
+  onOpenPlaybookManager,
+  projectName,
+  artifactName,
+  artifactType,
 }) => {
   const { saveStatus, playbookName: playbookNameProp, playbookId } = useSaveInfo()
   const navigate = useNavigate()
@@ -92,9 +120,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   // Version info from shared hook
   const { frontendVersion, backendVersion, backendVersionInfo, isReleaseCandidate } = useVersionInfo()
-
-  // Playbook fields state (local for other fields)
-  const [inventory, setInventory] = useState('hosts')
 
   // Refresh notification state
   const [refreshSnackbar, setRefreshSnackbar] = useState(false)
@@ -294,10 +319,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </IconButton>
         </Tooltip>
 
-        {/* Center - Playbook Info */}
+        {/* Center - Context Info */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm, 8px)', flexGrow: 1 }}>
           <Tooltip
-            title={isCollaborationConnected ? "Open Playbook Manager" : "Open Playbook Manager (WebSocket disconnected)"}
+            title={isCollaborationConnected ? t('openPlaybookManager') : t('openPlaybookManagerDisconnected')}
             placement="bottom"
           >
             <IconButton
@@ -306,12 +331,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               sx={{
                 color: isCollaborationConnected ? 'white' : 'rgba(255, 100, 100, 0.9)',
                 position: 'relative',
-                '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.1)'
-                }
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }
               }}
             >
-              <ArticleIcon sx={{ fontSize: 'var(--icon-lg, 24px)' }} />
+              {React.cloneElement(getArtifactIcon(artifactType), { sx: { fontSize: 'var(--icon-lg, 24px)' } })}
               {!isCollaborationConnected && (
                 <LinkOffIcon
                   sx={{
@@ -328,78 +351,52 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               )}
             </IconButton>
           </Tooltip>
-          <TextField
-            label="Name"
-            variant="outlined"
-            size="small"
-            value={playbookNameProp}
-            disabled
-            sx={{
-              minWidth: 'calc(150px * var(--spacing-scale, 1))',
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.15)',
-                color: 'white',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.7)',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: 'var(--font-xs, 12px)',
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              },
-              '& .MuiOutlinedInput-input': {
+
+          {projectName && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'rgba(255,255,255,0.85)',
+                fontWeight: 500,
                 fontSize: 'var(--font-sm, 13px)',
-                py: 'var(--spacing-xs, 4px)',
-              },
-            }}
-          />
-          <TextField
-            label="Inventory"
-            variant="outlined"
-            size="small"
-            value={inventory}
-            onChange={(e) => setInventory(e.target.value)}
-            sx={{
-              minWidth: 'calc(120px * var(--spacing-scale, 1))',
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 200,
+              }}
+            >
+              {projectName}
+            </Typography>
+          )}
+
+          {projectName && artifactName && (
+            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 'var(--font-sm, 13px)' }}>
+              /
+            </Typography>
+          )}
+
+          {artifactName && (
+            <Typography
+              variant="body2"
+              sx={{
                 color: 'white',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.7)',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: 'var(--font-xs, 12px)',
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: 'rgba(255, 255, 255, 0.9)',
-              },
-              '& .MuiOutlinedInput-input': {
+                fontWeight: 600,
                 fontSize: 'var(--font-sm, 13px)',
-                py: 'var(--spacing-xs, 4px)',
-              },
-            }}
-          />
-          <VersionSelector 
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: 250,
+              }}
+            >
+              {artifactName}
+            </Typography>
+          )}
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <VersionSelector
             variant="header"
             onChange={() => {
-              // Optionnel: action après changement de version
               console.log('Ansible version changed in header');
             }}
           />

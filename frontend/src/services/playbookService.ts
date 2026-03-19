@@ -156,6 +156,7 @@ export interface PlaybookCreate {
   name: string
   description?: string
   content: PlaybookContent
+  project_id?: string
 }
 
 /**

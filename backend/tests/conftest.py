@@ -21,6 +21,7 @@ from app.models.project import Project
 from app.models.project_artifact import ProjectArtifact
 from app.models.project_collaboration import ProjectShare
 from app.models.git_credential import GitCredential
+from app.models.playbook_event import PlaybookEvent
 
 # ---------------------------------------------------------------------------
 # Database fixtures

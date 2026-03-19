@@ -7,6 +7,29 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.4.0] - 2026-03-19
+
+### ✨ Nouvelles fonctionnalités
+- **Event Sourcing:** Refonte complète du système de persistance des playbooks
+  - Backend comme autorité unique (server-authoritative)
+  - Journal des événements persisté en base (modèle PlaybookEvent)
+  - ACK serveur avec event_id et sequence pour chaque modification
+  - Rattrapage automatique via events_delta sur GET /playbooks/{id}
+  - Suppression auto-save, remplacement par event sourcing côté frontend
+- **Page projets améliorée:** Affichage du owner, auto-refresh de la liste
+- **AppHeader breadcrumb:** Navigation par fil d'Ariane dans le header
+- **Icône WebSocket par type d'artefact:** Indicateur de statut WS adapté au type édité
+
+### 🛠️ Corrections
+- **Fix 403 collaborateurs:** Accès refusé corrigé pour les collaborateurs sur projets partagés
+- **PlaybookCreate avec project_id:** Création de playbooks correctement liée au projet
+
+### ⚠️ Changements
+- Suppression du mécanisme d'auto-save (remplacé par event sourcing)
+- usePlaybookPersistence refactoré pour chargement snapshot + delta
+
+---
+
 ## [2.3.6] - 2026-03-14
 
 ### ✨ Nouvelles fonctionnalités

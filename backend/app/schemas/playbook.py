@@ -3,7 +3,7 @@ Playbook schemas for request/response validation
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import datetime
 
 
@@ -16,6 +16,7 @@ class PlaybookBase(BaseModel):
 class PlaybookCreate(PlaybookBase):
     """Schema for playbook creation"""
     content: dict = Field(..., description="Complete playbook structure as JSON")
+    project_id: Optional[str] = Field(None, description="Project this playbook belongs to")
 
 
 class PlaybookUpdate(BaseModel):
@@ -46,10 +47,26 @@ class PlaybookResponse(PlaybookBase):
         from_attributes = True
 
 
+class PlaybookEventResponse(BaseModel):
+    """Schema for a single playbook event in the delta."""
+    id: str
+    playbook_id: str
+    user_id: Optional[str] = None
+    event_type: str
+    data: Optional[dict] = None
+    sequence_number: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class PlaybookDetailResponse(PlaybookResponse):
     """Schema for detailed playbook response (includes content)"""
     content: dict
     version: int = 1
+    snapshot_sequence: int = 0
+    events_delta: List[PlaybookEventResponse] = Field(default_factory=list)
 
 
 class PlaybookYamlResponse(BaseModel):

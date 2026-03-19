@@ -4,6 +4,41 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.4.0** - *2026-03-19*
+
+### 🔧 Event Sourcing — Persistance Événements Playbook
+
+- **Backend Event Sourcing**
+  - Modèle `PlaybookEvent` avec journal des événements persisté en base
+  - Colonne `snapshot_sequence` sur Playbook pour tracking séquence
+  - Service `playbook_event_service` pour enregistrement et replay des événements
+  - Handler WebSocket `update` modifié : persistance événement + ACK avec `event_id` et `sequence`
+  - Endpoint `GET /playbooks/{id}` enrichi avec `events_delta` pour rattrapage
+  - Backend comme autorité unique (server-authoritative)
+
+- **Frontend Event Sourcing**
+  - `useProjectWebSocket` modifié pour gérer `event_ack` du serveur
+  - `usePlaybookPersistence` : suppression auto-save, remplacement par event sourcing
+  - Chargement snapshot + delta d'événements au démarrage
+  - Sauvegarde automatique (plus de bouton Save manuel)
+
+### 🛠️ Corrections
+
+- **Fix 403 collaborateurs** : Correction accès refusé pour les collaborateurs sur les projets partagés
+- **PlaybookCreate avec project_id** : Création de playbooks correctement liée au projet
+
+### 🎨 Améliorations UI
+
+- **Page projets** : Affichage du owner, auto-refresh de la liste
+- **AppHeader breadcrumb** : Navigation par fil d'Ariane dans le header
+- **Icône WebSocket par type d'artefact** : Indicateur de statut WS adapté au type d'artefact édité
+
+### 📊 Métriques
+- **Version** : 2.4.0
+- **Branche** : integration (prête pour merge dans main)
+
+---
+
 ## ✅ **Version 2.3.6** - *2026-03-14*
 
 ### 🔧 YAML Parser Service (PR #7)

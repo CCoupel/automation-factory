@@ -44,11 +44,14 @@ const ProjectLayout: React.FC = () => {
   const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
   const clearError = useProjectStore(s => s.clearError)
   const updateArtifact = useProjectStore(s => s.updateArtifact)
+  const applyArtifactAdd = useProjectStore(s => s.applyArtifactAdd)
+  const applyArtifactUpdate = useProjectStore(s => s.applyArtifactUpdate)
+  const applyArtifactDelete = useProjectStore(s => s.applyArtifactDelete)
 
   const setSelectedArtifact = useProjectStore(s => s.setSelectedArtifact)
   const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
 
-  const { connectedUsers, isConnected } = useCollaboration()
+  const { connectedUsers, isConnected, connectToProject, disconnectFromProject, lastUpdate, sendUpdate } = useCollaboration()
 
   const [hasFetched, setHasFetched] = useState(false)
   const [isCreatingPlaybook, setIsCreatingPlaybook] = useState(false)
@@ -86,6 +89,29 @@ const ProjectLayout: React.FC = () => {
     }
   }, [projectId])
 
+  // Connect to project collaboration room
+  useEffect(() => {
+    if (projectId) {
+      connectToProject(projectId)
+    }
+    return () => {
+      disconnectFromProject()
+    }
+  }, [projectId])
+
+  // Apply received artifact collaboration updates
+  useEffect(() => {
+    if (!lastUpdate) return
+    const { update_type, data } = lastUpdate
+    if (update_type === 'artifact_add' && data.artifact) {
+      applyArtifactAdd(data.artifact as any)
+    } else if (update_type === 'artifact_update' && data.artifact) {
+      applyArtifactUpdate(data.artifact as any)
+    } else if (update_type === 'artifact_delete' && data.artifactId) {
+      applyArtifactDelete(data.artifactId as string)
+    }
+  }, [lastUpdate])
+
   // 404: project not found after fetch completed
   const isNotFound = hasFetched && !isLoading && !currentProject
 
@@ -118,6 +144,7 @@ const ProjectLayout: React.FC = () => {
       try {
         const newPlaybook = await playbookService.createPlaybook({
           name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
+          project_id: projectId,
           content: {
             modules: [], links: [], plays: [],
             collapsedBlocks: [], collapsedBlockSections: [],
@@ -125,9 +152,10 @@ const ProjectLayout: React.FC = () => {
           },
         })
         if (!cancelled) {
-          await updateArtifact(projectId, selectedArtifact.id, {
+          const updatedArtifact = await updateArtifact(projectId, selectedArtifact.id, {
             content: { playbook_id: newPlaybook.id },
           })
+          sendUpdate('artifact_update', { artifact: updatedArtifact })
         }
       } catch {
         // silent — store shows error snackbar if needed
@@ -168,6 +196,9 @@ const ProjectLayout: React.FC = () => {
         connectedUsers={connectedUsers}
         isCollaborationConnected={isPlaybookEditorShown ? isConnected : true}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
+        projectName={currentProject?.name}
+        artifactName={selectedArtifact?.path.split('/').pop()}
+        artifactType={selectedArtifact?.artifact_type}
       />
 
       {/* Main content area */}
@@ -246,7 +277,7 @@ const ProjectLayout: React.FC = () => {
 
           {/* PlaybookEditor fills the entire center when shown (handles its own SystemZone) */}
           {isPlaybookEditorShown ? (
-            <PlaybookEditor playbookId={linkedPlaybookId!} />
+            <PlaybookEditor playbookId={linkedPlaybookId!} artifactId={selectedArtifactId!} />
           ) : (
             <>
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>

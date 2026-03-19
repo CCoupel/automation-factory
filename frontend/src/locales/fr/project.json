@@ -64,6 +64,7 @@
   "shareAddError": "Échec du partage du projet",
   "shareUpdateError": "Échec de la mise à jour du partage",
   "shareRemoveError": "Échec de la suppression du partage",
+  "sharedBy": "par {{owner}}",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Rôles",

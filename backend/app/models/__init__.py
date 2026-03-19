@@ -8,6 +8,7 @@ from .project import Project
 from .project_artifact import ProjectArtifact, ArtifactType
 from .project_collaboration import ProjectShare, ProjectRole
 from .git_credential import GitCredential, GitProvider
+from .playbook_event import PlaybookEvent
 
 __all__ = [
     "User",
@@ -26,4 +27,5 @@ __all__ = [
     "ProjectRole",
     "GitCredential",
     "GitProvider",
+    "PlaybookEvent",
 ]

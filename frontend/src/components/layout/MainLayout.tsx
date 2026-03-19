@@ -30,8 +30,8 @@ const MainLayout = () => {
   const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
   const activeSectionTab = usePlaybookEditorStore(s => s.activeSectionTab)
 
-  // Collaboration state (for AppHeader display only)
-  const { connectedUsers, isConnected } = useCollaboration()
+  // Collaboration state (for AppHeader display + connection management)
+  const { connectedUsers, isConnected, connectToProject, disconnectFromProject } = useCollaboration()
 
   // Persistence (for PlaybookManagerDialog callback)
   const { loadPlaybook } = usePlaybookPersistence()
@@ -80,6 +80,16 @@ const MainLayout = () => {
       clearCurrentProject()
     }
   }, [routePlaybookId])
+
+  // Connect to project collaboration room when linkedProjectId is resolved
+  useEffect(() => {
+    if (linkedProjectId) {
+      connectToProject(linkedProjectId)
+    }
+    return () => {
+      disconnectFromProject()
+    }
+  }, [linkedProjectId])
 
   // Left panel resize handlers
   const handleModulesMouseDown = () => setIsResizingModules(true)

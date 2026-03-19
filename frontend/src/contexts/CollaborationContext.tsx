@@ -1,27 +1,28 @@
 /**
  * Collaboration Context
  *
- * Provides real-time collaboration state for playbook editing.
+ * Provides real-time collaboration state for project editing.
  * Manages WebSocket connections, presence tracking, and update notifications.
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { usePlaybookWebSocket, ConnectedUser, PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
+import { useProjectWebSocket, ConnectedUser, ProjectUpdate } from '../hooks/useProjectWebSocket'
 import { useAuth } from './AuthContext'
 
 interface CollaborationContextType {
   // Connection state
   isConnected: boolean
   connectedUsers: ConnectedUser[]
-  currentPlaybookId: string | null
+  currentProjectId: string | null
 
   // Actions
-  connectToPlaybook: (playbookId: string) => void
-  disconnectFromPlaybook: () => void
+  connectToProject: (projectId: string) => void
+  disconnectFromProject: () => void
   sendUpdate: (updateType: string, data: Record<string, unknown>) => void
+  sendSetArtifact: (artifactId: string) => void
 
   // Update notifications
-  lastUpdate: PlaybookUpdate | null
+  lastUpdate: ProjectUpdate | null
   highlightedElement: string | null
   clearHighlight: () => void
 }
@@ -38,21 +39,21 @@ export const useCollaboration = () => {
 
 interface CollaborationProviderProps {
   children: React.ReactNode
-  onPlaybookUpdate?: (update: PlaybookUpdate) => void
+  onProjectUpdate?: (update: ProjectUpdate) => void
 }
 
 export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   children,
-  onPlaybookUpdate
+  onProjectUpdate
 }) => {
   const { user } = useAuth()
-  const [currentPlaybookId, setCurrentPlaybookId] = useState<string | null>(null)
-  const [lastUpdate, setLastUpdate] = useState<PlaybookUpdate | null>(null)
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<ProjectUpdate | null>(null)
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Handle incoming updates
-  const handleUpdate = useCallback((update: PlaybookUpdate) => {
+  const handleUpdate = useCallback((update: ProjectUpdate) => {
     setLastUpdate(update)
 
     // Set highlight for 2 seconds
@@ -71,8 +72,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     }
 
     // Call external handler if provided
-    onPlaybookUpdate?.(update)
-  }, [onPlaybookUpdate])
+    onProjectUpdate?.(update)
+  }, [onProjectUpdate])
 
   // Handle presence changes
   const handlePresenceChange = useCallback((users: ConnectedUser[]) => {
@@ -84,9 +85,10 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     isConnected,
     connectedUsers,
     sendUpdate,
+    sendSetArtifact,
     connect,
     disconnect
-  } = usePlaybookWebSocket(currentPlaybookId, {
+  } = useProjectWebSocket(currentProjectId, {
     onUpdate: handleUpdate,
     onPresenceChange: handlePresenceChange,
     autoReconnect: true
@@ -98,22 +100,22 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     disconnectRef.current = disconnect
   })
 
-  // Connect to a playbook room - stable callback
-  const connectToPlaybook = useCallback((playbookId: string) => {
-    console.log('[Collab] connectToPlaybook called with:', playbookId)
-    setCurrentPlaybookId(prev => {
-      console.log('[Collab] setCurrentPlaybookId - prev:', prev, 'new:', playbookId)
-      if (playbookId !== prev) {
-        return playbookId
+  // Connect to a project room - stable callback
+  const connectToProject = useCallback((projectId: string) => {
+    console.log('[Collab] connectToProject called with:', projectId)
+    setCurrentProjectId(prev => {
+      console.log('[Collab] setCurrentProjectId - prev:', prev, 'new:', projectId)
+      if (projectId !== prev) {
+        return projectId
       }
       return prev
     })
   }, [])
 
-  // Disconnect from current playbook - stable callback
-  const disconnectFromPlaybook = useCallback(() => {
+  // Disconnect from current project - stable callback
+  const disconnectFromProject = useCallback(() => {
     disconnectRef.current()
-    setCurrentPlaybookId(null)
+    setCurrentProjectId(null)
     setLastUpdate(null)
     setHighlightedElement(null)
   }, [])
@@ -138,20 +140,22 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   const value = useMemo<CollaborationContextType>(() => ({
     isConnected,
     connectedUsers,
-    currentPlaybookId,
-    connectToPlaybook,
-    disconnectFromPlaybook,
+    currentProjectId,
+    connectToProject,
+    disconnectFromProject,
     sendUpdate,
+    sendSetArtifact,
     lastUpdate,
     highlightedElement,
     clearHighlight
   }), [
     isConnected,
     connectedUsers,
-    currentPlaybookId,
-    connectToPlaybook,
-    disconnectFromPlaybook,
+    currentProjectId,
+    connectToProject,
+    disconnectFromProject,
     sendUpdate,
+    sendSetArtifact,
     lastUpdate,
     highlightedElement,
     clearHighlight

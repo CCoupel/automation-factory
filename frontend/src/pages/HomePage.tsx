@@ -50,6 +50,18 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     fetchProjects()
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) fetchProjects()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    const interval = setInterval(fetchProjects, 30000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearInterval(interval)
+    }
   }, [])
 
   const handleLogout = async () => {

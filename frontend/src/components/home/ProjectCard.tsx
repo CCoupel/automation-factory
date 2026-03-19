@@ -70,9 +70,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             )}
           </Box>
 
-          {project.owner_username && !project.is_shared && (
-            <Typography variant="caption" color="text.secondary">
-              {project.owner_username}
+          {project.is_shared && project.owner_username && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              {t('sharedBy', { owner: project.owner_username })}
             </Typography>
           )}
         </CardContent>
