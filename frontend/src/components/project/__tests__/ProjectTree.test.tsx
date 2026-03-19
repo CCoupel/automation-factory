@@ -95,6 +95,15 @@ const mockStore = {
   deleteArtifact: vi.fn(),
 }
 
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: { id: 'user-1', username: 'testuser', email: 'test@example.com', role: 'user' },
+    isAuthenticated: true,
+    authLost: false,
+    logout: vi.fn(),
+  })),
+}))
+
 vi.mock('../../../contexts/CollaborationContext', () => ({
   useCollaboration: vi.fn(() => ({
     connectedUsers: [],
