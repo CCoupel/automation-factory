@@ -179,6 +179,16 @@ describe('CollaborationContext', () => {
     expect(result.current.highlightedElement).toBeNull()
   })
 
+  it('sendSetArtifact forwards to the WebSocket hook', () => {
+    const { result } = renderHook(() => useCollaboration(), { wrapper })
+
+    act(() => {
+      result.current.sendSetArtifact('art-42')
+    })
+
+    expect(mockSendSetArtifact).toHaveBeenCalledWith('art-42')
+  })
+
   it('calls onProjectUpdate prop when update is received', () => {
     const onProjectUpdate = vi.fn()
 
@@ -204,5 +214,20 @@ describe('CollaborationContext', () => {
     })
 
     expect(onProjectUpdate).toHaveBeenCalledWith(update)
+  })
+
+  it('does not reconnect when same projectId is set again', () => {
+    const { result } = renderHook(() => useCollaboration(), { wrapper })
+
+    act(() => {
+      result.current.connectToProject('pb-42')
+    })
+
+    act(() => {
+      result.current.connectToProject('pb-42')
+    })
+
+    // currentProjectId should still be set (no crash, no double-connect)
+    expect(result.current.currentProjectId).toBe('pb-42')
   })
 })

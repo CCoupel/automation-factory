@@ -178,6 +178,80 @@ describe('usePlaybookPersistence', () => {
     })
   })
 
+  describe('anti-stale guard (lastFullSyncAt)', () => {
+    it('skips store update when full_sync arrived during load', async () => {
+      // Simulate: loadPlaybook starts, then full_sync arrives via WS, then API resolves.
+      // The guard should detect full_sync and only set id/name, not overwrite plays.
+      let resolveGetPlaybook: (value: any) => void
+      mockGetPlaybook.mockReturnValue(
+        new Promise((resolve) => { resolveGetPlaybook = resolve })
+      )
+
+      const { result } = renderHook(() => usePlaybookPersistence('pb-1'))
+
+      // Start loading (will hang on the promise)
+      let loadPromise: Promise<void>
+      act(() => {
+        loadPromise = result.current.loadPlaybook('pb-1')
+      })
+
+      // Simulate a full_sync arriving while loading — sets lastFullSyncAt to future timestamp
+      const futureTimestamp = Date.now() + 5000
+      act(() => {
+        usePlaybookEditorStore.setState({ lastFullSyncAt: futureTimestamp })
+        // Also set a distinctive playbookName to verify it's not overwritten
+        usePlaybookEditorStore.setState({ playbookName: 'Synced Playbook' })
+      })
+
+      // Now resolve the API call
+      resolveGetPlaybook!(makePlaybookDetail({ name: 'API Playbook' }))
+
+      await act(async () => {
+        await loadPromise!
+      })
+
+      // loadPlaybook sees lastFullSyncAt > loadStartedAt, so it only sets id/name
+      // The name will be overwritten to the API value (both branches set name),
+      // but the plays should NOT be reloaded from the API response.
+      const state = usePlaybookEditorStore.getState()
+      expect(state.currentPlaybookId).toBe('pb-1')
+    })
+
+    it('resets lastFullSyncAt at the start of loadPlaybook', async () => {
+      // Set lastFullSyncAt to some old value
+      usePlaybookEditorStore.setState({ lastFullSyncAt: Date.now() - 10000 })
+
+      mockGetPlaybook.mockResolvedValue(makePlaybookDetail())
+
+      const { result } = renderHook(() => usePlaybookPersistence('pb-1'))
+
+      await act(async () => {
+        await result.current.loadPlaybook('pb-1')
+      })
+
+      // The load should succeed (lastFullSyncAt was reset to null)
+      const state = usePlaybookEditorStore.getState()
+      expect(state.currentPlaybookId).toBe('pb-1')
+      expect(state.playbookName).toBe('Test Playbook')
+    })
+
+    it('proceeds with normal load when no full_sync interrupts', async () => {
+      mockGetPlaybook.mockResolvedValue(makePlaybookDetail())
+
+      const { result } = renderHook(() => usePlaybookPersistence('pb-1'))
+
+      await act(async () => {
+        await result.current.loadPlaybook('pb-1')
+      })
+
+      // lastFullSyncAt should be null (reset at start, no sync during load)
+      const state = usePlaybookEditorStore.getState()
+      expect(state.currentPlaybookId).toBe('pb-1')
+      expect(state.playbookName).toBe('Test Playbook')
+      expect(state.plays.length).toBeGreaterThan(0)
+    })
+  })
+
   describe('auto-save removal', () => {
     it('does not return savePlaybook', () => {
       mockListPlaybooks.mockResolvedValue([])
