@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.4.0-rc.2"
-__description__ = "Automation Factory API - Event Sourcing Persistence Fix"
+__version__ = "2.4.0-rc.3"
+__description__ = "Automation Factory API - Event Sourcing: fix artifact_id vs playbook_id"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version

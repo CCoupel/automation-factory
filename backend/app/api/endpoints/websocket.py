@@ -220,8 +220,11 @@ async def handle_project_message(
 
         update_data = data.get("data", {})
         update_type = data.get("update_type", "content")
-        # artifact_id is inside the data payload, not at the top level of the WS message
+        # artifact_id = ProjectArtifact ID (for presence routing/filtering)
+        # playbook_id = actual Playbook ID (for event sourcing persistence)
+        # Both are sent by the frontend inside the data payload
         artifact_id = update_data.get("artifact_id") if isinstance(update_data, dict) else None
+        playbook_id = update_data.get("playbook_id") if isinstance(update_data, dict) else None
         event_type = data.get("event_type", update_type)
 
         # Update types that are not playbook-content events and should not be persisted
@@ -229,11 +232,11 @@ async def handle_project_message(
 
         # --- Event sourcing: persist event BEFORE broadcasting ---
         sequence_number = None
-        if artifact_id and update_type not in NON_PERSISTABLE:
+        if playbook_id and update_type not in NON_PERSISTABLE:
             try:
                 async with AsyncSessionLocal() as db:
                     event = await playbook_event_service.save_event(
-                        playbook_id=artifact_id,
+                        playbook_id=playbook_id,
                         user_id=user_id,
                         event_type=event_type,
                         data=update_data,
@@ -241,8 +244,8 @@ async def handle_project_message(
                     )
                     await db.commit()
                     sequence_number = event.sequence_number
-                # Track for snapshot triggers
-                websocket_manager.record_event(project_id, artifact_id)
+                # Track for snapshot triggers (keyed by playbook_id)
+                websocket_manager.record_event(project_id, playbook_id)
             except Exception as e:
                 logger.error("Failed to persist event: %s", e)
                 # Don't return — still broadcast to collaborators

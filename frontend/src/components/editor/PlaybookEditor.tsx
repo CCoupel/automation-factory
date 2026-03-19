@@ -53,7 +53,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
     sendBlockCollapse,
     sendSectionCollapse,
     sendModuleResize,
-  } = useCollaborationSync({ artifactId })
+  } = useCollaborationSync({ artifactId, playbookId })
 
   // Collaboration callbacks object
   const collaborationCallbacks: CollaborationCallbacks = {
@@ -80,6 +80,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
       const state = usePlaybookEditorStore.getState()
       sendUpdate('full_sync', {
         artifact_id: artifactId,
+        playbook_id: playbookId,
         plays: state.plays as unknown as Record<string, unknown>[],
         playbookName: state.playbookName,
         collapsedBlocks: Array.from(state.collapsedBlocks),
@@ -119,6 +120,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
         console.log('[PlaybookEditor] Responding to request_full_sync')
         sendUpdate('full_sync', {
           artifact_id: artifactId,
+          playbook_id: playbookId,
           plays: state.plays as unknown as Record<string, unknown>[],
           playbookName: state.playbookName,
           collapsedBlocks: Array.from(state.collapsedBlocks),

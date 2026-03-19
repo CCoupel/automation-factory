@@ -202,17 +202,22 @@ interface UseCollaborationSyncReturn {
 
 interface UseCollaborationSyncOptions {
   artifactId?: string | null
+  playbookId?: string | null
 }
 
 export function useCollaborationSync(options: UseCollaborationSyncOptions = {}): UseCollaborationSyncReturn {
-  const { artifactId } = options
+  const { artifactId, playbookId } = options
   const { sendUpdate: rawSendUpdate, isConnected } = useCollaboration()
 
-  // Wrap rawSendUpdate to inject artifact_id
+  // Wrap rawSendUpdate to inject artifact_id (ProjectArtifact ID for routing/presence)
+  // and playbook_id (actual Playbook ID for event sourcing persistence)
   const wrappedSendUpdate = useCallback((updateType: string, data: Record<string, unknown>) => {
-    const payload = artifactId ? { ...data, artifact_id: artifactId } : data
+    const extra: Record<string, unknown> = {}
+    if (artifactId) extra.artifact_id = artifactId
+    if (playbookId) extra.playbook_id = playbookId
+    const payload = (artifactId || playbookId) ? { ...data, ...extra } : data
     rawSendUpdate(updateType, payload)
-  }, [rawSendUpdate, artifactId])
+  }, [rawSendUpdate, artifactId, playbookId])
 
   // Refs for debounce timers, keyed by update type + element id
   const debounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
