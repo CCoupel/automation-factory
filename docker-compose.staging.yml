@@ -1,7 +1,7 @@
 services:
   # Backend FastAPI (service name matches Kubernetes for "build once deploy everywhere")
   automation-factory-backend:
-    image: automation-factory-backend:2.4.0-rc.3
+    image: automation-factory-backend:2.4.0-rc.4
     container_name: automation-factory-backend-staging
     environment:
       - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
@@ -18,7 +18,7 @@ services:
   # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
   # BORE: Utilise le même Dockerfile (nginx) que production - PAS de Dockerfile.dev
   automation-factory-frontend:
-    image: automation-factory-frontend:2.4.0-rc.3
+    image: automation-factory-frontend:2.4.0-rc.4
     container_name: automation-factory-frontend-staging
     restart: unless-stopped
     networks:

@@ -30,45 +30,23 @@ router = APIRouter()
 # Event-sourcing: snapshot callback
 # ---------------------------------------------------------------------------
 
-async def _take_snapshot(project_id: str, artifact_id: str):
+async def _take_snapshot(project_id: str, playbook_id: str):
     """
-    Create a snapshot for a playbook (artifact_id) by folding pending events
-    into the stored content.  Called by WebSocketManager on inactivity,
-    threshold, or last-user-disconnect triggers.
+    Snapshot placeholder — intentionally deferred.
+
+    Each persisted event carries only a delta (module_add, link_delete …),
+    not the full playbook state.  Advancing snapshot_sequence without also
+    writing a correct full-state content would cause events before the new
+    snapshot_sequence to be lost on the next load, producing empty playbooks.
+
+    The safe invariant: snapshot_sequence stays at 0, the full events log is
+    always replayed on load.  A proper snapshot strategy (frontend-driven
+    full_sync saved as content) will be introduced in a follow-up.
     """
-    try:
-        async with AsyncSessionLocal() as db:
-            from sqlalchemy import select as sa_select
-            from app.models.playbook import Playbook as PB
-
-            result = await db.execute(sa_select(PB).where(PB.id == artifact_id))
-            playbook = result.scalar_one_or_none()
-            if not playbook:
-                logger.warning("Snapshot skipped — playbook %s not found", artifact_id)
-                return
-
-            events = await playbook_event_service.get_events_since(
-                artifact_id, playbook.snapshot_sequence, db
-            )
-            if not events:
-                return
-
-            # Advance snapshot_sequence to the latest persisted event so that
-            # future loads only replay the delta since this point.
-            # We keep playbook.content (the last full snapshot) unchanged because
-            # individual events carry only delta data, not the full playbook state.
-            latest = events[-1]
-            await playbook_event_service.create_snapshot(
-                artifact_id, playbook.content, latest.sequence_number, db
-            )
-            await db.commit()
-            websocket_manager.reset_event_counter(project_id, artifact_id)
-            logger.info(
-                "Snapshot created for playbook %s at seq %d (%d events folded)",
-                artifact_id, latest.sequence_number, len(events),
-            )
-    except Exception as e:
-        logger.error("Snapshot failed for playbook %s: %s", artifact_id, e)
+    logger.debug(
+        "Snapshot deferred for playbook %s — full-state capture not yet implemented",
+        playbook_id,
+    )
 
 
 websocket_manager.register_snapshot_callback(_take_snapshot)

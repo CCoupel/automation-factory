@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "2.4.0-rc.3"
+__version__ = "2.4.0-rc.4"
 __description__ = "Automation Factory API - Event Sourcing: fix artifact_id vs playbook_id"
 
 # Environment: PROD (default), STAGING, DEV
