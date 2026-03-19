@@ -323,7 +323,8 @@
       "Bash(gh pr:*)",
       "Bash(pip-audit:*)",
       "Bash(npm audit:*)",
-      "Bash(npm audit --json:*)"
+      "Bash(npm audit --json:*)",
+      "Bash(git branch:*)"
     ],
     "deny": [],
     "ask": []

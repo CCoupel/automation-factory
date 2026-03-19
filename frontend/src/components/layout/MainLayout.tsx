@@ -1,168 +1,123 @@
-import { Box, IconButton, Tooltip } from '@mui/material'
+import { Box, IconButton, Tooltip, Tabs, Tab } from '@mui/material'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AppHeader from './AppHeader'
 import { useCollaboration } from '../../contexts/CollaborationContext'
-import { useCollaborationSync } from '../../hooks/useCollaborationSync'
-import { usePlaybookPersistence } from '../../hooks/usePlaybookPersistence'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
+import { usePlaybookPersistence } from '../../hooks/usePlaybookPersistence'
+import { useProjectStore } from '../../stores/projectStore'
+import { projectService } from '../../services/projectService'
 import ModulesZoneCached from '../zones/ModulesZoneCached'
-import WorkZone, { CollaborationCallbacks } from '../zones/WorkZone'
-import ConfigZone from '../zones/ConfigZone'
-import SystemZone from '../zones/SystemZone'
+import ProjectTree from '../project/ProjectTree'
+import PlaybookEditor from '../editor/PlaybookEditor'
 import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
 
 const MainLayout = () => {
-  // Local UI state (zone widths, collapse states, resize flags)
-  const [systemZoneHeight, setSystemZoneHeight] = useState(200)
-  const [modulesZoneWidth, setModulesZoneWidth] = useState(280)
-  const [configZoneWidth, setConfigZoneWidth] = useState(320)
-  const [isResizingSystem, setIsResizingSystem] = useState(false)
-  const [isResizingModules, setIsResizingModules] = useState(false)
-  const [isResizingConfig, setIsResizingConfig] = useState(false)
-  const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
-  const [isConfigCollapsed, setIsConfigCollapsed] = useState(false)
-  const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
-  const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
+  const { playbookId: routePlaybookId } = useParams<{ playbookId: string }>()
+  const { t } = useTranslation('project')
 
-  // Store state
+  // Left panel state
+  const [modulesZoneWidth, setModulesZoneWidth] = useState(280)
+  const [isResizingModules, setIsResizingModules] = useState(false)
+  const [isModulesCollapsed, setIsModulesCollapsed] = useState(false)
+  const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
+  const [leftTab, setLeftTab] = useState(0)
+  const [linkedProjectId, setLinkedProjectId] = useState<string | null>(null)
+
+  // Store state (for AppHeader + PlaybookManagerDialog)
   const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
   const activeSectionTab = usePlaybookEditorStore(s => s.activeSectionTab)
-  const applyCollaborationUpdate = usePlaybookEditorStore(s => s.applyCollaborationUpdate)
 
-  // Persistence hook (handles save/load/cache/auto-save)
+  // Collaboration state (for AppHeader display + connection management)
+  const { connectedUsers, isConnected, connectToProject, disconnectFromProject } = useCollaboration()
+
+  // Persistence (for PlaybookManagerDialog callback)
   const { loadPlaybook } = usePlaybookPersistence()
 
-  // Collaboration
-  const { connectToPlaybook, disconnectFromPlaybook, connectedUsers, isConnected, lastUpdate } = useCollaboration()
-  const {
-    sendModuleAdd,
-    sendModuleMove,
-    sendModuleDelete,
-    sendModuleConfig,
-    sendLinkAdd,
-    sendLinkDelete,
-    sendPlayUpdate,
-    sendVariableAdd,
-    sendVariableUpdate,
-    sendVariableDelete,
-    sendRoleAdd,
-    sendRoleDelete,
-    sendRoleUpdate,
-    sendBlockCollapse,
-    sendSectionCollapse,
-    sendModuleResize
-  } = useCollaborationSync()
+  // Project store (for ProjectTree tab)
+  const fetchProject = useProjectStore(s => s.fetchProject)
+  const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
+  const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
 
-  // Create collaboration callbacks object
-  const collaborationCallbacks: CollaborationCallbacks = {
-    sendModuleAdd,
-    sendModuleMove,
-    sendModuleDelete,
-    sendModuleConfig,
-    sendModuleResize,
-    sendLinkAdd,
-    sendLinkDelete,
-    sendPlayUpdate,
-    sendVariableAdd,
-    sendVariableUpdate,
-    sendVariableDelete,
-    sendRoleAdd,
-    sendRoleDelete,
-    sendRoleUpdate,
-    sendBlockCollapse,
-    sendSectionCollapse
-  }
-
-  // Apply received collaboration updates directly to store
-  // Use ref for applyCollaborationUpdate to avoid re-triggering on store selector changes
-  const applyCollaborationUpdateRef = useRef(applyCollaborationUpdate)
-  applyCollaborationUpdateRef.current = applyCollaborationUpdate
-
+  // Lookup which project this playbook belongs to
   useEffect(() => {
-    if (lastUpdate) {
-      console.log('[MainLayout] Received collaboration update:', lastUpdate.update_type)
-      applyCollaborationUpdateRef.current(lastUpdate)
+    if (!routePlaybookId) {
+      setLinkedProjectId(null)
+      return
     }
-  }, [lastUpdate])
 
-  // Store functions in refs to avoid dependency issues
-  const connectToPlaybookRef = useRef(connectToPlaybook)
-  const disconnectFromPlaybookRef = useRef(disconnectFromPlaybook)
+    let cancelled = false
+    const lookup = async () => {
+      try {
+        const projects = await projectService.listProjects()
+        for (const project of projects) {
+          const artifacts = await projectService.listArtifacts(project.id)
+          const match = artifacts.find(a =>
+            a.artifact_type === 'playbook' && a.content?.playbook_id === routePlaybookId
+          )
+          if (match && !cancelled) {
+            setLinkedProjectId(project.id)
+            await fetchProject(project.id)
+            if (!cancelled) await fetchArtifacts(project.id)
+            return
+          }
+        }
+        if (!cancelled) {
+          setLinkedProjectId(null)
+        }
+      } catch {
+        if (!cancelled) {
+          setLinkedProjectId(null)
+        }
+      }
+    }
+    lookup()
 
-  // Update refs when functions change
+    return () => {
+      cancelled = true
+      clearCurrentProject()
+    }
+  }, [routePlaybookId])
+
+  // Connect to project collaboration room when linkedProjectId is resolved
   useEffect(() => {
-    connectToPlaybookRef.current = connectToPlaybook
-    disconnectFromPlaybookRef.current = disconnectFromPlaybook
-  })
-
-  // Connect to playbook collaboration when playbook ID changes
-  useEffect(() => {
-    console.log('[MainLayout] currentPlaybookId changed to:', currentPlaybookId)
-    if (currentPlaybookId) {
-      console.log('[MainLayout] Calling connectToPlaybook with:', currentPlaybookId)
-      connectToPlaybookRef.current(currentPlaybookId)
+    if (linkedProjectId) {
+      connectToProject(linkedProjectId)
     }
     return () => {
-      console.log('[MainLayout] Cleanup - disconnecting from playbook')
-      disconnectFromPlaybookRef.current()
+      disconnectFromProject()
     }
-  }, [currentPlaybookId])
+  }, [linkedProjectId])
 
-  const handleSystemMouseDown = () => {
-    setIsResizingSystem(true)
-  }
-
-  const handleModulesMouseDown = () => {
-    setIsResizingModules(true)
-  }
-
-  const handleConfigMouseDown = () => {
-    setIsResizingConfig(true)
-  }
+  // Left panel resize handlers
+  const handleModulesMouseDown = () => setIsResizingModules(true)
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (isResizingSystem) {
-      const newHeight = window.innerHeight - e.clientY
-      if (newHeight >= 100 && newHeight <= 600) {
-        setSystemZoneHeight(newHeight)
-      }
-    } else if (isResizingModules) {
+    if (isResizingModules) {
       const newWidth = e.clientX
       if (newWidth >= 200 && newWidth <= 500) {
         setModulesZoneWidth(newWidth)
       }
-    } else if (isResizingConfig) {
-      const newWidth = window.innerWidth - e.clientX
-      if (newWidth >= 250 && newWidth <= 600) {
-        setConfigZoneWidth(newWidth)
-      }
     }
   }
 
-  const handleMouseUp = () => {
-    setIsResizingSystem(false)
-    setIsResizingModules(false)
-    setIsResizingConfig(false)
-  }
+  const handleMouseUp = () => setIsResizingModules(false)
 
-  // Ajouter/retirer les event listeners
   React.useEffect(() => {
-    if (isResizingSystem || isResizingModules || isResizingConfig) {
-      document.addEventListener('mousemove', handleMouseMove as any)
+    if (isResizingModules) {
+      document.addEventListener('mousemove', handleMouseMove as EventListener)
       document.addEventListener('mouseup', handleMouseUp)
     } else {
-      document.removeEventListener('mousemove', handleMouseMove as any)
+      document.removeEventListener('mousemove', handleMouseMove as EventListener)
       document.removeEventListener('mouseup', handleMouseUp)
     }
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove as any)
+      document.removeEventListener('mousemove', handleMouseMove as EventListener)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isResizingSystem, isResizingModules, isResizingConfig])
+  }, [isResizingModules])
 
   return (
     <Box
@@ -173,258 +128,98 @@ const MainLayout = () => {
         overflow: 'hidden',
       }}
     >
-      {/* App Header - reads from store directly */}
+      {/* App Header */}
       <AppHeader
         connectedUsers={connectedUsers}
         isCollaborationConnected={isConnected}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
       />
 
-      {/* Zone Centrale - 3 colonnes */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          overflow: 'hidden',
-          minHeight: 0,
-        }}
-      >
-        {/* Zone Modules - Gauche redimensionnable */}
+      {/* Main content: left panel + editor */}
+      <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+        {/* Left panel (Project + Modules tabs) */}
         {!isModulesCollapsed && (
           <Box
             sx={{
               width: `${modulesZoneWidth}px`,
               borderRight: '1px solid #ddd',
               flexShrink: 0,
-              overflow: 'auto',
+              overflow: 'hidden',
               position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
-            {/* Poignée de redimensionnement */}
+            {/* Tabs header */}
+            <Tabs
+              value={leftTab}
+              onChange={(_e, v) => setLeftTab(v)}
+              variant="fullWidth"
+              sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8rem' } }}
+            >
+              <Tab label={t('projectTree')} />
+              <Tab label={t('modules')} />
+            </Tabs>
+
+            {/* Tab content */}
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {leftTab === 0 ? (
+                <ProjectTree />
+              ) : (
+                <ModulesZoneCached onCollapse={() => setIsModulesCollapsed(true)} activeSectionTab={activeSectionTab} />
+              )}
+            </Box>
+
+            {/* Resize handle */}
             <Box
               onMouseDown={handleModulesMouseDown}
               sx={{
                 position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
+                top: 0, right: 0, bottom: 0,
                 width: '6px',
                 cursor: 'ew-resize',
                 bgcolor: isResizingModules ? 'primary.main' : 'transparent',
-                '&:hover': {
-                  bgcolor: 'primary.light',
-                },
+                '&:hover': { bgcolor: 'primary.light' },
                 transition: 'background-color 0.2s',
                 zIndex: 10,
               }}
             >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '3px',
-                  height: '40px',
-                  borderRadius: '2px',
-                  bgcolor: isResizingModules ? 'white' : '#999',
-                }}
-              />
+              <Box sx={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '3px', height: '40px',
+                borderRadius: '2px',
+                bgcolor: isResizingModules ? 'white' : '#999',
+              }} />
             </Box>
           </Box>
         )}
 
-        {/* Zone de Travail - Centre */}
-        <Box
-          sx={{
-            flex: 1,
-            overflow: 'auto',
-            minWidth: 0,
-            position: 'relative',
-          }}
-        >
-          {/* Bouton pour rouvrir la zone Modules */}
+        {/* Editor area (WorkZone + ConfigZone + SystemZone) */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' }}>
+          {/* Button to reopen left panel */}
           {isModulesCollapsed && (
             <Tooltip title="Show Modules" placement="right">
               <IconButton
                 onClick={() => setIsModulesCollapsed(false)}
                 sx={{
                   position: 'absolute',
-                  top: 70,
-                  left: 8,
-                  zIndex: 1000,
-                  bgcolor: 'background.paper',
-                  boxShadow: 2,
-                  '&:hover': {
-                    bgcolor: 'primary.light',
-                  },
+                  top: 70, left: 8, zIndex: 1000,
+                  bgcolor: 'background.paper', boxShadow: 2,
+                  '&:hover': { bgcolor: 'primary.light' },
                 }}
               >
                 <ChevronRightIcon />
               </IconButton>
             </Tooltip>
           )}
-          {/* Bouton pour rouvrir la zone Config */}
-          {isConfigCollapsed && (
-            <Tooltip title="Show Configuration" placement="left">
-              <IconButton
-                onClick={() => setIsConfigCollapsed(false)}
-                sx={{
-                  position: 'absolute',
-                  top: 70,
-                  right: 8,
-                  zIndex: 1000,
-                  bgcolor: 'background.paper',
-                  boxShadow: 2,
-                  '&:hover': {
-                    bgcolor: 'primary.light',
-                  },
-                }}
-              >
-                <ChevronLeftIcon />
-              </IconButton>
-            </Tooltip>
+
+          {routePlaybookId && (
+            <PlaybookEditor playbookId={routePlaybookId} />
           )}
-          <WorkZone
-            collaborationCallbacks={collaborationCallbacks}
-          />
         </Box>
-
-        {/* Zone Config - Droite redimensionnable */}
-        {!isConfigCollapsed && (
-          <Box
-            sx={{
-              width: `${configZoneWidth}px`,
-              borderLeft: '1px solid #ddd',
-              flexShrink: 0,
-              overflow: 'auto',
-              position: 'relative',
-            }}
-          >
-            {/* Poignée de redimensionnement */}
-            <Box
-              onMouseDown={handleConfigMouseDown}
-              sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: '6px',
-                cursor: 'ew-resize',
-                bgcolor: isResizingConfig ? 'primary.main' : 'transparent',
-                '&:hover': {
-                  bgcolor: 'primary.light',
-                },
-                transition: 'background-color 0.2s',
-                zIndex: 10,
-              }}
-            >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '3px',
-                  height: '40px',
-                  borderRadius: '2px',
-                  bgcolor: isResizingConfig ? 'white' : '#999',
-                }}
-              />
-            </Box>
-            <ConfigZone
-              onCollapse={() => setIsConfigCollapsed(true)}
-              collaborationCallbacks={{ sendModuleConfig, sendPlayUpdate }}
-            />
-          </Box>
-        )}
       </Box>
-
-      {/* Zone System - Barre basse redimensionnable */}
-      {!isSystemCollapsed ? (
-        <Box
-          sx={{
-            height: `${systemZoneHeight}px`,
-            borderTop: '1px solid #ddd',
-            flexShrink: 0,
-            position: 'relative',
-          }}
-        >
-          {/* Poignée de redimensionnement */}
-          <Box
-            onMouseDown={handleSystemMouseDown}
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '6px',
-              cursor: 'ns-resize',
-              bgcolor: isResizingSystem ? 'primary.main' : 'transparent',
-              '&:hover': {
-                bgcolor: 'primary.light',
-              },
-              transition: 'background-color 0.2s',
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Box
-              sx={{
-                width: '40px',
-                height: '3px',
-                borderRadius: '2px',
-                bgcolor: isResizingSystem ? 'white' : '#999',
-              }}
-            />
-            {/* Bouton de collapse */}
-            <Tooltip title="Hide System Zone" placement="top">
-              <IconButton
-                size="small"
-                onClick={() => setIsSystemCollapsed(true)}
-                sx={{
-                  position: 'absolute',
-                  right: 8,
-                  bgcolor: 'background.paper',
-                  boxShadow: 1,
-                  '&:hover': {
-                    bgcolor: 'primary.light',
-                  },
-                }}
-              >
-                <ExpandMoreIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <SystemZone />
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            height: '30px',
-            borderTop: '1px solid #ddd',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: 'background.paper',
-            cursor: 'pointer',
-            '&:hover': {
-              bgcolor: 'action.hover',
-            },
-          }}
-          onClick={() => setIsSystemCollapsed(false)}
-        >
-          <Tooltip title="Show System Zone" placement="top">
-            <IconButton size="small">
-              <ExpandLessIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
 
       {/* Playbook Manager Dialog */}
       <PlaybookManagerDialog

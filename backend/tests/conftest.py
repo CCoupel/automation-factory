@@ -17,6 +17,11 @@ from app.models.playbook import Playbook
 from app.models.user_preferences import UserPreferences
 from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog
 from app.models.custom_variable_type import CustomVariableType
+from app.models.project import Project
+from app.models.project_artifact import ProjectArtifact
+from app.models.project_collaboration import ProjectShare
+from app.models.git_credential import GitCredential
+from app.models.playbook_event import PlaybookEvent
 
 # ---------------------------------------------------------------------------
 # Database fixtures
@@ -170,3 +175,17 @@ async def test_playbook(test_session, test_user):
     await test_session.commit()
     await test_session.refresh(playbook)
     return playbook
+
+
+@pytest_asyncio.fixture
+async def test_project(test_session, test_user):
+    """Create a project owned by ``test_user``."""
+    project = Project(
+        name="Test Project",
+        description="A project for testing",
+        owner_id=test_user.id,
+    )
+    test_session.add(project)
+    await test_session.commit()
+    await test_session.refresh(project)
+    return project

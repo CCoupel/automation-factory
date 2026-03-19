@@ -4,8 +4,8 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Use relative paths so the app works at any base path without rewriting
-  base: './',
+  // Use absolute paths so SPA deep routes work on page reload
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {

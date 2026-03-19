@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from sqlalchemy import select
+from sqlalchemy import select, text, inspect as sa_inspect
 from app.core.config import settings
 from app.core.database import init_db, AsyncSessionLocal
 from app.core.security import get_password_hash
@@ -59,6 +59,22 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         print("Database initialized successfully")
+
+        # Ensure snapshot_sequence column exists on playbooks table
+        # (create_all won't add columns to existing tables)
+        from app.core.database import engine as _engine
+        async with _engine.begin() as conn:
+            def _check_and_add_column(sync_conn):
+                inspector = sa_inspect(sync_conn)
+                columns = [c["name"] for c in inspector.get_columns("playbooks")]
+                if "snapshot_sequence" not in columns:
+                    sync_conn.execute(
+                        text("ALTER TABLE playbooks ADD COLUMN snapshot_sequence INTEGER DEFAULT 0 NOT NULL")
+                    )
+                    print("Added snapshot_sequence column to playbooks table")
+                else:
+                    print("snapshot_sequence column already exists")
+            await conn.run_sync(_check_and_add_column)
         
         # Create default admin user for testing
         await create_default_user()

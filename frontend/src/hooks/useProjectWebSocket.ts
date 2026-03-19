@@ -1,8 +1,8 @@
 /**
- * WebSocket hook for real-time playbook collaboration
+ * WebSocket hook for real-time project collaboration
  *
  * Provides:
- * - Connection management to playbook rooms
+ * - Connection management to project rooms
  * - Real-time update notifications
  * - Presence tracking (connected users)
  * - Automatic reconnection
@@ -14,50 +14,65 @@ export interface ConnectedUser {
   user_id: string
   username: string
   connected_at: string
+  current_artifact_id?: string
 }
 
-export interface PlaybookUpdate {
+export interface ProjectUpdate {
   type: 'update'
   update_type: string
   user_id: string
   username: string
   data: Record<string, unknown>
   timestamp: string
+  artifact_id?: string
 }
+
+// Backward compatibility alias
+export type PlaybookUpdate = ProjectUpdate
 
 interface WebSocketMessage {
   type: string
   [key: string]: unknown
 }
 
-interface UsePlaybookWebSocketOptions {
-  onUpdate?: (update: PlaybookUpdate) => void
+export interface EventAck {
+  type: 'event_ack'
+  sequence_number?: number
+}
+
+interface UseProjectWebSocketOptions {
+  onUpdate?: (update: ProjectUpdate) => void
   onPresenceChange?: (users: ConnectedUser[]) => void
+  onEventAck?: (ack: EventAck) => void
   autoReconnect?: boolean
   reconnectInterval?: number
 }
 
-interface UsePlaybookWebSocketReturn {
+interface UseProjectWebSocketReturn {
   isConnected: boolean
   connectedUsers: ConnectedUser[]
+  lastSequenceNumber: number | null
   sendUpdate: (updateType: string, data: Record<string, unknown>) => void
+  sendSetArtifact: (artifactId: string) => void
   connect: () => void
   disconnect: () => void
 }
 
-export function usePlaybookWebSocket(
-  playbookId: string | null,
-  options: UsePlaybookWebSocketOptions = {}
-): UsePlaybookWebSocketReturn {
+export function useProjectWebSocket(
+  projectId: string | null,
+  options: UseProjectWebSocketOptions = {}
+): UseProjectWebSocketReturn {
   const {
     onUpdate,
     onPresenceChange,
+    onEventAck,
     autoReconnect = true,
     reconnectInterval = 3000
   } = options
 
   const [isConnected, setIsConnected] = useState(false)
   const [connectedUsers, setConnectedUsers] = useState<ConnectedUser[]>([])
+  const [lastSequenceNumber, setLastSequenceNumber] = useState<number | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -66,37 +81,38 @@ export function usePlaybookWebSocket(
   // Store options in refs to avoid dependency issues
   const onUpdateRef = useRef(onUpdate)
   const onPresenceChangeRef = useRef(onPresenceChange)
+  const onEventAckRef = useRef(onEventAck)
   const autoReconnectRef = useRef(autoReconnect)
   const reconnectIntervalRef = useRef(reconnectInterval)
-  const playbookIdRef = useRef(playbookId)
+  const projectIdRef = useRef(projectId)
 
   // Update refs when values change
   useEffect(() => {
     onUpdateRef.current = onUpdate
     onPresenceChangeRef.current = onPresenceChange
+    onEventAckRef.current = onEventAck
     autoReconnectRef.current = autoReconnect
     reconnectIntervalRef.current = reconnectInterval
-    playbookIdRef.current = playbookId
+    projectIdRef.current = projectId
   })
 
   // Get WebSocket URL from environment or derive from window location
   const getWebSocketUrl = useCallback(() => {
     const token = localStorage.getItem('authToken')
-    const currentPlaybookId = playbookIdRef.current
-    console.log('[WS] getWebSocketUrl - token:', token ? 'exists' : 'MISSING', 'playbookId:', currentPlaybookId)
-    if (!token || !currentPlaybookId) return null
+    const currentProjectId = projectIdRef.current
+    console.log('[WS] getWebSocketUrl - token:', token ? 'exists' : 'MISSING', 'projectId:', currentProjectId)
+    if (!token || !currentProjectId) return null
 
     // Use environment variable if available, otherwise derive from location
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsHost = window.location.host
-    // Get base path from runtime injection or derive from pathname
-    const basePath = (window as any).__BASE_PATH__ || window.location.pathname.replace(/\/[^/]*$/, '') || ''
-    const wsBasePath = basePath.replace(/\/$/, '')
+    // Use runtime injection only — do NOT derive from pathname (would pick up route segments)
+    const wsBasePath = ((window as any).__BASE_PATH__ || '').replace(/\/$/, '')
 
 
-    const url = `${wsProtocol}//${wsHost}${wsBasePath}/ws/playbook/${currentPlaybookId}?token=${token.substring(0, 20)}...`
+    const url = `${wsProtocol}//${wsHost}${wsBasePath}/ws/project/${currentProjectId}?token=${token.substring(0, 20)}...`
     console.log('[WS] WebSocket URL:', url)
-    return `${wsProtocol}//${wsHost}${wsBasePath}/ws/playbook/${currentPlaybookId}?token=${token}`
+    return `${wsProtocol}//${wsHost}${wsBasePath}/ws/project/${currentProjectId}?token=${token}`
   }, [])
 
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -131,9 +147,34 @@ export function usePlaybookWebSocket(
           })
           break
 
-        case 'update':
-          onUpdateRef.current?.(message as unknown as PlaybookUpdate)
+        case 'artifact_update':
+          // A user changed their current artifact
+          setConnectedUsers(prev => {
+            const updated = prev.map(u =>
+              u.user_id === message.user_id
+                ? { ...u, current_artifact_id: (message.artifact_id as string) || undefined }
+                : u
+            )
+            onPresenceChangeRef.current?.(updated)
+            return updated
+          })
           break
+
+        case 'update':
+          onUpdateRef.current?.(message as unknown as ProjectUpdate)
+          break
+
+        case 'event_ack': {
+          const ack: EventAck = {
+            type: 'event_ack',
+            sequence_number: message.sequence_number as number | undefined
+          }
+          if (ack.sequence_number != null) {
+            setLastSequenceNumber(ack.sequence_number)
+          }
+          onEventAckRef.current?.(ack)
+          break
+        }
 
         case 'pong':
           // Keep-alive response, no action needed
@@ -141,7 +182,7 @@ export function usePlaybookWebSocket(
 
         case 'connected':
           // Initial connection confirmation with role info
-          console.log('[WS] Connected to playbook with role:', message.role)
+          console.log('[WS] Connected to project with role:', message.role)
           break
 
         case 'error':
@@ -159,7 +200,7 @@ export function usePlaybookWebSocket(
   const connect = useCallback(() => {
     const url = getWebSocketUrl()
     if (!url) {
-      console.warn('Cannot connect: missing token or playbook ID')
+      console.warn('Cannot connect: missing token or project ID')
       return
     }
 
@@ -172,7 +213,7 @@ export function usePlaybookWebSocket(
     wsRef.current = ws
 
     ws.onopen = () => {
-      console.log('WebSocket connected to playbook:', playbookIdRef.current)
+      console.log('WebSocket connected to project:', projectIdRef.current)
       setIsConnected(true)
 
       // Start ping interval
@@ -196,8 +237,9 @@ export function usePlaybookWebSocket(
         pingIntervalRef.current = null
       }
 
-      // Auto reconnect if enabled and not a clean close
-      if (autoReconnectRef.current && event.code !== 1000 && playbookIdRef.current) {
+      // Auto reconnect if enabled and not a clean close or auth/access error
+      const noReconnectCodes = [1000, 4001, 4003]
+      if (autoReconnectRef.current && !noReconnectCodes.includes(event.code) && projectIdRef.current) {
         reconnectTimeoutRef.current = setTimeout(() => {
           console.log('Attempting to reconnect...')
           connect()
@@ -231,6 +273,15 @@ export function usePlaybookWebSocket(
 
     setIsConnected(false)
     setConnectedUsers([])
+    setLastSequenceNumber(null)
+  }, [])
+
+  const sendSetArtifact = useCallback((artifactId: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const message = { type: 'set_artifact', artifact_id: artifactId }
+      console.log('[WS] Sending set_artifact:', artifactId || '(clear)')
+      wsRef.current.send(JSON.stringify(message))
+    }
   }, [])
 
   const sendUpdate = useCallback((updateType: string, data: Record<string, unknown>) => {
@@ -248,14 +299,14 @@ export function usePlaybookWebSocket(
     }
   }, [])
 
-  // Connect when playbook ID changes
+  // Connect when project ID changes
   useEffect(() => {
-    console.log('[WS] useEffect triggered - playbookId:', playbookId)
-    if (playbookId) {
-      console.log('[WS] Calling connect() for playbook:', playbookId)
+    console.log('[WS] useEffect triggered - projectId:', projectId)
+    if (projectId) {
+      console.log('[WS] Calling connect() for project:', projectId)
       connect()
     } else {
-      console.log('[WS] No playbookId, calling disconnect()')
+      console.log('[WS] No projectId, calling disconnect()')
       disconnect()
     }
 
@@ -263,15 +314,20 @@ export function usePlaybookWebSocket(
       console.log('[WS] Cleanup - calling disconnect()')
       disconnect()
     }
-  }, [playbookId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     isConnected,
     connectedUsers,
+    lastSequenceNumber,
     sendUpdate,
+    sendSetArtifact,
     connect,
     disconnect
   }
 }
 
-export default usePlaybookWebSocket
+// Backward compatibility alias
+export const usePlaybookWebSocket = useProjectWebSocket
+
+export default useProjectWebSocket

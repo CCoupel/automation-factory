@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType, PlaySectionName } from '../types/playbook'
 import { PlaybookContent } from '../services/playbookService'
-import { PlaybookUpdate } from '../hooks/usePlaybookWebSocket'
+import { ProjectUpdate } from '../hooks/useProjectWebSocket'
 import { CustomTypeInfo } from '../utils/assertionsGenerator'
 
 // =====================================================
@@ -89,6 +89,7 @@ interface PlaybookEditorState {
   playbookName: string
   saveStatus: SaveStatus
   lastSavedAt: Date | null
+  lastFullSyncAt: number | null
 
   // UI state
   activeSectionTab: SectionTab
@@ -174,7 +175,8 @@ interface PlaybookEditorActions {
   }) => void
 
   // Collaboration
-  applyCollaborationUpdate: (update: PlaybookUpdate) => void
+  applyCollaborationUpdate: (update: ProjectUpdate) => void
+  applyFullSync: (data: { plays: Play[]; playbookName: string; collapsedBlocks: string[]; collapsedBlockSections: string[] }) => void
 
   // Reset
   resetStore: () => void
@@ -213,6 +215,7 @@ const initialState: PlaybookEditorState = {
   playbookName: 'Untitled Playbook',
   saveStatus: 'idle',
   lastSavedAt: null,
+  lastFullSyncAt: null,
   activeSectionTab: 'tasks',
   gridEnabled: false,
   draggedModuleId: null,
@@ -651,7 +654,7 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
 
   loadPlaybookState: (loaded) => {
     set({
-      plays: loaded.plays,
+      plays: loaded.plays.length > 0 ? loaded.plays : initialState.plays,
       currentPlaybookId: loaded.currentPlaybookId,
       playbookName: loaded.playbookName,
       activePlayIndex: 0,
@@ -666,7 +669,7 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
   // Collaboration update handler
   // --------------------------------------------------
 
-  applyCollaborationUpdate: (update: PlaybookUpdate) => {
+  applyCollaborationUpdate: (update: ProjectUpdate) => {
     const { update_type, data, user_id } = update
 
     switch (update_type) {
@@ -830,6 +833,27 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
         break
       }
 
+      case 'play_add': {
+        const { play } = data as { play: Play }
+        set(state => ({
+          plays: [...state.plays, play],
+        }))
+        break
+      }
+
+      case 'play_delete': {
+        const { playId } = data as { playId: string }
+        set(state => {
+          if (state.plays.length <= 1) return state
+          const newPlays = state.plays.filter(p => p.id !== playId)
+          const newIndex = state.activePlayIndex >= newPlays.length
+            ? newPlays.length - 1
+            : state.activePlayIndex
+          return { plays: newPlays, activePlayIndex: newIndex }
+        })
+        break
+      }
+
       case 'play_update': {
         const { playId, field, value } = data as { playId: string; field: string; value: unknown }
         const attributeFields = ['hosts', 'remoteUser', 'connection', 'gatherFacts', 'become', 'roles']
@@ -838,6 +862,13 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
             if (p.id === playId) {
               if (attributeFields.includes(field)) {
                 return { ...p, attributes: { ...(p.attributes || {}), [field]: value } }
+              } else if (field === 'name') {
+                // Also update isPlay canvas modules so the tab AND canvas stay in sync
+                return {
+                  ...p,
+                  name: value as string,
+                  modules: p.modules.map(m => m.isPlay ? { ...m, taskName: value as string } : m),
+                }
               } else {
                 return { ...p, [field]: value }
               }
@@ -936,9 +967,30 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
         break
       }
 
+      case 'full_sync': {
+        const { plays, playbookName, collapsedBlocks, collapsedBlockSections } = data as {
+          plays: Play[]
+          playbookName: string
+          collapsedBlocks: string[]
+          collapsedBlockSections: string[]
+        }
+        get().applyFullSync({ plays, playbookName, collapsedBlocks, collapsedBlockSections })
+        break
+      }
+
       default:
         console.warn(`[PlaybookEditorStore] Unknown update type: ${update_type}`)
     }
+  },
+
+  applyFullSync: (data) => {
+    set({
+      plays: data.plays,
+      playbookName: data.playbookName,
+      collapsedBlocks: new Set(data.collapsedBlocks),
+      collapsedBlockSections: new Set(data.collapsedBlockSections),
+      lastFullSyncAt: Date.now(),
+    })
   },
 
   // --------------------------------------------------

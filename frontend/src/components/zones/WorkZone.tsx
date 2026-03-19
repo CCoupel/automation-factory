@@ -44,6 +44,8 @@ export interface CollaborationCallbacks {
   sendModuleResize?: (data: { moduleId: string; width: number; height: number; x: number; y: number }) => void
   sendLinkAdd?: (data: { link: Link }) => void
   sendLinkDelete?: (data: { linkId: string }) => void
+  sendPlayAdd?: (data: { play: Play }) => void
+  sendPlayDelete?: (data: { playId: string }) => void
   sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
   sendVariableAdd?: (data: { playId: string; variable: PlayVariable }) => void
   sendVariableUpdate?: (data: { playId: string; variableIndex: number; variable: PlayVariable }) => void
@@ -53,6 +55,7 @@ export interface CollaborationCallbacks {
   sendRoleUpdate?: (data: { playId: string; roles: Array<string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }> }) => void
   sendBlockCollapse?: (data: { blockId: string; collapsed: boolean }) => void
   sendSectionCollapse?: (data: { key: string; collapsed: boolean }) => void
+  sendFullSync?: () => void
 }
 
 interface WorkZoneProps {
@@ -261,15 +264,18 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
     }
     setPlays([...plays, newPlay])
     setActivePlayIndex(plays.length)
+    collaborationCallbacks?.sendPlayAdd?.({ play: newPlay })
   }
 
   const deletePlay = (index: number) => {
     if (plays.length === 1) return
+    const deletedPlayId = plays[index].id
     const newPlays = plays.filter((_, i) => i !== index)
     setPlays(newPlays)
     if (activePlayIndex >= newPlays.length) {
       setActivePlayIndex(newPlays.length - 1)
     }
+    collaborationCallbacks?.sendPlayDelete?.({ playId: deletedPlayId })
   }
 
   const updatePlayName = (index: number, newName: string) => {
@@ -284,6 +290,7 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
       }
       return updatedPlays
     })
+    collaborationCallbacks?.sendPlayUpdate?.({ playId: plays[index].id, field: 'name', value: newName })
   }
 
   // =====================================================
@@ -350,7 +357,8 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
       setPlaybookName(result.metadata.name)
     }
 
-    setCurrentPlaybookId(null)
+    // Notify collaborators of the imported content
+    collaborationCallbacks?.sendFullSync?.()
   }
 
   const deleteVariable = (index: number) => {

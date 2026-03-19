@@ -24,8 +24,8 @@
 
 import { useCallback, useRef, useEffect } from 'react'
 import { useCollaboration } from '../contexts/CollaborationContext'
-import { PlaybookUpdate } from './usePlaybookWebSocket'
-import { ModuleBlock, Link, PlayVariable } from '../types/playbook'
+import { ProjectUpdate } from './useProjectWebSocket'
+import { ModuleBlock, Link, Play, PlayVariable } from '../types/playbook'
 
 // Debounce delay in milliseconds
 const DEBOUNCE_DELAY = 300
@@ -39,6 +39,8 @@ export type UpdateType =
   | 'module_resize'
   | 'link_add'
   | 'link_delete'
+  | 'play_add'
+  | 'play_delete'
   | 'play_update'
   | 'variable_add'
   | 'variable_update'
@@ -89,6 +91,14 @@ export interface LinkAddData {
 
 export interface LinkDeleteData {
   linkId: string
+}
+
+export interface PlayAddData {
+  play: Play
+}
+
+export interface PlayDeleteData {
+  playId: string
 }
 
 export interface PlayUpdateData {
@@ -147,6 +157,8 @@ export type UpdateData =
   | ModuleResizeData
   | LinkAddData
   | LinkDeleteData
+  | PlayAddData
+  | PlayDeleteData
   | PlayUpdateData
   | VariableAddData
   | VariableUpdateData
@@ -158,7 +170,7 @@ export type UpdateData =
   | SectionCollapseData
 
 // Handler type for applying updates
-export type UpdateHandler = (update: PlaybookUpdate) => void
+export type UpdateHandler = (update: ProjectUpdate) => void
 
 interface UseCollaborationSyncReturn {
   // Debounced update senders
@@ -169,6 +181,8 @@ interface UseCollaborationSyncReturn {
   sendModuleResize: (data: ModuleResizeData) => void
   sendLinkAdd: (data: LinkAddData) => void
   sendLinkDelete: (data: LinkDeleteData) => void
+  sendPlayAdd: (data: PlayAddData) => void
+  sendPlayDelete: (data: PlayDeleteData) => void
   sendPlayUpdate: (data: PlayUpdateData) => void
   sendVariableAdd: (data: VariableAddData) => void
   sendVariableUpdate: (data: VariableUpdateData) => void
@@ -186,8 +200,24 @@ interface UseCollaborationSyncReturn {
   isConnected: boolean
 }
 
-export function useCollaborationSync(): UseCollaborationSyncReturn {
+interface UseCollaborationSyncOptions {
+  artifactId?: string | null
+  playbookId?: string | null
+}
+
+export function useCollaborationSync(options: UseCollaborationSyncOptions = {}): UseCollaborationSyncReturn {
+  const { artifactId, playbookId } = options
   const { sendUpdate: rawSendUpdate, isConnected } = useCollaboration()
+
+  // Wrap rawSendUpdate to inject artifact_id (ProjectArtifact ID for routing/presence)
+  // and playbook_id (actual Playbook ID for event sourcing persistence)
+  const wrappedSendUpdate = useCallback((updateType: string, data: Record<string, unknown>) => {
+    const extra: Record<string, unknown> = {}
+    if (artifactId) extra.artifact_id = artifactId
+    if (playbookId) extra.playbook_id = playbookId
+    const payload = (artifactId || playbookId) ? { ...data, ...extra } : data
+    rawSendUpdate(updateType, payload)
+  }, [rawSendUpdate, artifactId, playbookId])
 
   // Refs for debounce timers, keyed by update type + element id
   const debounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -216,18 +246,18 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
 
     // Set new timer
     const timer = setTimeout(() => {
-      rawSendUpdate(updateType, data as unknown as Record<string, unknown>)
+      wrappedSendUpdate(updateType, data as unknown as Record<string, unknown>)
       debounceTimersRef.current.delete(key)
     }, DEBOUNCE_DELAY)
 
     debounceTimersRef.current.set(key, timer)
-  }, [rawSendUpdate])
+  }, [wrappedSendUpdate])
 
   // Immediate send (no debounce) for discrete actions
   const immediateSend = useCallback((updateType: UpdateType, data: UpdateData) => {
     console.log('[CollabSync] immediateSend:', updateType, 'isConnected:', isConnected)
-    rawSendUpdate(updateType, data as unknown as Record<string, unknown>)
-  }, [rawSendUpdate, isConnected])
+    wrappedSendUpdate(updateType, data as unknown as Record<string, unknown>)
+  }, [wrappedSendUpdate, isConnected])
 
   // Typed send functions
   const sendModuleAdd = useCallback((data: ModuleAddData) => {
@@ -267,6 +297,16 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
   const sendLinkDelete = useCallback((data: LinkDeleteData) => {
     // Link delete is immediate
     immediateSend('link_delete', data)
+  }, [immediateSend])
+
+  const sendPlayAdd = useCallback((data: PlayAddData) => {
+    // Play add is immediate (discrete action)
+    immediateSend('play_add', data)
+  }, [immediateSend])
+
+  const sendPlayDelete = useCallback((data: PlayDeleteData) => {
+    // Play delete is immediate (discrete action)
+    immediateSend('play_delete', data)
   }, [immediateSend])
 
   const sendPlayUpdate = useCallback((data: PlayUpdateData) => {
@@ -320,6 +360,7 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
     const discreteTypes: UpdateType[] = [
       'module_add', 'module_delete', 'module_resize',
       'link_add', 'link_delete',
+      'play_add', 'play_delete',
       'variable_add', 'variable_delete',
       'role_add', 'role_delete', 'role_update',
       'block_collapse', 'section_collapse'
@@ -339,6 +380,8 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
     sendModuleResize,
     sendLinkAdd,
     sendLinkDelete,
+    sendPlayAdd,
+    sendPlayDelete,
     sendPlayUpdate,
     sendVariableAdd,
     sendVariableUpdate,
@@ -361,8 +404,8 @@ export function useCollaborationSync(): UseCollaborationSyncReturn {
  * is done in WorkZone's applyCollaborationUpdate function which has
  * access to the proper types and state setters.
  */
-export function applyPlaybookUpdate(
-  update: PlaybookUpdate,
+export function applyProjectUpdate(
+  update: ProjectUpdate,
   currentState: {
     modules: ModuleBlock[]
     links: Link[]

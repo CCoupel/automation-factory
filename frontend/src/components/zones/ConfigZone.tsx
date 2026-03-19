@@ -29,6 +29,7 @@ import { useShallow } from 'zustand/react/shallow'
 export interface CollaborationConfigCallback {
   sendModuleConfig?: (data: { moduleId: string; field: string; value: unknown; element_id?: string }) => void
   sendPlayUpdate?: (data: { playId: string; field: string; value: unknown }) => void
+  sendModuleDelete?: (data: { moduleId: string }) => void
 }
 
 interface ConfigZoneProps {
@@ -237,7 +238,10 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
   )
 
   // Wrappers matching the old callback signatures
-  const onDelete = (id: string) => storeDeleteModule(id)
+  const onDelete = (id: string) => {
+    storeDeleteModule(id)
+    collaborationCallbacks?.sendModuleDelete?.({ moduleId: id })
+  }
   const onUpdateModule = (id: string, updates: Partial<any>) => updateModuleAttributes(id, updates)
   const onUpdatePlay = (updates: Partial<PlayAttributes>) => storeUpdatePlayAttributes(updates)
   const onUpdateRole = (index: number, updates: { role?: string; vars?: Record<string, any> }) => storeUpdateRole(index, updates)

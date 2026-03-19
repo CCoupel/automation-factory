@@ -1,0 +1,406 @@
+import React, { useEffect, useState } from 'react'
+import {
+  Box,
+  Tabs,
+  Tab,
+  Typography,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Snackbar,
+  Alert,
+} from '@mui/material'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { useProjectStore } from '../../stores/projectStore'
+import { useResizable } from '../../hooks/useResizable'
+import { useCollaboration } from '../../contexts/CollaborationContext'
+import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
+import { playbookService } from '../../services/playbookService'
+import AppHeader from './AppHeader'
+import ProjectTree from '../project/ProjectTree'
+import PlaybookEditor from '../editor/PlaybookEditor'
+import PlaybookManagerDialog from '../dialogs/PlaybookManagerDialog'
+import ProjectShareDialog from '../dialogs/ProjectShareDialog'
+import ModulesZoneCached from '../zones/ModulesZoneCached'
+import SystemZone from '../zones/SystemZone'
+
+const ProjectLayout: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+  const { t } = useTranslation('project')
+  const { t: tc } = useTranslation('common')
+
+  const currentProject = useProjectStore(s => s.currentProject)
+  const isLoading = useProjectStore(s => s.isLoading)
+  const error = useProjectStore(s => s.error)
+  const artifacts = useProjectStore(s => s.artifacts)
+  const selectedArtifactId = useProjectStore(s => s.selectedArtifactId)
+  const fetchProject = useProjectStore(s => s.fetchProject)
+  const fetchArtifacts = useProjectStore(s => s.fetchArtifacts)
+  const clearCurrentProject = useProjectStore(s => s.clearCurrentProject)
+  const clearError = useProjectStore(s => s.clearError)
+  const updateArtifact = useProjectStore(s => s.updateArtifact)
+  const applyArtifactAdd = useProjectStore(s => s.applyArtifactAdd)
+  const applyArtifactUpdate = useProjectStore(s => s.applyArtifactUpdate)
+  const applyArtifactDelete = useProjectStore(s => s.applyArtifactDelete)
+
+  const setSelectedArtifact = useProjectStore(s => s.setSelectedArtifact)
+  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
+
+  const { connectedUsers, isConnected, connectToProject, disconnectFromProject, lastUpdate, sendUpdate } = useCollaboration()
+
+  const [hasFetched, setHasFetched] = useState(false)
+  const [isCreatingPlaybook, setIsCreatingPlaybook] = useState(false)
+  const [playbookManagerOpen, setPlaybookManagerOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+
+  // Left panel state
+  const [leftTab, setLeftTab] = useState(0)
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
+  const leftPanel = useResizable({ direction: 'horizontal', initialSize: 280, minSize: 200, maxSize: 500 })
+
+  // Bottom panel state (only used when PlaybookEditor is NOT shown)
+  const [isSystemCollapsed, setIsSystemCollapsed] = useState(true)
+  const systemPanel = useResizable({ direction: 'vertical', initialSize: 200, minSize: 100, maxSize: 600 })
+
+  // Fetch project then artifacts
+  useEffect(() => {
+    if (!projectId) return
+
+    let cancelled = false
+    const load = async () => {
+      await fetchProject(projectId)
+      if (!cancelled) {
+        await fetchArtifacts(projectId)
+      }
+      if (!cancelled) {
+        setHasFetched(true)
+      }
+    }
+    load()
+
+    return () => {
+      cancelled = true
+      clearCurrentProject()
+    }
+  }, [projectId])
+
+  // Connect to project collaboration room
+  useEffect(() => {
+    if (projectId) {
+      connectToProject(projectId)
+    }
+    return () => {
+      disconnectFromProject()
+    }
+  }, [projectId])
+
+  // Apply received artifact collaboration updates
+  useEffect(() => {
+    if (!lastUpdate) return
+    const { update_type, data } = lastUpdate
+    if (update_type === 'artifact_add' && data.artifact) {
+      applyArtifactAdd(data.artifact as any)
+    } else if (update_type === 'artifact_update' && data.artifact) {
+      applyArtifactUpdate(data.artifact as any)
+    } else if (update_type === 'artifact_delete' && data.artifactId) {
+      applyArtifactDelete(data.artifactId as string)
+    }
+  }, [lastUpdate])
+
+  // 404: project not found after fetch completed
+  const isNotFound = hasFetched && !isLoading && !currentProject
+
+  useEffect(() => {
+    if (isNotFound) {
+      const timer = setTimeout(() => navigate('/'), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [isNotFound, navigate])
+
+  // Resolve selected artifact
+  const selectedArtifact = selectedArtifactId
+    ? artifacts.find(a => a.id === selectedArtifactId) ?? null
+    : null
+
+  const linkedPlaybookId = selectedArtifact?.artifact_type === 'playbook'
+    ? (selectedArtifact.content?.playbook_id as string | undefined) ?? null
+    : null
+
+  // Auto-create and link a playbook when a playbook artifact has no playbook_id
+  useEffect(() => {
+    if (!projectId || !selectedArtifact) return
+    if (selectedArtifact.artifact_type !== 'playbook') return
+    if (selectedArtifact.content?.playbook_id) return
+    if (isCreatingPlaybook) return
+
+    let cancelled = false
+    const autoCreate = async () => {
+      setIsCreatingPlaybook(true)
+      try {
+        const newPlaybook = await playbookService.createPlaybook({
+          name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
+          project_id: projectId,
+          content: {
+            modules: [], links: [], plays: [],
+            collapsedBlocks: [], collapsedBlockSections: [],
+            metadata: {}, variables: [],
+          },
+        })
+        if (!cancelled) {
+          const updatedArtifact = await updateArtifact(projectId, selectedArtifact.id, {
+            content: { playbook_id: newPlaybook.id },
+          })
+          sendUpdate('artifact_update', { artifact: updatedArtifact })
+        }
+      } catch {
+        // silent — store shows error snackbar if needed
+      } finally {
+        if (!cancelled) setIsCreatingPlaybook(false)
+      }
+    }
+    autoCreate()
+    return () => { cancelled = true }
+  }, [selectedArtifact?.id])
+
+  // PlaybookEditor is shown when a playbook artifact with a linked playbook_id is selected
+  const isPlaybookEditorShown = !!linkedPlaybookId
+
+  // Show loading spinner while fetching
+  if (!hasFetched || isLoading) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (isNotFound) {
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
+        <Typography variant="h6">{t('projectNotFound')}</Typography>
+        <Typography variant="body2" color="text.secondary">{t('projectNotFoundDesc')}</Typography>
+        <Typography variant="caption" color="text.secondary">{t('redirectingHome')}</Typography>
+      </Box>
+    )
+  }
+
+  return (
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Header */}
+      <AppHeader
+        connectedUsers={connectedUsers}
+        isCollaborationConnected={isPlaybookEditorShown ? isConnected : true}
+        onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
+        projectName={currentProject?.name}
+        artifactName={selectedArtifact?.path.split('/').pop()}
+        artifactType={selectedArtifact?.artifact_type}
+      />
+
+      {/* Main content area */}
+      <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+        {/* Left panel */}
+        {!isLeftCollapsed && (
+          <Box
+            sx={{
+              width: `${leftPanel.size}px`,
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              flexShrink: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+            }}
+          >
+            <Tabs
+              value={leftTab}
+              onChange={(_e, v) => setLeftTab(v)}
+              variant="fullWidth"
+              sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8rem' } }}
+            >
+              <Tab label={t('projectTree')} />
+              <Tab label={t('modules')} />
+            </Tabs>
+
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+              {leftTab === 0 && <ProjectTree onShare={() => setShareDialogOpen(true)} />}
+              {leftTab === 1 && <ModulesZoneCached />}
+            </Box>
+
+            {/* Resize handle */}
+            <Box
+              onMouseDown={leftPanel.onMouseDown}
+              sx={{
+                position: 'absolute',
+                top: 0, right: 0, bottom: 0,
+                width: '6px',
+                cursor: 'ew-resize',
+                bgcolor: leftPanel.isResizing ? 'primary.main' : 'transparent',
+                '&:hover': { bgcolor: 'primary.light' },
+                transition: 'background-color 0.2s',
+                zIndex: 10,
+              }}
+            >
+              <Box sx={{
+                position: 'absolute',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '3px', height: '40px',
+                borderRadius: '2px',
+                bgcolor: leftPanel.isResizing ? 'white' : '#999',
+              }} />
+            </Box>
+          </Box>
+        )}
+
+        {/* Center area */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' }}>
+          {isLeftCollapsed && (
+            <Tooltip title={t('projectTree')} placement="right">
+              <IconButton
+                onClick={() => setIsLeftCollapsed(false)}
+                sx={{
+                  position: 'absolute', top: 8, left: 8, zIndex: 1000,
+                  bgcolor: 'background.paper', boxShadow: 2,
+                  '&:hover': { bgcolor: 'primary.light' },
+                }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {/* PlaybookEditor fills the entire center when shown (handles its own SystemZone) */}
+          {isPlaybookEditorShown ? (
+            <PlaybookEditor playbookId={linkedPlaybookId!} artifactId={selectedArtifactId!} />
+          ) : (
+            <>
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+                {!selectedArtifact && (
+                  <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    {t('selectArtifact')}
+                  </Typography>
+                )}
+                {selectedArtifact?.artifact_type === 'playbook' && !linkedPlaybookId && (
+                  <CircularProgress size={24} />
+                )}
+                {selectedArtifact && selectedArtifact.artifact_type !== 'playbook' && (
+                  <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    {t('comingSoon')}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* System zone only shown when no PlaybookEditor */}
+              {!isSystemCollapsed ? (
+                <Box
+                  sx={{
+                    height: `${systemPanel.size}px`,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    flexShrink: 0,
+                    position: 'relative',
+                  }}
+                >
+                  <Box
+                    onMouseDown={systemPanel.onMouseDown}
+                    sx={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0,
+                      height: '6px',
+                      cursor: 'ns-resize',
+                      bgcolor: systemPanel.isResizing ? 'primary.main' : 'transparent',
+                      '&:hover': { bgcolor: 'primary.light' },
+                      transition: 'background-color 0.2s',
+                      zIndex: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Box sx={{ width: '40px', height: '3px', borderRadius: '2px', bgcolor: systemPanel.isResizing ? 'white' : '#999' }} />
+                    <Tooltip title={t('modules')} placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={() => setIsSystemCollapsed(true)}
+                        sx={{
+                          position: 'absolute', right: 8,
+                          bgcolor: 'background.paper', boxShadow: 1,
+                          '&:hover': { bgcolor: 'primary.light' },
+                        }}
+                      >
+                        <ExpandMoreIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <SystemZone />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    height: '30px',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                  onClick={() => setIsSystemCollapsed(false)}
+                >
+                  <Tooltip title={tc('showSystemZone')} placement="top">
+                    <IconButton size="small">
+                      <ExpandLessIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+      </Box>
+
+      {/* Project Share Dialog */}
+      <ProjectShareDialog
+        open={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+        projectId={projectId!}
+        projectName={currentProject?.name ?? ''}
+      />
+
+      {/* Playbook Manager Dialog */}
+      <PlaybookManagerDialog
+        open={playbookManagerOpen}
+        onClose={() => setPlaybookManagerOpen(false)}
+        onSelectPlaybook={(playbookId) => {
+          const artifact = artifacts.find(a => a.content?.playbook_id === playbookId)
+          if (artifact) setSelectedArtifact(artifact.id)
+          setPlaybookManagerOpen(false)
+        }}
+        currentPlaybookId={currentPlaybookId}
+      />
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={clearError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={clearError}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Box>
+  )
+}
+
+export default ProjectLayout

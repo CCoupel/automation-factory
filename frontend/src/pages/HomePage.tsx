@@ -1,0 +1,198 @@
+import React, { useEffect, useState } from 'react'
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Fab,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Avatar,
+  IconButton,
+  Chip,
+  CircularProgress,
+  Alert,
+  Divider,
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import LogoutIcon from '@mui/icons-material/Logout'
+import Brightness4Icon from '@mui/icons-material/Brightness4'
+import Brightness7Icon from '@mui/icons-material/Brightness7'
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
+import LanguageIcon from '@mui/icons-material/Language'
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'
+import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
+import { useProjectStore } from '../stores/projectStore'
+import ProjectCard from '../components/home/ProjectCard'
+import CreateProjectDialog from '../components/home/CreateProjectDialog'
+
+const HomePage: React.FC = () => {
+  const navigate = useNavigate()
+  const { t } = useTranslation('project')
+  const { t: tc } = useTranslation('common')
+  const { i18n } = useTranslation()
+  const { user, logout } = useAuth()
+  const { themeMode, darkMode, cycleThemeMode } = useTheme()
+
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+  // Projects from store
+  const projects = useProjectStore(s => s.projects)
+  const isLoading = useProjectStore(s => s.isLoading)
+  const error = useProjectStore(s => s.error)
+  const fetchProjects = useProjectStore(s => s.fetchProjects)
+
+  useEffect(() => {
+    fetchProjects()
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) fetchProjects()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    const interval = setInterval(fetchProjects, 30000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearInterval(interval)
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    setUserMenuAnchor(null)
+    await logout()
+    navigate('/login')
+  }
+
+  return (
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* App Bar */}
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flex: 1 }}>
+            {tc('appName')}
+          </Typography>
+
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton onClick={(e) => setUserMenuAnchor(e.currentTarget)}>
+                <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem', bgcolor: 'primary.main' }}>
+                  {user.username?.charAt(0).toUpperCase()}
+                </Avatar>
+              </IconButton>
+              <Menu
+                anchorEl={userMenuAnchor}
+                open={Boolean(userMenuAnchor)}
+                onClose={() => setUserMenuAnchor(null)}
+              >
+                <MenuItem disabled>
+                  <ListItemText primary={user.username} secondary={user.email} />
+                </MenuItem>
+                <Divider />
+
+                {user.role === 'admin' && (
+                  <MenuItem onClick={() => { setUserMenuAnchor(null); navigate('/admin/accounts') }}>
+                    <ListItemIcon><SupervisorAccountIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>{tc('accountsManagement')}</ListItemText>
+                  </MenuItem>
+                )}
+
+                <MenuItem onClick={() => { cycleThemeMode() }}>
+                  <ListItemIcon>
+                    {themeMode === 'light' && <Brightness7Icon fontSize="small" />}
+                    {themeMode === 'dark' && <Brightness4Icon fontSize="small" />}
+                    {themeMode === 'system' && <SettingsBrightnessIcon fontSize="small" />}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      themeMode === 'light' ? tc('lightMode') :
+                      themeMode === 'dark' ? tc('darkMode') :
+                      tc('systemAuto')
+                    }
+                  />
+                  <Chip
+                    label={themeMode === 'light' ? tc('themeChipLight') : themeMode === 'dark' ? tc('themeChipDark') : tc('themeChipAuto')}
+                    size="small" variant="outlined"
+                    sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
+                  />
+                </MenuItem>
+
+                <MenuItem onClick={() => {
+                  const next = i18n.language?.startsWith('fr') ? 'en' : 'fr'
+                  i18n.changeLanguage(next)
+                }}>
+                  <ListItemIcon><LanguageIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText primary={tc('language')} />
+                  <Chip
+                    label={i18n.language?.startsWith('fr') ? 'FR' : 'EN'}
+                    size="small" variant="outlined"
+                    sx={{ ml: 1, fontSize: '0.7rem', height: 20 }}
+                  />
+                </MenuItem>
+
+                <Divider />
+                <MenuItem onClick={handleLogout}>
+                  <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>{tc('logout')}</ListItemText>
+                </MenuItem>
+              </Menu>
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
+        <Typography variant="h5" sx={{ mb: 3 }}>
+          {t('projects')} ({projects.length})
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        )}
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : projects.length === 0 ? (
+          <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+            {t('noProjects')}
+          </Typography>
+        ) : (
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 2,
+          }}>
+            {projects.map(project => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      {/* FAB - New Project */}
+      <Fab
+        color="primary"
+        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        onClick={() => setCreateDialogOpen(true)}
+      >
+        <AddIcon />
+      </Fab>
+
+      <CreateProjectDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+      />
+    </Box>
+  )
+}
+
+export default HomePage

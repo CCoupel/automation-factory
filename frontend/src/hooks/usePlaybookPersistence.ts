@@ -3,6 +3,7 @@ import { usePlaybookEditorStore } from '../stores/playbookEditorStore'
 import { playbookService } from '../services/playbookService'
 import { useAuth } from '../contexts/AuthContext'
 import { Play } from '../types/playbook'
+import { ProjectUpdate } from './useProjectWebSocket'
 
 const PLAYBOOK_CACHE_KEY = 'automation-factory-playbook-cache'
 
@@ -29,11 +30,9 @@ const ensureStartModules = (playId: string, modules: any[]): any[] => {
   return [...missingStartModules, ...modules]
 }
 
-export const usePlaybookPersistence = () => {
+export const usePlaybookPersistence = (targetPlaybookId?: string) => {
   const { isAuthenticated } = useAuth()
   const hasRestoredFromCache = useRef(false)
-  const hasLoaded = useRef(false)
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const store = usePlaybookEditorStore
 
@@ -83,64 +82,25 @@ export const usePlaybookPersistence = () => {
     return unsub
   }, [saveToCache])
 
-  // Save playbook to backend
-  const savePlaybook = useCallback(async () => {
-    if (!isAuthenticated) {
-      console.log('Not authenticated, skipping save')
-      return
-    }
-
-    if (!hasLoaded.current) {
-      console.log('[Persistence] Skipping save — data not loaded yet')
-      return
-    }
-
-    const state = store.getState()
-
-    if (!state.currentPlaybookId) {
-      console.log('[Persistence] Skipping save — no playbook loaded')
-      return
-    }
-
-    state.setSaveStatus('saving')
-
-    try {
-      const content = state.serializePlaybookContent()
-
-      if (state.currentPlaybookId) {
-        await playbookService.updatePlaybook(state.currentPlaybookId, {
-          name: state.playbookName,
-          content,
-        })
-      } else {
-        const newPlaybook = await playbookService.createPlaybook({
-          name: state.playbookName,
-          content,
-        })
-        state.setCurrentPlaybookId(newPlaybook.id)
-      }
-
-      state.setSaveStatus('saved')
-      state.setLastSavedAt(new Date())
-
-      setTimeout(() => store.getState().setSaveStatus('idle'), 2000)
-    } catch (error) {
-      console.error('Failed to save playbook:', error)
-      store.getState().setSaveStatus('error')
-      setTimeout(() => store.getState().setSaveStatus('idle'), 3000)
-    }
-  }, [isAuthenticated])
-
   // Load a specific playbook by ID
   const loadPlaybook = useCallback(async (playbookId: string) => {
-    // Cancel any pending auto-save to prevent overwriting with stale state
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-      autoSaveTimerRef.current = null
-    }
+    // Reset lastFullSyncAt so stale timestamps from a previous artifact don't
+    // trigger the race-condition guard for this load. Only a full_sync received
+    // *during* this load (timestamp > loadStartedAt) should block the update.
+    store.setState({ lastFullSyncAt: null })
+
+    const loadStartedAt = Date.now()
 
     try {
       const detailed = await playbookService.getPlaybook(playbookId)
+
+      // If a full_sync was applied while we were loading, don't overwrite the synced state
+      const { lastFullSyncAt } = store.getState()
+      if (lastFullSyncAt !== null && lastFullSyncAt > loadStartedAt) {
+        store.getState().setCurrentPlaybookId(detailed.id)
+        store.getState().setPlaybookName(detailed.name)
+        return
+      }
 
       const content = detailed.content
       let restoredPlays: Play[] = []
@@ -178,6 +138,12 @@ export const usePlaybookPersistence = () => {
         })
       }
 
+      // If the playbook has no plays yet, reset the store first so the editor
+      // starts from a clean default state (avoids inheriting previous plays)
+      if (restoredPlays.length === 0) {
+        store.getState().resetStore()
+      }
+
       store.getState().loadPlaybookState({
         plays: restoredPlays.length > 0 ? restoredPlays : store.getState().plays,
         currentPlaybookId: detailed.id,
@@ -186,51 +152,37 @@ export const usePlaybookPersistence = () => {
         collapsedBlockSections: content.collapsedBlockSections,
       })
 
-      hasLoaded.current = true
+      // Replay event deltas on top of the snapshot
+      const eventsDelta = (detailed as any).events_delta
+      if (Array.isArray(eventsDelta) && eventsDelta.length > 0) {
+        const { applyCollaborationUpdate } = store.getState()
+        for (const event of eventsDelta) {
+          const update: ProjectUpdate = {
+            type: 'update',
+            update_type: event.event_type,
+            data: event.data || {},
+            user_id: event.user_id || '',
+            username: '',
+            timestamp: event.created_at || '',
+          }
+          applyCollaborationUpdate(update)
+        }
+        console.log(`[Persistence] Replayed ${eventsDelta.length} event(s) on top of snapshot`)
+      }
     } catch (error) {
       console.error('Failed to load playbook:', error)
     }
   }, [])
 
-  // Auto-save with debounce (only after data has been loaded)
-  // Filter out saveStatus/lastSavedAt changes to avoid save -> status change -> save loop
-  useEffect(() => {
-    if (!isAuthenticated) return
-
-    let prevSaveStatus = store.getState().saveStatus
-    let prevLastSavedAt = store.getState().lastSavedAt
-
-    const unsub = store.subscribe(() => {
-      if (!hasLoaded.current) return
-
-      const state = store.getState()
-      // Skip if only saveStatus or lastSavedAt changed (avoids infinite loop)
-      if (state.saveStatus !== prevSaveStatus || state.lastSavedAt !== prevLastSavedAt) {
-        prevSaveStatus = state.saveStatus
-        prevLastSavedAt = state.lastSavedAt
-        return
-      }
-
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-      autoSaveTimerRef.current = setTimeout(() => {
-        autoSaveTimerRef.current = null
-        savePlaybook()
-      }, 3000)
-    })
-
-    return () => {
-      unsub()
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current)
-        autoSaveTimerRef.current = null
-      }
-    }
-  }, [isAuthenticated, savePlaybook])
-
   // Load playbook on mount - try cache first for instant restore
+  // Skip entirely when targetPlaybookId is provided: the caller handles loading explicitly
   useEffect(() => {
     if (!isAuthenticated) return
     if (hasRestoredFromCache.current) return
+    if (targetPlaybookId) {
+      hasRestoredFromCache.current = true
+      return
+    }
 
     const tryRestoreFromCache = (): boolean => {
       try {
@@ -244,12 +196,6 @@ export const usePlaybookPersistence = () => {
           return false
         }
 
-        // Cancel any pending auto-save before restoring
-        if (autoSaveTimerRef.current) {
-          clearTimeout(autoSaveTimerRef.current)
-          autoSaveTimerRef.current = null
-        }
-
         console.log('[Persistence] Restoring playbook from cache:', cacheData.name)
         store.getState().loadPlaybookState({
           plays: cacheData.plays,
@@ -259,7 +205,6 @@ export const usePlaybookPersistence = () => {
           collapsedBlockSections: cacheData.collapsedBlockSections,
         })
         hasRestoredFromCache.current = true
-        hasLoaded.current = true
         return true
       } catch (e) {
         console.warn('[Persistence] Failed to restore from cache:', e)
@@ -284,5 +229,5 @@ export const usePlaybookPersistence = () => {
     loadLastPlaybook()
   }, [isAuthenticated, loadPlaybook])
 
-  return { savePlaybook, loadPlaybook }
+  return { loadPlaybook }
 }
