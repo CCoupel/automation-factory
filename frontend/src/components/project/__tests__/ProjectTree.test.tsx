@@ -88,7 +88,23 @@ vi.mock('react-i18next', () => ({
 const mockStore = {
   artifacts: mockArtifacts,
   currentProject: { id: 'proj-1', name: 'Test Project' },
+  selectedArtifactId: null as string | null,
+  setSelectedArtifact: vi.fn(),
+  createArtifact: vi.fn(),
+  updateArtifact: vi.fn(),
+  deleteArtifact: vi.fn(),
 }
+
+vi.mock('../../../contexts/CollaborationContext', () => ({
+  useCollaboration: vi.fn(() => ({
+    connectedUsers: [],
+    sendUpdate: vi.fn(),
+    isConnected: true,
+    connectToProject: vi.fn(),
+    disconnectFromProject: vi.fn(),
+    lastUpdate: null,
+  })),
+}))
 
 vi.mock('../../../stores/projectStore', () => ({
   useProjectStore: (selector: (state: typeof mockStore) => unknown) => selector(mockStore),
@@ -116,6 +132,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockStore.artifacts = mockArtifacts
   mockStore.currentProject = { id: 'proj-1', name: 'Test Project' } as any
+  mockStore.selectedArtifactId = null
 })
 
 describe('ProjectTree', () => {
