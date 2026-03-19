@@ -142,7 +142,8 @@ async def create_playbook(
         name=playbook_data.name,
         description=playbook_data.description,
         content=playbook_data.content,
-        owner_id=current_user.id
+        owner_id=current_user.id,
+        project_id=playbook_data.project_id
     )
 
     db.add(playbook)

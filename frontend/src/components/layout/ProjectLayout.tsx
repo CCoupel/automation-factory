@@ -144,6 +144,7 @@ const ProjectLayout: React.FC = () => {
       try {
         const newPlaybook = await playbookService.createPlaybook({
           name: selectedArtifact.path.split('/').pop() ?? t('untitledPlaybook'),
+          project_id: projectId,
           content: {
             modules: [], links: [], plays: [],
             collapsedBlocks: [], collapsedBlockSections: [],
@@ -195,6 +196,9 @@ const ProjectLayout: React.FC = () => {
         connectedUsers={connectedUsers}
         isCollaborationConnected={isPlaybookEditorShown ? isConnected : true}
         onOpenPlaybookManager={() => setPlaybookManagerOpen(true)}
+        projectName={currentProject?.name}
+        artifactName={selectedArtifact?.path.split('/').pop()}
+        artifactType={selectedArtifact?.artifact_type}
       />
 
       {/* Main content area */}

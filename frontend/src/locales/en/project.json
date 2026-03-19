@@ -64,6 +64,7 @@
   "shareAddError": "Failed to share project",
   "shareUpdateError": "Failed to update share",
   "shareRemoveError": "Failed to remove share",
+  "sharedBy": "by {{owner}}",
   "artifactTypes": {
     "playbook": "Playbooks",
     "role": "Roles",

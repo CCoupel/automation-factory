@@ -8,12 +8,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 2.3.6 / Frontend 2.3.6
+**Version Développement :** Backend 2.4.0 / Frontend 2.4.0
 **Version Production :** Backend 2.3.6 / Frontend 2.3.6  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **URL Marketing :** https://ccoupel.bitbucket.io
-**Dernière mise à jour :** 2026-03-15
+**Dernière mise à jour :** 2026-03-19
 
 ## 📚 **Documentation Organisée**
 

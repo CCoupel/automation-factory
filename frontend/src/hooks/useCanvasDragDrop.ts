@@ -37,25 +37,23 @@ export const useCanvasDragDrop = ({ collaborationCallbacks, canvasRef }: UseCanv
   ) => {
     if (!fromId || !toId) return
 
+    const newLink: Link = {
+      id: `link-${Date.now()}`,
+      from: fromId,
+      to: toId,
+      type,
+    }
+
     setLinks(prevLinks => {
-      let updatedLinks = prevLinks.filter(l => {
+      const updatedLinks = prevLinks.filter(l => {
         if (l.from === fromId && l.type === type) return false
         if (l.to === toId && l.type === type) return false
         return true
       })
-
-      const newLink: Link = {
-        id: `link-${Date.now()}`,
-        from: fromId,
-        to: toId,
-        type,
-      }
-      updatedLinks.push(newLink)
-
-      collaborationCallbacks?.sendLinkAdd?.({ link: newLink })
-
-      return updatedLinks
+      return [...updatedLinks, newLink]
     })
+
+    collaborationCallbacks?.sendLinkAdd?.({ link: newLink })
   }, [setLinks, collaborationCallbacks])
 
   const deleteLink = useCallback((linkId: string) => {
@@ -67,6 +65,7 @@ export const useCanvasDragDrop = ({ collaborationCallbacks, canvasRef }: UseCanv
     const module = modules.find(m => m.id === id)
 
     if (module?.isPlay) {
+      const activePlay = usePlaybookEditorStore.getState().plays[activePlayIndex]
       setPlays(prevPlays => {
         const updatedPlays = [...prevPlays]
         updatedPlays[activePlayIndex] = {
@@ -78,10 +77,14 @@ export const useCanvasDragDrop = ({ collaborationCallbacks, canvasRef }: UseCanv
         }
         return updatedPlays
       })
+      if (activePlay) {
+        collaborationCallbacks?.sendPlayUpdate?.({ playId: activePlay.id, field: 'name', value: newName })
+      }
     } else {
       setModules(prev => prev.map(m => m.id === id ? { ...m, taskName: newName } : m))
+      collaborationCallbacks?.sendModuleConfig?.({ moduleId: id, field: 'taskName', value: newName })
     }
-  }, [modules, setPlays, activePlayIndex, setModules])
+  }, [modules, setPlays, activePlayIndex, setModules, collaborationCallbacks])
 
   const handleDelete = useCallback((id: string) => {
     const module = modules.find(m => m.id === id)

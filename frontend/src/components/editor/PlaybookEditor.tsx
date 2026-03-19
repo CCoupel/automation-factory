@@ -116,7 +116,8 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
     if (lastUpdate.update_type === 'request_full_sync') {
       const state = usePlaybookEditorStore.getState()
       const hasContent = state.plays.some(p => p.modules.filter(m => !m.isPlay).length > 0)
-      if (artifactId && state.currentPlaybookId && hasContent) {
+      // Guard: only respond if our store matches this playbook (not a stale load)
+      if (artifactId && state.currentPlaybookId && state.currentPlaybookId === playbookId && hasContent) {
         console.log('[PlaybookEditor] Responding to request_full_sync')
         sendUpdate('full_sync', {
           artifact_id: artifactId,

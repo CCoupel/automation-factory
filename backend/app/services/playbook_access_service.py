@@ -11,12 +11,14 @@ This service eliminates duplication across playbooks.py, collaboration.py, and w
 
 from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func, cast, String
 from fastapi import HTTPException, status
 import logging
 
 from app.models.playbook import Playbook
 from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
+from app.models.project_collaboration import ProjectShare
+from app.models.project_artifact import ProjectArtifact
 from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -84,28 +86,69 @@ async def check_playbook_access(
     )
     share = share_result.scalar_one_or_none()
 
-    if not share:
-        if raise_on_forbidden:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to access this playbook"
-            )
-        return None, None
+    if share:
+        # Check required role if specified
+        if required_role:
+            user_role_level = ROLE_HIERARCHY.get(share.role, 0)
+            required_role_level = ROLE_HIERARCHY.get(required_role, 0)
 
-    # Check required role if specified
-    if required_role:
-        user_role_level = ROLE_HIERARCHY.get(share.role, 0)
-        required_role_level = ROLE_HIERARCHY.get(required_role, 0)
+            if user_role_level < required_role_level:
+                if raise_on_forbidden:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"Requires at least '{required_role}' role"
+                    )
+                return playbook, None
 
-        if user_role_level < required_role_level:
-            if raise_on_forbidden:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Requires at least '{required_role}' role"
+        return playbook, share.role
+
+    # Fall back to project-level access check
+    # Resolve project_id: either directly from playbook or via ProjectArtifact
+    effective_project_id = playbook.project_id
+    if not effective_project_id:
+        artifact_result = await db.execute(
+            select(ProjectArtifact).where(
+                and_(
+                    ProjectArtifact.artifact_type == "playbook",
+                    func.json_extract(ProjectArtifact.content, "$.playbook_id") == playbook_id
                 )
-            return playbook, None
+            )
+        )
+        artifact = artifact_result.scalar_one_or_none()
+        if artifact:
+            effective_project_id = artifact.project_id
 
-    return playbook, share.role
+    if effective_project_id:
+        project_share_result = await db.execute(
+            select(ProjectShare).where(
+                and_(
+                    ProjectShare.project_id == effective_project_id,
+                    ProjectShare.user_id == user_id
+                )
+            )
+        )
+        project_share = project_share_result.scalar_one_or_none()
+        if project_share:
+            # ProjectRole uses same string values as PlaybookRole (owner/editor/viewer)
+            project_role = project_share.role
+            if required_role:
+                user_role_level = ROLE_HIERARCHY.get(project_role, 0)
+                required_role_level = ROLE_HIERARCHY.get(required_role, 0)
+                if user_role_level < required_role_level:
+                    if raise_on_forbidden:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Requires at least '{required_role}' role"
+                        )
+                    return playbook, None
+            return playbook, project_role
+
+    if raise_on_forbidden:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this playbook"
+        )
+    return None, None
 
 
 async def check_playbook_access_standalone(

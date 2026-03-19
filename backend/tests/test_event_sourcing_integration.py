@@ -145,13 +145,12 @@ class TestWebSocketEventAck:
                     _pres = ws.receive_json()
                     assert _pres["type"] == "presence"
 
-                    # Send update with artifact_id
+                    # Send update with playbook_id inside data
                     ws.send_json({
                         "type": "update",
                         "update_type": "content",
-                        "artifact_id": playbook.id,
                         "event_type": "module_add",
-                        "data": {"module": "apt"},
+                        "data": {"module": "apt", "playbook_id": playbook.id, "artifact_id": playbook.id},
                     })
 
                     # Should receive event_ack
@@ -181,7 +180,7 @@ class TestWebSocketEventAck:
                     ws.receive_json()  # connected or presence
                     ws.receive_json()  # connected or presence
 
-                    # Send update WITHOUT artifact_id
+                    # Send update WITHOUT playbook_id in data
                     ws.send_json({
                         "type": "update",
                         "update_type": "content",
@@ -217,9 +216,8 @@ class TestWebSocketEventAck:
                     ws.send_json({
                         "type": "update",
                         "update_type": "content",
-                        "artifact_id": playbook.id,
                         "event_type": "module_add",
-                        "data": {"step": 1},
+                        "data": {"step": 1, "playbook_id": playbook.id, "artifact_id": playbook.id},
                     })
                     ack1 = ws.receive_json()
                     assert ack1["sequence_number"] == 1
@@ -228,9 +226,8 @@ class TestWebSocketEventAck:
                     ws.send_json({
                         "type": "update",
                         "update_type": "content",
-                        "artifact_id": playbook.id,
                         "event_type": "link_add",
-                        "data": {"step": 2},
+                        "data": {"step": 2, "playbook_id": playbook.id, "artifact_id": playbook.id},
                     })
                     ack2 = ws.receive_json()
                     assert ack2["sequence_number"] == 2

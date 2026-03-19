@@ -16,6 +16,7 @@ class PlaybookBase(BaseModel):
 class PlaybookCreate(PlaybookBase):
     """Schema for playbook creation"""
     content: dict = Field(..., description="Complete playbook structure as JSON")
+    project_id: Optional[str] = Field(None, description="Project this playbook belongs to")
 
 
 class PlaybookUpdate(BaseModel):
