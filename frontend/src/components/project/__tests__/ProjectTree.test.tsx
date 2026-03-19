@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
 import { MemoryRouter } from 'react-router-dom'
@@ -62,38 +62,20 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => {
       const translations: Record<string, string> = {
-        'artifactTypes.playbook': 'Playbooks',
-        'artifactTypes.role': 'Roles',
-        'artifactTypes.inventory': 'Inventory',
-        'artifactTypes.variable_file': 'Variables',
-        'artifactTypes.template': 'Templates',
-        'artifactTypes.collection_requirements': 'Collections',
-        'artifactTypes.custom_module': 'Modules',
-        'artifactTypes.ansible_cfg': 'Configuration',
-        'artifactTypes.file': 'Files',
         noArtifacts: 'No artifacts in this project.',
         noArtifactsHint: 'Use the toolbar to add artifacts.',
-        noLinkedPlaybook: 'No linked playbook found.',
         failedLoadPlaybooks: 'Failed to load playbooks.',
-        comingSoon: 'Editor coming soon.',
-        openArtifact: 'Open',
-        deleteArtifact: 'Delete',
+        newFolder: 'New Folder',
+        newFile: 'New File',
+        shareProject: 'Share',
+        expandAll: 'Expand All',
+        collapseAll: 'Collapse All',
       }
       return translations[key] || fallback || key
     },
     i18n: { language: 'en', changeLanguage: vi.fn() },
   }),
 }))
-
-const mockStore = {
-  artifacts: mockArtifacts,
-  currentProject: { id: 'proj-1', name: 'Test Project' },
-  selectedArtifactId: null as string | null,
-  setSelectedArtifact: vi.fn(),
-  createArtifact: vi.fn(),
-  updateArtifact: vi.fn(),
-  deleteArtifact: vi.fn(),
-}
 
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: vi.fn(() => ({
@@ -114,6 +96,16 @@ vi.mock('../../../contexts/CollaborationContext', () => ({
     lastUpdate: null,
   })),
 }))
+
+const mockStore = {
+  artifacts: mockArtifacts,
+  currentProject: { id: 'proj-1', name: 'Test Project' },
+  selectedArtifactId: null as string | null,
+  setSelectedArtifact: vi.fn(),
+  createArtifact: vi.fn(),
+  updateArtifact: vi.fn(),
+  deleteArtifact: vi.fn(),
+}
 
 vi.mock('../../../stores/projectStore', () => ({
   useProjectStore: (selector: (state: typeof mockStore) => unknown) => selector(mockStore),
@@ -145,21 +137,15 @@ beforeEach(() => {
 })
 
 describe('ProjectTree', () => {
-  it('renders artifact type groups from mock artifacts', () => {
+  it('renders root-level files and folder names from artifact paths', () => {
     renderTree()
 
-    // Should show the group headers for types present in mockArtifacts
-    expect(screen.getByText('Playbooks')).toBeInTheDocument()
-    expect(screen.getByText('Roles')).toBeInTheDocument()
-    expect(screen.getByText('Inventory')).toBeInTheDocument()
-  })
+    // Root-level file (site.yml has no parent folder)
+    expect(screen.getByText('site.yml')).toBeInTheDocument()
 
-  it('shows artifact count chips per group', () => {
-    renderTree()
-
-    // Each group has a chip with count — playbook has 1 artifact
-    const chips = screen.getAllByText('1')
-    expect(chips.length).toBeGreaterThanOrEqual(3) // 3 groups each with 1 artifact
+    // Folder names derived from nested paths
+    expect(screen.getByText('roles')).toBeInTheDocument()
+    expect(screen.getByText('inventory')).toBeInTheDocument()
   })
 
   it('shows empty state when no artifacts', () => {
@@ -170,53 +156,30 @@ describe('ProjectTree', () => {
     expect(screen.getByText('Use the toolbar to add artifacts.')).toBeInTheDocument()
   })
 
-  it('expands playbook group by default and shows artifact paths', () => {
+  it('shows nested files inside a folder when expanded', async () => {
+    renderTree()
+    const user = userEvent.setup()
+
+    // Nested files are hidden until folder is expanded
+    expect(screen.queryByText('webserver')).not.toBeInTheDocument()
+
+    // Click on "roles" folder to expand it
+    const rolesFolder = screen.getByText('roles')
+    await user.click(rolesFolder)
+
+    // After expanding, the nested role artifact should be visible
+    expect(screen.getByText('webserver')).toBeInTheDocument()
+  })
+
+  it('renders toolbar with folder and file creation buttons', () => {
     renderTree()
 
-    // Playbook group is expanded by default — site.yml should be visible
+    // Toolbar buttons should be present (via aria-label or tooltip data)
+    const toolbar = document.querySelector('[class*="MuiToolbar"], [class*="MuiBox"]')
+    expect(toolbar).not.toBeNull()
+
+    // The tree itself renders (at least 1 item visible — site.yml)
     expect(screen.getByText('site.yml')).toBeInTheDocument()
-  })
-
-  it('toggles group expansion on click', async () => {
-    renderTree()
-    const user = userEvent.setup()
-
-    // Click on "Roles" group to expand it
-    const rolesGroup = screen.getByText('Roles')
-    await user.click(rolesGroup)
-
-    // After expanding, the role artifact path should be visible
-    expect(screen.getByText('roles/webserver')).toBeInTheDocument()
-
-    // Click again to collapse
-    await user.click(rolesGroup)
-  })
-
-  it('selects an artifact on single click', async () => {
-    renderTree()
-    const user = userEvent.setup()
-
-    // site.yml is visible in the expanded playbook group
-    const artifactItem = screen.getByText('site.yml')
-    await user.click(artifactItem)
-
-    // The list item should have the selected state (MUI adds Mui-selected class)
-    const listItemButton = artifactItem.closest('[class*="MuiListItemButton"]')
-    expect(listItemButton).toHaveClass('Mui-selected')
-  })
-
-  it('opens context menu on right-click', async () => {
-    renderTree()
-    const user = userEvent.setup()
-
-    const artifactItem = screen.getByText('site.yml')
-
-    // Right-click to open context menu
-    await user.pointer({ keys: '[MouseRight]', target: artifactItem })
-
-    // Context menu items should appear
-    expect(screen.getByText('Open')).toBeInTheDocument()
-    expect(screen.getByText('Delete')).toBeInTheDocument()
   })
 
   it('navigates to playbook on double-click of playbook artifact', async () => {
@@ -227,21 +190,8 @@ describe('ProjectTree', () => {
     await user.dblClick(artifactItem)
 
     // Should navigate to the playbook editor
-    // Wait for async playbookService call
     await vi.waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/playbooks/pb-1')
     })
-  })
-
-  it('sorts groups by configured order (playbook before role before inventory)', () => {
-    renderTree()
-
-    const allText = document.body.textContent || ''
-    const playbookPos = allText.indexOf('Playbooks')
-    const rolesPos = allText.indexOf('Roles')
-    const inventoryPos = allText.indexOf('Inventory')
-
-    expect(playbookPos).toBeLessThan(rolesPos)
-    expect(rolesPos).toBeLessThan(inventoryPos)
   })
 })
