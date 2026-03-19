@@ -111,9 +111,10 @@ beforeEach(() => {
 })
 
 describe('AppHeader', () => {
-  it('renders playbook name', () => {
-    renderAppHeader()
-    expect(screen.getByDisplayValue('Test Playbook')).toBeInTheDocument()
+  it('renders project and artifact name in breadcrumb', () => {
+    renderAppHeader({ projectName: 'My Project', artifactName: 'site.yml' })
+    expect(screen.getByText('My Project')).toBeInTheDocument()
+    expect(screen.getByText('site.yml')).toBeInTheDocument()
   })
 
   it('renders save status indicator', () => {
