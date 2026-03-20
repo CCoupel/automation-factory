@@ -4,8 +4,9 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Use absolute paths so SPA deep routes work on page reload
-  base: '/',
+  // Relative paths — works with any base path (BORE-compliant)
+  // Runtime <base href> injection in docker-entrypoint.sh handles absolute resolution
+  base: './',
   plugins: [react()],
   resolve: {
     alias: {

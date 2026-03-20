@@ -12,8 +12,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the application with root path
-# The actual base path will be injected at runtime via the entrypoint script
+# Build the application with relative paths (BORE: Build Once Run Everywhere)
+# Runtime base path is injected via <base href> in docker-entrypoint.sh
 RUN npm run build
 
 # Production stage

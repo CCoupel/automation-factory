@@ -48,7 +48,7 @@ if [ -n "$BASE_PATH" ]; then
 
   # Inject BASE_PATH and API_URL into index.html
   echo "🔧 Injecting BASE_PATH and API_URL into index.html for React Router..."
-  sed -i "s|<head>|<head><script>window.__BASE_PATH__ = '/${BASE_PATH}'; window.__API_URL__ = '/${BASE_PATH}/api';</script>|g" "$HTML_ROOT/$BASE_PATH/index.html"
+  sed -i "s|<head>|<head><base href=\"/${BASE_PATH}/\"><script>window.__BASE_PATH__ = '/${BASE_PATH}'; window.__API_URL__ = '/${BASE_PATH}/api';</script>|g" "$HTML_ROOT/$BASE_PATH/index.html"
   # Fix vite.svg path to work with BASE_PATH
   sed -i "s|href=\"./vite.svg\"|href=\"/${BASE_PATH}/vite.svg\"|g" "$HTML_ROOT/$BASE_PATH/index.html"
   echo "   • window.__BASE_PATH__ = '/${BASE_PATH}'"
@@ -81,7 +81,7 @@ else
   echo "📝 No BASE_PATH configured, using root path /"
   # Inject empty BASE_PATH and root API_URL into index.html
   echo "🔧 Injecting empty BASE_PATH and API_URL into index.html..."
-  sed -i "s|<head>|<head><script>window.__BASE_PATH__ = ''; window.__API_URL__ = '/api';</script>|g" "$HTML_ROOT/index.html"
+  sed -i "s|<head>|<head><base href=\"/\"><script>window.__BASE_PATH__ = ''; window.__API_URL__ = '/api';</script>|g" "$HTML_ROOT/index.html"
   echo "   • window.__BASE_PATH__ = ''"
   echo "   • window.__API_URL__ = '/api'"
 fi
