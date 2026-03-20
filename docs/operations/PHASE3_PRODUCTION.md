@@ -82,42 +82,42 @@ curl -s http://192.168.1.217/api/version
 # }
 ```
 
-### 1. Tag et Push des Images Staging → Production
+### 1. Pipeline GitHub Actions CI — Build et Push des Images
 
-#### ⚠️ PAS DE REBUILD - Réutilisation des images staging
+#### ⚠️ PAS DE BUILD LOCAL — Les images production viennent EXCLUSIVEMENT du pipeline GitHub Actions CI
 
 ```bash
-# Identifier les images staging validées
-docker -H tcp://192.168.1.217:2375 images | grep automation-factory
+# 1. S'assurer que main contient le code de la version à déployer
+git log --oneline github/main | head -3
 
-# Tag des images staging pour ghcr.io
-# Format: automation-factory-*:X.Y.Z-rc.n → ghcr.io/ccoupel/automation-factory-*:X.Y.Z
-# NOTE: Plus de suffix -vite, même image nginx pour staging et production
-docker -H tcp://192.168.1.217:2375 tag \
-  automation-factory-backend:X.Y.Z-rc.n \
-  ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
-
-docker -H tcp://192.168.1.217:2375 tag \
-  automation-factory-frontend:X.Y.Z-rc.n \
-  ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
-
-# Tag latest
-docker -H tcp://192.168.1.217:2375 tag \
-  ghcr.io/ccoupel/automation-factory-backend:X.Y.Z \
-  ghcr.io/ccoupel/automation-factory-backend:latest
-
-docker -H tcp://192.168.1.217:2375 tag \
-  ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z \
-  ghcr.io/ccoupel/automation-factory-frontend:latest
+# 2. Pousser sur main pour déclencher le pipeline CI
+git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 ```
 
-#### Push vers Registry Production
+#### Surveillance ACTIVE du pipeline CI (Claude doit faire cela, pas l'utilisateur)
+
 ```bash
-# Push versions production (images identiques au staging)
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-backend:latest
-docker -H tcp://192.168.1.217:2375 push ghcr.io/ccoupel/automation-factory-frontend:latest
+# Lister les derniers runs sur main
+GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --branch main --limit 5
+
+# Surveiller un run spécifique (relancer toutes les 60s jusqu'à conclusion)
+GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
+
+# Si le run échoue : analyser les logs
+GITHUB_TOKEN=<PAT> gh run view <run_id> --log-failed --repo CCoupel/automation-factory
+# → Corriger le code, pousser, et attendre le prochain run — NE JAMAIS contourner par build local
+```
+
+**Le pipeline CI est terminé quand :** `status: completed` + `conclusion: success`
+
+#### Vérification des images sur ghcr.io
+```bash
+# Vérifier que les images X.Y.Z sont bien disponibles sur ghcr.io
+GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+  --jq '.[0].metadata.container.tags'
+GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-frontend/versions \
+  --jq '.[0].metadata.container.tags'
+# Doit retourner ["X.Y.Z", "latest"]
 ```
 
 ### 2. Mise à jour Configuration Kubernetes
@@ -345,10 +345,11 @@ git push
 - [ ] **Version staging** validée et testée
 - [ ] **Images staging** identifiées (X.Y.Z-rc.n)
 
-### Tag et Push
-- [ ] **Images taggées** pour ghcr.io (X.Y.Z)
-- [ ] **Push ghcr.io** réussi (backend + frontend)
-- [ ] **Tag latest** mis à jour
+### Pipeline CI GitHub Actions
+- [ ] **Push sur `main`** effectué
+- [ ] **Pipeline CI** surveillé activement (gh run view, polling 60s)
+- [ ] **Pipeline CI** terminé avec `conclusion: success`
+- [ ] **Images ghcr.io** vérifiées : tag X.Y.Z présent (backend + frontend)
 
 ### Déploiement
 - [ ] **custom-values.yaml** mis à jour avec nouveaux tags

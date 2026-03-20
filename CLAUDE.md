@@ -8,12 +8,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 2.4.0 / Frontend 2.4.0
+**Version Développement :** Backend 2.4.1 / Frontend 2.4.1
 **Version Production :** Backend 2.3.6 / Frontend 2.3.6  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **URL Marketing :** https://ccoupel.bitbucket.io
-**Dernière mise à jour :** 2026-03-19
+**Dernière mise à jour :** 2026-03-20
 
 ## 📚 **Documentation Organisée**
 
@@ -180,26 +180,35 @@ curl -I http://192.168.1.217/                # Frontend OK (nginx)
 
 ## 🚀 **Déploiement Production - HELM EXCLUSIF**
 
-**⚠️ RÈGLE ABSOLUE :** Le déploiement en production se fait **EXCLUSIVEMENT via Helm**.
+**⚠️ RÈGLES ABSOLUES :** Déploiement production via Helm + images venant EXCLUSIVEMENT du pipeline CI GitHub Actions.
 
 ### ❌ INTERDIT en Production
 ```bash
 # NE JAMAIS utiliser kubectl set image
 kubectl set image deployment/... # INTERDIT - Casse la cohérence Helm
 
-# NE JAMAIS rebuild les images en Phase 3
-docker build ... # INTERDIT - Utiliser les images staging validées
+# NE JAMAIS builder ou retagger des images localement pour la prod
+docker build ...  # INTERDIT - Les images prod viennent du pipeline CI
+docker tag automation-factory-backend:rc... ghcr.io/...  # INTERDIT
 ```
 
 ### ✅ OBLIGATOIRE en Production
 ```bash
-# 1. Tag et push des images staging vers ghcr.io
-docker tag automation-factory-frontend:X.Y.Z-rc.n ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
-docker push ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z
+# 1. Pousser sur main → déclenche le pipeline CI GitHub Actions
+git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 
-# 2. Mise à jour custom-values.yaml avec nouveaux tags
+# 2. Surveiller ACTIVEMENT le pipeline CI (Claude le fait, pas l'utilisateur)
+GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --branch main --limit 3
+GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
+# Attendre conclusion: success — si failure: analyser logs, corriger, repousser
 
-# 3. Déploiement via Helm UNIQUEMENT
+# 3. Vérifier les images sur ghcr.io
+GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+  --jq '.[0].metadata.container.tags'
+
+# 4. Mise à jour custom-values.yaml avec le tag X.Y.Z (sans -rc.n)
+
+# 5. Déploiement via Helm UNIQUEMENT
 KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
   --namespace automation-factory \
   --values custom-values.yaml \

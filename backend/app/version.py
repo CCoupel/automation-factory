@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.4.0"
-__description__ = "Automation Factory API - Header: artifact-type icon for WS status"
+__version__ = "2.4.1"
+__description__ = "Automation Factory API - Fix nginx cache 304 on login page"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version

@@ -7,6 +7,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.4.1] - 2026-03-20
+
+### 🛠️ Corrections
+- **Nginx cache 304 sur login:** La page de login ne s'affichait plus (réponse 304 au lieu de 200)
+  - Ajout headers anti-cache (`Cache-Control: no-cache, no-store, must-revalidate`) sur `index.html` dans `frontend/nginx.conf`
+  - Ajout headers anti-cache dans le reverse proxy staging (`docker-compose.staging.yml`)
+
+---
+
 ## [2.4.0] - 2026-03-19
 
 ### ✨ Nouvelles fonctionnalités

@@ -4,7 +4,7 @@ Ce document trace l'état actuel du développement et les versions déployées.
 
 ---
 
-## 🚀 **Status Actuel - 2026-03-19**
+## 🚀 **Status Actuel - 2026-03-20**
 
 ### Versions Déployées
 
@@ -17,13 +17,13 @@ Ce document trace l'état actuel du développement et les versions déployées.
 - **Helm Revision :** 111
 
 **Staging :**
-- **Version :** `2.4.0-rc.8`
+- **Version :** `2.4.1-rc.1`
 - **Phase :** Phase 2 - Intégration
 - **URL :** http://192.168.1.217
 
 **Branche `integration` :**
-- **Version :** `2.4.0`
-- **Prête pour PR → main**
+- **Version :** `2.4.1`
+- **Bugfix nginx cache 304 sur login page**
 
 ---
 
@@ -86,4 +86,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-03-19 - v2.4.0 prête pour merge dans main*
+*Dernière mise à jour : 2026-03-20 - v2.4.1 bugfix nginx cache 304*
