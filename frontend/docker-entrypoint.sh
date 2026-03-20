@@ -49,8 +49,11 @@ if [ -n "$BASE_PATH" ]; then
   # Inject BASE_PATH and API_URL into index.html
   echo "🔧 Injecting BASE_PATH and API_URL into index.html for React Router..."
   sed -i "s|<head>|<head><base href=\"/${BASE_PATH}/\"><script>window.__BASE_PATH__ = '/${BASE_PATH}'; window.__API_URL__ = '/${BASE_PATH}/api';</script>|g" "$HTML_ROOT/$BASE_PATH/index.html"
+  # Also inject into root index.html (Traefik strips prefix, nginx serves root file directly)
+  sed -i "s|<head>|<head><base href=\"/${BASE_PATH}/\"><script>window.__BASE_PATH__ = '/${BASE_PATH}'; window.__API_URL__ = '/${BASE_PATH}/api';</script>|g" "$HTML_ROOT/index.html"
   # Fix vite.svg path to work with BASE_PATH
   sed -i "s|href=\"./vite.svg\"|href=\"/${BASE_PATH}/vite.svg\"|g" "$HTML_ROOT/$BASE_PATH/index.html"
+  sed -i "s|href=\"./vite.svg\"|href=\"/${BASE_PATH}/vite.svg\"|g" "$HTML_ROOT/index.html"
   echo "   • window.__BASE_PATH__ = '/${BASE_PATH}'"
   echo "   • window.__API_URL__ = '/${BASE_PATH}/api'"
   echo "   • Fixed vite.svg path to /${BASE_PATH}/vite.svg"

@@ -3,8 +3,8 @@ Application version information
 """
 import os
 
-__version__ = "2.4.1"
-__description__ = "Automation Factory API - Fix nginx cache 304 on login page"
+__version__ = "2.4.3"
+__description__ = "Automation Factory API - Fix entrypoint base href injection for root index.html"
 
 # Environment: PROD (default), STAGING, DEV
 # In PROD, RC suffix is hidden from displayed version
