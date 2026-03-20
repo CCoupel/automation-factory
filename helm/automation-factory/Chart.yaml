@@ -2,8 +2,8 @@ apiVersion: v2
 name: automation-factory
 description: A Helm chart for Automation Factory - Visual Ansible Playbook Builder
 type: application
-version: 2.4.0
-appVersion: "2.4.0"
+version: 2.4.1
+appVersion: "2.4.1"
 keywords:
   - ansible
   - playbook
