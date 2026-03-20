@@ -15,7 +15,7 @@ const translations = {
         'nav.cta': 'Accéder à l\'App',
 
         // Hero Section
-        'hero.badge': 'Version 2.3.6 — Import YAML & Sync Universel',
+        'hero.badge': 'Version 2.4.3 — Acces Production Restaure',
         'hero.title': 'Créez vos Playbooks Ansible',
         'hero.title.highlight': 'Visuellement',
         'hero.subtitle': 'Interface drag & drop intuitive, intégration Galaxy complète avec 36 000+ rôles, collaboration temps réel et validation Ansible-lint instantanée.',
@@ -146,6 +146,16 @@ const translations = {
         'versions.legend.collab': 'Collab',
         'versions.legend.all': 'Tous',
 
+
+        // Version 2.4.3
+        'versions.v243.date': 'Mars 2026',
+        'versions.v243.title': 'Acces Production Restaure',
+        'versions.v243.f1': 'Login restaure',
+        'versions.v243.f1.detail': 'La page de connexion est de nouveau accessible — l\'interruption de service apres le deploiement v2.4.0 est resolue',
+        'versions.v243.f2': 'Assets corriges',
+        'versions.v243.f2.detail': 'Les styles et scripts se chargent correctement sous le chemin /automation-factory/ en production',
+        'versions.v243.f3': 'Traefik fix',
+        'versions.v243.f3.detail': 'Injection du chemin de base dans tous les index.html servis par Traefik avec strip-prefix',
 
         // Version 2.3.6
         'versions.v236.date': 'Mars 2026',
@@ -384,7 +394,7 @@ const translations = {
         'nav.cta': 'Access App',
 
         // Hero Section
-        'hero.badge': 'Version 2.3.6 — YAML Import & Universal Sync',
+        'hero.badge': 'Version 2.4.3 — Production Access Restored',
         'hero.title': 'Build your Ansible Playbooks',
         'hero.title.highlight': 'Visually',
         'hero.subtitle': 'Intuitive drag & drop interface, complete Galaxy integration with 36,000+ roles, real-time collaboration and instant Ansible-lint validation.',
@@ -515,6 +525,16 @@ const translations = {
         'versions.legend.collab': 'Collab',
         'versions.legend.all': 'All',
 
+
+        // Version 2.4.3
+        'versions.v243.date': 'March 2026',
+        'versions.v243.title': 'Production Access Restored',
+        'versions.v243.f1': 'Login restored',
+        'versions.v243.f1.detail': 'Login page is accessible again — the service outage after v2.4.0 deployment is resolved',
+        'versions.v243.f2': 'Assets fixed',
+        'versions.v243.f2.detail': 'Styles and scripts now load correctly under the /automation-factory/ path in production',
+        'versions.v243.f3': 'Traefik fix',
+        'versions.v243.f3.detail': 'Base path injection in all index.html files served by Traefik with strip-prefix',
 
         // Version 2.3.6
         'versions.v236.date': 'March 2026',
