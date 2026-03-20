@@ -425,7 +425,7 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo \
 
 ---
 
-*Document maintenu à jour. Dernière mise à jour : 2026-01-02*
+*Document maintenu à jour. Dernière mise à jour : 2026-03-20 — v2.4.3 deployed, Helm revision 13*
 
 *Voir aussi :*
 - [Phase 1 Développement](PHASE1_DEVELOPMENT.md)

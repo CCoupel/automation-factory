@@ -263,6 +263,42 @@ __system_link___system_var_var1_task_1 : task1 → task2
 
 ---
 
+## 🌐 **Base URL Frontend — Build Once Deploy Everywhere**
+
+### Décision : Vite base './' avec injection runtime
+**Décision :** Utiliser `base: './'` dans Vite (chemins relatifs) + injection runtime de `<base href>` et `window.__BASE_PATH__` via `docker-entrypoint.sh`.
+
+**Justification :**
+- **BORE-compliant :** Même image Docker fonctionne avec ou sans sous-chemin (staging `/` vs production `/automation-factory`)
+- **Pas de rebuild :** Le base path est injecté au démarrage du container, pas au build
+- **Compatibilité Traefik stripPrefix :** L'entrypoint injecte dans les DEUX index.html (racine `/usr/share/nginx/html/index.html` ET sous-répertoire `/${BASE_PATH}/index.html`) pour que Traefik serve correctement après strip du prefix
+
+### Fichiers impliqués
+| Fichier | Rôle |
+|---------|------|
+| `frontend/vite.config.ts` | `base: './'` — génère chemins relatifs pour assets et dynamic imports |
+| `frontend/docker-entrypoint.sh` | Injecte `<base href>`, `window.__BASE_PATH__`, `window.__API_URL__` dans index.html |
+| `frontend/nginx.conf` | Headers anti-cache sur index.html (`Cache-Control: no-cache, no-store, must-revalidate`) |
+| `custom-values.yaml` / Helm | Variable `BASE_PATH` passée au container frontend |
+| `docker-compose.staging.yml` | Pas de `BASE_PATH` en staging (défaut `/`) |
+
+### Injection runtime (docker-entrypoint.sh)
+```
+1. Si BASE_PATH est défini et != "/" :
+   - Copie les fichiers dans /${BASE_PATH}/
+   - Injecte <base href="/${BASE_PATH}/"> dans les DEUX index.html
+   - Injecte window.__BASE_PATH__ = "/${BASE_PATH}"
+   - Injecte window.__API_URL__ = "/${BASE_PATH}/api"
+2. Sinon (staging, pas de sous-chemin) :
+   - Injecte uniquement dans index.html racine
+   - window.__BASE_PATH__ = "/"
+```
+
+### React Router
+- `BrowserRouter basename` utilise `window.__BASE_PATH__` pour que le routing fonctionne sous un sous-chemin
+
+---
+
 ## 🚦 **Rejected Alternatives**
 
 ### ❌ Vue.js / Angular

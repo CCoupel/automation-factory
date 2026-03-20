@@ -1154,6 +1154,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  base: './',  // Chemins relatifs — BORE-compliant (Build Once Deploy Everywhere)
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
@@ -1227,24 +1228,32 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-### Entrypoint Script
+### Entrypoint Script (docker-entrypoint.sh)
+
+Le script d'entrypoint gere l'injection runtime du base path et de l'API URL selon l'environnement :
+
 ```bash
 #!/bin/sh
-# docker-entrypoint.sh
+# docker-entrypoint.sh — Runtime injection pour BORE (Build Once Deploy Everywhere)
 
-# Configuration runtime injection
-cat > /usr/share/nginx/html/config.js << EOF
-window.__API_URL__ = '${API_URL:-/api}';
-window.__BASE_PATH__ = '${BASE_PATH:-/}';
-window.__FRONTEND_VERSION__ = '${FRONTEND_VERSION}';
-EOF
+# Si BASE_PATH defini et != "/" :
+#   1. Copie les fichiers statiques dans /${BASE_PATH}/
+#   2. Injecte <base href="/${BASE_PATH}/"> dans les DEUX index.html
+#      (racine + sous-repertoire) pour compatibilite Traefik stripPrefix
+#   3. Injecte window.__BASE_PATH__ et window.__API_URL__
+# Sinon (staging sans sous-chemin) :
+#   1. Injection dans index.html racine uniquement
+#   2. window.__BASE_PATH__ = "/"
 
-# Inject config in HTML
-sed -i 's|<head>|<head>\n  <script src="/config.js"></script>|' /usr/share/nginx/html/index.html
-
-# Start nginx
-exec "$@"
+# Anti-cache : nginx.conf ajoute Cache-Control: no-cache sur index.html
+# pour eviter les 304 stale apres redeploy
 ```
+
+**Points cles :**
+- `base: './'` dans Vite genere des chemins relatifs pour tous les assets et dynamic imports
+- `docker-entrypoint.sh` injecte `<base href>` + `window.__BASE_PATH__` au runtime
+- React Router utilise `window.__BASE_PATH__` comme `basename` du BrowserRouter
+- Headers anti-cache (`Cache-Control: no-cache, no-store, must-revalidate`) sur `index.html` dans `nginx.conf` pour eviter les 304 apres redeploy
 
 ---
 

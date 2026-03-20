@@ -7,6 +7,24 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.4.3] - 2026-03-20
+
+### 🛠️ Corrections
+- **Fix entrypoint root index.html injection:** En production avec `BASE_PATH`, l'entrypoint n'injectait pas `<base href>` dans l'index.html racine
+  - Traefik (stripPrefix) sert l'index.html racine, pas celui du sous-repertoire
+  - `docker-entrypoint.sh` injecte maintenant dans les DEUX index.html
+
+---
+
+## [2.4.2] - 2026-03-20
+
+### 🛠️ Corrections
+- **Fix Vite base URL pour production:** Assets et dynamic imports casses sous sous-chemin `/automation-factory/`
+  - `vite.config.ts` : `base: './'` (chemins relatifs, BORE-compliant)
+  - `docker-entrypoint.sh` : injection runtime `<base href>` + `window.__BASE_PATH__` + `window.__API_URL__`
+
+---
+
 ## [2.4.1] - 2026-03-20
 
 ### 🛠️ Corrections

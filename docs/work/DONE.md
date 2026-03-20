@@ -4,6 +4,59 @@ Ce document trace l'historique des fonctionnalités implémentées et des améli
 
 ---
 
+## ✅ **Version 2.4.3** - *2026-03-20*
+
+### 🐛 Hotfix — Fix entrypoint root index.html injection
+
+- **Bug corrige** : En production avec `BASE_PATH`, le `docker-entrypoint.sh` n'injectait pas `<base href>` et `window.__BASE_PATH__` dans l'index.html racine
+- **Cause** : L'entrypoint ne modifiait que l'index.html du sous-repertoire `/${BASE_PATH}/`, mais Traefik (avec stripPrefix) sert l'index.html racine
+- **Fix** : Injection dans les DEUX index.html (racine + sous-repertoire BASE_PATH)
+
+### 📁 Fichiers Modifies
+- `frontend/docker-entrypoint.sh` — injection dans les deux index.html
+
+### 📊 Metriques
+- **Version** : 2.4.3
+- **Helm Revision** : 13
+- **Production** : https://coupel.net/automation-factory
+
+---
+
+## ✅ **Version 2.4.2** - *2026-03-20*
+
+### 🐛 Hotfix — Fix Vite base URL pour production
+
+- **Bug corrige** : Assets et dynamic imports cassés en production sous sous-chemin `/automation-factory/`
+- **Cause** : `vite.config.ts` utilisait `base: '/'` (chemins absolus), incompatible avec un deploiement sous sous-chemin
+- **Fix** : `base: './'` (chemins relatifs, BORE-compliant) + injection runtime `<base href>` et `window.__BASE_PATH__` via `docker-entrypoint.sh`
+
+### 📁 Fichiers Modifies
+- `frontend/vite.config.ts` — `base: './'`
+- `frontend/docker-entrypoint.sh` — injection `<base href>` + `window.__BASE_PATH__` + `window.__API_URL__`
+
+### 📊 Metriques
+- **Version** : 2.4.2
+- **Helm Revision** : 12
+
+---
+
+## ✅ **Version 2.4.1** - *2026-03-20*
+
+### 🐛 Hotfix — Fix nginx cache 304 sur page login
+
+- **Bug corrige** : La page de login ne s'affichait plus (reponse 304 au lieu de 200)
+- **Cause** : Pas de headers anti-cache sur `index.html` dans nginx — le navigateur servait une version cachee obsolete apres redeploy
+- **Fix** : Ajout headers `Cache-Control: no-cache, no-store, must-revalidate` + `Pragma: no-cache` + `Expires: 0` sur le bloc `location /`
+
+### 📁 Fichiers Modifies
+- `frontend/nginx.conf` — headers anti-cache sur `location /`
+- `docker-compose.staging.yml` — memes headers dans le reverse proxy staging
+
+### 📊 Metriques
+- **Version** : 2.4.1
+
+---
+
 ## ✅ **Version 2.4.0** - *2026-03-19*
 
 ### 🔧 Event Sourcing — Persistance Événements Playbook

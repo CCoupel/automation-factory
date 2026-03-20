@@ -9,21 +9,16 @@ Ce document trace l'état actuel du développement et les versions déployées.
 ### Versions Déployées
 
 **Production (Kubernetes) :**
-- **Backend :** `2.3.0` (ghcr.io/ccoupel/automation-factory-backend:2.3.0)
-- **Frontend :** `2.3.5` (ghcr.io/ccoupel/automation-factory-frontend:2.3.5)
+- **Backend :** `2.4.3` (ghcr.io/ccoupel/automation-factory-backend:2.4.3)
+- **Frontend :** `2.4.3` (ghcr.io/ccoupel/automation-factory-frontend:2.4.3)
 - **Database :** PostgreSQL 16 (StatefulSet)
 - **URL :** https://coupel.net/automation-factory
-- **Tag Git :** `v2.3.0`
-- **Helm Revision :** 111
+- **Helm Revision :** 13
 
 **Staging :**
-- **Version :** `2.4.1-rc.1`
-- **Phase :** Phase 2 - Intégration
+- **Version :** `2.4.3`
+- **Phase :** Phase 3 - Production (deployée)
 - **URL :** http://192.168.1.217
-
-**Branche `integration` :**
-- **Version :** `2.4.1`
-- **Bugfix nginx cache 304 sur login page**
 
 ---
 
@@ -86,4 +81,4 @@ Voir détails dans [DONE.md](DONE.md#version-230---2026-01-09)
 
 ---
 
-*Dernière mise à jour : 2026-03-20 - v2.4.1 bugfix nginx cache 304*
+*Dernière mise à jour : 2026-03-20 - v2.4.3 deployed to production*
