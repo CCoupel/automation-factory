@@ -76,7 +76,29 @@ htmlcov/
 k8s/**/*secret*.yaml
 !k8s/**/example-secret.yaml
 
+# Cluster credentials — jamais committer, fourni localement par chaque opérateur
+kubeconfig.txt
+
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# --- Claude Code template (v3 architecture) ---
+# Fichiers TEMPLATE — fetches depuis GitHub a chaque /init-project
+TEMPLATE_claude/
+
+# Commandes template générées depuis TEMPLATE_claude/ (*.md — jamais éditées manuellement)
+.claude/commands/*.md
+.claude/commands/*.template.md
+
+# Agents template générés depuis TEMPLATE_claude/ (*.template.md — jamais édités manuellement)
+# Les *.md dans agents/ (hors dev-*) sont des adaptations projet — trackés dans git
+.claude/agents/*.template.md
+
+# Contextes partagés générés depuis TEMPLATE_claude/{commands,agents}/context/
+.claude/commands/context/*.template.md
+.claude/agents/context/*.template.md
+
+# Dossier de travail inter-agents (rapports et handoffs temporaires)
+_work/

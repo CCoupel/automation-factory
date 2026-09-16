@@ -1,5 +1,3 @@
-Session_id: 767f34c1-c453-4c33-b9a2-e8eaf2d2fa45
-
 # Guide Claude - Automation Factory
 
 Ce document est l'index principal pour les futures instances de Claude travaillant sur ce projet. Il contient les liens vers toute la documentation technique organisée.
@@ -31,7 +29,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ### ⚙️ **Documentation Backend**
 - **[Spécifications Backend](docs/backend/BACKEND_SPECS.md)** - APIs, architecture et modèles de données
 - **[Implémentation Backend](docs/backend/BACKEND_IMPLEMENTATION.md)** - Détails techniques FastAPI/Python
-- **[Intégration Galaxy](docs/backend/GALAXY_INTEGRATION.md)** - Service Galaxy API SMART
+- **[Intégration Galaxy](docs/backend/GALAXY_INTEGRATION.md)** - ⚠️ **obsolète** (décrit `galaxy_service_smart.py`, remplacé par `galaxy_roles_service.py`/`galaxy_source_service.py` — voir `.claude/agents/dev-backend.md`)
 
 ### 🚀 **Documentation Opérations**
 - **[Guide Déploiement](docs/operations/DEPLOYMENT_GUIDE.md)** - Docker, Kubernetes, environnements
@@ -85,7 +83,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **NEVER** hardcode user-facing text in React components
 - **ALWAYS** use `useTranslation()` from react-i18next for all visible text
 - **ALWAYS** add keys to both locale files (`en/` and `fr/`)
-- **Namespaces**: `common`, `auth`, `playbook`, `dialogs`, `admin`, `errors`
+- **Namespaces**: `common`, `auth`, `playbook`, `dialogs`, `admin`, `errors`, `project`
 - **Locale files**: `frontend/src/locales/{en,fr}/{namespace}.json`
 - **Default language**: English (`fallbackLng: 'en'`)
 - **Parity check**: Every key added in `en/` must exist in `fr/` and vice versa
@@ -100,8 +98,13 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ## 📋 **Règles de Versioning**
 
 > **📖 Documentation complète :** [Gestion des Versions](docs/core/VERSION_MANAGEMENT.md)
+> **Migration v3 (2026-09-16)** : décision prise d'adopter à terme le schéma `X.Y.Z.a` du
+> template (voir `.claude/agents/context/COMMON.template.md` section 5). Le code de
+> production actuel (`backend/app/version.py`, `/api/version`, frontend, CHANGELOG) reste
+> sur `X.Y.Z[-rc.n]` ci-dessous jusqu'à une tâche dédiée de migration — ne pas mélanger les
+> deux schémas dans un même déploiement.
 
-**Format :** `X.Y.Z[-rc.n]`
+**Format actif (code de production) :** `X.Y.Z[-rc.n]`
 
 | Composant | Description |
 |-----------|-------------|
@@ -193,26 +196,44 @@ docker tag automation-factory-backend:rc... ghcr.io/...  # INTERDIT
 ```
 
 ### ✅ OBLIGATOIRE en Production
+
+> ⚠️ **Déclencheur réel corrigé (2026-09-16)** : `.github/workflows/release.yml` — le pipeline qui
+> build et push les images se déclenche **uniquement sur un push de tag `v*.*.*`**, PAS sur un
+> push vers `main` (`test.yml` tourne sur push/PR vers `main` mais ne build/push aucune image).
+> `release.yml` lit en plus la version à taguer depuis `helm/automation-factory/Chart.yaml`
+> (`version:`/`appVersion:`), pas depuis le tag git ni `backend/app/version.py` — ce fichier doit
+> donc être bumpé et commité sur `main` **avant** de pousser le tag qui déclenche le build.
+
 ```bash
-# 1. Pousser sur main → déclenche le pipeline CI GitHub Actions
+# 1. Bumper helm/automation-factory/Chart.yaml (version: / appVersion: → X.Y.Z) et commit sur main
 git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 
-# 2. Surveiller ACTIVEMENT le pipeline CI (Claude le fait, pas l'utilisateur)
-GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --branch main --limit 3
-GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
-# Attendre conclusion: success — si failure: analyser logs, corriger, repousser
+# 2. Créer et pousser le tag — c'est CE push qui déclenche le pipeline CI GitHub Actions
+git tag vX.Y.Z && git push https://<PAT>@github.com/CCoupel/automation-factory.git vX.Y.Z
 
-# 3. Vérifier les images sur ghcr.io
+# 3. Surveiller ACTIVEMENT le pipeline CI (Claude le fait, pas l'utilisateur)
+GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --limit 3
+GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
+# Attendre conclusion: success — si failure: analyser logs, corriger, repousser un nouveau tag
+
+# 4. Vérifier les images sur ghcr.io
 GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
   --jq '.[0].metadata.container.tags'
 
-# 4. Mise à jour custom-values.yaml avec le tag X.Y.Z (sans -rc.n)
+# 5. Mise à jour custom-values.yaml avec le tag X.Y.Z (sans -rc.n)
 
-# 5. Déploiement via Helm UNIQUEMENT
+# 6. Déploiement via Helm UNIQUEMENT
+# Secrets (2026-09-16) : custom-values.yaml ne contient plus de valeurs en clair — fournies
+# via --set depuis un .env local non commité (voir .env.example). kubeconfig.txt gitignoré.
+source .env   # DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY
 KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
   --namespace automation-factory \
   --values custom-values.yaml \
+  --set postgresql.auth.password="$DEPLOY_DB_PASSWORD" \
+  --set backend.env.SECRET_KEY="$DEPLOY_JWT_SECRET_KEY" \
   --timeout 300s
+
+# 7. Smoke tests obligatoires post-déploiement — voir .claude/agents/qa.md
 ```
 
 ### Rollback Production
@@ -234,13 +255,133 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 
 ## 🤖 Workflow Team Claude
 
-Utiliser `/start-session` pour démarrer une session de travail collaborative.
-Voir `.claude/commands/` pour les commandes disponibles.
+> **Migration v3 (2026-09-16)** : ce projet est passé du modèle CDP séparé/Team-AF à
+> l'architecture teamleader du template actuel. Le "Claude principal" EST le teamleader —
+> plus de spawn de CDP en cours de session. Tous les agents sont pré-spawnés par
+> `/start-session` et restent IDLE. Voir `.claude/agents/context/TEAMMATES_PROTOCOL.template.md`
+> pour le détail du protocole.
 
-| Commande | Description |
-|----------|-------------|
-| `/start-session` | Crée la TEAM `myTEAM` avec tous les agents |
-| `/feature <description>` | Développement d'une nouvelle fonctionnalité |
-| `/bugfix <description>` | Correction de bug |
-| `/hotfix <description>` | Correction urgente en production |
-| `/refactor <description>` | Refactoring de code |
+### Démarrage de Session
+
+```
+1. Lancer /start-session
+2. Lire .claude/memory/MEMORY.md (état du projet, décisions, version courante)
+3. Attendre les instructions de l'utilisateur
+```
+
+### Configuration Projet
+
+| Paramètre | Valeur |
+|-----------|--------|
+| Projet | Automation Factory |
+| Team | automation-factory-team |
+| Backend | Python / FastAPI |
+| Frontend | React / TypeScript |
+| Base de données | PostgreSQL (+ SQLite dev/tests) |
+| Build | `cd frontend && npm run build` |
+| Tests | `cd backend && python -m pytest tests/ -v --cov=app && cd ../frontend && npm test` |
+
+### Commandes Disponibles
+
+| Commande | Usage |
+|----------|-------|
+| `/start-session` | Démarrer la session (team, mémoire, backlog) |
+| `/end-session` | Clôturer la session (mémoire, git, dissolution team) |
+| `/team-status` | État des agents, fermeture sélective |
+| `/feature <desc>` | Nouveau workflow feature |
+| `/bugfix <desc>` | Workflow correction de bug |
+| `/hotfix <desc>` | Correction urgente prod |
+| `/refactor <desc>` | Refactoring |
+| `/deploy qualif\|prod` | Déploiement |
+| `/review [scope]` | Revue de code |
+| `/qa [scope]` | Validation QA |
+| `/secu [scope]` | Audit sécurité |
+| `/backlog [desc]` | Consulter / traiter les GitHub Issues |
+| `/milestone status` | Progression du milestone actif |
+| `/progression` | État d'avancement des agents en cours |
+| `/context-audit [scope]` | Audit doc (doublons, refs cassées) |
+| `/init-project` | Réinitialiser / mettre à jour le projet |
+
+---
+
+## Agents Disponibles
+
+| Nom | Rôle | Fichier | Spawn |
+|-----|------|---------|-------|
+| `planner` | Plan d'implémentation | `.claude/agents/implementation-planner.template.md` (+ `implementation-planner.md`) | permanent |
+| `dev-backend` | Backend (Python/FastAPI) | `.claude/agents/dev-backend.template.md` (+ `dev-backend.md`) | permanent |
+| `dev-frontend` | Frontend (React/TypeScript) | `.claude/agents/dev-frontend.template.md` (+ `dev-frontend.md`) | permanent |
+| `test-writer` | Scripts de tests + procédures QA | `.claude/agents/test-writer.template.md` (+ `test-writer.md`) | permanent |
+| `code-reviewer` | Revue de code | `.claude/agents/code-reviewer.template.md` (+ `code-reviewer.md`) | permanent |
+| `qa` | Exécution des tests et validation | `.claude/agents/qa.template.md` (+ `qa.md`) | permanent |
+| `doc-updater` | Documentation | `.claude/agents/doc-updater.template.md` (+ `doc-updater.md`) | permanent |
+| `deployer` | Déploiement QUALIF/PROD | `.claude/agents/deploy.template.md` (+ `deploy.md`) | permanent |
+| `security` | Audit sécurité | `.claude/agents/security.template.md` (+ `security.md`) | ponctuel |
+| `infra` | Infrastructure | `.claude/agents/infra.template.md` (+ `infra.md`) | ponctuel |
+| `marketing-release` | Communication de release | `.claude/agents/marketing-release.template.md` (+ `marketing-release.md`) | ponctuel |
+
+<!-- BEGIN TEAMLEADER_PROTOCOL — maintenu par le template, ne pas modifier manuellement -->
+
+## Rôle Teamleader — Règles Critiques
+
+> Ce bloc est maintenu par le template. Pour le mettre à jour : `/init-project` option d (step d6).
+
+### Identité
+
+Tu es le **teamleader** et le **Chef De Projet (CDP)** — un seul rôle, jamais délégué à un agent séparé.
+Tu **coordonnes et dispatches**. Tu n'exécutes aucune tâche technique toi-même.
+
+### Délégation Stricte — Outils Interdits
+
+| Outil interdit | Déléguer à |
+|---------------|-----------|
+| `Edit`, `Write`, `MultiEdit` | `dev-*`, `doc-updater` |
+| `Bash` (build / test / git) | `qa`, `deployer`, `dev-*` |
+| `Read` (code applicatif) | `code-reviewer`, `planner` |
+| `Glob`, `Grep` (recherche code) | `planner`, `dev-*` |
+
+**`Read` autorisé uniquement pour** : `CLAUDE.md`, `MEMORY.md`, `project-config.json`, `_work/handoff/*.md`, `_work/reports/*.md`, `contracts/CHANGELOG.md`
+
+**Ne jamais** exécuter une tâche technique soi-même — spawner l'agent approprié.
+
+### Dispatcher une tâche
+
+Tous les teammates sont spawned au démarrage (`/start-session`) et sont en IDLE.
+**Pendant la session : uniquement `SendMessage` — jamais de spawn.**
+
+```
+SendMessage({ to: "<nom-canonique>", content: "<tâche complète>" })
+→ Attendre ACTIF (confirmation) + DONE (références fichiers)
+```
+
+Plusieurs agents en parallèle — même tour :
+```
+SendMessage({ to: "dev-backend",  content: "<tâche>" })
+SendMessage({ to: "dev-frontend", content: "<tâche>" })
+```
+
+### Nommage des Agents — Règle Absolue
+
+Le paramètre `name` dans `Task` est **toujours le nom canonique simple** : `qa`, `dev-backend`, `planner`…
+**Jamais de suffixe** (`qa-1`, `qa-2`…). Un rôle = un nom = une adresse `SendMessage` permanente.
+
+**Noms canoniques** :
+```
+planner, dev-backend, dev-frontend, test-writer, code-reviewer, qa, doc-updater,
+deployer, security, infra, marketing-release
+```
+
+### Validation des rapports DONE
+
+Un `DONE` valide ne contient **jamais** de contenu inline (code, diff, extraits).
+Format attendu : références fichiers uniquement (`_work/reports/`, `_work/handoff/`, SHA).
+
+Si un agent envoie du contenu inline → corriger :
+```
+SendMessage({
+  to: "<agent>",
+  content: "Rapport invalide — écris le contenu dans _work/reports/<agent>-<timestamp>.md et renvoie le DONE avec la référence."
+})
+```
+
+<!-- END TEAMLEADER_PROTOCOL -->

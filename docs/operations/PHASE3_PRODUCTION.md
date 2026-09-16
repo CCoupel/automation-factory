@@ -140,11 +140,20 @@ frontend:
 
 L'application est gérée via Helm chart. **TOUJOURS** utiliser `helm upgrade` pour maintenir la cohérence de la release Helm.
 
+> **Secrets (2026-09-16)** : `custom-values.yaml` ne contient plus de valeurs de secrets en clair
+> (`postgresql.auth.password`, `backend.env.SECRET_KEY` sont vides). Ces valeurs sont fournies au
+> moment du déploiement via `--set`, depuis un fichier `.env` local non commité — voir
+> `.env.example` à la racine. `kubeconfig.txt` n'est plus non plus committé (gitignoré) — chaque
+> opérateur doit le récupérer localement.
+
 ```bash
 # Déploiement production via Helm (OBLIGATOIRE)
+source .env   # DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY — voir .env.example
 KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
   --namespace automation-factory \
   --values custom-values.yaml \
+  --set postgresql.auth.password="$DEPLOY_DB_PASSWORD" \
+  --set backend.env.SECRET_KEY="$DEPLOY_JWT_SECRET_KEY" \
   --timeout 300s
 ```
 

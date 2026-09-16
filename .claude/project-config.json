@@ -1,0 +1,44 @@
+{
+  "name": "Automation Factory",
+  "team_name": "automation-factory-team",
+  "org": "CCoupel",
+  "project": "automation-factory",
+  "description": "SaaS web app to visually build Ansible playbooks via drag & drop, with live Ansible Galaxy integration (2200+ namespaces, SMART cache service) and standard YAML export.",
+  "version": "2.4.3",
+  "initialized_at": "2026-09-16",
+  "initialized_from": "analysis",
+  "src_dir": "backend/app",
+  "version_file": "backend/app/version.py",
+  "stack": {
+    "backend": { "language": "python", "framework": "fastapi" },
+    "frontend": { "language": "typescript", "framework": "react" },
+    "mobile": null,
+    "firmware": null,
+    "plugin": null,
+    "database": { "primary": "postgresql", "orm": "sqlalchemy" }
+  },
+  "infrastructure": {
+    "cicd": "github-actions",
+    "deploy": "kubernetes"
+  },
+  "testing": {
+    "backend": ["pytest"],
+    "frontend": ["vitest"],
+    "e2e": ["custom-shell-scripts-needs-repair"]
+  },
+  "security": {
+    "concerns": ["auth", "multi-tenant", "api-public"]
+  },
+  "commands": {
+    "build": "cd frontend && npm run build",
+    "test": "cd backend && python -m pytest tests/ -v --cov=app && cd ../frontend && npm test",
+    "lint": "cd backend && ruff check . && cd ../frontend && npm run lint",
+    "audit": "cd frontend && npm audit",
+    "typecheck": "cd frontend && npx tsc --noEmit",
+    "coverage": "cd backend && python -m pytest tests/ --cov=app --cov-report=term-missing && cd ../frontend && npm run test:coverage"
+  },
+  "agents": {
+    "idle_ttl_minutes": 15,
+    "idle_warning_interval_minutes": 5
+  }
+}

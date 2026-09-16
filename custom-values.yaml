@@ -11,7 +11,7 @@ postgresql:
     size: 5Gi  # 5GB should be sufficient for playbooks
   auth:
     username: ansible
-    password: "AnsibleBuilder2026!Prod"  # Strong password for production
+    password: ""  # NE PAS committer de valeur ici — fourni via --set au déploiement, voir .env.example
     database: automation_factory
   resources:
     limits:
@@ -29,7 +29,7 @@ backend:
     pullPolicy: Always
   env:
     DATABASE_TYPE: "postgresql"
-    SECRET_KEY: "AnsibleBuilder2026!JWTSecretKey"
+    SECRET_KEY: ""  # NE PAS committer de valeur ici — fourni via --set au déploiement, voir .env.example
     ALGORITHM: "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
   autoscaling:
