@@ -1,0 +1,4 @@
+# Force LF line endings for shell scripts regardless of platform/editor settings.
+# Rationale: scripts checked out with CRLF are unusable under bash/WSL
+# ("$'\r': command not found") — see _work/reports/qa-20260916-152354.md.
+*.sh text eol=lf

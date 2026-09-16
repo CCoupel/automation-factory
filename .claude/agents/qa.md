@@ -33,19 +33,26 @@ curl -I http://192.168.1.217/               # Frontend OK
 - QUALIF : tous endpoints OK, < 2s, 0 erreur critique
 - PROD : métriques stables 30 min, 0 régression
 
-> ⚠️ Les scripts `.sh` à la racine (`e2e-tests.sh`, `smoke-test-production.sh`,
-> `monitor-production-30min.sh`) datent de v1.9.0 et contiennent des **assertions de version
-> figées à `1.9.0`** — pas juste des logs, de vraies conditions de pass/fail cassées contre la
-> version actuelle (2.4.3) :
-> - `e2e-tests.sh` Test 7 : `if [[ $VERSION == "1.9.0-rc.1" ]]` → échoue TOUJOURS aujourd'hui
-> - `smoke-test-production.sh` Test 3 : `grep -q "1.9.0"` sur la réponse `/api/version` → échoue
->   TOUJOURS aujourd'hui
-> - `monitor-production-30min.sh` Check 3 : même pattern `grep`/comparaison sur `"1.9.0"`
+> ✅ **2026-09-16 (test-writer, suite au smoke test PROD v2.4.3, voir
+> `_work/reports/qa-20260916-152354.md` et `_work/reports/test-writer-20260916-*.md`)** :
+> `smoke-test-production.sh`, `monitor-production-30min.sh` et `quick-monitoring-check.sh` sont
+> corrigés et réexécutables tels quels :
+> - Fins de ligne CRLF → LF sur les 4 scripts `.sh` à la racine (`e2e-tests.sh`,
+>   `smoke-test-production.sh`, `monitor-production-30min.sh`, `quick-monitoring-check.sh`) —
+>   règle `.gitattributes` (`*.sh text eol=lf`) ajoutée pour éviter la régression.
+> - Assertion de version figée `1.9.0` remplacée par une lecture dynamique de
+>   `backend/app/version.py` (repo checkout local), surchargeable via `EXPECTED_VERSION` —
+>   fallback `2.4.3` si le fichier est absent. S'applique à `smoke-test-production.sh` Test 3,
+>   `monitor-production-30min.sh` Check 3, `quick-monitoring-check.sh` Check 3.
+> - Route Galaxy obsolète `/api/galaxy/namespaces/community/collections` remplacée par
+>   `/api/galaxy-roles/standalone/namespaces` (confirmée fonctionnelle). S'applique aux 3 mêmes
+>   scripts.
 >
-> **Ne jamais traiter l'échec de CES assertions précises comme un vrai échec de déploiement** —
-> lire la version réellement retournée par `/api/version` et la comparer manuellement à la
-> version attendue du déploiement en cours. Les autres checks de ces scripts (santé, code HTTP,
-> accessibilité) restent valides.
+> ⚠️ **`e2e-tests.sh` reste cassé** (seule la CRLF a été corrigée — hors scope de cette
+> correction, script QUALIF avec un problème de fond différent, voir ci-dessous) : Test 7 compare
+> encore `$VERSION == "1.9.0-rc.1"` → échoue TOUJOURS. **Ne jamais traiter l'échec de cette
+> assertion précise comme un vrai échec de déploiement** — lire la version réellement retournée
+> par `/api/version` et la comparer manuellement à la version attendue du déploiement en cours.
 >
 > **`e2e-tests.sh` a un problème plus sérieux** : `BASE_URL="http://192.168.1.217:8000"` cible le
 > backend directement sur le port 8000, mais `docker-compose.staging.yml` **ne publie pas ce
