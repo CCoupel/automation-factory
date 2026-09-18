@@ -18,10 +18,12 @@ async def version():
         "version": version_info["version"],
         "base_version": version_info["base_version"],
         "internal_version": version_info["internal_version"],
+        "build": version_info["build"],
         "environment": version_info["environment"],
         "name": "Automation Factory API",
         "description": version_info["description"],
         "is_rc": version_info["is_rc"],
+        "is_build_candidate": version_info["is_build_candidate"],
         "features": version_info["features"]
     }
 
