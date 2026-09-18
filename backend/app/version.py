@@ -3,7 +3,7 @@ Application version information
 """
 import os
 
-__version__ = "2.4.3"
+__version__ = "2.4.4.0"
 __description__ = "Automation Factory API - Fix entrypoint base href injection for root index.html"
 
 # Environment: PROD (default), STAGING, DEV
