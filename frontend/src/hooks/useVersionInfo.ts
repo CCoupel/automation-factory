@@ -12,7 +12,12 @@ export interface VersionInfo {
   environment: 'PROD' | 'STAGING' | 'DEV'
   name?: string
   description?: string
+  /** DEPRECATED — alias of is_build_candidate, kept for backward compat */
   is_rc: boolean
+  /** Build counter (the 4th segment `a` of X.Y.Z.a), null when absent (PROD image) */
+  build?: number | null
+  /** true iff build != null AND environment != 'PROD' */
+  is_build_candidate?: boolean
   features?: {
     title: string
     release_date: string
@@ -20,6 +25,22 @@ export interface VersionInfo {
     improvements: string[]
     technical: string[]
   }
+}
+
+/**
+ * Strips the environment-hidden suffix from a raw version string.
+ *
+ * Supports two formats:
+ * - Current (`X.Y.Z.a`): strips the trailing 4th segment (the build counter).
+ * - Legacy (`X.Y.Z-rc.n`): strips the `-rc.n` suffix, kept for backward compat
+ *   during the transition away from the old versioning scheme.
+ */
+function stripBuildSuffix(version: string): string {
+  const fourSegmentMatch = version.match(/^(\d+\.\d+\.\d+)\.\d+$/)
+  if (fourSegmentMatch) {
+    return fourSegmentMatch[1]
+  }
+  return version.replace(/-rc\.\d+$/, '')
 }
 
 /**
@@ -47,8 +68,11 @@ export interface UseVersionInfoReturn {
  * Custom hook for version information management
  *
  * Provides consistent version display across the application:
- * - In PROD: Hides -rc.X suffix from both frontend and backend versions
- * - In STAGING/DEV: Shows full version including -rc.X suffix
+ * - In PROD: Hides the build counter (4th segment `.a`) from both frontend and
+ *   backend versions — e.g. `2.4.4.3` → `2.4.4`. Legacy `-rc.n` suffixes are
+ *   also stripped for backward compat during the transition.
+ * - In STAGING/DEV: Shows the full version including the build counter
+ *   (`X.Y.Z.a`) or the legacy `-rc.n` suffix.
  *
  * Usage:
  * ```tsx
@@ -83,16 +107,16 @@ export function useVersionInfo(): UseVersionInfoReturn {
   // Compute display values based on environment
   const isProduction = backendVersionInfo?.environment === 'PROD'
 
-  // Frontend version: remove RC suffix only in production
+  // Frontend version: remove the build counter (4th segment) / legacy -rc.n suffix only in production
   const frontendVersion = isProduction
-    ? packageJson.version.replace(/-rc\.\d+$/, '')
+    ? stripBuildSuffix(packageJson.version)
     : packageJson.version
 
   // Backend version: use the version from API (already computed by backend)
   const backendVersion = backendVersionInfo?.version || '...'
 
-  // Is this a release candidate? (only true if RC exists AND not in prod)
-  const isReleaseCandidate = backendVersionInfo?.is_rc ?? false
+  // Is this a build candidate? (new explicit field, falls back to legacy is_rc)
+  const isReleaseCandidate = backendVersionInfo?.is_build_candidate ?? backendVersionInfo?.is_rc ?? false
 
   return {
     frontendVersion,

@@ -13,11 +13,18 @@ ENVIRONMENT="${ENVIRONMENT:-PROD}"
 
 echo "🔧 Configuring frontend with BASE_PATH='${BASE_PATH}' ENVIRONMENT='${ENVIRONMENT}'"
 
-# Adjust version display based on environment (hide RC in PROD)
+# Adjust version display based on environment (hide build counter in PROD)
 if [ "$ENVIRONMENT" = "PROD" ]; then
-  echo "📦 Production mode: masking RC suffix in version"
-  # Remove -rc.X suffix from version in nginx config
-  sed -i 's/-rc\.[0-9]*//g' "$NGINX_CONF"
+  echo "📦 Production mode: masking build counter in version"
+  # Strip the 4th segment (build counter, X.Y.Z.a -> X.Y.Z) and the legacy
+  # -rc.n suffix from the version endpoint ONLY. The substitution is scoped
+  # to lines containing "version":" (the /version JSON body) so it can never
+  # touch unrelated values elsewhere in nginx.conf, such as an IP address
+  # (e.g. 192.168.1.217) appearing in another directive.
+  sed -i \
+    -e '/"version":"/s/\("version":"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\.[0-9][0-9]*"/\1"/' \
+    -e '/"version":"/s/\("version":"[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)-rc\.[0-9][0-9]*"/\1"/' \
+    "$NGINX_CONF"
   # Update environment in version endpoint
   sed -i 's/"environment":"development"/"environment":"production"/g' "$NGINX_CONF"
 elif [ "$ENVIRONMENT" = "STAGING" ]; then
