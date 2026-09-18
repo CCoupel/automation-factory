@@ -25,8 +25,8 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 - ✅ **Validation utilisateur** signée
 - ✅ **Version RC** approuvée pour production
 
-### Principe "Build Once, Run Everywhere" (Promotion sans rebuild en QUALIF)
-⚠️ **IMPORTANT** : Les images Docker buildées en Phase 2 (QUALIF) sont **promues sans rebuild** vers PROD.
+### Principe "Build Once, Run Everywhere" (avec Promotion QUALIF + Rebuild CI PROD)
+⚠️ **IMPORTANT** : Les images Docker buildées en Phase 2 (QUALIF) sont **promues sans rebuild** en QUALIF. En PROD, le pipeline CI **rebuild déterministement** depuis le tag git figé (source identique, mais reconstruction garantie).
 
 | Aspect | QUALIF (Staging) | PROD (Kubernetes) |
 |--------|---------|------------|
