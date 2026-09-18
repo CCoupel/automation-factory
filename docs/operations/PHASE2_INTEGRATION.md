@@ -25,20 +25,21 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 - ✅ **Validation utilisateur** signée
 - ✅ **Version RC** approuvée pour production
 
-### Principe "Build Once, Deploy Everywhere"
-⚠️ **IMPORTANT** : Les images Docker buildées en Phase 2 sont **identiques** à celles déployées en Phase 3.
+### Principe "Build Once, Run Everywhere" (Promotion sans rebuild en QUALIF)
+⚠️ **IMPORTANT** : Les images Docker buildées en Phase 2 (QUALIF) sont **promues sans rebuild** vers PROD.
 
-| Aspect | Staging | Production |
+| Aspect | QUALIF (Staging) | PROD (Kubernetes) |
 |--------|---------|------------|
-| Backend Dockerfile | `backend/Dockerfile` | `backend/Dockerfile` |
-| Frontend Dockerfile | `frontend/Dockerfile` | `frontend/Dockerfile` |
-| Image tag | `X.Y.Z.a` | `X.Y.Z` |
+| Backend Dockerfile | `backend/Dockerfile` (production) | `backend/Dockerfile` (production) |
+| Frontend Dockerfile | `frontend/Dockerfile` (production) | `frontend/Dockerfile` (production) |
+| Image tag | `X.Y.Z.a` (ex: 2.4.4.3) | `X.Y.Z` (ex: 2.4.4) |
+| Build mode | Local sur 192.168.1.217, promote | Rebuild déterministe CI depuis tag |
 | Serveur frontend | nginx (port 80) | nginx (port 80) |
 
-**Avantages :**
-- Réduction des risques : même image testée et déployée
-- Pas de différence de comportement staging/prod
-- Promotion simple : retag de `rc.n` vers version finale
+**Modèle :**
+- QUALIF : source compilée une seule fois, manifeste + release.env, promotion sans rebuild (images restent locales)
+- PROD : source figée par tag git, CI rebuild depuis cette source, images poussées ghcr.io avec version sans `.a`
+- Avantage : validation sur code déterministe identique en QUALIF et PROD
 
 ---
 

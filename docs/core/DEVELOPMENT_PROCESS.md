@@ -30,58 +30,59 @@ Breaking     : 1.5.1   → 2.0.0 (production)
 
 ---
 
-## 🏗️ **Principe BORE : Build Once, Run Everywhere**
+## 🏗️ **Principe BORE : Build Once, Run Everywhere (avec promotion sans rebuild)**
 
-### Concept Fondamental
+### Concept Fondamental (v2.4.4+)
 
-Le principe **BORE** garantit que les images Docker utilisées en **staging** sont **strictement identiques** à celles déployées en **production**. Cela élimine les risques de "ça marche en staging mais pas en prod".
+Le principe **BORE** garantit que les sources **compilées une seule fois** peuvent être promues à différents environnements sans reconstruction. Cela élimine les risques de divergence binaire.
 
-### Règles BORE
+### Cycle QUALIF (Promotion sans rebuild)
 
-| Règle | Description |
-|-------|-------------|
-| **1. Un seul Dockerfile** | Frontend et backend utilisent le même Dockerfile en staging et production |
-| **2. Pas de rebuild** | Les images staging validées sont promues en production sans reconstruction |
-| **3. Tag et promote** | `X.Y.Z` → `X.Y.Z` par simple retag, pas de nouveau build |
-| **4. Variables d'environnement** | Les différences (ENVIRONMENT=STAGING vs PROD) sont injectées à l'exécution |
+| Étape | Version | Action |
+|-------|---------|--------|
+| **BUILD** | `X.Y.Z.a` | Images construites localement sur daemon 192.168.1.217 |
+| **PUBLISH QUALIF** | `X.Y.Z.a` | Manifeste + release.env créés, **pas de rebuild** |
+| **DEPLOY QUALIF** | `X.Y.Z.a` | Docker Compose déploie les images promotées, tests E2E |
 
-### Architecture Images
+### Cycle PROD (Rebuild déterministe CI)
+
+| Étape | Version | Action |
+|-------|---------|--------|
+| **PUBLISH PROD** | `X.Y.Z` | Merge + tag vX.Y.Z, **déclenche CI** (rebuild depuis source figée) |
+| **BUILD CI** | `X.Y.Z` | Pipeline CI reconstruit depuis le tag, images `:X.Y.Z` poussées ghcr.io |
+| **DEPLOY PROD** | `X.Y.Z` | Helm déploie les images certifiées de ghcr.io, monitoring 30 min |
+
+### Architecture Images (Versioning X.Y.Z.a)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     BUILD ONCE (Phase 2)                        │
-├─────────────────────────────────────────────────────────────────┤
-│  docker build -t backend:X.Y.Z -f backend/Dockerfile      │
-│  docker build -t frontend:X.Y.Z -f frontend/Dockerfile    │
-│                         ↓                                       │
-│              Tests E2E sur staging                              │
-│                         ↓                                       │
-│              Validation utilisateur                             │
-└─────────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   RUN EVERYWHERE (Phase 3)                      │
-├─────────────────────────────────────────────────────────────────┤
-│  docker tag backend:X.Y.Z ghcr.io/.../backend:X.Y.Z       │
-│  docker tag frontend:X.Y.Z ghcr.io/.../frontend:X.Y.Z     │
-│                         ↓                                       │
-│              Push ghcr.io (même image)                          │
-│                         ↓                                       │
-│              Déploiement Kubernetes via Helm                    │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────┐
+│  QUALIF (Phase 2, 192.168.1.217)     │
+├──────────────────────────────────────┤
+│  BUILD: X.Y.Z.a → Images locales     │
+│  PUBLISH: Manifeste + release.env    │
+│  DEPLOY: Compose, e2e-tests, "go"    │
+└──────────────────────────────────────┘
+              │ (PROMOTE)
+              ▼
+┌──────────────────────────────────────┐
+│  PROD (Phase 3, CI + Kubernetes)     │
+├──────────────────────────────────────┤
+│  PUBLISH: Release → Tag → CI rebuild │
+│  BUILD CI: ghcr.io/:X.Y.Z            │
+│  DEPLOY: Helm, smoke, monitor 30min  │
+└──────────────────────────────────────┘
 ```
 
 ### Comparaison Staging vs Production
 
-| Aspect | Staging | Production |
-|--------|---------|------------|
-| **Backend Dockerfile** | `backend/Dockerfile` | `backend/Dockerfile` |
-| **Frontend Dockerfile** | `frontend/Dockerfile` | `frontend/Dockerfile` |
-| **Frontend server** | nginx (port 80) | nginx (port 80) |
-| **Image tag** | `X.Y.Z` | `X.Y.Z` |
+| Aspect | QUALIF | PROD |
+|--------|--------|------|
+| **Dockerfile** | `backend/Dockerfile` (production nginx) | `backend/Dockerfile` (production nginx) |
+| **Image tag** | `X.Y.Z.a` (ex: 2.4.4.3) | `X.Y.Z` (ex: 2.4.4) |
+| **Registry** | Daemon local 192.168.1.217 | ghcr.io/ccoupel (CI) |
+| **Publish mode** | Promotion sans rebuild | Rebuild déterministe CI |
 | **ENVIRONMENT** | STAGING | PROD |
-| **Code binaire** | **IDENTIQUE** | **IDENTIQUE** |
+| **Build counter** | Compteur `.a` présent | Retiré (`.a` → version figée) |
 
 ### ⚠️ Ce qui est INTERDIT
 

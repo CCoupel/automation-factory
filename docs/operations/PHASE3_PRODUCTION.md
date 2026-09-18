@@ -70,15 +70,16 @@ Production: ENVIRONMENT=PROD    → Affiche "1.12.1" (is_rc: false)
 
 #### B. Vérifier Version Staging
 ```bash
-# Vérifier la version en staging
+# Vérifier la version en staging (avant PUBLISH PROD)
 curl -s http://192.168.1.217/api/version
 
-# Doit retourner :
+# Doit retourner (candidat de build) :
 # {
-#   "version": "X.Y.Z",
-#   "internal_version": "X.Y.Z",
+#   "version": "X.Y.Z.a",
+#   "internal_version": "X.Y.Z.a",
 #   "environment": "STAGING",
-#   "is_rc": true
+#   "is_rc": true,
+#   "build": a
 # }
 ```
 

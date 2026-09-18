@@ -215,7 +215,7 @@ NEW_VERSION=$(python3 scripts/version.py get)
 echo "VERSION après release = $NEW_VERSION (sans .a)"
 
 # 3. Vérifier que CHANGELOG.md contient l'entrée
-grep -q "$(scripts/version.py get)" CHANGELOG.md || \
+grep -q "$(python3 scripts/version.py get)" CHANGELOG.md || \
   { echo "❌ CHANGELOG.md ne contient pas la version — contactez doc-updater"; exit 1; }
 
 # 4. Commiter sur milestone/vX.Y.Z
@@ -249,7 +249,7 @@ GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-fr
 
 # ⚠️ Aucun tag à 4 segments (ex. X.Y.Z.1) ne doit apparaître
 GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
-  --jq '.[] | .metadata.container.tags[] | select(test("\.[0-9]$"))' | grep . && \
+  --jq '.[] | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))' | grep . && \
   { echo "❌ Tag à 4 segments détecté sur ghcr.io — abort"; exit 1; } || \
   echo "✅ Aucun tag 4 segments sur ghcr.io"
 
