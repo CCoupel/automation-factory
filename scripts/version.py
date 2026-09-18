@@ -42,6 +42,24 @@ class VersionError(RuntimeError):
     """Erreur de format de version ou de fichier introuvable/invalide."""
 
 
+def _read_text(path: Path) -> str:
+    """Lit un fichier sans traduction des fins de ligne (preserve CRLF/LF tels quels)."""
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        return f.read()
+
+
+def _write_text(path: Path, content: str) -> None:
+    """Ecrit un fichier sans traduction des fins de ligne (preserve CRLF/LF tels quels).
+
+    Necessaire car Path.read_text()/write_text() font une traduction universelle des
+    fins de ligne (CRLF -> \\n a la lecture) qui reecrirait silencieusement TOUT le
+    fichier en LF des qu'on le sauvegarde — violant la regle d'ecriture ciblee (une
+    seule ligne modifiee) meme quand seul un octet de version change.
+    """
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(content)
+
+
 def split_version(version: str) -> tuple[str, int | None]:
     """Decompose 'X.Y.Z' ou 'X.Y.Z.a' en (base, build). Leve VersionError sinon."""
     match = FULL_VERSION_RE.match(version)
@@ -62,7 +80,7 @@ _VERSION_PY_RE = re.compile(r'(__version__\s*=\s*")([^"]+)(")')
 
 
 def read_version_py() -> str:
-    text = VERSION_PY.read_text(encoding="utf-8")
+    text = _read_text(VERSION_PY)
     match = _VERSION_PY_RE.search(text)
     if not match:
         raise VersionError(f'Ligne __version__ = "..." introuvable dans {VERSION_PY}')
@@ -70,13 +88,13 @@ def read_version_py() -> str:
 
 
 def write_version_py(new_version: str) -> None:
-    text = VERSION_PY.read_text(encoding="utf-8")
+    text = _read_text(VERSION_PY)
     new_text, count = _VERSION_PY_RE.subn(
         lambda m: f"{m.group(1)}{new_version}{m.group(3)}", text, count=1
     )
     if count != 1:
         raise VersionError(f'Ligne __version__ = "..." introuvable dans {VERSION_PY}')
-    VERSION_PY.write_text(new_text, encoding="utf-8")
+    _write_text(VERSION_PY, new_text)
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +105,7 @@ _PACKAGE_VERSION_RE = re.compile(r'("version"\s*:\s*")([^"]+)(")')
 
 
 def read_package_json() -> str:
-    text = PACKAGE_JSON.read_text(encoding="utf-8")
+    text = _read_text(PACKAGE_JSON)
     match = _PACKAGE_VERSION_RE.search(text)
     if not match:
         raise VersionError(f'Champ "version" introuvable dans {PACKAGE_JSON}')
@@ -95,16 +113,16 @@ def read_package_json() -> str:
 
 
 def write_package_json(new_version: str) -> None:
-    text = PACKAGE_JSON.read_text(encoding="utf-8")
+    text = _read_text(PACKAGE_JSON)
     new_text, count = _PACKAGE_VERSION_RE.subn(
         lambda m: f"{m.group(1)}{new_version}{m.group(3)}", text, count=1
     )
     if count != 1:
         raise VersionError(f'Champ "version" introuvable dans {PACKAGE_JSON}')
-    PACKAGE_JSON.write_text(new_text, encoding="utf-8")
+    _write_text(PACKAGE_JSON, new_text)
 
     if PACKAGE_LOCK_JSON.exists():
-        lock_text = PACKAGE_LOCK_JSON.read_text(encoding="utf-8")
+        lock_text = _read_text(PACKAGE_LOCK_JSON)
         # Les 2 premieres occurrences de "version" dans package-lock.json v3 sont
         # toujours le champ racine puis packages[""].version (avant toute entree
         # node_modules/*) — voir contracts/version-format.md.
@@ -112,21 +130,23 @@ def write_package_json(new_version: str) -> None:
             lambda m: f"{m.group(1)}{new_version}{m.group(3)}", lock_text, count=2
         )
         if lock_count:
-            PACKAGE_LOCK_JSON.write_text(new_lock_text, encoding="utf-8")
+            _write_text(PACKAGE_LOCK_JSON, new_lock_text)
 
 
 # ---------------------------------------------------------------------------
 # helm/automation-factory/Chart.yaml
 # ---------------------------------------------------------------------------
 
-_CHART_VERSION_LINE_RE = re.compile(r"^(version:\s*).*$", re.MULTILINE)
-_CHART_APPVERSION_LINE_RE = re.compile(r"^(appVersion:\s*).*$", re.MULTILINE)
+# Groupe final (\r?) : preserve une eventuelle fin de ligne CRLF sans la toucher —
+# le remplacement ne doit jamais convertir une ligne CRLF en LF (cf. _read_text/_write_text).
+_CHART_VERSION_LINE_RE = re.compile(r"^(version:\s*)\S+(\r?)$", re.MULTILINE)
+_CHART_APPVERSION_LINE_RE = re.compile(r'^(appVersion:\s*)"?[^"\r\n]+"?(\r?)$', re.MULTILINE)
 _CHART_VERSION_VALUE_RE = re.compile(r"^version:\s*(\S+)\s*$", re.MULTILINE)
 _CHART_APPVERSION_VALUE_RE = re.compile(r'^appVersion:\s*"?([^"\s]+)"?\s*$', re.MULTILINE)
 
 
 def read_chart_yaml() -> tuple[str, str]:
-    text = CHART_YAML.read_text(encoding="utf-8")
+    text = _read_text(CHART_YAML)
     version_match = _CHART_VERSION_VALUE_RE.search(text)
     app_version_match = _CHART_APPVERSION_VALUE_RE.search(text)
     if not version_match or not app_version_match:
@@ -135,12 +155,12 @@ def read_chart_yaml() -> tuple[str, str]:
 
 
 def write_chart_yaml(base_version: str) -> None:
-    text = CHART_YAML.read_text(encoding="utf-8")
-    text, n1 = _CHART_VERSION_LINE_RE.subn(rf"\g<1>{base_version}", text, count=1)
-    text, n2 = _CHART_APPVERSION_LINE_RE.subn(rf'\g<1>"{base_version}"', text, count=1)
+    text = _read_text(CHART_YAML)
+    text, n1 = _CHART_VERSION_LINE_RE.subn(rf"\g<1>{base_version}\g<2>", text, count=1)
+    text, n2 = _CHART_APPVERSION_LINE_RE.subn(rf'\g<1>"{base_version}"\g<2>', text, count=1)
     if n1 != 1 or n2 != 1:
         raise VersionError(f"Champs version:/appVersion: introuvables dans {CHART_YAML}")
-    CHART_YAML.write_text(text, encoding="utf-8")
+    _write_text(CHART_YAML, text)
 
 
 # ---------------------------------------------------------------------------

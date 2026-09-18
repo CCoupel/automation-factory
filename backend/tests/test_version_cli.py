@@ -256,3 +256,37 @@ def test_check_with_invalid_tag_format_fails(version_files, bad_tag):
     parser = version_cli.build_parser()
     args = parser.parse_args(["check", "--tag", bad_tag])
     assert args.func(args) == 1
+
+
+# ---------------------------------------------------------------------------
+# CRLF preservation (repo working tree is checked out with CRLF line endings on
+# this Windows-mounted path — Path.read_text()/write_text() would silently
+# translate the WHOLE file to LF on save, which is itself a full-file rewrite
+# hidden inside a "1-line" regex change). _read_text/_write_text use
+# open(..., newline="") specifically to avoid this.
+# ---------------------------------------------------------------------------
+
+def test_write_version_py_preserves_crlf(tmp_path, monkeypatch):
+    version_py = tmp_path / "version.py"
+    with open(version_py, "wb") as f:
+        f.write(b'"""doc"""\r\n__version__ = "2.4.3"\r\nFEATURES = {}\r\n')
+    monkeypatch.setattr(version_cli, "VERSION_PY", version_py)
+
+    version_cli.write_version_py("2.4.4.0")
+
+    raw = version_py.read_bytes()
+    assert raw == b'"""doc"""\r\n__version__ = "2.4.4.0"\r\nFEATURES = {}\r\n'
+
+
+def test_write_chart_yaml_preserves_crlf(tmp_path, monkeypatch):
+    chart_yaml = tmp_path / "Chart.yaml"
+    with open(chart_yaml, "wb") as f:
+        f.write(b'apiVersion: v2\r\nversion: 2.4.3\r\nappVersion: "2.4.3"\r\nhome: https://example.com\r\n')
+    monkeypatch.setattr(version_cli, "CHART_YAML", chart_yaml)
+
+    version_cli.write_chart_yaml("2.4.4")
+
+    raw = chart_yaml.read_bytes()
+    assert raw == (
+        b'apiVersion: v2\r\nversion: 2.4.4\r\nappVersion: "2.4.4"\r\nhome: https://example.com\r\n'
+    )
