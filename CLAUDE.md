@@ -98,32 +98,37 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 ## 📋 **Règles de Versioning**
 
 > **📖 Documentation complète :** [Gestion des Versions](docs/core/VERSION_MANAGEMENT.md)
-> **Migration v3 (2026-09-16)** : décision prise d'adopter à terme le schéma `X.Y.Z.a` du
-> template (voir `.claude/agents/context/COMMON.template.md` section 5). Le code de
-> production actuel (`backend/app/version.py`, `/api/version`, frontend, CHANGELOG) reste
-> sur `X.Y.Z[-rc.n]` ci-dessous jusqu'à une tâche dédiée de migration — ne pas mélanger les
-> deux schémas dans un même déploiement.
 
-**Format actif (code de production) :** `X.Y.Z[-rc.n]`
+**Format actif (migration v2.4.4, depuis 2026-09-18) :** `X.Y.Z.a` (dev/staging) / `X.Y.Z` (prod)
 
-| Composant | Description |
-|-----------|-------------|
-| **X** | Version majeure (changements DB/breaking) |
-| **Y** | Version mineure (nouvelles fonctionnalités) |
-| **Z** | Version patch (bugfixes) |
-| **-rc.n** | Release Candidate (staging/dev uniquement) |
+| Composant | Description | Gestion |
+|-----------|-------------|---------|
+| **X** | Version majeure (changements DB/breaking) | Titre du milestone GitHub |
+| **Y** | Version mineure (nouvelles fonctionnalités) | Titre du milestone GitHub |
+| **Z** | Version patch (bugfixes) | Titre du milestone GitHub |
+| **.a** | Compteur de build (dev/staging uniquement) | Incrémenté à chaque BUILD par `deployer` |
 
 **Affichage par Environnement :**
 
-| Environnement | Variable | Version Affichée |
-|---------------|----------|------------------|
-| Production | `ENVIRONMENT=PROD` | `1.13.0` (sans RC) |
-| Staging | `ENVIRONMENT=STAGING` | `1.13.0-rc.4` (complet) |
+| Environnement | Variable | Format | Exemple | is_rc | build |
+|---------------|----------|--------|---------|-------|-------|
+| Production | `ENVIRONMENT=PROD` | `X.Y.Z` | `2.4.4` | `false` | `null` |
+| Staging | `ENVIRONMENT=STAGING` | `X.Y.Z.a` | `2.4.4.3` | `true` | `3` |
 
-**Fichiers à synchroniser :**
-- `backend/app/version.py` : `__version__ = "X.Y.Z-rc.n"`
-- `frontend/package.json` : `"version": "X.Y.Z-rc.n"`
-- `docker-compose.staging.yml` : Tags images Docker
+**Outil unique de gestion :** `python3 scripts/version.py`
+- `get` — imprime version brute (`X.Y.Z.a`)
+- `get --base` — imprime base (`X.Y.Z`)
+- `get --build` — imprime compteur (`a`)
+- `start X.Y.Z` — ouverture cycle (écrit `X.Y.Z.0`)
+- `bump-build` — incrémente à BUILD
+- `release` — retire `.a` à PUBLISH PROD
+- `check [--tag vX.Y.Z]` — valide cohérence
+
+**Fichiers synchronisés** (jamais édités manuellement, toujours par `scripts/version.py`) :
+- `backend/app/version.py` : ligne `__version__` (4 segments dev/staging, 3 segments prod)
+- `frontend/package.json` : champ `"version"` (4 segments dev/staging, 3 segments prod)
+- `helm/automation-factory/Chart.yaml` : `version:` et `appVersion:` (3 segments uniquement, écris à ouverture cycle)
+- `docker-compose.staging.yml` : image tags via `AF_IMAGE_TAG` env (4 segments, ex: `X.Y.Z.a`)
 
 ---
 
@@ -141,9 +146,9 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ---
 
-## 🏗️ **Architecture Phase 2 - Build Once Deploy Everywhere**
+## 🏗️ **Architecture Phase 2 - QUALIF (Promotion sans rebuild)**
 
-**⚠️ IMPORTANT :** Même image Docker en staging et production (nginx pour frontend)
+**Workflow** : `/build` → manifeste local → `/publish qualif` (promote) → `/deploy qualif` (staging via Docker Compose)
 
 ### Structure
 ```
@@ -152,38 +157,58 @@ nginx (port 80) → Point d'entrée unique
 └── /api/* → automation-factory-backend (FastAPI, port 8000)
 ```
 
-### Procédure de déploiement Phase 2
+### Procédure de déploiement QUALIF
 ```bash
-# 1. Build images localement sur staging server (Dockerfile PRODUCTION)
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n -f backend/Dockerfile backend/
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
+# 1. BUILD — images X.Y.Z.a construites sur daemon 192.168.1.217
+python3 scripts/version.py bump-build  # -> X.Y.Z.a
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z.a -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z.a -f frontend/Dockerfile frontend/
 
-# 2. Update docker-compose.staging.yml avec nouvelles versions
+# 2. PUBLISH QUALIF — promotion (zéro rebuild)
+# Vérifier manifeste + copier vers build/qualif_vX.Y.Z/ + écrire release.env (AF_IMAGE_TAG=X.Y.Z.a)
 
-# 3. Déploiement
-docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
-
-# 4. Validation santé OBLIGATOIRE
+# 3. DEPLOY QUALIF — installe depuis release.env
+docker -H tcp://192.168.1.217:2375 compose --env-file release.env -f docker-compose.staging.yml up -d
+sleep 30
 curl -I http://192.168.1.217/health          # Nginx OK
-curl http://192.168.1.217/api/version        # Backend API OK
+curl http://192.168.1.217/api/version        # Backend API OK — version=X.Y.Z.a, is_rc=true
 curl -I http://192.168.1.217/                # Frontend OK (nginx)
+
+# 4. E2E Tests
+./e2e-tests.sh
+
+# 5. Gate "go" avant PROD (validation utilisateur)
 ```
 
 ### Points clés PERMANENTS
-- **Build Once Deploy Everywhere** : Même Dockerfile pour staging et production
-- **Images locales** : Build sur 192.168.1.217, PAS de push ghcr.io en Phase 2
+- **Promotion sans rebuild** : Images X.Y.Z.a construites une fois, promues à QUALIF sans reconstruire
+- **Manifeste** : Traçabilité image IDs, git SHA, built_at dans `build/candidate_vX.Y.Z/manifest-X.Y.Z.a.json`
+- **release.env** : Configuré dans `build/qualif_vX.Y.Z/release.env` (AF_IMAGE_TAG=X.Y.Z.a) — utilisé par compose
 - **Frontend nginx** : TOUJOURS utiliser `frontend/Dockerfile` (pas Dockerfile.dev)
 - **Noms de services** : `automation-factory-backend`, `automation-factory-frontend` (alignés sur K8s)
 - **Nginx central** : Point d'entrée unique sur port 80
-- **Validation santé** : TOUJOURS tester les 3 endpoints
+- **Validation santé** : TOUJOURS tester les 3 endpoints + E2E avant "go"
 
 **Voir détails complets :** [Phase 2 Intégration](docs/operations/PHASE2_INTEGRATION.md)
 
 ---
 
-## 🚀 **Déploiement Production - HELM EXCLUSIF**
+## 🚀 **Déploiement Production - HELM EXCLUSIF (Rebuild-CI)**
 
-**⚠️ RÈGLES ABSOLUES :** Déploiement production via Helm + images venant EXCLUSIVEMENT du pipeline CI GitHub Actions.
+**⚠️ RÈGLES ABSOLUES :** Déploiement production via Helm + images venant EXCLUSIVEMENT du pipeline CI GitHub Actions depuis un tag figé.
+
+### Workflow
+```
+/publish prod (merge + tag vX.Y.Z)
+    ↓
+.github/workflows/release.yml déclenché
+    ↓
+rebuild déterministe : clone tag, build images, push `:X.Y.Z` sur ghcr.io
+    ↓
+/deploy prod (helm upgrade depuis custom-values.yaml)
+    ↓
+smoke tests + monitoring 30 min
+```
 
 ### ❌ INTERDIT en Production
 ```bash
@@ -192,37 +217,44 @@ kubectl set image deployment/... # INTERDIT - Casse la cohérence Helm
 
 # NE JAMAIS builder ou retagger des images localement pour la prod
 docker build ...  # INTERDIT - Les images prod viennent du pipeline CI
-docker tag automation-factory-backend:rc... ghcr.io/...  # INTERDIT
+docker tag automation-factory-backend:X.Y.Z.3 ghcr.io/...  # INTERDIT (4 segments)
+
+# NE JAMAIS pousser de tag à 4 segments
+git tag v2.4.4.1 && git push ...  # INTERDIT — uniquement v2.4.4 (3 segments)
 ```
 
 ### ✅ OBLIGATOIRE en Production
 
-> ⚠️ **Déclencheur réel corrigé (2026-09-16)** : `.github/workflows/release.yml` — le pipeline qui
-> build et push les images se déclenche **uniquement sur un push de tag `v*.*.*`**, PAS sur un
-> push vers `main` (`test.yml` tourne sur push/PR vers `main` mais ne build/push aucune image).
-> `release.yml` lit en plus la version à taguer depuis `helm/automation-factory/Chart.yaml`
-> (`version:`/`appVersion:`), pas depuis le tag git ni `backend/app/version.py` — ce fichier doit
-> donc être bumpé et commité sur `main` **avant** de pousser le tag qui déclenche le build.
+**Déclencheur réel** : `.github/workflows/release.yml` se déclenche **uniquement sur un push de tag
+`vX.Y.Z`** (exactement 3 segments), **PAS sur un push vers `main`**. Job `validate` rejette tout tag
+malformé (`v2.4.4.1`, `v2.4.4-rc.1`, etc.).
 
 ```bash
-# 1. Bumper helm/automation-factory/Chart.yaml (version: / appVersion: → X.Y.Z) et commit sur main
+# 1. PUBLISH PROD — sur branche milestone/vX.Y.Z
+python3 scripts/version.py release     # Retire .a (X.Y.Z.a → X.Y.Z)
+python3 scripts/version.py check       # Valide cohérence fichiers
+git commit "chore(version): Release vX.Y.Z" && git push
+
+# 2. Merger sur main et tagger
+git checkout main && git merge --no-ff milestone/vX.Y.Z -m "Release vX.Y.Z"
 git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 
-# 2. Créer et pousser le tag — c'est CE push qui déclenche le pipeline CI GitHub Actions
-git tag vX.Y.Z && git push https://<PAT>@github.com/CCoupel/automation-factory.git vX.Y.Z
+# 3. Créer et pousser le tag — C'EST CE PUSH QUI DÉCLENCHE LA CI
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push https://<PAT>@github.com/CCoupel/automation-factory.git vX.Y.Z
 
-# 3. Surveiller ACTIVEMENT le pipeline CI (Claude le fait, pas l'utilisateur)
+# 4. Surveiller ACTIVEMENT le pipeline CI (deployer le fait)
 GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --limit 3
 GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
-# Attendre conclusion: success — si failure: analyser logs, corriger, repousser un nouveau tag
+# Attendre conclusion: success — si failure: analyser logs, corriger, rollback
 
-# 4. Vérifier les images sur ghcr.io
+# 5. Vérifier les images sur ghcr.io (tags X.Y.Z uniquement, JAMAIS 4 segments)
 GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
-  --jq '.[0].metadata.container.tags'
+  --jq '.[] | select(.metadata.container.tags[] == "X.Y.Z")'
 
-# 5. Mise à jour custom-values.yaml avec le tag X.Y.Z (sans -rc.n)
+# 6. DEPLOY PROD — mise à jour custom-values.yaml + helm upgrade
+sed -i "s/image:.*:.*$/image: automation-factory-backend:X.Y.Z/" custom-values.yaml
 
-# 6. Déploiement via Helm UNIQUEMENT
 # Secrets (2026-09-16) : custom-values.yaml ne contient plus de valeurs en clair — fournies
 # via --set depuis un .env local non commité (voir .env.example). kubeconfig.txt gitignoré.
 source .env   # DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY
@@ -233,7 +265,13 @@ KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-fact
   --set backend.env.SECRET_KEY="$DEPLOY_JWT_SECRET_KEY" \
   --timeout 300s
 
-# 7. Smoke tests obligatoires post-déploiement — voir .claude/agents/qa.md
+# 7. Smoke tests obligatoires post-déploiement
+#    Doit vérifier : version=X.Y.Z (3 segments), is_rc=false, build=null
+./smoke-test-production.sh
+curl -s https://coupel.net/automation-factory/api/version | jq .
+
+# 8. Monitoring 30 minutes obligatoire
+./monitor-production-30min.sh
 ```
 
 ### Rollback Production
@@ -243,6 +281,9 @@ KUBECONFIG=kubeconfig.txt helm rollback automation-factory -n automation-factory
 
 # Voir historique
 KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
+
+# Fallback kubectl UNIQUEMENT si helm rollback échoue
+KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-backend -n automation-factory
 ```
 
 **Voir détails complets :** [Phase 3 Production](docs/operations/PHASE3_PRODUCTION.md)
@@ -281,6 +322,19 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 | Build | `cd frontend && npm run build` |
 | Tests | `cd backend && python -m pytest tests/ -v --cov=app && cd ../frontend && npm test` |
 
+### ⚠️ Phase Init — Gestion de Version (Override Projet)
+
+**Le template générique contient des snippets incompatibles avec ce projet** :
+
+| Template (❌ N'UTILISER PAS) | Projet (✅ UTILISER) |
+|-----|-----|
+| `echo "X.Y.Z.0" > backend/app/version.py` | `python3 scripts/version.py start X.Y.Z` |
+| `echo "X.Y.Z+1.0" > backend/app/version.py` (hotfix) | `python3 scripts/version.py start X.Y.Z+1` |
+
+**Raison** : L'édition directe par `echo` écraserait le fichier complètement, perdant `VERSION_FEATURES` et autres métadonnées critiques.
+
+**Règle absolue** : Toujours utiliser `scripts/version.py` pour toute modification de version (ouverture cycle, hotfix, tout).
+
 ### Commandes Disponibles
 
 | Commande | Usage |
@@ -292,7 +346,9 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 | `/bugfix <desc>` | Workflow correction de bug |
 | `/hotfix <desc>` | Correction urgente prod |
 | `/refactor <desc>` | Refactoring |
-| `/deploy qualif\|prod` | Déploiement |
+| `/build` | Compilation de la version candidate — agnostique à l'environnement |
+| `/publish qualif\|prod` | Mise à disposition pour un environnement (promotion ou rebuild déterministe via CI) |
+| `/deploy qualif\|prod` | Installation de l'artefact déjà publié |
 | `/review [scope]` | Revue de code |
 | `/qa [scope]` | Validation QA |
 | `/secu [scope]` | Audit sécurité |
@@ -308,16 +364,16 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 
 | Nom | Rôle | Fichier | Spawn |
 |-----|------|---------|-------|
-| `planner` | Plan d'implémentation | `.claude/agents/implementation-planner.template.md` (+ `implementation-planner.md`) | permanent |
+| `planner` | Plan d'implémentation + contrats API | `.claude/agents/implementation-planner.template.md` (+ `implementation-planner.md`) | permanent |
 | `dev-backend` | Backend (Python/FastAPI) | `.claude/agents/dev-backend.template.md` (+ `dev-backend.md`) | permanent |
 | `dev-frontend` | Frontend (React/TypeScript) | `.claude/agents/dev-frontend.template.md` (+ `dev-frontend.md`) | permanent |
 | `test-writer` | Scripts de tests + procédures QA | `.claude/agents/test-writer.template.md` (+ `test-writer.md`) | permanent |
 | `code-reviewer` | Revue de code | `.claude/agents/code-reviewer.template.md` (+ `code-reviewer.md`) | permanent |
 | `qa` | Exécution des tests et validation | `.claude/agents/qa.template.md` (+ `qa.md`) | permanent |
 | `doc-updater` | Documentation | `.claude/agents/doc-updater.template.md` (+ `doc-updater.md`) | permanent |
-| `deployer` | Déploiement QUALIF/PROD | `.claude/agents/deploy.template.md` (+ `deploy.md`) | permanent |
+| `deployer` | Build + Publication + Déploiement QUALIF/PROD | `.claude/agents/deploy.template.md` (+ `deploy.md`) | permanent |
 | `security` | Audit sécurité | `.claude/agents/security.template.md` (+ `security.md`) | ponctuel |
-| `infra` | Infrastructure | `.claude/agents/infra.template.md` (+ `infra.md`) | ponctuel |
+| `infra` | Infrastructure (si configurée) | `.claude/agents/infra.template.md` (+ `infra.md`) | ponctuel |
 | `marketing-release` | Communication de release | `.claude/agents/marketing-release.template.md` (+ `marketing-release.md`) | ponctuel |
 
 <!-- BEGIN TEAMLEADER_PROTOCOL — maintenu par le template, ne pas modifier manuellement -->
@@ -328,7 +384,7 @@ KUBECONFIG=kubeconfig.txt helm history automation-factory -n automation-factory
 
 ### Identité
 
-Tu es le **teamleader** et le **Chef De Projet (CDP)** — un seul rôle, jamais délégué à un agent séparé.
+Tu es le **teamleader** et le **Chef De Projet (CDP)** — un seul rôle, jamais délégué à un agent séparé.  
 Tu **coordonnes et dispatches**. Tu n'exécutes aucune tâche technique toi-même.
 
 ### Délégation Stricte — Outils Interdits
@@ -362,18 +418,18 @@ SendMessage({ to: "dev-frontend", content: "<tâche>" })
 
 ### Nommage des Agents — Règle Absolue
 
-Le paramètre `name` dans `Task` est **toujours le nom canonique simple** : `qa`, `dev-backend`, `planner`…
+Le paramètre `name` dans `Task` est **toujours le nom canonique simple** : `qa`, `dev-backend`, `planner`…  
 **Jamais de suffixe** (`qa-1`, `qa-2`…). Un rôle = un nom = une adresse `SendMessage` permanente.
 
 **Noms canoniques** :
 ```
-planner, dev-backend, dev-frontend, test-writer, code-reviewer, qa, doc-updater,
-deployer, security, infra, marketing-release
+planner, dev-backend, dev-frontend, dev-firmware, dev-plugin,
+test-writer, code-reviewer, qa, doc-updater, deployer, security, infra
 ```
 
 ### Validation des rapports DONE
 
-Un `DONE` valide ne contient **jamais** de contenu inline (code, diff, extraits).
+Un `DONE` valide ne contient **jamais** de contenu inline (code, diff, extraits).  
 Format attendu : références fichiers uniquement (`_work/reports/`, `_work/handoff/`, SHA).
 
 Si un agent envoie du contenu inline → corriger :

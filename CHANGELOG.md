@@ -7,6 +7,52 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [2.4.4] - 2026-09-18
+
+### 🛠️ **Tooling — Migration Versioning X.Y.Z.a**
+- **[CHANGED]** Format de version : `X.Y.Z[-rc.n]` → `X.Y.Z.a` (dev/staging) / `X.Y.Z` (prod)
+  - Staging affiche `X.Y.Z.a` (ex: `2.4.4.3` — 3ème build du cycle)
+  - Production affiche `X.Y.Z` (ex: `2.4.4` — sans compteur, figé)
+  - Compteur `a` incrémenté automatiquement à chaque BUILD par deployer
+
+- **[NEW]** `GET /api/version` — champs additionnels
+  - `build` : integer|null (compteur `a`, ou null en prod)
+  - `is_build_candidate` : boolean (alias explicite de `is_rc`)
+
+- **[CHANGED]** `GET /api/version` — sémantique `is_rc`
+  - `is_rc=true` ↔ `build != null` AND `environment != PROD` (candidat de build)
+  - `is_rc=false` ↔ `build == null` OR `environment == PROD` (release figée)
+
+- **[NEW]** Outil unique `scripts/version.py`
+  - `get`, `get --base`, `get --build` : lecture
+  - `start X.Y.Z` : ouverture cycle
+  - `bump-build` : incrémentation BUILD
+  - `release` : retrait `.a` pour PUBLISH PROD
+  - `check [--tag vX.Y.Z]` : validation cohérence/format
+
+- **[NEW]** Séparation BUILD / PUBLISH / DEPLOY
+  - BUILD : compilation + manifeste local
+  - PUBLISH QUALIF : promotion sans rebuild
+  - DEPLOY QUALIF : Docker Compose + e2e-tests
+  - PUBLISH PROD : merge + tag + CI (rebuild déterministe)
+  - DEPLOY PROD : Helm uniquement
+
+- **[CHANGED]** BORE (Build Once, Run Everywhere)
+  - QUALIF : images `X.Y.Z.a` construites une fois, promues sans rebuild
+  - PROD : rebuild déterministe depuis source figée (tag `vX.Y.Z` déclenche CI)
+  - Aucune image à 4 segments sur ghcr.io
+
+- **[DEPRECATED]** Format `-rc.n` (toujours accepté en lecture pour transition/rollback)
+
+### ⚠️ **BREAKING — Outillage (pas API HTTP)**
+- Tags git : seuls `vX.Y.Z` (3 segments) déclenchent release.yml
+  - Tags `vX.Y.Z.a`, `vX.Y.Z-rc.n` sont rejetés par le job `validate`
+- `backend/app/version.py`, `frontend/package.json`, `helm/automation-factory/Chart.yaml` ne doivent jamais être édités manuellement
+  - Toujours via `scripts/version.py` pour éviter écrasements (`VERSION_FEATURES`)
+  - Chart.yaml n'a jamais de 4e segment (SemVer 2 strict)
+
+---
+
 ## [2.4.3] - 2026-03-20
 
 ### 🛠️ Corrections

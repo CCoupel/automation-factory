@@ -42,7 +42,7 @@ Le principe **BORE** garantit que les images Docker utilisées en **staging** so
 |-------|-------------|
 | **1. Un seul Dockerfile** | Frontend et backend utilisent le même Dockerfile en staging et production |
 | **2. Pas de rebuild** | Les images staging validées sont promues en production sans reconstruction |
-| **3. Tag et promote** | `X.Y.Z-rc.n` → `X.Y.Z` par simple retag, pas de nouveau build |
+| **3. Tag et promote** | `X.Y.Z` → `X.Y.Z` par simple retag, pas de nouveau build |
 | **4. Variables d'environnement** | Les différences (ENVIRONMENT=STAGING vs PROD) sont injectées à l'exécution |
 
 ### Architecture Images
@@ -51,8 +51,8 @@ Le principe **BORE** garantit que les images Docker utilisées en **staging** so
 ┌─────────────────────────────────────────────────────────────────┐
 │                     BUILD ONCE (Phase 2)                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  docker build -t backend:X.Y.Z-rc.n -f backend/Dockerfile      │
-│  docker build -t frontend:X.Y.Z-rc.n -f frontend/Dockerfile    │
+│  docker build -t backend:X.Y.Z -f backend/Dockerfile      │
+│  docker build -t frontend:X.Y.Z -f frontend/Dockerfile    │
 │                         ↓                                       │
 │              Tests E2E sur staging                              │
 │                         ↓                                       │
@@ -63,8 +63,8 @@ Le principe **BORE** garantit que les images Docker utilisées en **staging** so
 ┌─────────────────────────────────────────────────────────────────┐
 │                   RUN EVERYWHERE (Phase 3)                      │
 ├─────────────────────────────────────────────────────────────────┤
-│  docker tag backend:X.Y.Z-rc.n ghcr.io/.../backend:X.Y.Z       │
-│  docker tag frontend:X.Y.Z-rc.n ghcr.io/.../frontend:X.Y.Z     │
+│  docker tag backend:X.Y.Z ghcr.io/.../backend:X.Y.Z       │
+│  docker tag frontend:X.Y.Z ghcr.io/.../frontend:X.Y.Z     │
 │                         ↓                                       │
 │              Push ghcr.io (même image)                          │
 │                         ↓                                       │
@@ -79,7 +79,7 @@ Le principe **BORE** garantit que les images Docker utilisées en **staging** so
 | **Backend Dockerfile** | `backend/Dockerfile` | `backend/Dockerfile` |
 | **Frontend Dockerfile** | `frontend/Dockerfile` | `frontend/Dockerfile` |
 | **Frontend server** | nginx (port 80) | nginx (port 80) |
-| **Image tag** | `X.Y.Z-rc.n` | `X.Y.Z` |
+| **Image tag** | `X.Y.Z` | `X.Y.Z` |
 | **ENVIRONMENT** | STAGING | PROD |
 | **Code binaire** | **IDENTIQUE** | **IDENTIQUE** |
 
@@ -104,10 +104,10 @@ kubectl set image ...    # Casse la cohérence Helm
 
 ```bash
 # ✅ OBLIGATOIRE : Build unique en Phase 2
-docker build -t frontend:X.Y.Z-rc.n -f frontend/Dockerfile frontend/
+docker build -t frontend:X.Y.Z -f frontend/Dockerfile frontend/
 
 # ✅ OBLIGATOIRE : Même image nginx en staging et production
-# Staging: frontend:X.Y.Z-rc.n (nginx, port 80)
+# Staging: frontend:X.Y.Z (nginx, port 80)
 # Prod: ghcr.io/.../frontend:X.Y.Z (nginx, port 80)
 
 # ✅ OBLIGATOIRE : Déploiement production via Helm
@@ -140,7 +140,7 @@ ENVIRONMENT=PROD     # Masque suffixe RC
 
 ### **Phase 2 : Intégration** 🔗  
 5. **Packaging et Staging** :
-   - 5a) Build images Docker X.Y.Z-rc.n
+   - 5a) Build images Docker X.Y.Z
    - 5b) Déploiement docker-compose sur 192.168.1.217
    - 5c) Tests end-to-end automatisés
    - 5d) Validation utilisateur sur staging

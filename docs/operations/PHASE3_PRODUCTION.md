@@ -75,8 +75,8 @@ curl -s http://192.168.1.217/api/version
 
 # Doit retourner :
 # {
-#   "version": "X.Y.Z-rc.n",
-#   "internal_version": "X.Y.Z-rc.n",
+#   "version": "X.Y.Z",
+#   "internal_version": "X.Y.Z",
 #   "environment": "STAGING",
 #   "is_rc": true
 # }
@@ -352,7 +352,7 @@ git push
 
 ### Pré-Déploiement
 - [ ] **Version staging** validée et testée
-- [ ] **Images staging** identifiées (X.Y.Z-rc.n)
+- [ ] **Images staging** identifiées (X.Y.Z)
 
 ### Pipeline CI GitHub Actions
 - [ ] **Push sur `main`** effectué
@@ -424,10 +424,10 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo \
 |--------|---------|------------|
 | URL | http://192.168.1.217 | https://coupel.net/automation-factory |
 | ENVIRONMENT | STAGING | PROD (défaut) |
-| Version affichée | X.Y.Z-rc.n | X.Y.Z |
+| Version affichée | X.Y.Z | X.Y.Z |
 | is_rc | true | false |
-| Image backend | automation-factory-backend:X.Y.Z-rc.n | ghcr.io/ccoupel/automation-factory-backend:X.Y.Z |
-| Image frontend | automation-factory-frontend:X.Y.Z-rc.n | ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z |
+| Image backend | automation-factory-backend:X.Y.Z | ghcr.io/ccoupel/automation-factory-backend:X.Y.Z |
+| Image frontend | automation-factory-frontend:X.Y.Z | ghcr.io/ccoupel/automation-factory-frontend:X.Y.Z |
 | Frontend server | nginx (port 80) | nginx (port 80) |
 | **Dockerfile** | **frontend/Dockerfile** | **frontend/Dockerfile** |
 | **Code** | **IDENTIQUE** | **IDENTIQUE** |

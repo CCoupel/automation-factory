@@ -1,368 +1,377 @@
-# Gestion des Versions - Automation Factory
+# Gestion des Versions — Automation Factory
 
-Ce document décrit le système complet de gestion des versions, incluant le format, l'affichage conditionnel par environnement, et l'implémentation technique.
+> **Effective depuis v2.4.4** (2026-09-18) — Migration du format `X.Y.Z[-rc.n]` vers `X.Y.Z.a`
 
----
+## Format de version
 
-## 📋 **Format des Versions**
+| Composant | Description | Gestion | Exemple |
+|-----------|-------------|---------|---------|
+| **X** | Version majeure (breaking changes, DB) | Titre milestone GitHub | `2` |
+| **Y** | Version mineure (features) | Titre milestone GitHub | `4` |
+| **Z** | Version patch (bugfixes) | Titre milestone GitHub | `4` |
+| **.a** | Compteur de build (dev/staging) | Auto-incrémenté par BUILD | `1`, `2`, `3`… |
 
-### Pattern Standard
-```
-X.Y.Z[-rc.n]
-```
-
-| Composant | Description | Exemple |
-|-----------|-------------|---------|
-| **X** | Version majeure (changements DB/breaking) | `1`, `2` |
-| **Y** | Version mineure (nouvelles fonctionnalités) | `13`, `14` |
-| **Z** | Version patch (bugfixes) | `0`, `1`, `2` |
-| **-rc.n** | Release Candidate (optionnel, staging/dev) | `-rc.1`, `-rc.2` |
-
-### Exemples de Versions
-```
-1.13.0          # Version stable production
-1.13.0-rc.1     # Release Candidate 1 en staging
-1.13.0-rc.2     # Release Candidate 2 en staging
-1.13.1          # Bugfix version
-1.14.0          # Nouvelle fonctionnalité
-2.0.0           # Breaking change / migration DB
-```
+**Format complet** :
+- **Dev/Staging** : `X.Y.Z.a` (ex: `2.4.4.3` — 3ème build du cycle)
+- **Production** : `X.Y.Z` (ex: `2.4.4` — sans compteur, valeur figée)
 
 ---
 
-## 🌍 **Affichage par Environnement**
+## Affichage par environnement
 
-### Règle Principale
+| Environnement | Variable | Version | is_rc | build |
+|---------------|----------|---------|-------|-------|
+| **PROD** | `ENVIRONMENT=PROD` | `2.4.4` | `false` | `null` |
+| **STAGING** | `ENVIRONMENT=STAGING` | `2.4.4.3` | `true` | `3` |
+| **DEV** | `ENVIRONMENT=DEV` | `2.4.4.0` | `true` | `0` |
 
-| Environnement | Valeur `ENVIRONMENT` | Version Affichée | Exemple |
-|---------------|---------------------|------------------|---------|
-| **Production** | `PROD` | Version de base (sans `-rc.n`) | `1.13.0` |
-| **Staging** | `STAGING` | Version complète (avec `-rc.n`) | `1.13.0-rc.2` |
-| **Développement** | `DEV` | Version complète (avec `-rc.n`) | `1.13.0-rc.2` |
+**Sémantique** :
+- `is_rc=true` + `build !=null` → candidat de build (staging/dev)
+- `is_rc=false` + `build=null` → release figée (production)
 
-### Logique de Décision
+---
+
+## Contrat API : `GET /api/version`
+
+```json
+{
+  "version": "X.Y.Z.a | X.Y.Z",
+  "base_version": "X.Y.Z",
+  "internal_version": "X.Y.Z.a",
+  "build": "integer | null",
+  "environment": "PROD | STAGING | DEV",
+  "name": "Automation Factory",
+  "description": "…",
+  "is_rc": "boolean",
+  "is_build_candidate": "boolean",
+  "features": {…}
+}
 ```
-SI environment === 'PROD'
-    ALORS afficher version sans suffix RC (ex: 1.13.0)
-SINON
-    afficher version complète (ex: 1.13.0-rc.2)
+
+**Exemples** :
+```json
+// STAGING (2.4.4.3 — 3ème build)
+{
+  "version": "2.4.4.3",
+  "base_version": "2.4.4",
+  "build": 3,
+  "is_rc": true,
+  "is_build_candidate": true
+}
+
+// PROD (2.4.4 figé)
+{
+  "version": "2.4.4",
+  "base_version": "2.4.4",
+  "build": null,
+  "is_rc": false,
+  "is_build_candidate": false
+}
 ```
 
 ---
 
-## ⚙️ **Implémentation Backend**
+## Outil unique : `scripts/version.py`
 
-### Fichier : `backend/app/version.py`
+Centralise la lecture/écriture des versions pour éviter les écrasements accidentels (ex: `echo >` qui écraserait `VERSION_FEATURES`).
+
+### Commandes
+
+| Commande | Sortie | Fichiers touchés | Usage |
+|----------|--------|------------------|-------|
+| `get` | `X.Y.Z.a` | — | Lire version brute |
+| `get --base` | `X.Y.Z` | — | Lire version base (clé `VERSION_FEATURES`) |
+| `get --build` | `a` | — | Lire compteur (ou vide) |
+| `start X.Y.Z` | `X.Y.Z.0` | `version.py`, `package.json`, `Chart.yaml`, `package-lock.json` | **Ouverture de cycle** |
+| `bump-build` | `X.Y.Z.(a+1)` | `version.py`, `package.json`, `package-lock.json` | **À chaque BUILD** |
+| `release` | `X.Y.Z` | `version.py`, `package.json`, `package-lock.json` | **PUBLISH PROD** |
+| `check [--tag vX.Y.Z]` | exit 0/1 | — | Valider cohérence/format |
+
+### Exemples
+
+```bash
+# Ouverture cycle v2.4.4
+python3 scripts/version.py start 2.4.4
+# → version.py: __version__ = "2.4.4.0"
+# → package.json: "version": "2.4.4.0"
+# → Chart.yaml: version: "2.4.4", appVersion: "2.4.4"
+
+# BUILD 1
+python3 scripts/version.py bump-build
+# → version.py: __version__ = "2.4.4.1"
+# → package.json: "version": "2.4.4.1"
+# Staging affiche : version="2.4.4.1", is_rc=true, build=1
+
+# BUILD 2 (suite à un fix)
+python3 scripts/version.py bump-build
+# → version.py: __version__ = "2.4.4.2"
+
+# PUBLISH PROD (retirer .a)
+python3 scripts/version.py release
+# → version.py: __version__ = "2.4.4"
+# → package.json: "version": "2.4.4"
+# Prod affiche : version="2.4.4", is_rc=false, build=null
+```
+
+---
+
+## Implémentation backend
+
+**Fichier** : `backend/app/version.py`
 
 ```python
-import os
+__version__ = "2.4.4"  # ou "2.4.4.3" en dev/staging
 
-__version__ = "1.13.0-rc.2"  # Version interne complète
-__description__ = "Automation Factory API with dynamic Ansible documentation integration"
+def parse_version(version_str):
+    """Accepte X.Y.Z, X.Y.Z.a, legacy X.Y.Z-rc.n, X.Y.Z_n"""
+    # Retourne (base_version, build_counter)
 
-# Environment: PROD (default), STAGING, DEV
-ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
-
-def get_base_version(version: str) -> str:
-    """Extract base version (remove -rc.X suffix)"""
-    if '-rc.' in version:
-        return version.split('-')[0]
-    return version
-
-def get_display_version() -> str:
-    """Get version string for display (hides RC in PROD)"""
-    if ENVIRONMENT == "PROD":
-        return get_base_version(__version__)
-    return __version__
+def get_display_version():
+    """Retourne la version affichée selon ENVIRONMENT"""
+    # PROD: retirer le .a
+    # STAGING/DEV: afficher complet
 
 def get_version_info():
-    """Get complete version information including features"""
-    base_version = get_base_version(__version__)
-    display_version = get_display_version()
-
+    """Retourne le dict /api/version"""
     return {
-        "version": display_version,           # Version affichée (selon env)
-        "base_version": base_version,         # Version de base (sans RC)
-        "internal_version": __version__,      # Version interne complète
-        "environment": ENVIRONMENT,           # Environnement actuel
-        "description": __description__,
-        "is_rc": "-rc." in __version__ and ENVIRONMENT != "PROD",
-        "features": VERSION_FEATURES.get(base_version, {})
+        "version": display_version,
+        "base_version": base,
+        "internal_version": __version__,
+        "build": build_counter,
+        "is_rc": build_counter is not None and ENVIRONMENT != "PROD",
+        "is_build_candidate": (idem),
+        …
     }
 ```
 
-### Endpoint API : `GET /api/version`
-
-**Réponse en STAGING :**
-```json
-{
-  "version": "1.13.0-rc.2",
-  "base_version": "1.13.0",
-  "internal_version": "1.13.0-rc.2",
-  "environment": "STAGING",
-  "is_rc": true,
-  "features": { ... }
-}
-```
-
-**Réponse en PROD :**
-```json
-{
-  "version": "1.13.0",
-  "base_version": "1.13.0",
-  "internal_version": "1.13.0-rc.2",
-  "environment": "PROD",
-  "is_rc": false,
-  "features": { ... }
-}
-```
-
 ---
 
-## 🎨 **Implémentation Frontend**
+## Implémentation frontend
 
-### Fichier : `frontend/package.json`
-```json
-{
-  "version": "1.13.0-rc.2"
-}
-```
-
-### Hook partagé : `frontend/src/hooks/useVersionInfo.ts`
-
-Ce hook centralise toute la logique de gestion des versions pour garantir un affichage cohérent dans toute l'application.
+**Fichier** : `frontend/src/hooks/useVersionInfo.ts`
 
 ```typescript
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import packageJson from '../../package.json'
-
-export interface UseVersionInfoReturn {
-  frontendVersion: string      // Version affichée (selon env)
-  backendVersion: string       // Version backend
-  backendVersionInfo: VersionInfo | null
-  packageVersion: string       // Version brute package.json
-  isProduction: boolean        // true si PROD
-  isReleaseCandidate: boolean  // true si RC et pas PROD
-  isLoading: boolean
-  error: string | null
-}
-
-export function useVersionInfo(): UseVersionInfoReturn {
-  const [backendVersionInfo, setBackendVersionInfo] = useState<VersionInfo | null>(null)
-
-  useEffect(() => {
-    const fetchVersion = async () => {
-      const response = await axios.get('/api/version')
-      setBackendVersionInfo(response.data)
-    }
-    fetchVersion()
-  }, [])
-
-  // Compute display values based on environment
-  const isProduction = backendVersionInfo?.environment === 'PROD'
-
-  // Frontend version: remove RC suffix only in production
-  const frontendVersion = isProduction
-    ? packageJson.version.replace(/-rc\.\d+$/, '')
-    : packageJson.version
-
-  return { frontendVersion, backendVersion, isReleaseCandidate, ... }
+export function useVersionInfo(): VersionInfo {
+  // En PROD : strip le 4e segment
+  // Accepte legacy -rc.n
+  // Expose build?, is_build_candidate?
+  
+  // Exemple STAGING:
+  // Input: "2.4.4.3"
+  // Output: version="2.4.4.3", build=3, is_build_candidate=true
+  
+  // Exemple PROD:
+  // Input: "2.4.4"
+  // Output: version="2.4.4", build=null, is_build_candidate=false
 }
 ```
 
-### Utilisation dans les composants
-
-**LoginPage.tsx :**
-```typescript
-import { useVersionInfo } from '../hooks/useVersionInfo'
-
-const LoginPage = () => {
-  const { frontendVersion, backendVersion } = useVersionInfo()
-
-  return (
-    <Chip label={`Frontend: ${frontendVersion}`} />
-    <Chip label={`Backend: ${backendVersion}`} />
-  )
-}
-```
-
-**AppHeader.tsx :**
-```typescript
-import { useVersionInfo } from '../../hooks/useVersionInfo'
-
-const AppHeader = () => {
-  const { frontendVersion, backendVersion, backendVersionInfo, isReleaseCandidate } = useVersionInfo()
-
-  // Dans le dialog About:
-  return (
-    <>
-      <Typography>• Frontend: {frontendVersion}</Typography>
-      <Typography>• Backend: {backendVersion}</Typography>
-      <Typography>• Environment: {backendVersionInfo?.environment}</Typography>
-      {isReleaseCandidate && (
-        <Typography color="warning">⚠️ Release Candidate</Typography>
-      )}
-    </>
-  )
-}
-```
-
-### Avantages du Hook
-- **Centralisation** : Une seule source de vérité pour la logique de version
-- **Cohérence** : Même affichage sur toutes les pages (Login, About, etc.)
-- **Maintenabilité** : Modifier la logique à un seul endroit
-- **Réutilisabilité** : Facile à utiliser dans tout nouveau composant
+**Frontend nginx** : `frontend/docker-entrypoint.sh`
+- Remplace `{{FRONTEND_VERSION}}` par la version depuis `package.json`
+- **Sed limité à la ligne `/version`** (non global, pour ne pas mutiler les IPs `a.b.c.d`)
+- Retire le 4e segment (`.a`) en prod via sed ciblé
 
 ---
 
-## 📁 **Fichiers à Modifier pour Changer la Version**
+## Configuration Docker
 
-### Liste Complète
+### `docker-compose.staging.yml`
 
-| Fichier | Contenu à Modifier |
-|---------|-------------------|
-| `backend/app/version.py` | `__version__ = "X.Y.Z-rc.n"` |
-| `frontend/package.json` | `"version": "X.Y.Z-rc.n"` |
-| `docker-compose.staging.yml` | Tags images Docker |
-| `custom-values.yaml` | Tags Kubernetes (production) |
-
-### Commande de Mise à Jour Rapide
-```bash
-# Backend
-sed -i 's/__version__ = ".*"/__version__ = "1.14.0-rc.1"/' backend/app/version.py
-
-# Frontend
-npm version 1.14.0-rc.1 --no-git-tag-version --prefix frontend
-
-# Docker Compose Staging
-# Mettre à jour manuellement les tags d'images
-```
-
----
-
-## 🔄 **Cycle de Vie des Versions**
-
-### Phase 1 : Développement Local
-```
-Version: X.Y.Z-rc.1
-Environment: DEV
-Affichage: X.Y.Z-rc.1 (complet)
-```
-
-### Phase 2 : Staging/Intégration
-```
-Version: X.Y.Z-rc.n (incrémenté à chaque fix)
-Environment: STAGING
-Affichage: X.Y.Z-rc.n (complet)
-```
-
-### Phase 3 : Production
-```
-Version: X.Y.Z (sans RC)
-Environment: PROD
-Affichage: X.Y.Z (version de base)
-```
-
-### Diagramme de Flux
-```
-Développement          Staging              Production
-    │                     │                     │
-    ▼                     ▼                     ▼
-1.13.0-rc.1  ───►  1.13.0-rc.1  ───►     1.13.0
-    │                     │                     │
-    ▼                     ▼                     │
-1.13.0-rc.2  ───►  1.13.0-rc.2           (stable)
-    │                     │
-    ▼                     ▼
-   ...              Validation OK ─────────────►
-```
-
----
-
-## 🐳 **Configuration Docker**
-
-### docker-compose.staging.yml
 ```yaml
 services:
   backend:
-    image: automation-factory-backend:1.13.0-rc.2
+    image: automation-factory-backend:${AF_IMAGE_TAG:?AF_IMAGE_TAG required}
     environment:
-      - ENVIRONMENT=STAGING  # Important: définit l'environnement
-
+      ENVIRONMENT: STAGING
+      …
   frontend:
-    image: automation-factory-frontend:1.13.0-rc.2-vite
+    image: automation-factory-frontend:${AF_IMAGE_TAG:?AF_IMAGE_TAG required}
+    environment:
+      ENVIRONMENT: STAGING
 ```
 
-### Kubernetes (custom-values.yaml) - Production
+**Prérequis** : Variable d'env `AF_IMAGE_TAG=X.Y.Z.a` (ex: `2.4.4.3`)  
+Utilisée uniquement en QUALIF (staging) — PROD via Helm `custom-values.yaml`
+
+### `docker-compose.yml`
+
+```yaml
+# Référence locale — jamais utilisé en production
+# TAG exemple : X.Y.Z.a (ex: 2.4.4.1)
+services:
+  backend:
+    image: automation-factory-backend:2.4.4.1
+```
+
+### `helm/automation-factory/Chart.yaml`
+
+```yaml
+apiVersion: v2
+name: automation-factory
+version: 2.4.4  # X.Y.Z uniquement, JAMAIS 4 segments
+appVersion: 2.4.4  # Aligné sur version: 
+```
+
+**Important** : `version` et `appVersion` n'ont **jamais** de 4e segment (SemVer 2 Helm strict)  
+Écrit une seule fois à l'ouverture du cycle par `scripts/version.py start X.Y.Z`
+
+### `custom-values.yaml`
+
 ```yaml
 backend:
-  image:
-    tag: "1.13.0"  # Sans RC en production
-  env:
-    ENVIRONMENT: "PROD"
-
+  image: automation-factory-backend:2.4.4  # X.Y.Z uniquement (prod)
 frontend:
-  image:
-    tag: "1.13.0"
+  image: automation-factory-frontend:2.4.4
 ```
 
 ---
 
-## 🧪 **Vérification des Versions**
+## Cycle de vie des versions
 
-### Backend
+```mermaid
+stateDiagram-v2
+  [*] --> Ouvert : /milestone new v2.4.4\nscripts/version.py start 2.4.4\n(→ 2.4.4.0, Chart=2.4.4)
+  
+  Ouvert --> Candidat : BUILD 1\nbump-build → 2.4.4.1\nImages sur 192.168.1.217
+  Candidat --> Candidat : BUILD n (fix)\nbump-build → 2.4.4.n
+  
+  Candidat --> PublieQualif : PUBLISH QUALIF\nManifeste + AF_IMAGE_TAG
+  PublieQualif --> DeployeQualif : DEPLOY QUALIF\nCompose + e2e-tests
+  
+  DeployeQualif --> Candidat : Fix → BUILD
+  DeployeQualif --> PublieProd : GATE "go"\nPUBLISH PROD
+  
+  PublieProd --> BuildCI : release → 2.4.4\nTag v2.4.4 → CI déclenché
+  BuildCI --> ghcr : CI verte\nImages :2.4.4 → ghcr.io
+  
+  ghcr --> DeployeProd : DEPLOY PROD\nHelm upgrade
+  DeployeProd --> Monitoring : Smoke tests OK\nMonitoring 30 min
+  
+  Monitoring --> [*] : Clôture milestone\nv2.4.4 en PROD
+  
+  BuildCI --> Rollback : CI échoue ou\nIncohérence
+  Rollback --> Candidat : Revert merge+tag\n→ branche X.Y.Z.n
+```
+
+---
+
+## Formats supportés (rétrocompatibilité)
+
+`parse_version()` accepte ces formats en entrée (pour transition/rollback) :
+
+| Format | Exemple | build | Accepté depuis |
+|--------|---------|-------|----------------|
+| `X.Y.Z.a` | `2.4.4.3` | `3` | v2.4.4 (actif) |
+| `X.Y.Z` | `2.4.4` | `null` | v2.4.4 (prod) |
+| Legacy `-rc.n` | `2.4.3-rc.1` | `null` | avant 2.4.4 (compat) |
+| Legacy `_n` | `2.4.3_1` | `null` | avant 2.4.4 (compat) |
+
+Aucun outil n'**écrit** plus les formats legacy (uniquement lus).
+
+---
+
+## Validation CI : `scripts/version.py check`
+
 ```bash
-# Vérifier la version et l'environnement
-curl http://localhost:8000/api/version | jq
+# Vérifie que version.py, package.json, Chart.yaml convergent sur X.Y.Z
+python3 scripts/version.py check
+# exit 0 si cohérent, exit 1 sinon
 
-# Résultat attendu (STAGING)
-{
-  "version": "1.13.0-rc.2",
-  "environment": "STAGING",
-  "is_rc": true
-}
+# En PUBLISH PROD, valide aussi le tag
+python3 scripts/version.py check --tag v2.4.4
+# exit 0 si tag == version actuelle (3 segments)
+# exit 1 si tag à 4 segments ou divergence
 ```
-
-### Frontend (Console Browser)
-```javascript
-// Log automatique dans AppHeader.tsx
-📦 Version Debug: {
-  packageJsonVersion: "1.13.0-rc.2",
-  backendEnv: "STAGING",
-  isProduction: false,
-  frontendVersion: "1.13.0-rc.2"
-}
-```
-
-### Checklist de Validation
-- [ ] Backend `/api/version` retourne la bonne version
-- [ ] Backend `environment` correspond à l'environnement réel
-- [ ] Frontend affiche la version avec/sans RC selon l'environnement
-- [ ] Dialog About affiche les informations cohérentes
-- [ ] `is_rc` est `true` en STAGING/DEV, `false` en PROD
 
 ---
 
-## ⚠️ **Points d'Attention**
+## Fichiers à synchroniser (JAMAIS édités manuellement)
 
-### Erreurs Courantes
-
-| Problème | Cause | Solution |
-|----------|-------|----------|
-| Version sans RC en staging | `ENVIRONMENT` non défini | Ajouter `ENVIRONMENT=STAGING` dans docker-compose |
-| Frontend montre ancienne version | Cache navigateur | Hard refresh (Ctrl+F5) |
-| Version différente F/B | Fichiers non synchronisés | Mettre à jour package.json ET version.py |
-| RC visible en production | `ENVIRONMENT` mal configuré | Vérifier que `ENVIRONMENT=PROD` en production |
-
-### Bonnes Pratiques
-1. **Toujours synchroniser** `version.py` et `package.json`
-2. **Rebuild sans cache** après modification de version : `docker build --no-cache`
-3. **Vérifier l'environnement** avant déploiement
-4. **Incrémenter RC** à chaque fix en staging (rc.1 → rc.2 → rc.3)
-5. **Supprimer RC** uniquement lors du passage en production
+| Fichier | Champ | Gestion | Usage |
+|---------|-------|---------|-------|
+| `backend/app/version.py` | `__version__` | `scripts/version.py` | Backend API + `/api/version` |
+| `frontend/package.json` | `"version"` | `scripts/version.py` | Frontend build + `/version` (nginx) |
+| `frontend/package-lock.json` | `.version` + `.packages[""].version` | `scripts/version.py` | npm lock |
+| `helm/automation-factory/Chart.yaml` | `version:`, `appVersion:` | `scripts/version.py start` (ouverture cycle uniquement) | Helm releases |
+| `docker-compose.staging.yml` | `image: … ${AF_IMAGE_TAG}` | `build/qualif_*/release.env` (deployer) | QUALIF deployment |
+| `.claude/project-config.json` | `version_file` | Manuel | CDP config |
 
 ---
 
-*Dernière mise à jour : 2025-12-22*
-*Voir aussi : [Process Développement](DEVELOPMENT_PROCESS.md) | [Guide Déploiement](../operations/DEPLOYMENT_GUIDE.md)*
+## Déploiement par environnement
+
+### Ouverture de cycle (CDP)
+```bash
+# Créer milestone GitHub + branche
+/milestone new v2.4.4  # Titre: "v2.4.4 — Versioning X.Y.Z.a"
+
+# Initialiser version.py (une seule fois en cycle)
+python3 scripts/version.py start 2.4.4
+# → 2.4.4.0 dans version.py + package.json
+# → 2.4.4 dans Chart.yaml
+git commit "chore(version): Start v2.4.4.0"
+```
+
+### BUILD (deployer)
+```bash
+python3 scripts/version.py bump-build
+# Images construites sur daemon 192.168.1.217
+# Manifeste dans build/candidate_v2.4.4/manifest-2.4.4.n.json
+```
+
+### PUBLISH QUALIF (deployer)
+```bash
+# Images copiées → build/qualif_v2.4.4/
+# AF_IMAGE_TAG=2.4.4.n → release.env
+# JAMAIS push ghcr.io
+```
+
+### DEPLOY QUALIF (deployer + validation QA)
+```bash
+# Docker Compose + AF_IMAGE_TAG
+# STAGING affiche : version=2.4.4.n, is_rc=true
+```
+
+### PUBLISH PROD (deployer)
+```bash
+python3 scripts/version.py release
+# Retirer .a : 2.4.4.n → 2.4.4
+git tag -a v2.4.4 && git push  # Déclenche CI
+# Images :2.4.4 construites en CI → ghcr.io
+```
+
+### DEPLOY PROD (deployer)
+```bash
+# Helm upgrade avec custom-values.yaml tag=2.4.4
+# PROD affiche : version=2.4.4, is_rc=false, build=null
+```
+
+---
+
+## Troubleshooting
+
+### "Version incohérente : version.py ≠ package.json"
+```bash
+# Raison probable : édition manuelle
+# Solution : relancer scripts/version.py (build/release)
+python3 scripts/version.py check
+```
+
+### "PROD affiche version 2.4.4.3 (avec .a)"
+```bash
+# Raison probable : image QUALIF (2.4.4.3) déployée en PROD
+# Détection : is_rc=true + build=3 en PROD (devrait être false + null)
+# Solution : rollback + redeploy image :2.4.4 depuis ghcr.io
+```
+
+### "ghcr.io contient tag v2.4.4.1 (4 segments)"
+```bash
+# Raison probable : tag poussé manuellement ou CI bugguée
+# Détection : gh api … | grep "2.4.4.1"
+# Solution : delete tag, vérifier release.yml (job `validate`)
+GITHUB_TOKEN=<PAT> gh release delete v2.4.4.1
+```
+
+---
+
+*Mis à jour : 2026-09-18 (v2.4.4 — Migration X.Y.Z.a)*

@@ -10,7 +10,7 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 - **Packaging et déploiement staging** sur environnement d'intégration
 - **Tests end-to-end automatisés** complets
 - **Validation utilisateur** en conditions réelles
-- **Utilisation version `X.Y.Z-rc.n`** (release candidate)
+- **Utilisation version `X.Y.Z.a`** (candidat de build, a = compteur incrémenté à chaque BUILD)
 
 ### Critères d'Entrée
 - ✅ **Phase 1 complète** avec tous gates validés
@@ -32,7 +32,7 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 |--------|---------|------------|
 | Backend Dockerfile | `backend/Dockerfile` | `backend/Dockerfile` |
 | Frontend Dockerfile | `frontend/Dockerfile` | `frontend/Dockerfile` |
-| Image tag | `X.Y.Z-rc.n` | `X.Y.Z` |
+| Image tag | `X.Y.Z.a` | `X.Y.Z` |
 | Serveur frontend | nginx (port 80) | nginx (port 80) |
 
 **Avantages :**
@@ -80,21 +80,19 @@ API Docs: http://192.168.1.217:8000/docs
 
 ### Environnement Staging
 - **URL :** http://192.168.1.217
-- **Version :** X.Y.Z_n
+- **Version :** X.Y.Z.a (ex: 2.4.4.1, 2.4.4.2…)
 ```
 
 ### 1. Packaging Release Candidate
 
-#### Versioning RC
+#### Versioning Candidat de Build
 ```bash
-# Conversion X.Y.Z_n → X.Y.Z-rc.1
-# Exemple: 1.9.0_2 → 1.9.0-rc.1
+# À chaque BUILD, incrémenter le compteur a (X.Y.Z.0 → X.Y.Z.1 → X.Y.Z.2…)
+# Utiliser UNIQUEMENT scripts/version.py (jamais d'édition manuelle)
 
-# Backend
-echo '__version__ = "X.Y.Z-rc.n"' > backend/app/version.py
-
-# Frontend  
-# Modifier "version": "X.Y.Z-rc.n" dans package.json
+python3 scripts/version.py bump-build
+# Met à jour backend/app/version.py + frontend/package.json + package-lock.json
+# Exemple : 2.4.4.0 → 2.4.4.1
 ```
 
 #### Build Images Docker (Local sur Staging)
@@ -103,11 +101,11 @@ echo '__version__ = "X.Y.Z-rc.n"' > backend/app/version.py
 # ⚠️ IMPORTANT: Utiliser Dockerfile PRODUCTION pour "build once, deploy everywhere"
 
 # Backend - build local
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n \
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z.a \
   -f backend/Dockerfile backend/
 
 # Frontend - build local avec Dockerfile PRODUCTION (nginx, pas Vite)
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n \
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z.a \
   -f frontend/Dockerfile frontend/
 
 # PAS de push - images restent locales sur 192.168.1.217
@@ -119,9 +117,9 @@ docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc
 # docker-compose.staging.yml
 services:
   backend:
-    image: automation-factory-backend:X.Y.Z-rc.n
+    image: automation-factory-backend:X.Y.Z.a
   frontend:
-    image: automation-factory-frontend:X.Y.Z-rc.n  # Même image que production (nginx)
+    image: automation-factory-frontend:X.Y.Z.a  # Même image que production (nginx)
   nginx:
     # Configuration nginx reverse proxy inline
     # Route vers frontend:80 (nginx) au lieu de frontend:5173 (Vite)
@@ -154,12 +152,13 @@ curl -I http://192.168.1.217/health          # Nginx OK
 curl http://192.168.1.217/api/version        # Backend API OK
 curl -I http://192.168.1.217/                # Frontend OK (nginx)
 
-# Vérification version RC
+# Vérification version candidat (doit avoir .a et is_rc=true)
 VERSION=$(curl -s http://192.168.1.217/api/version | jq -r .version)
-if [[ $VERSION == *"-rc."* ]]; then
-    echo "✅ RC Version deployed: $VERSION"
+IS_RC=$(curl -s http://192.168.1.217/api/version | jq '.is_rc')
+if [[ $VERSION == *.* ]] && [[ $IS_RC == "true" ]]; then
+    echo "✅ Build Candidate deployed: $VERSION (is_rc=$IS_RC)"
 else
-    echo "❌ Wrong version: $VERSION"
+    echo "❌ Wrong version or is_rc: $VERSION (is_rc=$IS_RC)"
     exit 1
 fi
 ```
@@ -290,7 +289,7 @@ echo "✅ Performance tests complete"
 ```markdown
 # Formulaire Validation Utilisateur
 
-**Version testée**: X.Y.Z-rc.n
+**Version testée**: X.Y.Z.a
 **Date test**: YYYY-MM-DD
 **Testeur**: [Nom]
 
@@ -319,11 +318,11 @@ echo "✅ Performance tests complete"
 # 1. Corrections en local (retour Phase 1 partiel)
 # 2. Tests unitaires
 # 3. Nouveau build RC
-echo '__version__ = "X.Y.Z-rc.n+1"' > backend/app/version.py
+echo '__version__ = "X.Y.Z.a+1"' > backend/app/version.py
 
 # 4. Redéploiement local (même Dockerfile pour staging et prod)
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z-rc.n+1 -f backend/Dockerfile backend/
-docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z-rc.n+1 -f frontend/Dockerfile frontend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-backend:X.Y.Z.a+1 -f backend/Dockerfile backend/
+docker -H tcp://192.168.1.217:2375 build -t automation-factory-frontend:X.Y.Z.a+1 -f frontend/Dockerfile frontend/
 
 # 5. Retest complet
 ```
@@ -401,7 +400,7 @@ docker --host=tcp://192.168.1.217:2375 stats --no-stream
 
 **Template Rapport Phase 2:**
 ```markdown
-## Rapport Tests Phase 2 - Version X.Y.Z-rc.n
+## Rapport Tests Phase 2 - Version X.Y.Z.a
 **Date:** YYYY-MM-DD
 **URL Staging:** http://192.168.1.217
 
@@ -464,7 +463,7 @@ docker --host=tcp://192.168.1.217:2375 stats --no-stream
 **Checklist Phase 2 :** [X/X] ✅
 **E2E tests :** [X/X] passés ✅
 **Performance :** Conforme aux cibles ✅
-**RC déployée :** X.Y.Z-rc.n ✅
+**RC déployée :** X.Y.Z.a ✅
 **Demo utilisateur :** Réalisée et approuvée ✅
 
 **Êtes-vous prêt pour le passage en Phase 3 (Production) ?**
@@ -479,12 +478,12 @@ Merci de confirmer avant que je continue.
 ### Préparation Phase 3 (après validation)
 ```bash
 # Tag RC validée
-git tag X.Y.Z-rc.n
+git tag X.Y.Z.a
 
 # Commit intégration
 git commit -m "feat: [description] - Phase 2 complete
 
-- RC X.Y.Z-rc.n validated on staging
+- RC X.Y.Z.a validated on staging
 - E2E tests: passed
 - Performance: within targets  
 - User validation: approved
@@ -494,7 +493,7 @@ git commit -m "feat: [description] - Phase 2 complete
 "
 
 # Phase 3 autorisée par utilisateur
-echo "RC X.Y.Z-rc.n ready for Phase 3 - USER APPROVED"
+echo "RC X.Y.Z.a ready for Phase 3 - USER APPROVED"
 ```
 
 ---

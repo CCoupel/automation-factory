@@ -374,7 +374,7 @@ echo "=== Smoke Tests Complete ==="
 
 ### Template Rapport Phase 2
 ```markdown
-## Rapport Tests Phase 2 - Version X.Y.Z-rc.n
+## Rapport Tests Phase 2 - Version X.Y.Z
 
 **Date:** YYYY-MM-DD
 **Executeur:** Claude Code
