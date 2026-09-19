@@ -19,19 +19,20 @@
   },
   "infrastructure": {
     "cicd": "github-actions",
-    "deploy": "kubernetes",
     "environments": [
       {
         "name": "QUALIF",
+        "order": 1,
         "url": "http://192.168.1.217",
-        "publish": { "mode": "promote" },
-        "deploy": { "mode": "docker-compose" }
+        "publish": { "mode": "promote", "target": "build/qualif_v{X.Y.Z}/" },
+        "deploy": { "mechanism": "docker-compose", "target": "docker-compose.staging.yml" }
       },
       {
         "name": "PROD",
+        "order": 2,
         "url": "https://coupel.net/automation-factory",
-        "publish": { "mode": "rebuild-ci" },
-        "deploy": { "mode": "helm" }
+        "publish": { "mode": "rebuild-ci", "trigger": "git-tag", "pipeline": ".github/workflows/release.yml" },
+        "deploy": { "mechanism": "helm", "target": "helm/automation-factory" }
       }
     ]
   },
