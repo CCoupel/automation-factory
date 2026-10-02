@@ -19,7 +19,7 @@ curl -I http://192.168.1.217/               # Frontend OK
 ```
 - Tests E2E : `./e2e-tests.sh`
 - Performances : `./performance-tests.sh` → < 2s response time
-- Format version : `X.Y.Z-rc.n`
+- Format version : `X.Y.Z.a`
 - Tester les scénarios utilisateur des nouvelles features
 
 ### PROD

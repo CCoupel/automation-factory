@@ -2,6 +2,7 @@
 # e2e-tests.sh
 
 echo "=== Tests End-to-End Phase 2 ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_URL="http://192.168.1.217:8000"
 FRONTEND_URL="http://192.168.1.217:80"
 EXIT_CODE=0
@@ -68,13 +69,31 @@ else
 fi
 
 # Test 7: Version Verification
-echo "🔍 Testing RC version..."
-VERSION=$(curl -s $BASE_URL/api/version | jq -r .version)
-if [[ $VERSION == "1.9.0-rc.1" ]]; then
-    echo "✅ RC Version deployed: $VERSION"
-else
-    echo "❌ Wrong version: $VERSION"
+# Clot l'echec permanent connu (cf. .claude/agents/qa.md) : la comparaison etait figee en dur
+# a "1.9.0-rc.1". Desormais la version attendue est derivee dynamiquement de scripts/version.py
+# get (4 segments exacts, X.Y.Z.a), avec verification croisee is_rc=true / build=<a> (le
+# staging/QUALIF sert toujours un build candidate, jamais une version PROD sans 4e segment).
+echo "🔍 Testing build candidate version..."
+if ! command -v python3 >/dev/null 2>&1 || [[ ! -f "$SCRIPT_DIR/scripts/version.py" ]]; then
+    echo "❌ scripts/version.py introuvable — impossible de determiner la version attendue"
     EXIT_CODE=1
+else
+    EXPECTED_VERSION=$(python3 "$SCRIPT_DIR/scripts/version.py" get 2>/dev/null)
+    if [[ -z "$EXPECTED_VERSION" ]]; then
+        echo "❌ scripts/version.py get n'a rien retourne"
+        EXIT_CODE=1
+    else
+        VERSION_JSON=$(curl -s $BASE_URL/api/version)
+        VERSION=$(echo "$VERSION_JSON" | jq -r .version)
+        IS_RC=$(echo "$VERSION_JSON" | jq -r .is_rc)
+        BUILD=$(echo "$VERSION_JSON" | jq -r .build)
+        if [[ "$VERSION" == "$EXPECTED_VERSION" && "$IS_RC" == "true" && "$BUILD" != "null" ]]; then
+            echo "✅ Build candidate deployed: $VERSION (is_rc=$IS_RC, build=$BUILD)"
+        else
+            echo "❌ Version mismatch — attendu $EXPECTED_VERSION (is_rc=true, build=<a>), obtenu $VERSION (is_rc=$IS_RC, build=$BUILD)"
+            EXIT_CODE=1
+        fi
+    fi
 fi
 
 echo "=== E2E Tests Complete ==="

@@ -1,19 +1,23 @@
 #!/bin/bash
 # Production monitoring script for 30 minutes post-deployment
 #
-# Version attendue lue dynamiquement depuis backend/app/version.py (repo checkout local),
-# surchageable via la variable d'environnement EXPECTED_VERSION.
-# En PROD, le suffixe -rc.n (staging) est masque par l'API (voir /api/version : is_rc=false).
+# Version attendue (base X.Y.Z, sans le 4e segment de build) : lue via `scripts/version.py get
+# --base` (source unique, contrats/version-format.md), avec fallback lecture directe de
+# backend/app/version.py si l'outil n'est pas disponible. Surchargeable via EXPECTED_VERSION.
+# En PROD, l'API masque le build candidate (voir /api/version : is_rc=false, build=null).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ -z "$EXPECTED_VERSION" ]; then
-    if [ -f "$SCRIPT_DIR/backend/app/version.py" ]; then
-        EXPECTED_VERSION=$(grep -oP '(?<=__version__ = ")[^"]+' "$SCRIPT_DIR/backend/app/version.py")
-    fi
+if [ -z "$EXPECTED_VERSION" ] && command -v python3 >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/scripts/version.py" ]; then
+    EXPECTED_VERSION=$(python3 "$SCRIPT_DIR/scripts/version.py" get --base 2>/dev/null)
 fi
-EXPECTED_VERSION="${EXPECTED_VERSION:-2.4.3}"
-EXPECTED_VERSION="${EXPECTED_VERSION%-rc.*}"  # PROD masque le suffixe -rc.n
+if [ -z "$EXPECTED_VERSION" ] && [ -f "$SCRIPT_DIR/backend/app/version.py" ]; then
+    # Fallback : lecture directe (scripts/version.py absent/en echec)
+    EXPECTED_VERSION=$(grep -oP '(?<=__version__ = ")[^"]+' "$SCRIPT_DIR/backend/app/version.py")
+fi
+EXPECTED_VERSION="${EXPECTED_VERSION:-2.4.4}"
+# Normalisation vers X.Y.Z : retire le 4e segment de build (.a) et tout suffixe legacy (-rc.n, _n)
+EXPECTED_VERSION=$(echo "$EXPECTED_VERSION" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
 
 PROD_URL="https://coupel.net/automation-factory"
 FRONTEND_URL="$PROD_URL/"
@@ -52,10 +56,18 @@ perform_health_check() {
 
     # Check 3: Version endpoint (should return $EXPECTED_VERSION)
     version_response=$(curl -s "$PROD_URL/api/version")
-    if echo "$version_response" | grep -q "\"$EXPECTED_VERSION\""; then
+    if echo "$version_response" | grep -q "\"version\":\"$EXPECTED_VERSION\""; then
         echo "✅ Version: OK ($EXPECTED_VERSION detected)"
     else
         echo "❌ Version: FAIL ($EXPECTED_VERSION not detected)"
+    fi
+
+    # Check 3bis: PROD guard — is_rc doit etre false ET build doit etre null (detecte une
+    # image QUALIF/build candidate deployee par erreur en PROD, contrats/http-endpoints.md)
+    if echo "$version_response" | grep -q '"is_rc":false' && echo "$version_response" | grep -q '"build":null'; then
+        echo "✅ PROD guard: OK (is_rc=false, build=null)"
+    else
+        echo "❌ PROD guard: FAIL (image QUALIF suspectee en PROD)"
     fi
 
     # Check 4: API ping

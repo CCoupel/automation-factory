@@ -32,6 +32,5 @@ Avant tout plan touchant DB/cache/state, vérifier le code (`app/core/database.p
 - Bugfix → Z (patch)
 - Nouvelle feature → Y (minor)
 - Schéma DB modifié → X (major)
-- RC suffix `-rc.n` en dev/staging, masqué en prod — voir `.claude/agents/deploy.md` et la
-  section "Règles de Versioning" de `CLAUDE.md` (schéma actif en code de production ; le schéma
-  `X.Y.Z.a` du template est documenté comme cible future, pas encore en vigueur dans le code)
+- Build counter `.a` en dev/staging (ex: `2.4.4.3`), retiré en prod (ex: `2.4.4`) — voir `.claude/agents/deploy.md` et la
+  section "Règles de Versioning" de `CLAUDE.md` (schéma actif depuis v2.4.4 ; géré uniquement par `scripts/version.py`)

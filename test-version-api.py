@@ -15,8 +15,13 @@ def test_version_api():
             data = response.json()
             print("✅ API Response successful")
             print(f"Version: {data.get('version', 'N/A')}")
+            print(f"Base Version: {data.get('base_version', 'N/A')}")
+            print(f"Internal Version: {data.get('internal_version', 'N/A')}")
             print(f"Name: {data.get('name', 'N/A')}")
-            print(f"Is RC: {data.get('is_rc', 'N/A')}")
+            print(f"Environment: {data.get('environment', 'N/A')}")
+            print(f"Build: {data.get('build', 'N/A')}")
+            print(f"Is RC (deprecated, alias is_build_candidate): {data.get('is_rc', 'N/A')}")
+            print(f"Is Build Candidate: {data.get('is_build_candidate', 'N/A')}")
             
             features = data.get('features', {})
             if features:

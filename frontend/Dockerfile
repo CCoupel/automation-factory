@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM nginx:1.30.5-alpine
 
 # Create nginx cache directories and set permissions for non-root user
 RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \

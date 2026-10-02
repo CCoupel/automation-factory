@@ -2,13 +2,18 @@
 Application version information
 """
 import os
+import re
 
-__version__ = "2.4.3"
-__description__ = "Automation Factory API - Fix entrypoint base href injection for root index.html"
+__version__ = "2.4.4.0"
+__description__ = "Automation Factory API - Versioning X.Y.Z.a: build tracking via scripts/version.py"
 
 # Environment: PROD (default), STAGING, DEV
-# In PROD, RC suffix is hidden from displayed version
+# In PROD, the build segment (X.Y.Z.a -> X.Y.Z) and legacy RC suffix are hidden
+# from the displayed version.
 ENVIRONMENT = os.getenv("ENVIRONMENT", "PROD")
+
+# X.Y.Z.a (current scheme, written by scripts/version.py — see contracts/version-format.md)
+_MODERN_VERSION_RE = re.compile(r'^(\d+\.\d+\.\d+)\.(\d+)$')
 
 # Features by version - used for About page and API
 VERSION_FEATURES = {
@@ -388,17 +393,44 @@ VERSION_FEATURES = {
 }
 
 def get_base_version(version: str) -> str:
-    """Extract base version (remove -rc.X or _N suffix)"""
+    """
+    Extract base version (remove -rc.X or _N suffix).
+
+    Legacy helper (retrocompat lecture uniquement — plus aucun outil n'ecrit ces
+    formats, voir contracts/version-format.md). Used as the fallback branch of
+    parse_version() for anything that isn't the modern X.Y.Z.a scheme; also
+    returns a plain "X.Y.Z" or an unrecognized string unchanged.
+    """
     if '-rc.' in version:
         return version.split('-')[0]
     elif '_' in version:
         return version.split('_')[0]
     return version
 
+def parse_version(version: str) -> tuple:
+    """
+    Parse a version string into (base, build).
+
+    Accepts:
+      - "X.Y.Z.a"                -> (base="X.Y.Z", build=a)          [current scheme]
+      - "X.Y.Z"                  -> (base="X.Y.Z", build=None)       [current scheme, released]
+      - legacy "X.Y.Z-rc.n"      -> (base="X.Y.Z", build=None)       [retrocompat lecture]
+      - legacy "X.Y.Z_n"         -> (base="X.Y.Z", build=None)       [retrocompat lecture]
+      - anything else            -> (base=version, build=None)       [defensif, jamais d'exception]
+
+    Never raises: this runs on every request to /api/version and must not turn a
+    malformed __version__ into a 500.
+    """
+    match = _MODERN_VERSION_RE.match(version)
+    if match:
+        return match.group(1), int(match.group(2))
+    return get_base_version(version), None
+
 def get_display_version() -> str:
-    """Get version string for display (hides RC in PROD)"""
+    """Get version string for display (hides the build segment / legacy RC in PROD)"""
     if ENVIRONMENT == "PROD":
-        return get_base_version(__version__)
+        base, _ = parse_version(__version__)
+        return base
     return __version__
 
 def get_current_version():
@@ -407,15 +439,19 @@ def get_current_version():
 
 def get_version_info():
     """Get complete version information including features"""
-    base_version = get_base_version(__version__)
+    base_version, build = parse_version(__version__)
     display_version = get_display_version()
+    is_build_candidate = build is not None and ENVIRONMENT != "PROD"
 
     return {
         "version": display_version,
         "base_version": base_version,
         "internal_version": __version__,  # Always shows full version for debugging
+        "build": build,  # int|None — the 4e segment 'a' of X.Y.Z.a, None if absent (released image)
         "environment": ENVIRONMENT,
         "description": __description__,
-        "is_rc": "-rc." in __version__ and ENVIRONMENT != "PROD",
+        # DEPRECATED: alias of is_build_candidate, kept for backward compat (frontend/scripts).
+        "is_rc": is_build_candidate,
+        "is_build_candidate": is_build_candidate,
         "features": VERSION_FEATURES.get(base_version, {})
     }

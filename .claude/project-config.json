@@ -10,27 +10,79 @@
   "src_dir": "backend/app",
   "version_file": "backend/app/version.py",
   "stack": {
-    "backend": { "language": "python", "framework": "fastapi" },
-    "frontend": { "language": "typescript", "framework": "react" },
+    "backend": {
+      "language": "python",
+      "framework": "fastapi"
+    },
+    "frontend": {
+      "language": "typescript",
+      "framework": "react"
+    },
     "mobile": null,
     "firmware": null,
     "plugin": null,
-    "database": { "primary": "postgresql", "orm": "sqlalchemy" }
+    "database": {
+      "primary": "postgresql",
+      "orm": "sqlalchemy"
+    }
   },
   "infrastructure": {
     "cicd": "github-actions",
-    "deploy": "kubernetes"
+    "environments": [
+      {
+        "name": "QUALIF",
+        "order": 1,
+        "url": "http://192.168.1.217",
+        "publish": {
+          "mode": "promote",
+          "target": "build/qualif_v{X.Y.Z}/"
+        },
+        "deploy": {
+          "mechanism": "docker-compose",
+          "target": "docker-compose.staging.yml"
+        }
+      },
+      {
+        "name": "PROD",
+        "order": 2,
+        "url": "https://coupel.net/automation-factory",
+        "publish": {
+          "mode": "rebuild-ci",
+          "trigger": "git-tag",
+          "pipeline": ".github/workflows/release.yml"
+        },
+        "deploy": {
+          "mechanism": "helm",
+          "target": "helm/automation-factory"
+        }
+      }
+    ]
   },
   "testing": {
-    "backend": ["pytest"],
-    "frontend": ["vitest"],
-    "e2e": ["custom-shell-scripts-needs-repair"]
+    "backend": [
+      "pytest"
+    ],
+    "frontend": [
+      "vitest"
+    ],
+    "e2e": [
+      "custom-shell-scripts-needs-repair"
+    ]
   },
   "security": {
-    "concerns": ["auth", "multi-tenant", "api-public"]
+    "concerns": [
+      "auth",
+      "multi-tenant",
+      "api-public"
+    ]
   },
   "commands": {
     "build": "cd frontend && npm run build",
+    "build_validate": "ls -la frontend/dist/index.html",
+    "server_stop": "docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml down",
+    "server_restart": "docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d",
+    "server_verify": "curl -I http://192.168.1.217/health && curl http://192.168.1.217/api/version && curl -I http://192.168.1.217/",
+    "version_read": "python3 scripts/version.py get",
     "test": "cd backend && python -m pytest tests/ -v --cov=app && cd ../frontend && npm test",
     "lint": "cd backend && ruff check . && cd ../frontend && npm run lint",
     "audit": "cd frontend && npm audit",
@@ -40,5 +92,9 @@
   "agents": {
     "idle_ttl_minutes": 15,
     "idle_warning_interval_minutes": 5
+  },
+  "template_version": {
+    "tag": "v3.8.0",
+    "commit": "8c49482ee38f9172edbb99bbf7aa4bdc56e5c5bf"
   }
 }

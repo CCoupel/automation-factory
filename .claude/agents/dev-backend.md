@@ -40,7 +40,7 @@ backend/app/
 ├── services/         ← Logique métier
 ├── core/             ← Config, sécurité (security.py), DB (database.py), auth deps (dependencies.py)
 ├── main.py           ← Point d'entrée
-└── version.py        ← __version__ = "X.Y.Z-rc.n"
+└── version.py        ← __version__ = "X.Y.Z.a" (via scripts/version.py uniquement)
 backend/tests/
 └── conftest.py       ← Fixtures partagées (ne pas dupliquer)
 ```

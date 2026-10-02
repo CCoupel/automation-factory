@@ -2,7 +2,7 @@
 #
 # Usage:
 #   Local dev:  docker compose up --build
-#   CI/staging: IMAGE_TAG=2.3.6-rc.1 ENVIRONMENT=STAGING docker compose up --build
+#   CI/staging: IMAGE_TAG=2.4.4.1 ENVIRONMENT=STAGING docker compose up --build
 #
 # Environment variables (all have defaults for local dev):
 #   IMAGE_TAG    — image tag suffix (default: dev)
