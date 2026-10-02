@@ -1,0 +1,124 @@
+name: Update Releases with Artifact Links
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not update releases)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  update-releases:
+    name: Add Artifact Links to Existing Releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update releases with artifact links
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔗 Updating releases with GHCR artifact links"
+          echo ""
+
+          # Get all releases
+          RELEASES=$(gh release list --limit 100 --json tagName,name,isDraft,isPrerelease -q '.[].tagName')
+          TOTAL=$(echo "$RELEASES" | wc -l)
+          COUNT=0
+
+          for TAG in $RELEASES; do
+            COUNT=$((COUNT + 1))
+            echo "[$COUNT/$TOTAL] 📦 Processing release $TAG..."
+
+            # Extract version (remove 'v' prefix)
+            VERSION="${TAG#v}"
+
+            # Check current release body
+            CURRENT_BODY=$(gh release view "$TAG" --json body -q '.body')
+
+            # Skip if already has artifact links
+            if echo "$CURRENT_BODY" | grep -q "ghcr.io/ccoupel"; then
+              echo "  ⏭️  Release already has artifact links, skipping"
+              echo ""
+              continue
+            fi
+
+            # Determine package names (try both old and new naming)
+            # Old: ansible-builder-* (from Bitbucket)
+            # New: automation-factory-* (from GitHub Actions)
+
+            # Create updated release notes with artifact section
+            cat > /tmp/updated-notes.md << EOF
+          $CURRENT_BODY
+
+          ---
+
+          ## 📦 Artifacts on GitHub Container Registry
+
+          ### Docker Images
+
+          \`\`\`bash
+          # Backend
+          docker pull ghcr.io/ccoupel/ansible-builder-backend:${VERSION}
+          # Or for newer versions:
+          # docker pull ghcr.io/ccoupel/automation-factory-backend:${VERSION}
+
+          # Frontend
+          docker pull ghcr.io/ccoupel/ansible-builder-frontend:${VERSION}
+          # Or for newer versions:
+          # docker pull ghcr.io/ccoupel/automation-factory-frontend:${VERSION}
+          \`\`\`
+
+          ### Helm Chart
+
+          \`\`\`bash
+          # If chart exists for this version
+          helm install automation-factory oci://ghcr.io/ccoupel/ansible-builder \\
+            --version ${VERSION} \\
+            --namespace automation-factory \\
+            --create-namespace
+
+          # Or for newer versions:
+          # helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \\
+          #   --version ${VERSION}
+          \`\`\`
+
+          ### 🔗 Browse Packages
+
+          - [Backend Image](https://github.com/users/ccoupel/packages/container/package/ansible-builder-backend)
+          - [Frontend Image](https://github.com/users/ccoupel/packages/container/package/ansible-builder-frontend)
+          - [Helm Chart](https://github.com/users/ccoupel/packages/container/package/ansible-builder)
+
+          > **Note:** Artifacts were built via Bitbucket CI and published to GHCR.
+          EOF
+
+            # Update the release
+            if [ "${{ inputs.dry_run }}" == "true" ]; then
+              echo "  🔍 DRY RUN - Would update release $TAG"
+              echo "  Preview (first 30 lines):"
+              cat /tmp/updated-notes.md | head -30
+            else
+              echo "  ✅ Updating release..."
+              gh release edit "$TAG" \
+                --notes-file /tmp/updated-notes.md \
+                || echo "  ❌ Failed to update release $TAG"
+            fi
+
+            # Clean up
+            rm -f /tmp/updated-notes.md
+
+            echo ""
+
+            # Rate limiting
+            sleep 2
+          done
+
+          echo "✅ Update complete!"
+          echo "🔗 View releases: https://github.com/${{ github.repository }}/releases"

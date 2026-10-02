@@ -1,0 +1,140 @@
+name: Migrate Releases from Bitbucket
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not create releases)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  migrate-releases:
+    name: Create GitHub Releases for Existing Tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create releases for all tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🚀 Migrating releases from Bitbucket to GitHub"
+          echo ""
+
+          # Get all tags sorted by version
+          TAGS=$(git tag -l | sort -V)
+          TOTAL=$(echo "$TAGS" | wc -l)
+          COUNT=0
+
+          for TAG in $TAGS; do
+            COUNT=$((COUNT + 1))
+            echo "[$COUNT/$TOTAL] 📦 Processing $TAG..."
+
+            # Check if release already exists
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "  ⏭️  Release already exists, skipping"
+              echo ""
+              continue
+            fi
+
+            # Get commit info
+            COMMIT_DATE=$(git log -1 --format="%ai" "$TAG" 2>/dev/null || echo "Unknown")
+            COMMIT_MSG=$(git log -1 --format="%s" "$TAG" 2>/dev/null || echo "Release $TAG")
+            COMMIT_HASH=$(git rev-list -n 1 "$TAG" 2>/dev/null)
+
+            # Get previous tag for changelog
+            PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+
+            # Generate changelog
+            if [ -n "$PREV_TAG" ]; then
+              CHANGELOG=$(git log --pretty=format:"- %s (\`%h\`)" --no-merges "$PREV_TAG..$TAG" 2>/dev/null | head -15)
+              COMPARE_LINK="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}"
+            else
+              CHANGELOG=$(git log --pretty=format:"- %s (\`%h\`)" --no-merges "$TAG" 2>/dev/null | head -10)
+              COMPARE_LINK=""
+            fi
+
+            # If changelog is empty, use commit message
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="- ${COMMIT_MSG} (\`${COMMIT_HASH:0:7}\`)"
+            fi
+
+            # Detect if prerelease
+            PRERELEASE=""
+            if [[ "$TAG" == *"-rc"* ]] || [[ "$TAG" == *"-beta"* ]] || [[ "$TAG" == *"-alpha"* ]]; then
+              PRERELEASE="--prerelease"
+            fi
+
+            # Extract version number (remove 'v' prefix)
+            VERSION="${TAG#v}"
+
+            # Create release notes
+            cat > /tmp/release-notes.md << EOF
+          ## 🚀 Automation Factory ${VERSION}
+
+          **Released:** ${COMMIT_DATE}
+
+          ### 📝 Changes
+
+          ${CHANGELOG}
+
+          ### 📦 Installation
+
+          \`\`\`bash
+          # Using Helm (if chart available for this version)
+          helm install automation-factory oci://ghcr.io/ccoupel/automation-factory \\
+            --version ${VERSION} \\
+            --namespace automation-factory \\
+            --create-namespace
+          \`\`\`
+
+          ### 🐳 Docker Images
+
+          \`\`\`bash
+          # Backend
+          docker pull ghcr.io/ccoupel/automation-factory-backend:${VERSION}
+
+          # Frontend
+          docker pull ghcr.io/ccoupel/automation-factory-frontend:${VERSION}
+          \`\`\`
+
+          ---
+
+          ${COMPARE_LINK}
+
+          _Migrated from Bitbucket_
+          EOF
+
+            # Create the release (or dry run)
+            if [ "${{ inputs.dry_run }}" == "true" ]; then
+              echo "  🔍 DRY RUN - Would create release:"
+              echo "      Tag: $TAG"
+              echo "      Prerelease: $PRERELEASE"
+              cat /tmp/release-notes.md | head -20
+            else
+              echo "  ✅ Creating release..."
+              gh release create "$TAG" \
+                --title "Release ${VERSION}" \
+                --notes-file "/tmp/release-notes.md" \
+                $PRERELEASE \
+                || echo "  ❌ Failed to create release for $TAG"
+            fi
+
+            # Clean up
+            rm -f /tmp/release-notes.md
+
+            echo ""
+
+            # Rate limiting - small delay between releases
+            sleep 1
+          done
+
+          echo "✅ Migration complete!"
+          echo "🔗 View releases: https://github.com/${{ github.repository }}/releases"
