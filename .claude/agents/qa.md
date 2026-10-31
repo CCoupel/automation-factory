@@ -1,7 +1,8 @@
 # Adaptations projet — Automation Factory
 
-> Complète `qa.template.md`. Mapping vers le template : **Phase 1 = local**, **Phase 2 = QUALIF
-> (staging 192.168.1.217)**, **Phase 3 = PROD**.
+> Complète `qa.template.md`. Correspondance avec les scopes du template : **Local** = scope `feature`
+> (+ NR impactées), **QUALIF (staging 192.168.1.217)** = `regression-full` (`testing.full_regression_at
+> = qualif`, E2E inclus — joué par `qa`, pas par deployer), **PROD** = smoke post-déploiement.
 
 ## Validation par phase
 
@@ -9,7 +10,7 @@
 - Backend répond sur `:8000`, frontend charge sur `:5173`
 - Endpoints `/api/version` et `/version` OK
 - Tests de non-régression API : `./test-api-regression.sh`
-- Format version affiché : `X.Y.Z_n`
+- Format version affiché : `X.Y.Z.a`
 
 ### QUALIF — Staging (192.168.1.217)
 ```bash
@@ -18,9 +19,7 @@ curl http://192.168.1.217/api/version        # Backend OK
 curl -I http://192.168.1.217/               # Frontend OK
 ```
 - Tests E2E : `./e2e-tests.sh`
-- Performances : `./performance-tests.sh` → < 2s response time
 - Format version : `X.Y.Z.a`
-- Tester les scénarios utilisateur des nouvelles features
 
 ### PROD
 - Valider https://coupel.net/automation-factory
@@ -29,8 +28,8 @@ curl -I http://192.168.1.217/               # Frontend OK
 - Format version : `X.Y.Z` (sans RC), `environment=PROD`, `is_rc=false`
 
 ## Critères GO / NO-GO (projet)
-- Local : 100% tests unitaires, API répond, interface charge
-- QUALIF : tous endpoints OK, < 2s, 0 erreur critique
+- Local : API répond, interface charge
+- QUALIF : tous endpoints OK, 0 erreur critique
 - PROD : métriques stables 30 min, 0 régression
 
 > ✅ **2026-09-16 (test-writer, suite au smoke test PROD v2.4.3, voir
@@ -73,9 +72,8 @@ curl -I http://192.168.1.217/               # Frontend OK
 >   avec les préfixes `/api/galaxy-roles/...` et `/api/galaxy-sources/...`). Ces requêtes
 >   renverront 404 systématiquement, pas juste un test qui échoue.
 > - `test-api-regression.sh` teste le format de version avec la regex
->   `^[0-9]+\.[0-9]+\.[0-9]+_[0-9]+$` (séparateur `_`) — ne correspond ni au schéma documenté
->   `X.Y.Z[-rc.n]` (séparateur `-`) ni à la valeur réelle actuelle de
->   `backend/app/version.py` (`__version__ = "2.4.3"`, sans suffixe RC).
+>   `^[0-9]+\.[0-9]+\.[0-9]+_[0-9]+$` (séparateur `_`) — ne correspond ni à l'ancien schéma
+>   `X.Y.Z[-rc.n]` (séparateur `-`) ni au format actuel `X.Y.Z.a` de `backend/app/version.py`.
 > - `performance-tests.sh` cible aussi `192.168.1.217:8000` en direct — même problème de port
 >   non publié que `e2e-tests.sh` ci-dessus.
 > - Seuls les checks `/api/health`, `/api/auth/status`, `/api/playbooks` (préfixes inchangés)

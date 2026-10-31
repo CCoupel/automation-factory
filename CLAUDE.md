@@ -10,7 +10,7 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 **Version Production :** Backend 2.4.3 / Frontend 2.4.3  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
-**URL Marketing :** https://ccoupel.bitbucket.io
+**URL Marketing :** https://ccoupel.github.io/automation-factory/ (branche `gh-pages`)
 **Dernière mise à jour :** 2026-03-20
 
 ## 📚 **Documentation Organisée**
@@ -236,31 +236,35 @@ python3 scripts/version.py check       # Valide cohérence fichiers
 git commit "chore(version): Release vX.Y.Z" && git push
 
 # 2. Merger sur main et tagger
-git checkout main && git merge --no-ff milestone/vX.Y.Z -m "Release vX.Y.Z"
-git push https://<PAT>@github.com/CCoupel/automation-factory.git main
+# Barrière : le workflow "CI Branch" (ci-branch.yml) doit être vert sur le SHA exact du milestone
+# Merge et tag dans un worktree séparé (jamais de checkout main dans l'arbre de travail) —
+# procédure complète : .claude/agents/environments/publish.prod.template.md
+git worktree add ../af-release main && cd ../af-release
+git merge --no-ff milestone/vX.Y.Z -m "Release vX.Y.Z"
+git push origin main     # authentification via gh / credential helper — jamais de PAT dans l'URL
 
 # 3. Créer et pousser le tag — C'EST CE PUSH QUI DÉCLENCHE LA CI
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push https://<PAT>@github.com/CCoupel/automation-factory.git vX.Y.Z
+git push origin vX.Y.Z
 
 # 4. Surveiller ACTIVEMENT le pipeline CI (deployer le fait)
-GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --limit 3
-GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
-# Attendre conclusion: success — si failure: analyser logs, corriger, rollback
+gh run list --repo CCoupel/automation-factory --workflow release.yml --limit 3
+gh run view <run_id> --repo CCoupel/automation-factory
+# Attendre conclusion: success — si failure: analyser logs, corriger, rollback (jamais de re-tag)
 
 # 5. Vérifier les images sur ghcr.io (tags X.Y.Z uniquement, JAMAIS 4 segments)
-GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+gh api /users/CCoupel/packages/container/automation-factory-backend/versions \
   --jq '.[] | select(.metadata.container.tags[] == "X.Y.Z")'
 
-# 6. DEPLOY PROD — mise à jour custom-values.yaml + helm upgrade
-sed -i "s/image:.*:.*$/image: automation-factory-backend:X.Y.Z/" custom-values.yaml
-
+# 6. DEPLOY PROD — helm upgrade (tags d'image passés par --set, custom-values.yaml non modifié)
 # Secrets (2026-09-16) : custom-values.yaml ne contient plus de valeurs en clair — fournies
 # via --set depuis un .env local non commité (voir .env.example). kubeconfig.txt gitignoré.
 source .env   # DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY
 KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
   --namespace automation-factory \
   --values custom-values.yaml \
+  --set backend.image.tag="X.Y.Z" \
+  --set frontend.image.tag="X.Y.Z" \
   --set postgresql.auth.password="$DEPLOY_DB_PASSWORD" \
   --set backend.env.SECRET_KEY="$DEPLOY_JWT_SECRET_KEY" \
   --timeout 300s
@@ -364,17 +368,17 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-bac
 
 | Nom | Rôle | Fichier | Spawn |
 |-----|------|---------|-------|
-| `planner` | Plan d'implémentation + contrats API | `.claude/agents/implementation-planner.template.md` (+ `implementation-planner.md`) | permanent |
-| `dev-backend` | Backend (Python/FastAPI) | `.claude/agents/dev-backend.template.md` (+ `dev-backend.md`) | permanent |
-| `dev-frontend` | Frontend (React/TypeScript) | `.claude/agents/dev-frontend.template.md` (+ `dev-frontend.md`) | permanent |
-| `test-writer` | Scripts de tests + procédures QA | `.claude/agents/test-writer.template.md` (+ `test-writer.md`) | permanent |
-| `code-reviewer` | Revue de code | `.claude/agents/code-reviewer.template.md` (+ `code-reviewer.md`) | permanent |
-| `qa` | Exécution des tests et validation | `.claude/agents/qa.template.md` (+ `qa.md`) | permanent |
-| `doc-updater` | Documentation | `.claude/agents/doc-updater.template.md` (+ `doc-updater.md`) | permanent |
-| `deployer` | Build + Publication + Déploiement QUALIF/PROD | `.claude/agents/deploy.template.md` (+ `deploy.md`) | permanent |
-| `security` | Audit sécurité | `.claude/agents/security.template.md` (+ `security.md`) | ponctuel |
-| `infra` | Infrastructure (si configurée) | `.claude/agents/infra.template.md` (+ `infra.md`) | ponctuel |
-| `marketing-release` | Communication de release | `.claude/agents/marketing-release.template.md` (+ `marketing-release.md`) | ponctuel |
+| `planner` | Plan d'implémentation + contrats API | `.claude/agents/implementation-planner.template.md` | permanent |
+| `dev-backend` | Backend (Python/FastAPI) | `.claude/agents/dev-backend.template.md` | permanent |
+| `dev-frontend` | Frontend (React/TypeScript) | `.claude/agents/dev-frontend.template.md` | permanent |
+| `test-writer` | Scripts de tests + procédures QA | `.claude/agents/test-writer.template.md` | permanent |
+| `code-reviewer` | Revue de code | `.claude/agents/code-reviewer.template.md` | permanent |
+| `qa` | Exécution des tests et validation | `.claude/agents/qa.template.md` | permanent |
+| `doc-updater` | Documentation | `.claude/agents/doc-updater.template.md` | permanent |
+| `deployer` | Build + Publication + Déploiement QUALIF/PROD | `.claude/agents/deploy.template.md` | permanent |
+| `security` | Audit sécurité | `.claude/agents/security.template.md` | ponctuel |
+| `infra` | Infrastructure (si configurée) | `.claude/agents/infra.template.md` | ponctuel |
+| `marketing-release` | Communication de release | `.claude/agents/marketing-release.template.md` | ponctuel |
 
 <!-- BEGIN TEAMLEADER_PROTOCOL — maintenu par le template, ne pas modifier manuellement -->
 
@@ -391,12 +395,14 @@ Tu **coordonnes et dispatches**. Tu n'exécutes aucune tâche technique toi-mêm
 
 | Outil interdit | Déléguer à |
 |---------------|-----------|
-| `Edit`, `Write`, `MultiEdit` | `dev-*`, `doc-updater` |
+| `Edit`, `Write`, `MultiEdit` (sauf `Write` d'un ordre dans `_work/tasks/*.md` et de l'état `.claude/workflow-state.json`, `.claude/workflow/*`) | `dev-*`, `doc-updater` |
 | `Bash` (build / test / git) | `qa`, `deployer`, `dev-*` |
 | `Read` (code applicatif) | `code-reviewer`, `planner` |
 | `Glob`, `Grep` (recherche code) | `planner`, `dev-*` |
 
-**`Read` autorisé uniquement pour** : `CLAUDE.md`, `MEMORY.md`, `project-config.json`, `_work/handoff/*.md`, `_work/reports/*.md`, `contracts/CHANGELOG.md`
+**`Read` autorisé uniquement pour** : `CLAUDE.md`, `MEMORY.md`, `project-config.json`, `_work/tasks/*.md`, `_work/handoff/*.md`, `_work/reports/*.md`, `contracts/CHANGELOG.md`
+
+**`Write` autorisé uniquement pour** : `_work/tasks/*.md` (ordres aux teammates, création seule — jamais `Edit`/`MultiEdit`) et l'état d'orchestration `.claude/workflow-state.json` / `.claude/workflow/plan-<version>.md` (reprise après interruption) — jamais un autre chemin
 
 **Ne jamais** exécuter une tâche technique soi-même — spawner l'agent approprié.
 
@@ -409,6 +415,12 @@ Tous les teammates sont spawned au démarrage (`/start-session`) et sont en IDLE
 SendMessage({ to: "<nom-canonique>", content: "<tâche complète>" })
 → Attendre ACTIF (confirmation) + DONE (références fichiers)
 ```
+
+**Ordre de plus de 3 lignes → fichier** : `Write` dans `_work/tasks/<agent>-<YYYYMMDD-HHmmss>.md` (un fichier par ordre,
+jamais réécrit), puis `SendMessage` avec le seul chemin + un résumé d'une ligne :
+`Tâche : _work/tasks/<agent>-<timestamp>.md — <résumé>`. Le fichier liste périmètre, fichiers à lire et livrables
+attendus. Restent inline : ordre ≤ 3 lignes, `/clear`, réponses à un `BLOQUE`, correction de rapport invalide.
+Relire l'ordre (`_work/tasks/*.md`) pour contrôler le `DONE` par rapport à la demande.
 
 Plusieurs agents en parallèle — même tour :
 ```
@@ -429,16 +441,22 @@ test-writer, code-reviewer, qa, doc-updater, deployer, security, infra
 
 ### Questions à l'utilisateur
 
-Quand tu as besoin d'une information, décision ou validation de l'utilisateur (y compris via un `BLOQUE` /
-`BLOCKED` / `BESOIN CADRAGE` d'un teammate), **présente-le toujours sous forme de questions numérotées**,
-fermées si possible, avec ta valeur par défaut recommandée, regroupées dans un seul message.
-Jamais de demande ouverte ni implicite. Les teammates ne parlent jamais à l'utilisateur : ils t'envoient
-leurs questions (adresse `SendMessage` du teamleader : `main`) et tu les reformules.
+**Règle absolue** : toute information, décision ou validation attendue de l'utilisateur (y compris les `BLOQUE` /
+`FAILED` remontés par un teammate) passe **par l'outil `AskUserQuestion`** — jamais en texte dans le chat (pas de
+liste numérotée, « OUI/NON », `[O/n]`). Les teammates ne parlent jamais à l'utilisateur : tu convertis leurs
+questions en `AskUserQuestion`, puis tu leur renvoies les réponses via `SendMessage`.
+Procédure, format et checklist : `.claude/agents/teamleader.template.md`, section « Questions à l'utilisateur ».
 
 ### Relayer l'avancement
 
 Chaque jalon `[NOM] EN COURS — …` d'un teammate (ex. `QA EN COURS — lot 3/12 …`) est relayé à l'utilisateur en
-une ligne, sans attendre le DONE. Un jalon n'est pas un DONE : ne pas enchaîner avant le DONE.
+une ligne, sans attendre le DONE. Un jalon n'est pas un DONE : ne pas enchaîner avant le DONE. Si un jalon signale des échecs, les nommer dans le relais.
+
+### Labels d'issues — à chaque changement de phase
+
+Mettre à jour les labels de **toutes** les issues suivies (`ISSUE_NUMS[]`) **avant** d'envoyer l'ordre suivant, **et dès l'événement** (retour de fin de tâche d'un teammate `DONE`/`FAILED`/`BLOQUE`, validation d'un GATE — `GITHUB.md` §9.12), avant de le relayer. L'état dit ce qui **reste à faire** (ex. `PRET` = plan validé, DEV pas lancé), pas ce qu'un teammate fait à cet instant :
+`SendMessage` à `deployer` (`gh issue edit --add-label … --remove-label …`, `.claude/commands/context/GITHUB.template.md` §9).
+La clôture du milestone reste soumise à la validation utilisateur.
 
 ### Validation des rapports DONE
 

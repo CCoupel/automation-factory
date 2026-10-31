@@ -28,16 +28,14 @@
 
 ### Docker Compose (`docker-compose.staging.yml`)
 - Ajout/modification de services, volumes, réseaux, variables d'environnement
-- ⚠️ Les **tags des images** (numéros de version) sont gérés par `doc-updater`, pas `infra`
 
 ### Dockerfiles
 - `backend/Dockerfile` — image production backend
 - `frontend/Dockerfile` — image production frontend (nginx)
-- Optimisations multi-stage, layer caching
 
 ## Règles absolues (projet)
-- **Principe BORE** : les Dockerfiles produisent la même image pour staging et production
-- **Jamais** de secrets en clair — Secrets K8s ou variables d'environnement
-- **Toujours** définir `resources.requests`/`resources.limits` pour les nouveaux containers
-- **Toujours** définir `livenessProbe`/`readinessProbe` pour les nouveaux services
-- Toute modification Helm → bumper la version dans `Chart.yaml`
+- **Dérogation projet — `Chart.yaml`** : `version`/`appVersion` suivent `X.Y.Z`, écrits uniquement
+  par `scripts/version.py start` — pas de bump indépendant à chaque modification Helm
+- **Dérogation projet — tag `:latest`** : `release.yml` pousse aussi `:latest` sur les tags de release
+  (décision utilisateur). Ce n'est qu'un alias : la prod déploie toujours un `X.Y.Z` figé
+  (`--set backend.image.tag`/`frontend.image.tag`), jamais `:latest` — ne pas le remonter en écart

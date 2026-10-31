@@ -3,7 +3,8 @@
 > Complète `marketing-release.template.md` (générique, orienté binaire téléchargeable avec
 > `config.yml`) — Automation Factory est une application web hébergée, pas un binaire distribué,
 > et le site marketing est un site statique, pas un site généré depuis un `config.yml`.
-> Section "Comment mettre à jour" du template : **non applicable telle quelle**, remplacer par
+> Dérogation projet : section "Comment mettre à jour" et section Déploiement binaires/`config.yml`
+> du template **non applicables telles quelles**, remplacer par
 > "l'application est mise à jour automatiquement en production, aucune action utilisateur".
 
 ## Contexte projet
@@ -11,30 +12,30 @@ Automation Factory est un constructeur visuel de playbooks Ansible, pour ingéni
 administrateurs systèmes. Cible : équipes infrastructure/DevOps utilisant Ansible.
 
 ## Site marketing (statique, gh-pages)
-- **URL** : https://ccoupel.bitbucket.io
+- **URL** : https://ccoupel.github.io/automation-factory/ (GitHub Pages, branche `gh-pages` — ccoupel.bitbucket.io abandonné)
 - **Hébergement** : branche `gh-pages` du repo GitHub `CCoupel/automation-factory`, disponible
   en worktree local dans `MARKETING/`
 - **Pages** : `MARKETING/index.html` (accueil, section "Latest Version"), `MARKETING/features.html`,
   `MARKETING/releases.html`
-- **Workflow git** :
-  ```bash
-  cd MARKETING && git add . && git commit -m "release: vX.Y.Z" && git push origin gh-pages
-  ```
-  Ne JAMAIS faire `git checkout` depuis le repo principal pour ce worktree — toujours `cd MARKETING`.
+- **Workflow git** : celui du template (PREPARE sans commit ; PUBLISH après GATE 4d :
+  `git -C MARKETING … commit -m "docs(site): vX.Y.Z"` puis push de `gh-pages` ; release notes
+  commitées séparément sur la branche de code).
 
-> ⚠️ **Le worktree `MARKETING/` est actuellement CASSÉ depuis WSL, pas juste `prunable`.**
-> `MARKETING/.git` et `.git/worktrees/MARKETING/gitdir` contiennent tous les deux un chemin
-> Windows (`C:/Users/cyril/...`) que WSL ne résout pas — toute commande `git` lancée depuis
-> `MARKETING/` échoue immédiatement avec `fatal: not a git repository`. Le workflow ci-dessus
-> ne fonctionnera pas tel quel dans une session Claude Code WSL tant que ces deux fichiers ne
-> sont pas réécrits en chemin WSL (`/mnt/c/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/...`).
-> Ne pas corriger silencieusement — signaler à l'utilisateur avant toute tentative de commit
-> marketing, c'est une décision qui touche l'état git réel, pas une adaptation de contenu.
+> ⚠️ **Le worktree `MARKETING/` est actuellement CASSÉ.** `MARKETING/` est un dossier simple
+> (non vide) sans `.git` ; le worktree `gh-pages` reste enregistré `prunable` à l'ancien chemin
+> Windows `C:/Users/cyril/Documents/VScode/GITHUB/Automation-Factory/MARKETING` (le repo est
+> désormais sous `/mnt/c/Users/cyril/Documents/PROJETS/OTHER/Automation-Factory`). La recréation
+> automatique du template (`git worktree add MARKETING gh-pages`) échouerait sur ce dossier non vide.
+> Dérogation projet : ne pas corriger silencieusement — `BLOQUE` et signaler à l'utilisateur avant
+> toute tentative de commit marketing, c'est une décision qui touche l'état git réel.
 
 ## URL production
 https://coupel.net/automation-factory — CTA de tous les posts/newsletters.
 
 ## Mise à jour obligatoire à chaque release (structure vérifiée sur `MARKETING/`)
+> Dérogation projet : site existant (`translations.js`, `hero.badge`, timeline) — le système du
+> template (`assets/lang.js`, `locales/{fr,en}.json`, badges `data-badge-version`/`badges.js`) ne
+> s'applique pas.
 - **Hero badge** : clé `hero.badge` dans `MARKETING/translations.js` (FR et EN, deux occurrences
   distinctes) + fallback dans `MARKETING/index.html` (`<span data-i18n="hero.badge">`). Format :
   `'hero.badge': 'Version X.Y.Z — Nom Feature'`.
@@ -47,13 +48,10 @@ https://coupel.net/automation-factory — CTA de tous les posts/newsletters.
   en FR et EN pour chaque feature listée dans la timeline.
 - Vérifier après publication que les popups s'affichent au clic (attribut `data-i18n-detail`).
 
-## Source du contenu de release
-`docs/releases/vX.Y.Z/release-notes.md` — texte déjà rédigé pour un public externe (contexte,
-corrections en langage clair), confirmé existant pour v2.3.6 et v2.4.3. C'est cette source qui
-doit nourrir le contenu marketing (hero badge, timeline, traductions) — **pas** `CHANGELOG.md`
-(technique, format Keep-a-Changelog) ni `docs/work/DONE.md` (historique interne), qui sont
-d'un niveau de détail inadapté à un site public. Si `docs/releases/vX.Y.Z/` n'existe pas pour
-la version en cours, le demander à `doc-updater` avant de rédiger le contenu marketing.
+## Release notes publiques
+Sources : celles du template (milestone GitHub + `CHANGELOG.md`). `docs/releases/vX.Y.Z/release-notes.md`
+est une **sortie** de marketing-release (exemples existants : v2.3.6, v2.4.3), pas une entrée à
+demander à `doc-updater`. `docs/work/DONE.md` (historique interne) n'est pas une source.
 
 ## Ton et audience
 - Langue : français en priorité, anglais pour hashtags/posts internationaux
