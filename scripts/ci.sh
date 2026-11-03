@@ -65,7 +65,8 @@ step "frontend: tests + coverage"                                           # [T
 ( cd frontend && npm run test:coverage )
 
 step "frontend: audit dependances"                                          # [C] commands.audit
-( cd frontend && npm audit )
+# Seuil high : 11 moderate restantes (minimatch via eslint, dev only, sans correctif) — suivi en issue séparée
+( cd frontend && npm audit --audit-level=high )
 
 step "frontend: build"                                                      # [C] commands.build (= RUN npm run build, frontend/Dockerfile L17)
 ( cd frontend && npm run build )
