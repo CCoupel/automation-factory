@@ -7,7 +7,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
-## [2.4.4] - 2026-09-18
+## [2.4.4] - 2026-11-03
 
 ### 🛠️ **Tooling — Migration Versioning X.Y.Z.a**
 - **[CHANGED]** Format de version : `X.Y.Z[-rc.n]` → `X.Y.Z.a` (dev/staging) / `X.Y.Z` (prod)
