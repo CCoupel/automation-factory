@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
-import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, VariableType, PlaySectionName } from '../types/playbook'
+import { ModuleBlock, Link, PlayVariable, Play, PlayAttributes, ModuleSchema, PlaySectionName } from '../types/playbook'
 import { PlaybookContent } from '../services/playbookService'
 import { ProjectUpdate } from '../hooks/useProjectWebSocket'
 import { CustomTypeInfo } from '../utils/assertionsGenerator'
@@ -15,7 +15,7 @@ export type SectionTab = 'roles' | 'pre_tasks' | 'tasks' | 'post_tasks' | 'handl
 export interface SelectedRole {
   index: number
   role: string
-  vars?: Record<string, any>
+  vars?: Record<string, unknown>
 }
 
 // Module update fields used by ConfigZone
@@ -27,7 +27,7 @@ export interface ModuleUpdates {
   loop?: string
   delegateTo?: string
   tags?: string[]
-  moduleParameters?: Record<string, any>
+  moduleParameters?: Record<string, unknown>
   moduleSchema?: ModuleSchema
   validationState?: { isValid: boolean; errors: string[]; warnings: string[]; lastValidated?: Date }
 }
@@ -130,8 +130,8 @@ interface PlaybookEditorActions {
   updatePlayAttributes: (updates: Partial<PlayAttributes>) => void
 
   // Roles
-  getRoles: () => (string | { role: string; vars?: Record<string, any> })[]
-  updateRole: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
+  getRoles: () => (string | { role: string; vars?: Record<string, unknown> })[]
+  updateRole: (index: number, updates: { role?: string; vars?: Record<string, unknown> }) => void
 
   // Playbook metadata
   setCurrentPlaybookId: (id: string | null) => void
@@ -426,7 +426,7 @@ export const usePlaybookEditorStore = create<PlaybookEditorStore>((set, get) => 
   getRoles: () => {
     const state = get()
     const play = state.plays[state.activePlayIndex]
-    return (play?.attributes?.roles || []) as (string | { role: string; vars?: Record<string, any> })[]
+    return (play?.attributes?.roles || []) as (string | { role: string; vars?: Record<string, unknown> })[]
   },
 
   updateRole: (index, updates) => {

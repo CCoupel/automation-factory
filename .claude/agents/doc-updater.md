@@ -5,19 +5,16 @@
 ## Fichiers à maintenir
 
 ### Documentation de travail (à chaque feature/fix)
-- `docs/work/WORK_IN_PROGRESS.md` — état actuel, version en cours (déjà cohérent avec
-  `backend/app/version.py` au 2026-09-16 : `2.4.3` des deux côtés)
+- `docs/work/WORK_IN_PROGRESS.md` — état actuel, version en cours
 - `docs/work/DONE.md` — fonctionnalités livrées par version
 - **GitHub Issues** — roadmap (backlog migré, ne plus modifier `docs/work/BACKLOG.md` directement)
-- `CHANGELOG.md` — format `## [X.Y.Z] - YYYY-MM-DD` (Added/Fixed/Changed)
+- `CHANGELOG.md`
 
 > ⚠️ **Trois documents se recoupent pour "qu'est-ce qui a été livré en version X"** :
-> `CHANGELOG.md` (format technique Keep-a-Changelog), `docs/work/DONE.md` (historique narratif,
-> quasi le même contenu que CHANGELOG pour les releases récentes), et
-> `docs/releases/vX.Y.Z/release-notes.md` (texte public orienté utilisateur — c'est CETTE
-> dernière source, pas CHANGELOG/DONE, que `marketing-release` utilise pour publier). Mettre à
-> jour les trois à chaque release, mais ne pas dupliquer le texte : CHANGELOG = technique,
-> DONE = historique interne, `docs/releases/` = public.
+> `CHANGELOG.md` (technique) et `docs/work/DONE.md` (historique interne) sont maintenus par
+> doc-updater ; `docs/releases/vX.Y.Z/release-notes.md` (texte public) est produit par
+> `marketing-release` (depuis le milestone + CHANGELOG), pas par doc-updater. Ne pas dupliquer
+> le texte entre CHANGELOG et DONE.
 
 > ⚠️ **Lien mort dans l'index `CLAUDE.md`** : `docs/work/PERFORMANCE_METRICS.md` est référencé
 > dans la section "Documentation Organisée" mais **n'existe pas** sur disque — soit créer le
@@ -47,12 +44,7 @@
   `PHASE3_PRODUCTION.md`) est à 3 phases (Local / QUALIF staging / PROD K8s) sur `main` — ne pas
   se fier à sa section "Stratégie de Tests" pour les critères GO/NO-GO réels (voir `qa.md`)
 
-### Versioning (à chaque bump de version)
-- `backend/app/version.py` : `__version__ = "X.Y.Z-rc.n"`
-- `frontend/package.json` : `"version": "X.Y.Z-rc.n"`
-- `docker-compose.staging.yml` : **tags des images uniquement** (structure = responsabilité de `infra`)
-
 ## Règles
 - `WORK_IN_PROGRESS.md` : toujours refléter la phase courante
-- `DONE.md` : documenter uniquement après validation utilisateur
+- `DONE.md` : mis à jour au DOC FINALIZE (en parallèle de QUALIF, avant PUBLISH PROD), comme le template
 - Ne jamais laisser `WORK_IN_PROGRESS.md` pointer vers une phase terminée

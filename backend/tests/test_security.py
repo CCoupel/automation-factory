@@ -2,7 +2,6 @@
 Tests for security utilities (password hashing, JWT tokens).
 """
 
-import pytest
 from datetime import timedelta
 from app.core.security import (
     get_password_hash,

@@ -125,3 +125,10 @@ _work/
 # a la racine du repo, meme en monorepo, jamais sous un sous-repertoire backend/frontend)
 build/
 /build/
+
+# Site marketing : MARKETING/ est le worktree git de la branche gh-pages (jamais commite sur la branche de code)
+MARKETING/
+.claude/skills/milestone-panel/
+.claude/workflow/
+.claude/worktrees/
+token.txt

@@ -2,8 +2,6 @@
 Tests for playbook CRUD endpoints (/api/playbooks/*).
 """
 
-import pytest
-from app.models.playbook import Playbook
 from app.models.playbook_collaboration import PlaybookShare, PlaybookRole
 from app.models.user import User
 from app.core.security import get_password_hash, create_access_token

@@ -50,8 +50,12 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 # Serveur de staging
 Host: 192.168.1.217
 Ports: 80 (frontend), 8000 (backend)
-Database: PostgreSQL ou SQLite
-Cache: Redis
+Bind nginx: 192.168.1.217:80 uniquement (AF_STAGING_BIND_IP, défaut 192.168.1.217) — le port 80 de srv7
+            est déjà publié par le conteneur MooseFS `mfscgi` sur 192.168.1.231 et 192.168.2.231 :
+            ne jamais publier "80:80" (0.0.0.0), sinon nginx ne démarre pas (port already allocated)
+Database: SQLite persistant (volume nommé automation-factory-staging-data monté sur /data)
+Cache: mémoire (pas de Redis)
+Réseau: réseau `default` géré par compose (aucune dépendance externe)
 ```
 
 ### URLs de Test
@@ -130,17 +134,19 @@ services:
 
 #### Arrêt Environnement Précédent
 ```bash
-docker --host=tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml down
-docker --host=tcp://192.168.1.217:2375 system prune -f
+# --env-file requis (AF_IMAGE_TAG obligatoire, y compris pour down)
+# Ne JAMAIS utiliser `down -v` (supprimerait la base SQLite staging)
+# Ne JAMAIS lancer `docker system prune` : daemon partagé avec d'autres projets
+docker --host=tcp://192.168.1.217:2375 compose --env-file build/qualif_vX.Y.Z/release.env -f docker-compose.staging.yml down
 ```
 
 #### Déploiement RC
 ```bash
 # Déploiement avec architecture nginx reverse proxy
-docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml up -d
+docker -H tcp://192.168.1.217:2375 compose --env-file build/qualif_vX.Y.Z/release.env -f docker-compose.staging.yml up -d
 
 # Vérification démarrage
-docker -H tcp://192.168.1.217:2375 compose -f docker-compose.staging.yml logs -f
+docker -H tcp://192.168.1.217:2375 compose --env-file build/qualif_vX.Y.Z/release.env -f docker-compose.staging.yml logs -f
 
 # Attendre stabilisation (30s)
 sleep 30

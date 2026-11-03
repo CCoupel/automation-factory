@@ -230,7 +230,6 @@ class AnsibleCollectionsService(BaseHTTPService):
             
             for link in module_links:
                 href = link.get('href', '')
-                text = link.get_text(strip=True)
                 
                 # Extraire nom du module depuis l'href
                 match = re.search(r'([^/]+)_module\.html', href)

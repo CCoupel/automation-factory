@@ -107,7 +107,7 @@ export function useProjectWebSocket(
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsHost = window.location.host
     // Use runtime injection only — do NOT derive from pathname (would pick up route segments)
-    const wsBasePath = ((window as any).__BASE_PATH__ || '').replace(/\/$/, '')
+    const wsBasePath = (window.__BASE_PATH__ || '').replace(/\/$/, '')
 
 
     const url = `${wsProtocol}//${wsHost}${wsBasePath}/ws/project/${currentProjectId}?token=${token.substring(0, 20)}...`
@@ -120,11 +120,12 @@ export function useProjectWebSocket(
       const message: WebSocketMessage = JSON.parse(event.data)
 
       switch (message.type) {
-        case 'presence':
+        case 'presence': {
           const users = message.users as ConnectedUser[]
           setConnectedUsers(users)
           onPresenceChangeRef.current?.(users)
           break
+        }
 
         case 'user_joined':
           setConnectedUsers(prev => {

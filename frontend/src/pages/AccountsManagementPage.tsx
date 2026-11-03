@@ -1,3 +1,4 @@
+import type { ApiError } from '../utils/apiError'
 import React, { useState, useEffect } from 'react'
 import {
   Box,
@@ -61,7 +62,8 @@ const AccountsManagementPage: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       })
       setAccounts(response.data)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to fetch accounts')
       console.error('Error fetching accounts:', err)
     } finally {
@@ -82,7 +84,8 @@ const AccountsManagementPage: React.FC = () => {
       setAccounts(accounts.map(acc =>
         acc.id === userId ? { ...acc, is_admin: !currentIsAdmin } : acc
       ))
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to update user role')
       console.error('Error updating role:', err)
     }
@@ -101,7 +104,8 @@ const AccountsManagementPage: React.FC = () => {
       setAccounts(accounts.map(acc =>
         acc.id === userId ? { ...acc, is_active: !currentIsActive } : acc
       ))
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to update user status')
       console.error('Error updating status:', err)
     }

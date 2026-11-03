@@ -45,7 +45,7 @@ describe('useCollaborationSync', () => {
 
       const data: ModuleAddData = {
         moduleId: 'm1',
-        module: { id: 'm1', collection: 'ansible.builtin', name: 'debug' } as any,
+        module: { id: 'm1', collection: 'ansible.builtin', name: 'debug' } as never,
         position: { x: 100, y: 200 },
       }
 
@@ -74,7 +74,7 @@ describe('useCollaborationSync', () => {
     it('sendLinkAdd sends immediately', () => {
       const { result } = renderHook(() => useCollaborationSync())
 
-      const data: LinkAddData = { link: { id: 'l1', from: 'm1', to: 'm2' } as any }
+      const data: LinkAddData = { link: { id: 'l1', from: 'm1', to: 'm2' } as never }
 
       act(() => {
         result.current.sendLinkAdd(data)
@@ -205,7 +205,7 @@ describe('useCollaborationSync', () => {
       const { result } = renderHook(() => useCollaborationSync())
 
       act(() => {
-        result.current.sendUpdate('module_add', { moduleId: 'm1', module: {}, position: { x: 0, y: 0 } } as any)
+        result.current.sendUpdate('module_add', { moduleId: 'm1', module: {}, position: { x: 0, y: 0 } } as never)
       })
 
       expect(mockSendUpdate).toHaveBeenCalledTimes(1)
@@ -215,7 +215,7 @@ describe('useCollaborationSync', () => {
       const { result } = renderHook(() => useCollaborationSync())
 
       act(() => {
-        result.current.sendUpdate('module_move', { moduleId: 'm1', x: 10, y: 20 } as any)
+        result.current.sendUpdate('module_move', { moduleId: 'm1', x: 10, y: 20 } as never)
       })
 
       expect(mockSendUpdate).not.toHaveBeenCalled()
@@ -265,7 +265,7 @@ describe('useCollaborationSync', () => {
       act(() => {
         result.current.sendModuleAdd({
           moduleId: 'm1',
-          module: { id: 'm1', collection: 'ansible.builtin', name: 'debug' } as any,
+          module: { id: 'm1', collection: 'ansible.builtin', name: 'debug' } as never,
           position: { x: 0, y: 0 },
         })
       })
@@ -340,16 +340,16 @@ describe('applyProjectUpdate', () => {
 
   const baseState = () => ({
     modules: [
-      { id: 'm1', collection: 'ansible.builtin', name: 'debug', x: 0, y: 0 } as any,
+      { id: 'm1', collection: 'ansible.builtin', name: 'debug', x: 0, y: 0 } as never,
     ],
-    links: [{ id: 'l1', from: 'm1', to: 'm2' } as any],
+    links: [{ id: 'l1', from: 'm1', to: 'm2' } as never],
     plays: [{ id: 'p1', name: 'Play 1' }],
-    variables: [{ id: 'v1', key: 'host', value: 'localhost' } as any],
+    variables: [{ id: 'v1', key: 'host', value: 'localhost' } as never],
   })
 
   it('module_add appends a module', () => {
     const state = baseState()
-    const newModule = { id: 'm2', collection: 'ansible.builtin', name: 'shell' } as any
+    const newModule = { id: 'm2', collection: 'ansible.builtin', name: 'shell' } as never
     const result = applyProjectUpdate(
       makeUpdate('module_add', { moduleId: 'm2', module: newModule, position: { x: 10, y: 20 } }),
       state
@@ -371,12 +371,12 @@ describe('applyProjectUpdate', () => {
   it('module_delete removes module and its links', () => {
     const state = {
       modules: [
-        { id: 'm1', collection: 'a', name: 'b', x: 0, y: 0 } as any,
-        { id: 'm2', collection: 'a', name: 'c', x: 0, y: 0 } as any,
+        { id: 'm1', collection: 'a', name: 'b', x: 0, y: 0 } as never,
+        { id: 'm2', collection: 'a', name: 'c', x: 0, y: 0 } as never,
       ],
       links: [
-        { id: 'l1', from: 'm1', to: 'm2' } as any,
-        { id: 'l2', from: 'm2', to: 'm3' } as any,
+        { id: 'l1', from: 'm1', to: 'm2' } as never,
+        { id: 'l2', from: 'm2', to: 'm3' } as never,
       ],
     }
     const result = applyProjectUpdate(
@@ -392,7 +392,7 @@ describe('applyProjectUpdate', () => {
 
   it('module_config updates module parameters', () => {
     const state = {
-      modules: [{ id: 'm1', collection: 'a', name: 'b', x: 0, y: 0, moduleParameters: { msg: 'hello' } } as any],
+      modules: [{ id: 'm1', collection: 'a', name: 'b', x: 0, y: 0, moduleParameters: { msg: 'hello' } } as never],
       links: [],
     }
     const result = applyProjectUpdate(
@@ -404,7 +404,7 @@ describe('applyProjectUpdate', () => {
 
   it('link_add appends a link', () => {
     const state = baseState()
-    const newLink = { id: 'l2', from: 'm1', to: 'm3' } as any
+    const newLink = { id: 'l2', from: 'm1', to: 'm3' } as never
     const result = applyProjectUpdate(
       makeUpdate('link_add', { link: newLink }),
       state

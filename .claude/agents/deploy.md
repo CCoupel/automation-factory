@@ -1,20 +1,29 @@
+---
+effort: high
+---
 # Adaptations projet — Automation Factory
 
 > Complète `deploy.template.md`. Le mapping QUALIF/PROD du template correspond aux
 > environnements réels du projet : **QUALIF = staging (192.168.1.217)**, **PROD = Kubernetes/Helm**.
 
-## Principe BORE (Build Once, Run Everywhere) — Migration v2.4.4
+> **Procédures PUBLISH/DEPLOY** : les fichiers `environments/{publish,deploy}.{qualif,prod}.template.md` ont été
+> réécrits le 2026-10-31 pour la réalité du projet (daemon Docker TCP 192.168.1.217 + `release.env` ; Helm
+> `automation-factory` / namespace `automation-factory`, `--set *.image.tag`, version via `scripts/version.py`).
+> Ils font foi à l'étape [2. MECANISME] ; les procédures ci-dessous en sont le résumé. Note : ces fichiers ne sont
+> pas resynchronisés par `/init-project` (fichiers manquants seulement) — une régénération les écraserait.
 
-**BORE réécrit pour la migration versioning `X.Y.Z.a`** :
-- **QUALIF (staging)** : images `X.Y.Z.a` construites localement sur daemon 192.168.1.217, promus sans rebuild
-- **PROD (Kubernetes)** : rebuild déterministe depuis la même source figée, déclenché par un tag `vX.Y.Z` poussé en CI
-- Aucune image à 4 segments ne sort de ghcr.io ; prod affiche toujours `X.Y.Z` (le `a` retiré)
+## BORE — faits projet
+
+- **QUALIF (staging)** : images `X.Y.Z.a` construites sur le daemon Docker 192.168.1.217, promues sans rebuild
+- **PROD (Kubernetes)** : images `:X.Y.Z` reconstruites par la CI (`release.yml`) depuis le tag `vX.Y.Z`, publiées sur ghcr.io
+- Aucune image à 4 segments ne sort sur ghcr.io ; prod affiche toujours `X.Y.Z` (le `a` retiré)
 - Différences via variables d'environnement : `ENVIRONMENT=STAGING` vs `PROD`, détectables par smoke tests
 
 ## ⚠️ Outil unique de versioning : `scripts/version.py`
 
-Remplace tous les snippets template `cat backend/app/version.py` ou `echo … > backend/app/version.py`
-(interdits, risqueraient d'écraser `VERSION_FEATURES`). Commandes disponibles :
+> Dérogation projet : remplace les snippets template `cat backend/app/version.py` / `cut` / « écrire $VERSION »
+> (et ceux des fichiers `environments/*.template.md`). `echo … > backend/app/version.py` est interdit
+> (écraserait `VERSION_FEATURES`).
 
 | Commande | Effet |
 |----------|-------|
@@ -26,29 +35,20 @@ Remplace tous les snippets template `cat backend/app/version.py` ou `echo … > 
 | `python3 scripts/version.py release` | Retire `a` (PUBLISH PROD) |
 | `python3 scripts/version.py check [--tag vX.Y.Z]` | Valide cohérence fichiers/format |
 
-## Déclencheur réel du pipeline CI (`.github/workflows/release.yml`)
+## Pipeline de release (`.github/workflows/release.yml`)
 
-Le pipeline qui build et push les images (`release.yml`) se déclenche **uniquement sur un push
-de tag `vX.Y.Z`** (exactement 3 segments), **PAS sur un push vers `main`** (`test.yml` — les tests
-unitaires — se déclenche lui sur push/PR vers `main`, mais ne build ni ne push aucune image).
-
-**Conséquence** : le tag `vX.Y.Z` doit être créé et poussé après que `scripts/version.py release`
-a retiré le `a`, puis la CI rebuild depuis la source figée, et les images `:X.Y.Z` (sans `a`)
-sont publiées sur ghcr.io. Job `validate` rejette tout tag malformé (`v2.4.4.1`, `v2.4.4-rc.1`,
-etc.).
+Déclenché uniquement par un tag `vX.Y.Z` à **exactement 3 segments** ; son job `validate` rejette tout
+tag malformé (`v2.4.4.1`, `v2.4.4-rc.1`, etc.).
 
 ---
 
 ## Tâche BUILD (une seule fois par cycle ou rebuild, agnostique environnement)
 
-**Prérequis** : branche `milestone/vX.Y.Z`, repo propre, tests passants.
-
 ### Étapes BUILD
 ```bash
-# 1. Vérifier l'état du repo
+# 1. Vérifier l'état du repo (aucun test ici — QA les a déjà joués sur ce même arbre git)
 git status
 git branch -v
-npm test  # et autres tests CI du projet-config.json
 
 # 2. Incrémenter et commiter
 VERSION=$(python3 scripts/version.py bump-build)
@@ -58,7 +58,7 @@ git commit -m "chore(version): Bump to $VERSION (build)"
 git push origin milestone/vX.Y.Z
 
 # 3. Construire les images Docker sur le daemon 192.168.1.217
-#    (C5 : Docker absent WSL, tous les builds via daemon distant)
+#    (Docker absent de WSL : tous les builds via le daemon distant)
 docker -H tcp://192.168.1.217:2375 build \
   -t automation-factory-backend:$VERSION \
   -f backend/Dockerfile backend/
@@ -94,7 +94,12 @@ echo "✅ BUILD réussi"
 echo "Manifeste : $BUILD_DIR/manifest-$VERSION.json"
 ```
 
+> Dérogation projet (artefact) : l'artefact candidat n'est pas une archive `app-X.Y.Z.a.tar.gz` mais les
+> images Docker présentes sur le daemon 192.168.1.217 + le manifeste `build/candidate_vX.Y.Z/manifest-X.Y.Z.a.json`.
+> Dans les DONE, le champ `Binaire` = chemin du manifeste (BUILD) ou de `build/qualif_vX.Y.Z/release.env` (PUBLISH QUALIF).
+
 ### Gestion des erreurs BUILD
+> Dérogation projet : le build tourne sur un daemon distant, la catégorie INFRA existe réellement.
 - **CODE** → dev-backend/dev-frontend : correction du code, recommencer BUILD
 - **INFRA** (daemon 192.168.1.217 injoignable, image storage plein, etc.) → infra : corriger, recommencer BUILD
 
@@ -182,25 +187,21 @@ IS_RC=$(curl -s http://192.168.1.217/api/version | jq '.is_rc')
 [[ $IS_RC == "true" ]] || \
   { echo "❌ is_rc devrait être true en QUALIF (c'est un candidat)"; exit 1; }
 
-echo "✅ Version $DEPLOYED_VERSION déployée, is_rc=$IS_RC"
-
-# 6. Suite E2E obligatoire (voir docs/operations/PHASE2_INTEGRATION.md)
-#    Teste les APIs Ansible, schemas, erreurs 404, etc.
-#    Arrêt sur tout échec critique.
-./e2e-tests.sh || exit 1
-
-echo "✅ DEPLOY QUALIF réussi — E2E 100%"
+echo "✅ DEPLOY QUALIF réussi — version $DEPLOYED_VERSION, is_rc=$IS_RC"
 ```
 
-### Gate obligatoire
-**E2E 100% + démo/validation utilisateur + "go" explicite avant PUBLISH PROD**  
-Jamais d'enchaînement automatique. Le déploiement QUALIF doit être approuvé manuellement.
+> La suite E2E (`./e2e-tests.sh`) et la NR complète ne sont **pas** jouées par deployer : elles relèvent
+> de `qa` (`Scope : regression-full`, `testing.full_regression_at = qualif`), en parallèle.
 
 ---
 
 ## Tâche PUBLISH PROD (merge + tag → rebuild CI)
 
-**Prérequis** : DEPLOY QUALIF validé, "go" utilisateur, CHANGELOG à jour.
+**Prérequis** : voir Checklist « Avant PUBLISH » du template (dont l'exception hotfix : un hotfix part
+directement du BUILD, sans DEPLOY QUALIF préalable).
+
+Authentification GitHub : ambiante (`gh auth login` / credential helper) — **jamais** de PAT dans une URL
+ni de `GITHUB_TOKEN=<PAT>` en ligne de commande.
 
 ### Étapes PUBLISH PROD
 ```bash
@@ -215,40 +216,49 @@ NEW_VERSION=$(python3 scripts/version.py get)
 echo "VERSION après release = $NEW_VERSION (sans .a)"
 
 # 3. Vérifier que CHANGELOG.md contient l'entrée
+#    Dérogation projet : grep de X.Y.Z APRÈS `release` (le grep `$DEV_VERSION` = X.Y.Z.a du
+#    publish.prod.template ne peut jamais matcher le CHANGELOG)
 grep -q "$(python3 scripts/version.py get)" CHANGELOG.md || \
   { echo "❌ CHANGELOG.md ne contient pas la version — contactez doc-updater"; exit 1; }
 
-# 4. Commiter sur milestone/vX.Y.Z
+# 4. Commiter sur milestone/vX.Y.Z et pousser
 git add backend/app/version.py frontend/package.json frontend/package-lock.json
 git commit -m "chore(version): Release v$NEW_VERSION"
-
-# 5. Merger sur main
 git push origin milestone/vX.Y.Z
-git checkout main
-git merge --no-ff milestone/vX.Y.Z -m "Release v$NEW_VERSION"
-git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 
-# 6. Tagger et déclencher la CI (c'est LE point critique)
-git tag -a v$NEW_VERSION -m "Release v$NEW_VERSION"
-git push https://<PAT>@github.com/CCoupel/automation-factory.git v$NEW_VERSION
+# 5. BARRIÈRE — pré-validation verte sur le SHA exact (`ci-branch.yml`, lance `commands.ci` = scripts/ci.sh)
+SHA=$(git rev-parse milestone/vX.Y.Z)
+gh run list --workflow ci-branch.yml --commit "$SHA" --json status,conclusion,databaseId --jq '.[0]'
+# attendu : status=completed, conclusion=success — sinon STOP (pas de merge, pas de tag)
 
-echo "✅ Tag v$NEW_VERSION poussé — CI déclenché"
+# 6. Merger sur main dans un worktree détaché (le HEAD du checkout principal appartient au teamleader)
+REL=.claude/worktrees/release
+git fetch origin main
+git worktree add --detach "$REL" origin/main
+git -C "$REL" merge --no-ff milestone/vX.Y.Z -m "Release v$NEW_VERSION"
+git -C "$REL" push origin HEAD:main
 
-# 7. Surveiller activement le pipeline CI
-GITHUB_TOKEN=<PAT> gh run list --repo CCoupel/automation-factory --limit 3
-# Attendre conclusion: success
-# Si failure : analyser les logs, corriger, repousser un nouveau tag (version++) ou rollback
-GITHUB_TOKEN=<PAT> gh run view <run_id> --repo CCoupel/automation-factory
-GITHUB_TOKEN=<PAT> gh run view <run_id> --log-failed --repo CCoupel/automation-factory
+# 7. Tagger et déclencher la CI (c'est LE point critique)
+git -C "$REL" tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+git push origin "v$NEW_VERSION"
+git worktree remove "$REL"
 
-# 8. Vérifier les images sur ghcr.io (quand CI verte)
-GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+# 8. Surveiller le pipeline CI jusqu'à conclusion
+sleep 5
+RUN_ID=$(gh run list --repo CCoupel/automation-factory --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run watch "$RUN_ID" --repo CCoupel/automation-factory --exit-status
+# Échec : `gh run view "$RUN_ID" --log-failed`, classification CODE/FLAKY/CONFIG/INFRA et PUBLISH FAILED
+# (protocole du template). Correction sur la branche milestone + rollback — JAMAIS de nouveau tag
+# ni de version++ pour « retester ».
+
+# 9. Vérifier les images sur ghcr.io (quand CI verte)
+gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
   --jq '.[] | select(.metadata.container.tags[] == "'$NEW_VERSION'") | .metadata.container.tags'
-GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-frontend/versions \
+gh api /orgs/CCoupel/packages/container/automation-factory-frontend/versions \
   --jq '.[] | select(.metadata.container.tags[] == "'$NEW_VERSION'") | .metadata.container.tags'
 
 # ⚠️ Aucun tag à 4 segments (ex. X.Y.Z.1) ne doit apparaître
-GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
   --jq '.[] | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$"))' | grep . && \
   { echo "❌ Tag à 4 segments détecté sur ghcr.io — abort"; exit 1; } || \
   echo "✅ Aucun tag 4 segments sur ghcr.io"
@@ -256,22 +266,13 @@ GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-ba
 echo "✅ PUBLISH PROD réussi"
 ```
 
-### Rollback PUBLISH PROD
+### Rollback PUBLISH PROD — ajout projet
+Appliquer le Rollback du template (revert du merge dans un worktree détaché + suppression du tag), puis :
 ```bash
-# En cas d'échec CI ou détection d'incohérence :
-
-# 1. Revert le merge + suppression du tag local et remote
-git revert --no-edit HEAD  # Revert du merge
-git push https://<PAT>@github.com/CCoupel/automation-factory.git main
-git tag -d v$NEW_VERSION
-git push https://<PAT>@github.com/CCoupel/automation-factory.git --delete v$NEW_VERSION
-
-# 2. La branche milestone/vX.Y.Z revient à X.Y.Z.a via un revert du commit "Release"
-#    (important : le prochain BUILD saura faire bump-build sur une version avec .a, pas sans)
-git revert --no-edit <commit-sha-du-release>
-git push https://<PAT>@github.com/CCoupel/automation-factory.git milestone/vX.Y.Z
-
-echo "✅ Rollback PUBLISH PROD — branche revertie"
+# La branche milestone/vX.Y.Z doit revenir à X.Y.Z.a via un revert du commit "Release"
+# (le prochain BUILD doit faire bump-build sur une version avec .a, pas sans).
+# Le HEAD du checkout principal est sur milestone/vX.Y.Z : revert = opération de branche réservée au
+# teamleader → BRANCH REQUEST « revert <commit-sha-du-release> sur milestone/vX.Y.Z + push ».
 ```
 
 ---
@@ -287,22 +288,24 @@ VERSION=$(python3 scripts/version.py get)  # X.Y.Z sans .a
 echo "VERSION = $VERSION"
 
 # Vérifier que ghcr contient les images
-GITHUB_TOKEN=<PAT> gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
+gh api /orgs/CCoupel/packages/container/automation-factory-backend/versions \
   --jq '.[] | select(.metadata.container.tags[] == "'$VERSION'")' | grep -q . || \
   { echo "❌ Image backend:$VERSION non trouvée sur ghcr.io"; exit 1; }
 
-# 2. Mise à jour custom-values.yaml avec le tag X.Y.Z (sans .a)
-#    Éditer manuellement ou programmatiquement — exemple :
-sed -i "s/image:.*:.*$/image: automation-factory-backend:$VERSION/" custom-values.yaml
-# Vérifier le changement
-git diff custom-values.yaml
+# 2. Charger les secrets (mécanisme du template ; noms DEPLOY_* = projet)
+#    .env (racine, gitignoré, voir .env.example) : DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY
+#    .claude/agents/environments/prod.env (copie locale non commitée de prod.env.example) : KUBECONFIG=kubeconfig.txt
+set -a; source .env; source .claude/agents/environments/prod.env; set +a
+: "${KUBECONFIG:=kubeconfig.txt}"; export KUBECONFIG
 
 # 3. Déploiement via Helm — UNIQUEMENT (jamais kubectl set image)
-#    Secrets fournis via .env local (gitignoré, voir .env.example)
-source .env   # DEPLOY_DB_PASSWORD, DEPLOY_JWT_SECRET_KEY
-KUBECONFIG=kubeconfig.txt helm upgrade automation-factory ./helm/automation-factory \
+#    Tag d'image passé par --set (custom-values.yaml n'est pas modifié ; clés backend.image.tag /
+#    frontend.image.tag de helm/automation-factory)
+helm upgrade automation-factory ./helm/automation-factory \
   --namespace automation-factory \
   --values custom-values.yaml \
+  --set backend.image.tag="$VERSION" \
+  --set frontend.image.tag="$VERSION" \
   --set postgresql.auth.password="$DEPLOY_DB_PASSWORD" \
   --set backend.env.SECRET_KEY="$DEPLOY_JWT_SECRET_KEY" \
   --timeout 300s
@@ -329,37 +332,31 @@ SMOKE_BUILD=$(curl -s https://coupel.net/automation-factory/api/version | jq '.b
 
 echo "✅ Smoke tests OK — PROD $VERSION (is_rc=false, build=null)"
 
-# 6. Rollback (en cas d'échec rollout)
-#    Helm rollback d'abord (recommandé)
-KUBECONFIG=kubeconfig.txt helm rollback automation-factory -n automation-factory
-
-# Fallback kubectl uniquement si helm rollback échoue
-KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-backend -n automation-factory
-KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-frontend -n automation-factory
-
-# 7. Monitoring 30 minutes obligatoire
-#    Vérifier les logs, métriques, aucun rebuild toléré
+# 6. Monitoring 30 minutes obligatoire
 ./monitor-production-30min.sh
 
 echo "✅ DEPLOY PROD réussi — monitoring 30 min complet"
-
-# 8. Finalisation doc (commits optionnels, juste la traçabilité)
-git add custom-values.yaml docs/work/WORK_IN_PROGRESS.md docs/work/DONE.md
-git commit -m "docs: Finalize v$VERSION - transfer to DONE.md"
-git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 ```
+
+Après succès : étapes post-déploiement du template (notes de release, clôture milestone, nettoyage des
+branches). Deployer **ne commite pas** la documentation (`WORK_IN_PROGRESS.md`, `DONE.md`) : c'est
+`doc-updater`.
+
+### Rollback DEPLOY PROD — précision projet
+`helm rollback automation-factory -n automation-factory` **d'abord** ; fallback `kubectl rollout undo`
+uniquement si helm rollback échoue, sur les deployments réels `automation-factory-backend` et
+`automation-factory-frontend` (namespace `automation-factory`).
 
 ---
 
 ## Règles absolues (projet)
 
-- **JAMAIS** `kubectl set image` — casse la cohérence Helm (helm rollback uniquement)
-- **JAMAIS** builder ou retagger des images localement pour la prod — images viennent du pipeline CI
-- **JAMAIS** pousser de tag à 4 segments (`v2.4.4.1`, etc.) — uniquement `v2.4.4` (3 segments)
+- **JAMAIS** `kubectl set image` — casse la cohérence Helm. Dérogation projet : l'alternative
+  `kubectl set image` proposée par `environments/deploy.prod.template.md` est interdite ici.
+- **JAMAIS** pousser de tag à 4 segments — le job `validate` de `release.yml` le rejette
 - **JAMAIS** éditer `backend/app/version.py`, `frontend/package.json`, `helm/automation-factory/Chart.yaml` manuellement — **toujours `scripts/version.py`**
-- **TOUJOURS** écrire les 4 segments de version dans `backend/app/version.py` (ex. `2.4.4.3`) et `frontend/package.json`, jamais `echo >` qui écraserait `VERSION_FEATURES`
-- **TOUJOURS** valider les 3 health checks + la suite `./e2e-tests.sh` après le déploiement QUALIF
-- **TOUJOURS** obtenir une confirmation "go" explicite avant de passer QUALIF → PROD
+- En dev/staging, `backend/app/version.py` et `frontend/package.json` portent 4 segments (ex. `2.4.4.3`) ; 3 segments en prod (après `release`) — jamais `echo >` qui écraserait `VERSION_FEATURES`
+- **TOUJOURS** valider les 3 health checks + version/`is_rc` après le déploiement QUALIF
 - **TOUJOURS** monitorer 30 min après déploiement PROD
 - **TOUJOURS** vérifier que ghcr.io ne contient que des tags 3-segments (`X.Y.Z`), jamais 4
 
@@ -376,9 +373,9 @@ git push https://<PAT>@github.com/CCoupel/automation-factory.git main
 | Registry | Daemon 192.168.1.217 (local) | ghcr.io/ccoupel (CI) |
 | Publish mode | Promote (sans rebuild) | Rebuild-CI (depuis tag) |
 | Deploy | Docker Compose | Helm upgrade |
-| Secrets | `.env` | `.env` + `--set` |
+| Secrets | `.env` | `.env` + `prod.env` + `--set` |
 | Kubeconfig | N/A | gitignoré, local |
 
 ---
 
-*Mis à jour : 2026-09-18 (migration `X.Y.Z[-rc.n]` → `X.Y.Z.a`)*
+*Mis à jour : 2026-10-31 (alignement template v3.29.1 — audit companions-audit-20261031)*

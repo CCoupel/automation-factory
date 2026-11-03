@@ -83,6 +83,7 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
 /**
  * Hook to access user preferences
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useUserPreferences = (): UserPreferencesContextType => {
   const context = useContext(UserPreferencesContext)
   if (!context) {

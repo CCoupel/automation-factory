@@ -11,9 +11,8 @@ Provides endpoints for managing playbooks:
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
-from sqlalchemy.orm import selectinload
-from typing import List, Optional, Tuple
+from sqlalchemy import select, and_
+from typing import List
 
 from app.core.database import get_db
 from app.core.dependencies import (
@@ -25,8 +24,7 @@ from app.core.dependencies import (
 )
 from app.models.user import User
 from app.models.playbook import Playbook
-from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog, PlaybookRole, AuditAction
-from pydantic import BaseModel
+from app.models.playbook_collaboration import PlaybookShare, PlaybookRole, AuditAction
 from app.schemas.playbook import (
     PlaybookCreate, PlaybookUpdate, PlaybookResponse, PlaybookDetailResponse,
     PlaybookYamlResponse, PlaybookValidationResponse, PlaybookPreviewRequest,

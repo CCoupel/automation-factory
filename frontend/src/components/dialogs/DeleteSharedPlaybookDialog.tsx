@@ -1,3 +1,4 @@
+import type { ApiError } from '../../utils/apiError'
 import React, { useState } from 'react'
 import {
   Dialog,
@@ -82,7 +83,8 @@ const DeleteSharedPlaybookDialog: React.FC<DeleteSharedPlaybookDialogProps> = ({
         handleClose()
         onTransferred()
       }
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Une erreur est survenue')
     } finally {
       setLoading(false)

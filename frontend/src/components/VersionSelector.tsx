@@ -7,7 +7,6 @@ import {
   Box,
   CircularProgress,
   Alert,
-  Chip,
   Typography
 } from '@mui/material';
 import { useAnsibleVersions } from '../hooks/useAnsibleVersions';
@@ -17,28 +16,6 @@ interface VersionSelectorProps {
   onChange?: () => void;  // Callback après changement de version
   variant?: 'default' | 'header';  // Style pour header
 }
-
-const getVersionLabel = (version: string): string => {
-  switch (version) {
-    case 'latest':
-      return 'Latest (Recommended)';
-    case '2.10':
-      return 'Ansible 2.10 (Legacy)';
-    default:
-      return `Ansible ${version}`;
-  }
-};
-
-const getVersionColor = (version: string) => {
-  switch (version) {
-    case 'latest':
-      return 'primary';
-    case '2.10':
-      return 'warning';
-    default:
-      return 'default';
-  }
-};
 
 export const VersionSelector: React.FC<VersionSelectorProps> = ({
   disabled = false,

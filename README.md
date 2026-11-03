@@ -302,7 +302,9 @@ Consulter la documentation appropriée selon le domaine :
 
 ## Licence
 
-MIT
+Copyright (C) 2026 ccoupel
+
+Distribué sous licence GPL-3.0-or-later — voir [LICENSE](LICENSE).
 
 ## Support
 

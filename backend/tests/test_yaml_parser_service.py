@@ -586,7 +586,7 @@ class TestBlockChildLinks:
         assert len(children) == 2
 
         # Find block child links (type "normal")
-        block_links = [l for l in links if l["type"] == "normal"]
+        block_links = [lk for lk in links if lk["type"] == "normal"]
         assert len(block_links) == 2
 
         # mini-START → first child (uses virtual mini-START ID)
@@ -631,17 +631,17 @@ class TestBlockChildLinks:
         block = [m for m in play["modules"] if m.get("isBlock")][0]
 
         # Normal section: mini-START→N1, N1→N2 = 2 links
-        normal_links = [l for l in links if l["type"] == "normal"]
+        normal_links = [lk for lk in links if lk["type"] == "normal"]
         assert len(normal_links) == 2
         assert normal_links[0]["from"] == f"{block['id']}-normal-start"
 
         # Rescue section: mini-START→R1 = 1 link
-        rescue_links = [l for l in links if l["type"] == "rescue"]
+        rescue_links = [lk for lk in links if lk["type"] == "rescue"]
         assert len(rescue_links) == 1
         assert rescue_links[0]["from"] == f"{block['id']}-rescue-start"
 
         # Always section: mini-START→A1, A1→A2 = 2 links
-        always_links = [l for l in links if l["type"] == "always"]
+        always_links = [lk for lk in links if lk["type"] == "always"]
         assert len(always_links) == 2
         assert always_links[0]["from"] == f"{block['id']}-always-start"
 
@@ -674,14 +674,14 @@ class TestBlockChildLinks:
 
         # Outer block: mini-START→inner link exists
         outer_start = f"{outer['id']}-normal-start"
-        assert any(l["from"] == outer_start and l["to"] == inner["id"] for l in links)
+        assert any(lk["from"] == outer_start and lk["to"] == inner["id"] for lk in links)
 
         # Inner block: mini-START→deep1, deep1→deep2
         inner_start = f"{inner['id']}-normal-start"
         deep1 = [m for m in play["modules"] if m.get("taskName") == "Deep 1"][0]
         deep2 = [m for m in play["modules"] if m.get("taskName") == "Deep 2"][0]
-        assert any(l["from"] == inner_start and l["to"] == deep1["id"] for l in links)
-        assert any(l["from"] == deep1["id"] and l["to"] == deep2["id"] for l in links)
+        assert any(lk["from"] == inner_start and lk["to"] == deep1["id"] for lk in links)
+        assert any(lk["from"] == deep1["id"] and lk["to"] == deep2["id"] for lk in links)
 
     def test_block_link_count(self, parser):
         """Verify total link count for a playbook with blocks."""

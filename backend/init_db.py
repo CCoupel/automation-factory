@@ -54,11 +54,11 @@ async def create_admin_user(email: str, username: str, password: str):
         await db.commit()
         await db.refresh(admin)
 
-        print(f"[SUCCESS] Admin user created successfully!")
+        print("[SUCCESS] Admin user created successfully!")
         print(f"   Email: {admin.email}")
         print(f"   Username: {admin.username}")
         print(f"   ID: {admin.id}")
-        print(f"\n[IMPORTANT] Please change the default password immediately!")
+        print("\n[IMPORTANT] Please change the default password immediately!")
 
 
 async def main():

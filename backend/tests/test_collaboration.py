@@ -2,7 +2,6 @@
 Tests for collaboration endpoints (/api/playbooks/{id}/shares, audit-log, shared-with-me).
 """
 
-import pytest
 from app.models.user import User
 from app.models.playbook_collaboration import PlaybookShare, PlaybookRole
 from app.core.security import get_password_hash, create_access_token

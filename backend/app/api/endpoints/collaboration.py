@@ -10,9 +10,8 @@ Provides endpoints for:
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
-from typing import List
 
 from app.core.database import get_db
 from app.core.dependencies import (
@@ -31,7 +30,6 @@ from app.schemas.collaboration import (
     SharedPlaybookResponse, SharedPlaybooksListResponse
 )
 from app.services.playbook_access_service import (
-    check_playbook_access,
     log_playbook_action
 )
 

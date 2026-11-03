@@ -18,7 +18,7 @@ import './index.css'
 import './styles/responsive.css'
 
 // Get base path from window config (injected by docker-entrypoint.sh)
-const basePath = (window as any).__BASE_PATH__ || ''
+const basePath = window.__BASE_PATH__ || ''
 
 // Log API configuration for debugging
 logApiConfig()

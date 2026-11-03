@@ -90,7 +90,7 @@ vi.mock('react-i18next', () => ({
     },
     i18n: { language: 'en', changeLanguage: vi.fn() },
   }),
-  Trans: ({ children }: any) => children,
+  Trans: ({ children }: { children: unknown }) => children,
 }))
 
 // Dynamic import to get the component after mocks

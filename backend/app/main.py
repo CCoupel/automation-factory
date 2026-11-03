@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
         # Initialize Galaxy sources from environment (if DB empty) and load cache
         async with AsyncSessionLocal() as session:
             # Get admin user ID for created_by field
-            result = await session.execute(select(User).where(User.is_admin == True).limit(1))
+            result = await session.execute(select(User).where(User.is_admin.is_(True)).limit(1))
             admin_user = result.scalar_one_or_none()
             admin_id = str(admin_user.id) if admin_user else None
 

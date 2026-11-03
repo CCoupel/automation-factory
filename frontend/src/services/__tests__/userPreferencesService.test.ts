@@ -7,10 +7,10 @@ const mockDelete = vi.fn()
 
 vi.mock('../../utils/httpClient', () => {
   const mock = {
-    get: (...args: any[]) => (mockGet as any)(...args),
-    post: (...args: any[]) => (mockPost as any)(...args),
-    patch: (...args: any[]) => (mockPatch as any)(...args),
-    delete: (...args: any[]) => (mockDelete as any)(...args),
+    get: (...args: unknown[]) => mockGet(...args),
+    post: (...args: unknown[]) => mockPost(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
+    delete: (...args: unknown[]) => mockDelete(...args),
     interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
   }
   return { getHttpClient: vi.fn(() => mock) }

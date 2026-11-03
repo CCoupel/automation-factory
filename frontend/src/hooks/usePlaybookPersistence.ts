@@ -2,13 +2,16 @@ import { useCallback, useEffect, useRef } from 'react'
 import { usePlaybookEditorStore } from '../stores/playbookEditorStore'
 import { playbookService } from '../services/playbookService'
 import { useAuth } from '../contexts/AuthContext'
-import { Play } from '../types/playbook'
+import { ModuleBlock, Play, VariableType } from '../types/playbook'
 import { ProjectUpdate } from './useProjectWebSocket'
 
 const PLAYBOOK_CACHE_KEY = 'automation-factory-playbook-cache'
 
+// Stable module-level reference to the Zustand store (not a reactive dependency)
+const store = usePlaybookEditorStore
+
 // Helper to ensure START modules exist in a play's modules
-const ensureStartModules = (playId: string, modules: any[]): any[] => {
+const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock[] => {
   const sections = ['pre_tasks', 'tasks', 'post_tasks', 'handlers'] as const
   const requiredStartIds = sections.map(s => `${playId}-start-${s.replace('_', '-')}`)
   const existingStartIds = new Set(modules.filter(m => m.isPlay).map(m => m.id))
@@ -33,8 +36,6 @@ const ensureStartModules = (playId: string, modules: any[]): any[] => {
 export const usePlaybookPersistence = (targetPlaybookId?: string) => {
   const { isAuthenticated } = useAuth()
   const hasRestoredFromCache = useRef(false)
-
-  const store = usePlaybookEditorStore
 
   // Save to sessionStorage cache
   const saveToCache = useCallback(() => {
@@ -109,7 +110,7 @@ export const usePlaybookPersistence = (targetPlaybookId?: string) => {
         restoredPlays = content.plays.map(play => {
           // Filter modules belonging to this play (tagged with playId during serialization)
           const playModules = content.modules.filter(
-            (m: any) => m.playId === play.id || !m.playId
+            (m: ModuleBlock & { playId?: string }) => m.playId === play.id || !m.playId
           )
           const modulesWithStarts = ensureStartModules(play.id, playModules)
 
@@ -121,10 +122,10 @@ export const usePlaybookPersistence = (targetPlaybookId?: string) => {
             variables: content.variables.map(v => ({
               key: v.name,
               value: v.value,
-              type: (v as any).type || 'string',
-              required: (v as any).required !== undefined ? (v as any).required : true,
-              ...((v as any).defaultValue && { defaultValue: (v as any).defaultValue }),
-              ...((v as any).regexp && { regexp: (v as any).regexp }),
+              type: (v.type as VariableType | undefined) || 'string',
+              required: v.required !== undefined ? v.required : true,
+              ...(v.defaultValue && { defaultValue: v.defaultValue }),
+              ...(v.regexp && { regexp: v.regexp }),
             })),
             attributes: play.attributes || {
               hosts: play.hosts || 'all',
@@ -153,7 +154,7 @@ export const usePlaybookPersistence = (targetPlaybookId?: string) => {
       })
 
       // Replay event deltas on top of the snapshot
-      const eventsDelta = (detailed as any).events_delta
+      const eventsDelta = detailed.events_delta
       if (Array.isArray(eventsDelta) && eventsDelta.length > 0) {
         const { applyCollaborationUpdate } = store.getState()
         for (const event of eventsDelta) {
@@ -227,7 +228,7 @@ export const usePlaybookPersistence = (targetPlaybookId?: string) => {
     }
 
     loadLastPlaybook()
-  }, [isAuthenticated, loadPlaybook])
+  }, [isAuthenticated, loadPlaybook, targetPlaybookId])
 
   return { loadPlaybook }
 }

@@ -39,14 +39,15 @@ frontend/src/
 - **Jamais** hardcoder du texte visible — toujours `useTranslation()`
 - **Toujours** ajouter les clés dans `en/` ET `fr/` simultanément
 - **Namespaces** : `common`, `auth`, `playbook`, `project`, `dialogs`, `admin`, `errors`
-  (`CLAUDE.md` liste actuellement 6 namespaces et omet `project` — à corriger si vous le
-  retouchez pour cette raison)
-- **Mock** `httpClient` (`utils/httpClient.ts`) via `vi.mock()` dans les tests
+- **Dérogation projet — services/tests** : les services appellent `getHttpClient()`
+  (`utils/httpClient.ts`), jamais `fetch()` ; tests Vitest (`vi.fn()`/`vi.mock()`, pas `jest.fn()`) —
+  mocker `getHttpClient` (pas `httpClient` brut), voir `test-writer.md`
 - **TypeScript strict** : pas de `any`, pas de `@ts-ignore`
 
 ## Validation
+Tests : boucle rapide ciblée uniquement (DEV_COMMON « Avant de Terminer ») — ex.
+`cd frontend && npx vitest run <fichier>` ; jamais la suite complète (rôle de `qa`).
 ```bash
-cd frontend && npm test
 npm run lint
-npx tsc --noEmit
+npx tsc --noEmit   # Dérogation projet : pas de script `typecheck` dans package.json (= commands.typecheck)
 ```

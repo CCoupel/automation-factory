@@ -2,3 +2,15 @@
 # Rationale: scripts checked out with CRLF are unusable under bash/WSL
 # ("$'\r': command not found") — see _work/reports/qa-20260916-152354.md.
 *.sh text eol=lf
+
+# Normalisation globale des fins de ligne (le depot est stocke en LF)
+* text=auto
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary

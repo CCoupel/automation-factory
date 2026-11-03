@@ -97,7 +97,7 @@ class GalaxySourceService:
         """
         result = await db.execute(
             select(GalaxySource)
-            .where(GalaxySource.is_active == True)
+            .where(GalaxySource.is_active.is_(True))
             .order_by(GalaxySource.priority.asc(), GalaxySource.created_at.asc())
         )
         sources = result.scalars().all()
@@ -330,7 +330,7 @@ class GalaxySourceService:
             result = await db.execute(
                 select(func.count(GalaxySource.id)).where(
                     GalaxySource.source_type == "public",
-                    GalaxySource.is_active == True,
+                    GalaxySource.is_active.is_(True),
                     GalaxySource.id != source_id
                 )
             )
@@ -417,7 +417,7 @@ class GalaxySourceService:
         if not is_active and source.is_active:
             result = await db.execute(
                 select(func.count(GalaxySource.id)).where(
-                    GalaxySource.is_active == True,
+                    GalaxySource.is_active.is_(True),
                     GalaxySource.id != source_id
                 )
             )

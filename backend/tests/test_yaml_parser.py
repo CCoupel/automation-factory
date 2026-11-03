@@ -5,8 +5,7 @@ Uses the same sync TestClient pattern as the other endpoint tests.
 Auth is tested by mocking get_current_user.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 

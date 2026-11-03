@@ -46,6 +46,12 @@ backend/tests/
 ```
 
 ## Règles spécifiques projet
+- **Dérogation projet — gestion d'erreurs** : pas d'`AppException`/`NotFoundError` ni de
+  `@app.exception_handler` global (contrairement au template) — lever `HTTPException` FastAPI
+  directement dans les endpoints (ou via les dépendances `get_<entité>_or_404`)
+- **Dérogation projet — couches** : endpoints dans `api/endpoints/` (pas `routers/`), **pas de couche
+  repository** (logique dans `services/` + `select()` async), **pas d'Alembic** (pas de
+  « Migrations créées » à cocher dans la checklist du template — voir Stack)
 - **Multi-tenant** : toujours lier les données à `current_user`
 - **Jamais** stocker de données dans `/tmp` ou en mémoire volatile — toujours en base
 - Mocks pour services externes en test : Galaxy API (HTTP), pas de Redis/ansible-runner à mocker
@@ -65,9 +71,7 @@ est répartie en plusieurs services :
   `docs/backend/GALAXY_INTEGRATION.md` (déléguer à `doc-updater`) — la doc actuelle induit en erreur
 
 ## Validation
-```bash
-cd backend && ruff check .
-cd backend && python -m pytest tests/ -v --cov=app
-```
+Boucle rapide ciblée uniquement (DEV_COMMON « Avant de Terminer ») — ex.
+`cd backend && python -m pytest tests/test_<module>.py -q` ; jamais la suite complète (rôle de `qa`).
 > `ruff==0.7.0` est bien présent dans `requirements.txt` (confirmé) mais n'est appelé dans aucun
 > workflow CI (`.github/workflows/*.yml`) — le lancer manuellement reste recommandé avant commit.

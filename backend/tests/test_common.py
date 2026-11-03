@@ -2,7 +2,6 @@
 Tests for common endpoints (/api/version, /api/ping, /health).
 """
 
-import pytest
 
 
 class TestCommonEndpoints:

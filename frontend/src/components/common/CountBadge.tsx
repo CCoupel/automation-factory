@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge } from '@mui/material'
+import { Badge, SxProps, Theme } from '@mui/material'
 
 /**
  * Props for CountBadge component
@@ -30,7 +30,7 @@ interface CountBadgeProps {
   /**
    * Additional sx props for positioning
    */
-  sx?: any
+  sx?: SxProps<Theme>
 }
 
 /**

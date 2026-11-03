@@ -5,9 +5,10 @@
  * Provides module parameter definitions for dynamic configuration interface
  */
 
+import type { ApiError } from '../utils/apiError'
 import { getHttpClient } from '../utils/httpClient'
 import { ansibleApiService } from './ansibleApiService'
-import { ModuleParameter, ModuleSchema } from '../types/playbook'
+import { ModuleBlock, ModuleParameter, ModuleSchema } from '../types/playbook'
 import { CacheManager } from '../utils/cacheManager'
 
 // Re-export types for backward compatibility
@@ -106,7 +107,8 @@ export const galaxyModuleSchemaService = {
       console.log(`Schema loaded for ${schema.module_name}: ${schema.parameter_count} parameters (${schema.required_parameters} required)`)
       return schema
 
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       if (error.response?.status === 404) {
         console.warn(`Schema not found for ${namespace}.${collection}.${module}:${version}`)
         return null
@@ -150,7 +152,8 @@ export const galaxyModuleSchemaService = {
       schemaCache.set(cacheKey, schema)
       return schema
 
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       if (error.response?.status === 404) {
         console.warn(`Schema not found for ${namespace}.${collection}.${module}:${version}`)
         return null
@@ -168,7 +171,7 @@ export const galaxyModuleSchemaService = {
     namespace: string,
     collection: string,
     version: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       console.log(`Fetching docs-blob for ${namespace}.${collection}:${version}`)
 
@@ -179,7 +182,8 @@ export const galaxyModuleSchemaService = {
 
       return response.data
 
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error(`Error fetching docs-blob for ${namespace}.${collection}:${version}:`, error)
       throw error
     }
@@ -223,7 +227,7 @@ export const galaxyModuleSchemaService = {
   /**
    * Enrich module block with schema data
    */
-  async enrichModuleWithSchema(moduleBlock: any): Promise<any> {
+  async enrichModuleWithSchema(moduleBlock: ModuleBlock): Promise<ModuleBlock> {
     try {
       // Extract module information
       const { collection, name } = moduleBlock
@@ -258,7 +262,7 @@ export const galaxyModuleSchemaService = {
   /**
    * Validate module parameters against schema
    */
-  validateParameters(parameters: Record<string, any>, schema: ModuleSchema): {
+  validateParameters(parameters: Record<string, unknown>, schema: ModuleSchema): {
     valid: boolean
     errors: string[]
     warnings: string[]
@@ -268,7 +272,7 @@ export const galaxyModuleSchemaService = {
 
     // Check required parameters
     Object.values(schema.parameters).forEach(param => {
-      if (param.required && !parameters.hasOwnProperty(param.name)) {
+      if (param.required && !Object.prototype.hasOwnProperty.call(parameters, param.name)) {
         errors.push(`Required parameter '${param.name}' is missing`)
       }
     })
@@ -304,7 +308,7 @@ export const galaxyModuleSchemaService = {
       }
 
       // Choice validation
-      if (paramDef.choices && value && !paramDef.choices.includes(value)) {
+      if (paramDef.choices && value && !(paramDef.choices as unknown[]).includes(value)) {
         errors.push(`Parameter '${paramName}' value '${value}' not in allowed choices: ${paramDef.choices.join(', ')}`)
       }
     })

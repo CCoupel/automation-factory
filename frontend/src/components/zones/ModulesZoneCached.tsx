@@ -25,7 +25,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import SaveIcon from '@mui/icons-material/Save'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAnsibleVersions } from '../../hooks/useAnsibleVersions'
 import { useGalaxyCache } from '../../contexts/GalaxyCacheContext'
 import { Namespace } from '../../services/ansibleApiService'
@@ -40,8 +40,8 @@ import {
   ModuleListItem,
   GenericElementListItem,
   type Collection,
-  type GenericElement,
 } from './modules-zone'
+import type { ModuleInfo } from './modules-zone/ModuleListItem'
 import { ModulesTreeView } from './modules-zone/ModulesTreeView'
 import { RolesTreeView } from './modules-zone/RolesTreeView'
 
@@ -114,7 +114,6 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
     isReady: cacheReady,
     error: cacheError,
     syncStatus,
-    lastSync,
     refreshCache,
     enrichNamespaceOnDemand,
     getCollections,
@@ -128,8 +127,8 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
   
   // Local data states (collections, versions, modules)
   const [collections, setCollections] = useState<Collection[]>([])
-  const [versions, setVersions] = useState<any[]>([])
-  const [modules, setModules] = useState<any[]>([])
+  const [versions, setVersions] = useState<unknown[]>([])
+  const [modules, setModules] = useState<ModuleInfo[]>([])
   
   // Loading states for dynamic data
   const [loading, setLoading] = useState(false)
@@ -142,11 +141,11 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
   
   // User favorites
   const [favorites, setFavorites] = useState<string[]>([])
-  const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [, setFavoritesLoading] = useState(false)
   
   // Standard namespaces - loaded from configuration
   const [standardNamespaces, setStandardNamespaces] = useState<string[]>(['community'])
-  const [standardNamespacesLoading, setStandardNamespacesLoading] = useState(false)
+  const [, setStandardNamespacesLoading] = useState(false)
   
   // Combined favorite namespaces (standard + user favorites)
   const [favoriteNamespaces, setFavoriteNamespaces] = useState<Namespace[]>([])
@@ -236,23 +235,35 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
     }
   }, [favorites, popularNamespaces, allNamespaces, cacheReady, standardNamespaces])
   
+  // Latest data loaders (re-created on each render), read by the effect below so that it
+  // only reacts to navigation / tab / cache changes
+  const loadersRef = useRef<{
+    loadCollections: (namespace: string) => Promise<void>
+    loadVersions: (namespace: string, collection: string) => Promise<void>
+    loadModules: (namespace: string, collection: string, version: string) => Promise<void>
+  }>({
+    loadCollections: async () => {},
+    loadVersions: async () => {},
+    loadModules: async () => {},
+  })
+
   // Load data based on navigation state
   useEffect(() => {
     if (activeTab === 1 && cacheReady) {
       switch (navigationState.level) {
         case 'collections':
           if (navigationState.namespace) {
-            loadCollections(navigationState.namespace)
+            loadersRef.current.loadCollections(navigationState.namespace)
           }
           break
         case 'versions':
           if (navigationState.namespace && navigationState.collection) {
-            loadVersions(navigationState.namespace, navigationState.collection)
+            loadersRef.current.loadVersions(navigationState.namespace, navigationState.collection)
           }
           break
         case 'modules':
           if (navigationState.namespace && navigationState.collection && navigationState.version) {
-            loadModules(navigationState.namespace, navigationState.collection, navigationState.version)
+            loadersRef.current.loadModules(navigationState.namespace, navigationState.collection, navigationState.version)
           }
           break
       }
@@ -330,6 +341,7 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
       setLoading(false)
     }
   }
+  loadersRef.current = { loadCollections, loadVersions, loadModules }
   
   // Navigation functions
   const navigateToNamespaces = () => {
@@ -369,7 +381,7 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
   }
   
   // Search filter
-  const filterItems = (items: any[]) => {
+  const filterItems = <T extends { name?: string; description?: string }>(items: T[]): T[] => {
     if (!searchQuery) return items
     const query = searchQuery.toLowerCase()
     return items.filter(item => 
@@ -483,16 +495,6 @@ const ModulesZoneCached = ({ onCollapse, activeSectionTab }: ModulesZoneCachedPr
           </Tooltip>
         </Box>
       )
-    }
-    
-    let breadcrumbText = navigationState.namespace
-    
-    if (navigationState.collection) {
-      breadcrumbText += `.${navigationState.collection}`
-    }
-    
-    if (navigationState.version) {
-      breadcrumbText += ` (${navigationState.version})`
     }
     
     return (

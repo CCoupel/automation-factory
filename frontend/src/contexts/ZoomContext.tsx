@@ -102,6 +102,7 @@ export const ZoomProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 /**
  * Hook to access zoom context
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useZoom = () => {
   const context = useContext(ZoomContext)
   if (!context) {

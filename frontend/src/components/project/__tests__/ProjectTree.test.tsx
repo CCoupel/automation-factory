@@ -132,7 +132,7 @@ const renderTree = () =>
 beforeEach(() => {
   vi.clearAllMocks()
   mockStore.artifacts = mockArtifacts
-  mockStore.currentProject = { id: 'proj-1', name: 'Test Project' } as any
+  mockStore.currentProject = { id: 'proj-1', name: 'Test Project' } as never
   mockStore.selectedArtifactId = null
 })
 

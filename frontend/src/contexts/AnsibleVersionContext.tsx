@@ -21,6 +21,7 @@ const AnsibleVersionContext = createContext<AnsibleVersionContextType | undefine
  * Hook to access Ansible version context
  * @throws Error if used outside AnsibleVersionProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useAnsibleVersion = () => {
   const context = useContext(AnsibleVersionContext)
   if (!context) {

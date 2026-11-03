@@ -20,7 +20,7 @@ def load_configuration() -> Dict[str, Any]:
         try:
             with open(CONFIG_FILE, 'r') as f:
                 return json.load(f)
-        except:
+        except (OSError, ValueError):
             pass
     
     # Default configuration

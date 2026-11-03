@@ -22,7 +22,6 @@ import {
   isTraversedBlock,
   getModuleLabel,
   getSectionDisplayName,
-  getBlockSectionDisplayName,
   TraversedTask,
   TraversedBlock,
 } from './playbookTraversalService'

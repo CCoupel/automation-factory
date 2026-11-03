@@ -10,7 +10,7 @@ import tempfile
 import json
 import os
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 

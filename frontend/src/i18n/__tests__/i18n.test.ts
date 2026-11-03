@@ -10,7 +10,6 @@ import fs from 'fs'
 import path from 'path'
 
 const LOCALES_DIR = path.resolve(__dirname, '../../locales')
-const LANGUAGES = ['en', 'fr'] as const
 
 // Recursively extract all leaf keys from a nested object (dot-separated)
 function extractKeys(obj: Record<string, unknown>, prefix = ''): string[] {

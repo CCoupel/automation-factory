@@ -379,7 +379,6 @@ class PlaybookYamlService:
 
         # Check for common issues
         module = task.get("module", "")
-        params = task.get("params", {})
 
         # Validate module format (should be FQCN)
         if module and "." not in module:

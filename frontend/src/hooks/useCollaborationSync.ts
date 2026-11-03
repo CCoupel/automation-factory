@@ -224,9 +224,10 @@ export function useCollaborationSync(options: UseCollaborationSyncOptions = {}):
 
   // Cleanup timers on unmount
   useEffect(() => {
+    const timers = debounceTimersRef.current
     return () => {
-      debounceTimersRef.current.forEach(timer => clearTimeout(timer))
-      debounceTimersRef.current.clear()
+      timers.forEach(timer => clearTimeout(timer))
+      timers.clear()
     }
   }, [])
 

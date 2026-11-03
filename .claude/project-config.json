@@ -39,7 +39,30 @@
         },
         "deploy": {
           "mechanism": "docker-compose",
-          "target": "docker-compose.staging.yml"
+          "target": "docker-compose.staging.yml",
+          "services": [
+            "automation-factory-backend",
+            "automation-factory-frontend",
+            "nginx"
+          ]
+        },
+        "access": {
+          "method": "docker-tcp",
+          "host": "192.168.1.217",
+          "port": 2375,
+          "runtime": "docker",
+          "registry": "local (daemon 192.168.1.217)",
+          "env_file": "build/qualif_v{X.Y.Z}/release.env",
+          "credentials_env": [],
+          "verified": {
+            "status": "ok",
+            "at": "2026-10-31T15:58:40Z",
+            "checks": [
+              "docker-api",
+              "compose"
+            ],
+            "notes": "daemon 29.2.1 + compose v2.39.1 joignables ; stack staging arretee (port 80 ferme) et aucune image automation-factory presente au moment du test"
+          }
         }
       },
       {
@@ -53,7 +76,35 @@
         },
         "deploy": {
           "mechanism": "helm",
-          "target": "helm/automation-factory"
+          "target": "helm/automation-factory",
+          "services": [
+            "automation-factory-backend",
+            "automation-factory-frontend"
+          ]
+        },
+        "access": {
+          "method": "kubeconfig",
+          "context": "k8s",
+          "kubeconfig": "kubeconfig.txt",
+          "namespace": "automation-factory",
+          "release": "automation-factory",
+          "registry": "ghcr.io/ccoupel",
+          "credentials_env": [
+            "KUBECONFIG",
+            "DEPLOY_DB_PASSWORD",
+            "DEPLOY_JWT_SECRET_KEY"
+          ],
+          "verified": {
+            "status": "ok",
+            "at": "2026-11-03T15:30:00Z",
+            "checks": [
+              "kube-auth",
+              "kubectl-get-pods",
+              "helm-history",
+              "gh-push"
+            ],
+            "notes": "2026-11-03 : nouveau kubeconfig Rancher OK (auth whoami system:authenticated, pods et helm history lisibles, release deployed rev 2 = 2.4.3) ; lecture seule"
+          }
         }
       }
     ]
@@ -67,7 +118,11 @@
     ],
     "e2e": [
       "custom-shell-scripts-needs-repair"
-    ]
+    ],
+    "regression_at_qa": "gated",
+    "full_regression_at": "qualif",
+    "coverage_min": 70,
+    "lot_max_tests": 50
   },
   "security": {
     "concerns": [
@@ -87,14 +142,274 @@
     "lint": "cd backend && ruff check . && cd ../frontend && npm run lint",
     "audit": "cd frontend && npm audit",
     "typecheck": "cd frontend && npx tsc --noEmit",
-    "coverage": "cd backend && python -m pytest tests/ --cov=app --cov-report=term-missing && cd ../frontend && npm run test:coverage"
+    "coverage": "cd backend && python -m pytest tests/ --cov=app --cov-report=term-missing && cd ../frontend && npm run test:coverage",
+    "ci": "bash scripts/ci.sh"
   },
   "agents": {
     "idle_ttl_minutes": 15,
-    "idle_warning_interval_minutes": 5
+    "idle_warning_interval_minutes": 5,
+    "registry": [
+      {
+        "name": "cdp",
+        "source": "agents/cdp.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "f5b4497e56c919e379328647c596c4bf9a6bce9909b26c249f51853572893d9c",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "code-reviewer",
+        "source": "agents/code-reviewer.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "6db56bbdc6483602b9284348bb1f2653fa1bc541ef31681697b6bbf98920b5fe",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "deploy",
+        "source": "agents/deploy.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "6d3a56acb739cf8ff78360806a174fe02561b19e53334fadc176b6122eb10d17",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "dev-backend",
+        "source": "templates/dev-backend-python.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "5f669ba544c172815cf4d19de96f9507b88fc1c81e2ba546790668ec33211443",
+        "changed_in": "v3.29.1",
+        "role": "Backend (Python/FastAPI)"
+      },
+      {
+        "name": "dev-frontend",
+        "source": "templates/dev-frontend-react.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "33093553669105572dc7be79b18f8d79404f9e94a19c35567cf9b55c0759aadd",
+        "changed_in": "v3.29.1",
+        "role": "Frontend (React/TypeScript)"
+      },
+      {
+        "name": "doc-updater",
+        "source": "agents/doc-updater.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "87c296a161f67af7eb441430cf2cb530fa9552b1bb6aa04acb819452ef581074",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "generic",
+        "source": "agents/generic.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "4157f75529762528a54afbfcc50630d772ca8734c8ab693c913bb0d8933f6be7",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "implementation-planner",
+        "source": "agents/implementation-planner.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "4154a8cb3155d2871913382bf5b8cc00e8a44d810f8730c305d71a4afeebbec9",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "infra",
+        "source": "agents/infra.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "81f8f8de43a2b331e7e1266fce60ac35ef97bbc2f1e62eee6a807d7613f533e7",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "marketing-release",
+        "source": "agents/marketing-release.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "763f9ff5f0bba3dd76e135203f316d7517b2f8105ab52622731771c1c8be45de",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "pr-reviewer",
+        "source": "agents/pr-reviewer.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "399fb28b4180b86be96dbb6dab0c483c287a2a660c403adc0a357977d2acb24b",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "qa",
+        "source": "agents/qa.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "0f237e69c191fc1d64517f36b65ca45b25452643af4d42b277bd5d91f5de138b",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "security",
+        "source": "agents/security.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "c92fc9d89ba987149dee4e7a7442cae784267ff15e43100bc0e357e21547bc54",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "teamleader",
+        "source": "agents/teamleader.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "a1d8b3c5ab5f25e88ea4d43dc8a28a0c750c17bedf72e037fba0c00b51e4308d",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "test-writer",
+        "source": "agents/test-writer.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "5b4b6fc94d68be1f4c6e050c801afdbdac21fe77c7ea87a37a98440cd074f53c",
+        "changed_in": "v3.29.1"
+      }
+    ]
   },
   "template_version": {
-    "tag": "v3.8.0",
-    "commit": "8c49482ee38f9172edbb99bbf7aa4bdc56e5c5bf"
+    "tag": "v4.1.0",
+    "commit": "e925929172577350fbc209d457bab64ebd42b8f2"
+  },
+  "contexts": {
+    "registry": [
+      {
+        "name": "agents/context/CDP_PHASES_PLAN_DEV",
+        "source": "agents/context/CDP_PHASES_PLAN_DEV.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "ba87a034af13aaabbcb3481fd16a0dcf66ebd70497ec797511e171ab3eb60adb",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/CDP_PHASES_RELEASE",
+        "source": "agents/context/CDP_PHASES_RELEASE.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "517c9e69b882e819cef71815c8d328812534b084c13c083d1c177589f72185e8",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/CDP_PHASES_REVIEW_QA",
+        "source": "agents/context/CDP_PHASES_REVIEW_QA.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "cfe4696f57bd51b0e0fc8092ce16b663c9917e0aafd255f115cd859003632388",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/COMMON",
+        "source": "agents/context/COMMON.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "ec0301b4aa309b9832fafb2aa2e7358b82a5a5fcda026102e6a495a19d5dc38d",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/DEV_COMMON",
+        "source": "agents/context/DEV_COMMON.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "606f9f13d4ad08b3d45fe6343f964ee2a6839271608b398384bdad438836fd2c",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/GITHUB",
+        "source": "agents/context/GITHUB.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "fd7a916aeb74465231d0c5ba4dd61587da43d7bf1ad8235bf39a035b9e464163",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/MILESTONE_CADRAGE",
+        "source": "agents/context/MILESTONE_CADRAGE.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "5c2b58457d8a95c00df088c795d15d2da7a469053125a2a815ba0211b73d056b",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "agents/context/TEAMMATES_PROTOCOL",
+        "source": "agents/context/TEAMMATES_PROTOCOL.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "39120cd25cf5d0dd591ae3c76623e62386119f75687b8da2779544a513255d34",
+        "changed_in": "v3.29.1"
+      },
+      {
+        "name": "agents/context/VALIDATION_COMMON",
+        "source": "agents/context/VALIDATION_COMMON.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "5d8a206b7aad38d8289daef43c17b81bd7f2b4ee4410eada5c7d2a1129914c77",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "commands/context/CDP_WORKFLOWS",
+        "source": "commands/context/CDP_WORKFLOWS.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "e74e4ac1f86b97098999985e72216c04e09792b09f6e8f340caf105514cbb550",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "commands/context/COMMON",
+        "source": "commands/context/COMMON.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "359536d2f3b9e15319c4a06c0d347be417860cc5b0808727122aee69fd7b946d",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "commands/context/DEVELOPMENT",
+        "source": "commands/context/DEVELOPMENT.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "3735789c22d320b46b922b396947ca55b5b85b4fa6b73204b33d3054ea07d869",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "commands/context/GITHUB",
+        "source": "commands/context/GITHUB.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "33ae3a335dc93febc41b4c4eee1015ef236d5e4bdf3956507239916ec9e78155",
+        "changed_in": "v4.0.2"
+      },
+      {
+        "name": "commands/context/QUALITY",
+        "source": "commands/context/QUALITY.md",
+        "tag": "v4.1.0",
+        "commit": "e925929172577350fbc209d457bab64ebd42b8f2",
+        "sha256": "ab47a6e5734069e71de7d50696fa66b90b537781cb45570f0ac749be487de893",
+        "changed_in": "v3.29.1"
+      }
+    ]
+  },
+  "docs": {
+    "mockup_dir": "docs/mockup"
+  },
+  "marketing": {
+    "site": "auto"
+  },
+  "milestone": {
+    "defaults": {
+      "patch": "leger",
+      "minor": "complet",
+      "major": "complet"
+    }
+  },
+  "license": {
+    "spdx": "GPL-3.0-or-later",
+    "holder": "ccoupel",
+    "year": 2026,
+    "source": "provided"
   }
 }

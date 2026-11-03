@@ -7,7 +7,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useProjectWebSocket, ConnectedUser, ProjectUpdate } from '../hooks/useProjectWebSocket'
-import { useAuth } from './AuthContext'
 
 interface CollaborationContextType {
   // Connection state
@@ -29,6 +28,7 @@ interface CollaborationContextType {
 
 const CollaborationContext = createContext<CollaborationContextType | null>(null)
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useCollaboration = () => {
   const context = useContext(CollaborationContext)
   if (!context) {
@@ -46,7 +46,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
   children,
   onProjectUpdate
 }) => {
-  const { user } = useAuth()
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<ProjectUpdate | null>(null)
   const [highlightedElement, setHighlightedElement] = useState<string | null>(null)
@@ -86,7 +85,6 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({
     connectedUsers,
     sendUpdate,
     sendSetArtifact,
-    connect,
     disconnect
   } = useProjectWebSocket(currentProjectId, {
     onUpdate: handleUpdate,

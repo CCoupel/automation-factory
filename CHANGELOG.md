@@ -7,7 +7,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
-## [2.4.4] - 2026-09-18
+## [2.4.4] - 2026-11-03
 
 ### 🛠️ **Tooling — Migration Versioning X.Y.Z.a**
 - **[CHANGED]** Format de version : `X.Y.Z[-rc.n]` → `X.Y.Z.a` (dev/staging) / `X.Y.Z` (prod)
@@ -43,6 +43,12 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - Aucune image à 4 segments sur ghcr.io
 
 - **[DEPRECATED]** Format `-rc.n` (toujours accepté en lecture pour transition/rollback)
+
+### 🛠️ **Fixed**
+- Configuration ESLint frontend restaurée (flat config ESLint 9), code mis en conformité (#95)
+- Tests frontend : `localStorage`/`sessionStorage` mémoire déterministes dans le setup Vitest (#99)
+- **[SECURITY]** Dépendances frontend : `npm audit fix` + montées vitest 5, vite 8, @vitejs/plugin-react 6, react-router-dom 7 (0 vulnérabilité high/critical) (#98)
+- Backend : 109 erreurs ruff corrigées (imports inutilisés, variables ambiguës/inutilisées, comparaisons à True, bare except), sans changement de comportement (#97)
 
 ### ⚠️ **BREAKING — Outillage (pas API HTTP)**
 - Tags git : seuls `vX.Y.Z` (3 segments) déclenchent release.yml

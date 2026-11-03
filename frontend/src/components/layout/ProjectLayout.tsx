@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Box,
   Tabs,
@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { useProjectStore } from '../../stores/projectStore'
 import { useResizable } from '../../hooks/useResizable'
 import { useCollaboration } from '../../contexts/CollaborationContext'
+import type { ProjectArtifact } from '../../services/projectService'
 import { usePlaybookEditorStore } from '../../stores/playbookEditorStore'
 import { playbookService } from '../../services/playbookService'
 import AppHeader from './AppHeader'
@@ -87,7 +88,7 @@ const ProjectLayout: React.FC = () => {
       cancelled = true
       clearCurrentProject()
     }
-  }, [projectId])
+  }, [projectId, fetchProject, fetchArtifacts, clearCurrentProject])
 
   // Connect to project collaboration room
   useEffect(() => {
@@ -97,20 +98,20 @@ const ProjectLayout: React.FC = () => {
     return () => {
       disconnectFromProject()
     }
-  }, [projectId])
+  }, [projectId, connectToProject, disconnectFromProject])
 
   // Apply received artifact collaboration updates
   useEffect(() => {
     if (!lastUpdate) return
     const { update_type, data } = lastUpdate
     if (update_type === 'artifact_add' && data.artifact) {
-      applyArtifactAdd(data.artifact as any)
+      applyArtifactAdd(data.artifact as ProjectArtifact)
     } else if (update_type === 'artifact_update' && data.artifact) {
-      applyArtifactUpdate(data.artifact as any)
+      applyArtifactUpdate(data.artifact as ProjectArtifact)
     } else if (update_type === 'artifact_delete' && data.artifactId) {
       applyArtifactDelete(data.artifactId as string)
     }
-  }, [lastUpdate])
+  }, [lastUpdate, applyArtifactAdd, applyArtifactUpdate, applyArtifactDelete])
 
   // 404: project not found after fetch completed
   const isNotFound = hasFetched && !isLoading && !currentProject
@@ -131,8 +132,14 @@ const ProjectLayout: React.FC = () => {
     ? (selectedArtifact.content?.playbook_id as string | undefined) ?? null
     : null
 
+  // Latest values read by the auto-create effect below. They are kept in a ref so that
+  // toggling `isCreatingPlaybook` does not re-run (and cancel) the in-flight creation.
+  const autoCreateRef = useRef({ selectedArtifact, isCreatingPlaybook, updateArtifact, sendUpdate, t })
+  autoCreateRef.current = { selectedArtifact, isCreatingPlaybook, updateArtifact, sendUpdate, t }
+
   // Auto-create and link a playbook when a playbook artifact has no playbook_id
   useEffect(() => {
+    const { selectedArtifact, isCreatingPlaybook, updateArtifact, sendUpdate, t } = autoCreateRef.current
     if (!projectId || !selectedArtifact) return
     if (selectedArtifact.artifact_type !== 'playbook') return
     if (selectedArtifact.content?.playbook_id) return
@@ -165,7 +172,7 @@ const ProjectLayout: React.FC = () => {
     }
     autoCreate()
     return () => { cancelled = true }
-  }, [selectedArtifact?.id])
+  }, [selectedArtifact?.id, projectId])
 
   // PlaybookEditor is shown when a playbook artifact with a linked playbook_id is selected
   const isPlaybookEditorShown = !!linkedPlaybookId

@@ -1,3 +1,6 @@
+---
+model: opus
+---
 # Adaptations projet — Automation Factory
 
 > Complète `security.template.md` avec le contexte sécurité réel du projet.
@@ -10,17 +13,15 @@ correction (rotation de secrets, réécriture d'historique git, etc.) est une d�
 à fort impact. Le rôle de l'agent `security` est de les garder visibles et de détecter toute
 **nouvelle** occurrence de la même classe de problème.
 
-1. **`kubeconfig.txt` est tracké dans git, dans un dépôt PUBLIC** (`gh repo view` → `isPrivate:
+1. **`kubeconfig.txt` a été tracké dans git, dans un dépôt PUBLIC** (`gh repo view` → `isPrivate:
    false`), depuis au moins 2026-01-01 (`git log -- kubeconfig.txt`). C'est le fichier de
-   credentials complets du cluster Kubernetes de production (utilisé partout comme
-   `KUBECONFIG=kubeconfig.txt helm ...`). Exposition publique active tant que non retiré de
-   l'historique ET que les credentials ne sont pas rotés côté cluster.
-2. **`custom-values.yaml` (tracké, public) contient le JWT `SECRET_KEY` de production en clair**
-   (valeur réelle non reproduite ici — voir `custom-values.yaml` ligne `SECRET_KEY:`). Consommé
-   par `helm/automation-factory/templates/backend-secret.yaml`
-   (`.Values.backend.env.SECRET_KEY`). Un secret Kubernetes lu depuis une valeur Helm en clair,
-   elle-même dans un fichier public : n'importe qui peut forger des tokens JWT valides pour
-   l'API de production.
+   credentials complets du cluster Kubernetes de production. Il n'est plus tracké à HEAD et est
+   dans `.gitignore`, mais **reste présent dans l'historique git public** : exposition active tant
+   que les credentials ne sont pas rotés côté cluster (rotation non confirmée).
+2. **`custom-values.yaml` (tracké, public) a contenu le JWT `SECRET_KEY` de production en clair**.
+   À HEAD la valeur est vide (`""`, fournie par `--set backend.env.SECRET_KEY` au déploiement),
+   mais l'ancienne valeur **reste dans l'historique git public** : tant qu'elle n'est pas rotée,
+   n'importe qui peut forger des tokens JWT valides pour l'API de production (rotation non confirmée).
 3. **Un Personal Access Token GitHub est en clair dans `.git/config`** (deux remotes : `github`
    → `CCoupel/automation-factory`, `fabiendupont` → `fabiendupont/ccoupel-automation-factory`).
    Config git locale (pas commité dans le contenu du repo), mais visible par quiconque a accès à
@@ -38,8 +39,8 @@ correction (rotation de secrets, réécriture d'historique git, etc.) est une d�
 - `SECRET_KEY` a une valeur par défaut faible dans le code
   (`backend/app/core/config.py: SECRET_KEY: str = "your-secret-key-change-in-production"`) —
   acceptable comme défaut de dev tant que **toute** valeur réelle en staging/prod vient bien
-  d'une variable d'environnement / Secret K8s (c'est le cas en prod via Helm, voir incident #2
-  ci-dessus pour le problème réel : la valeur elle-même est exposée, pas le mécanisme).
+  d'une variable d'environnement / Secret K8s (c'est le cas en prod via Helm `--set`, voir
+  incident #2 ci-dessus pour le problème réel : l'ancienne valeur est exposée dans l'historique).
 
 ## Multi-tenant — vérifié, pas seulement documenté
 La règle "RÈGLE STOCKAGE DONNÉES" de `CLAUDE.md` (toute donnée liée à `current_user`) est
@@ -72,7 +73,6 @@ pas comme un défaut bloquant introduit par un changement donné.
 
 ## Secrets — bonnes pratiques déjà en place (ne pas casser)
 - `backend/.env.example` documente les variables sans valeurs réelles — tracké, correct.
-- `.gitignore` (nouveau, staged) ignore `.env`/`.env.local` — mais **`kubeconfig.txt` et
-  `custom-values.yaml` n'y sont pas ajoutés** (incidents #1/#2 ci-dessus : ils sont déjà commités,
-  les ajouter au `.gitignore` maintenant n'empêche pas la ré-exposition à chaque modification
-  tant qu'ils restent trackés — signaler cette limite si on propose ce fix).
+- `.gitignore` ignore `.env`/`.env.local` et `kubeconfig.txt` (plus tracké). `custom-values.yaml`
+  reste tracké mais sans secret (valeurs vides, fournies par `--set`) — ne jamais y réintroduire
+  de valeur réelle. Le `.gitignore` ne retire rien de l'historique (incidents #1/#2).

@@ -19,14 +19,13 @@ export const useCanvasDragDrop = ({ collaborationCallbacks, canvasRef }: UseCanv
   const setDraggedModuleId = usePlaybookEditorStore(s => s.setDraggedModuleId)
   const selectModule = usePlaybookEditorStore(s => s.selectModule)
   const setPlays = usePlaybookEditorStore(s => s.setPlays)
-  const setCollapsedBlocks = usePlaybookEditorStore(s => s.setCollapsedBlocks)
   const setCollapsedBlockSections = usePlaybookEditorStore(s => s.setCollapsedBlockSections)
   const activePlayIndex = usePlaybookEditorStore(s => s.activePlayIndex)
   const collapsedBlocks = usePlaybookEditorStore(s => s.collapsedBlocks)
   const collapsedBlockSections = usePlaybookEditorStore(s => s.collapsedBlockSections)
 
   // Local wrapper: existing JSX calls onSelectModule({id, name, ...}) — extract just the id
-  const onSelectModule = useCallback((module: { id: string; [key: string]: any } | null) => {
+  const onSelectModule = useCallback((module: { id: string; [key: string]: unknown } | null) => {
     selectModule(module?.id ?? null)
   }, [selectModule])
 

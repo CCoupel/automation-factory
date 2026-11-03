@@ -3,7 +3,7 @@
  * Completely independent from React lifecycle
  */
 
-import { ansibleApiService } from './ansibleApiService'
+import { ansibleApiService, AnsibleCollectionObject, AnsibleModule } from './ansibleApiService'
 
 export interface PreloadProgress {
   phase: 'idle' | 'namespaces' | 'collections' | 'modules' | 'complete'
@@ -14,7 +14,7 @@ export interface PreloadProgress {
 }
 
 type ProgressCallback = (progress: PreloadProgress) => void
-type CompleteCallback = (collections: Record<string, any[]>, modules: Record<string, any[]>) => void
+type CompleteCallback = (collections: Record<string, AnsibleCollectionObject[]>, modules: Record<string, AnsibleModule[]>) => void
 
 const BATCH_SIZE = 20
 
@@ -22,8 +22,8 @@ class PreloadManager {
   private started = false
   private completed = false
   private version = ''
-  private collectionsData: Record<string, any[]> = {}
-  private modulesData: Record<string, any[]> = {}
+  private collectionsData: Record<string, AnsibleCollectionObject[]> = {}
+  private modulesData: Record<string, AnsibleModule[]> = {}
   private progressCallbacks: Map<string, ProgressCallback> = new Map()
   private completeCallbacks: Map<string, CompleteCallback> = new Map()
   private callbackIdCounter = 0
@@ -51,11 +51,11 @@ class PreloadManager {
     return this.currentProgress
   }
 
-  getCollections(): Record<string, any[]> {
+  getCollections(): Record<string, AnsibleCollectionObject[]> {
     return this.collectionsData
   }
 
-  getModules(): Record<string, any[]> {
+  getModules(): Record<string, AnsibleModule[]> {
     return this.modulesData
   }
 
@@ -192,7 +192,7 @@ class PreloadManager {
 
     // Phase 3: Load modules
     const colIds = Object.entries(this.collectionsData).flatMap(([ns, cols]) =>
-      cols.map((c: any) => `${ns}.${c.name}`)
+      cols.map((c: { name: string }) => `${ns}.${c.name}`)
     )
     const totalCols = colIds.length
 

@@ -2,18 +2,15 @@
 WebSocket endpoints for real-time collaboration
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 import json
 import logging
 from typing import Optional
 
-from app.core.database import get_db, AsyncSessionLocal
+from app.core.database import AsyncSessionLocal
 from app.core.security import decode_access_token
 from app.core.dependencies import get_current_user
-from app.models import Playbook, PlaybookShare, PlaybookRole
+from app.models import PlaybookRole
 from app.models.user import User
 from app.models.project_collaboration import ProjectRole
 from app.services.websocket_manager import websocket_manager

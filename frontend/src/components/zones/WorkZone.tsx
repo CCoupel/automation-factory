@@ -28,7 +28,7 @@ import AddVariableDialog from '../dialogs/AddVariableDialog'
 import ExportDiagramDialog from '../dialogs/ExportDiagramDialog'
 import ImportDiagramDialog from '../dialogs/ImportDiagramDialog'
 import { ImportResult } from '../../services/diagramImportService'
-import { ModuleBlock, Link, PlayVariable, VariableType, PlaySectionName, Play } from '../../types/playbook'
+import { ModuleBlock, Link, PlayVariable, VariableType, Play } from '../../types/playbook'
 import { SYSTEM_ASSERTIONS_BLOCK_PREFIX, updateAssertionsBlocks, isSystemAssertionsId, isSystemLink } from '../../utils/assertionsGenerator'
 import { variableTypesService } from '../../services/variableTypesService'
 import { getPlaySectionColor, getStartChainCount, isPlaySectionCollapsed } from '../../utils/canvasHelpers'
@@ -80,13 +80,6 @@ const createStartModulesForPlay = (playId: string): ModuleBlock[] => {
 
 // Helper to ensure START modules exist in a play's modules
 const ensureStartModules = (playId: string, modules: ModuleBlock[]): ModuleBlock[] => {
-  const requiredStartIds = [
-    `${playId}-start-pre-tasks`,
-    `${playId}-start-tasks`,
-    `${playId}-start-post-tasks`,
-    `${playId}-start-handlers`
-  ]
-
   const existingStartIds = new Set(modules.filter(m => m.isPlay).map(m => m.id))
   const missingStartModules = createStartModulesForPlay(playId).filter(
     m => !existingStartIds.has(m.id)
@@ -102,9 +95,9 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
   const {
     plays, setPlays,
     activePlayIndex, setActivePlayIndex,
-    selectedModuleId, selectModule,
+    selectModule,
     selectedRole, selectRole,
-    currentPlaybookId, setCurrentPlaybookId,
+    currentPlaybookId,
     playbookName, setPlaybookName,
     activeSectionTab, setActiveSectionTab,
     editingTabIndex, setEditingTabIndex,
@@ -137,11 +130,11 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
   const setLinks = setLinksForActivePlay
   const selectedRoleIndex = selectedRole?.index ?? null
 
-  const onSelectModule = useCallback((module: { id: string; [key: string]: any } | null) => {
+  const onSelectModule = useCallback((module: { id: string; [key: string]: unknown } | null) => {
     selectModule(module?.id ?? null)
   }, [selectModule])
 
-  const onSelectRole = useCallback((role: { index: number; role: string; vars?: Record<string, any> } | null) => {
+  const onSelectRole = useCallback((role: { index: number; role: string; vars?: Record<string, unknown> } | null) => {
     selectRole(role)
   }, [selectRole])
 
@@ -173,7 +166,7 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
       .catch(err => {
         console.error('Failed to load custom variable types:', err)
       })
-  }, [])
+  }, [setCustomTypes])
 
   // Generate/update system assertions blocks when variables or custom types change
   // Creates ONE BLOCK PER VARIABLE for better visual organization
@@ -397,7 +390,7 @@ const WorkZone = ({ collaborationCallbacks }: WorkZoneProps) => {
         variable,
       })
     }
-  }, [activePlayIndex, collaborationCallbacks, currentPlay.id])
+  }, [activePlayIndex, collaborationCallbacks, currentPlay.id, setPlays])
 
   // =====================================================
   // Roles management

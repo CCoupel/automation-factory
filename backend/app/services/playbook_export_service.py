@@ -5,7 +5,7 @@ Provides unified traversal of playbook structure for all export formats.
 This service traverses the frontend Play[] structure following links from START nodes.
 """
 
-from typing import Dict, List, Any, Optional, Set, Callable
+from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, field
 from enum import Enum
 

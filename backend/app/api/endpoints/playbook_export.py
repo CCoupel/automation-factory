@@ -8,7 +8,6 @@ Provides endpoints for exporting playbook diagrams to various formats:
 """
 
 from fastapi import APIRouter, HTTPException, Response
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 

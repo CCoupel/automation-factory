@@ -1,3 +1,4 @@
+import type { ApiError } from '../../utils/apiError'
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
@@ -75,7 +76,8 @@ const PlaybookManagerDialog: React.FC<PlaybookManagerDialogProps> = ({
     try {
       const data = await playbookService.listPlaybooks()
       setPlaybooks(data)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to load playbooks')
     } finally {
       setLoading(false)
@@ -117,7 +119,8 @@ const PlaybookManagerDialog: React.FC<PlaybookManagerDialogProps> = ({
       await loadPlaybooks()
       onSelectPlaybook(newPlaybook.id)
       onClose()
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to create playbook')
     } finally {
       setCreatingNew(false)
@@ -144,7 +147,8 @@ const PlaybookManagerDialog: React.FC<PlaybookManagerDialogProps> = ({
     try {
       await playbookService.deletePlaybook(playbookId)
       await loadPlaybooks()
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to delete playbook')
     }
   }

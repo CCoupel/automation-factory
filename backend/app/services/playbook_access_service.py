@@ -11,7 +11,7 @@ This service eliminates duplication across playbooks.py, collaboration.py, and w
 
 from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, cast, String
+from sqlalchemy import select, and_, func
 from fastapi import HTTPException, status
 import logging
 

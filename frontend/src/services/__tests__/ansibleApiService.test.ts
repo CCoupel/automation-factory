@@ -7,8 +7,8 @@ const mockPost = vi.fn()
 // Must be hoisted, so we cannot reference local variables declared after vi.mock.
 vi.mock('../../utils/httpClient', () => {
   const mock = {
-    get: (...args: any[]) => (mockGet as any)(...args),
-    post: (...args: any[]) => (mockPost as any)(...args),
+    get: (...args: unknown[]) => mockGet(...args),
+    post: (...args: unknown[]) => mockPost(...args),
     interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
   }
   return {

@@ -41,7 +41,7 @@ Source de vérité MEMORY : `.claude/memory/MEMORY.md` uniquement (versionné Gi
 
 - **TeamDelete** : proposer après livraison validée, jamais automatiquement
 - **Agents** : prompts génériques — tâches via TaskCreate + TaskUpdate
-- **Commande /start-session** : créer la TEAM directement, nom toujours `Team-AF`
+- **Commande /start-session** : créer la TEAM directement, nom = `team_name` de project-config.json (`automation-factory-team`)
 - **Architecture team** : CDP = team leader, Claude = interface utilisateur
 - **Phases** : jamais passer à la phase suivante sans "go" explicite de l'utilisateur
 - **Tests** : toujours écrire tests pour tout nouvel endpoint/service ; ne jamais diminuer la couverture
@@ -64,7 +64,7 @@ Source de vérité MEMORY : `.claude/memory/MEMORY.md` uniquement (versionné Gi
 
 ### Phase 0-1 (Décisions & Ouverture)
 ✅ Milestone GitHub `v2.4.4` créé (issue #94)
-✅ Branche `milestone/v2.4.4` locale (non poussée)
+✅ Branche `milestone/v2.4.4` (poussée sur `origin` jusqu'à `aa864b3` ; `3fb2fb7` local, non poussé)
 
 ### Phase 2 (Code applicatif)
 ✅ Backend : `scripts/version.py` (CLI unique), `version.py` (`X.Y.Z.a` format), `/api/version` (champs `build`, `is_build_candidate`)
@@ -95,3 +95,22 @@ Source de vérité MEMORY : `.claude/memory/MEMORY.md` uniquement (versionné Gi
 **Premier cycle réel** : `/build` → manifeste `2.4.4.1` → `/publish qualif` → `/deploy qualif` (staging `2.4.4.1`, is_rc=true) → gate "go" → `/publish prod` (merge, tag `v2.4.4`, CI rebuild) → `/deploy prod` (helm, smoke, monitor 30min) → clôture milestone
 
 **ATTENTION** : Ce cycle (0-6) est du développement documenté d'outillage. Rien n'a été buildé/publié/déployé réellement. `main` reste sur l'ancien schéma jusqu'à Phase 7. Prod/staging toujours en 2.4.3.
+
+---
+
+## Session 2026-10-31 — Sync template v3.9.1 → v3.29.1 (commit `3fb2fb7`)
+
+- Registre `agents.registry[]` / `contexts.registry[]` créé dans `project-config.json` (tous à v3.29.1)
+- Compagnons nettoyés (doublons retirés, conflits arbitrés) — détail `_work/reports/companions-applied-20261031.md` (purgé en fin de session)
+- Surcharges modèle/effort : security `opus`, code-reviewer effort `high`, deploy effort `high` ; teamleader opus/medium (`settings.json`)
+- CI : `scripts/ci.sh` (`commands.ci`) + `.github/workflows/ci-branch.yml` (pré-validation `milestone/*`, barrière avant tag) — jamais exécutés ; `release.yml` n'appelle pas encore ci.sh (écart C11)
+- `environments/{publish,deploy}.{qualif,prod}.template.md` réécrits pour la réalité projet (gitignorés, non resynchronisés par /init-project)
+- Remote git `github` renommé `origin` ; site marketing = GitHub Pages `https://ccoupel.github.io/automation-factory/`
+- Décisions : coverage_min reste 70 % ; DONE.md au DOC FINALIZE (template) ; nouveaux tests en lots `backend/tests/<famille>/<theme>/<lot>/`
+
+### ⚠️ Points ouverts
+- **PROD access `failed`** : jeton Rancher de `kubeconfig.txt` refusé (403 system:unauthenticated) → `/deploy prod` bloqué tant qu'un nouveau kubeconfig n'est pas en place + revalidation (`access.verified`)
+- **Issue #95** : ESLint frontend cassé (pas d'`eslint.config.js`) → `ci-branch` rouge sur le lint tant que non corrigée
+- Stack staging arrêtée sur 192.168.1.217 (daemon OK, aucune image automation-factory présente)
+- `/context-audit` post-sync non exécuté
+- Tokens GitHub en clair dans les URLs de remotes (`.git/config`) et `token.txt` modifié localement

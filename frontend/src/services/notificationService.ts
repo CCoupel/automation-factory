@@ -8,7 +8,7 @@ import { getApiBaseUrl } from '../utils/apiConfig'
 interface CacheNotification {
   type: string
   message: string
-  data?: any
+  data?: { error?: string; [key: string]: unknown }
   timestamp: string
   connection_id?: number
 }

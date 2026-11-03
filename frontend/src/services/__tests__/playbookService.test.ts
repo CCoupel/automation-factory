@@ -47,7 +47,7 @@ describe('playbookService', () => {
       const created = { id: '2', ...input }
       mockAxios.post.mockResolvedValue({ data: created })
 
-      const result = await playbookService.createPlaybook(input as any)
+      const result = await playbookService.createPlaybook(input as never)
 
       expect(mockAxios.post).toHaveBeenCalledWith('/playbooks', input)
       expect(result.id).toBe('2')
