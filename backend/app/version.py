@@ -4,7 +4,7 @@ Application version information
 import os
 import re
 
-__version__ = "2.4.4.0"
+__version__ = "2.4.4.1"
 __description__ = "Automation Factory API - Versioning X.Y.Z.a: build tracking via scripts/version.py"
 
 # Environment: PROD (default), STAGING, DEV
