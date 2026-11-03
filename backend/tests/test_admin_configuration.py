@@ -2,7 +2,6 @@
 Tests for admin configuration endpoints (/api/admin/configuration/*).
 """
 
-import pytest
 
 
 class TestStandardNamespaces:

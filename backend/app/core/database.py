@@ -5,6 +5,8 @@ Supports both SQLite (development) and PostgreSQL (production)
 based on DATABASE_TYPE setting in config.py
 """
 
+import importlib
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from app.core.config import settings
@@ -56,11 +58,8 @@ async def init_db():
     Call this on application startup
     """
     async with engine.begin() as conn:
-        # Import all models here to ensure they are registered
-        from app.models.user import User
-        from app.models.user_preferences import UserPreferences
-        from app.models.playbook import Playbook
-        from app.models.custom_variable_type import CustomVariableType
+        # Import all models here to ensure they are registered on Base.metadata
+        importlib.import_module("app.models")
 
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Set, AsyncGenerator
+from typing import Dict, AsyncGenerator
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)

@@ -2,11 +2,10 @@
 User Preferences model for storing user-specific settings
 """
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
-import json
 from app.core.database import Base
 
 

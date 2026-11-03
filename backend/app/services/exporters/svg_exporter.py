@@ -11,8 +11,7 @@ from datetime import datetime
 from html import escape
 
 from app.services.playbook_export_service import (
-    playbook_export_service,
-    SectionType
+    playbook_export_service
 )
 
 
@@ -264,8 +263,8 @@ class SVGExporter:
         # Render links
         top_level_ids = {m["id"] for m in top_level}
         section_links = [
-            l for l in links
-            if l.get("from") in top_level_ids or l.get("to") in top_level_ids
+            link for link in links
+            if link.get("from") in top_level_ids or link.get("to") in top_level_ids
         ]
         elements.append(self._render_links(section_links, modules, collapsed_blocks, scale))
 
@@ -386,7 +385,6 @@ class SVGExporter:
         padding = 8 * scale
         header_height = BLOCK_HEADER_HEIGHT * scale
         section_header_height = SECTION_HEADER_HEIGHT * scale
-        task_height = DEFAULT_HEIGHT * scale
         task_spacing = 8 * scale
 
         color = COLORS["system"] if block.get("isSystem") else COLORS["block"]
@@ -457,7 +455,6 @@ class SVGExporter:
             current_section_y += start_node_height + task_spacing
 
             # Track positions for links
-            task_x = x + 10 * scale
             prev_element = {
                 "x": start_x,
                 "y": start_y,
@@ -589,7 +586,6 @@ class SVGExporter:
         padding = 8 * scale
         header_height = BLOCK_HEADER_HEIGHT * scale
         section_header_height = SECTION_HEADER_HEIGHT * scale
-        task_height = DEFAULT_HEIGHT * scale
         task_spacing = 8 * scale
         start_node_width = 100 * scale
         start_node_height = 24 * scale
@@ -657,7 +653,6 @@ class SVGExporter:
             current_y += start_node_height + task_spacing
 
             # Track positions for links
-            task_x = x + 8 * scale
             prev_element = {
                 "x": start_x,
                 "y": start_y,

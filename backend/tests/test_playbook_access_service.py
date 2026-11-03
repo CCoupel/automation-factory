@@ -11,13 +11,11 @@ Covers:
 """
 
 import pytest
-import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.core.security import get_password_hash, create_access_token
 from app.models.user import User
 from app.models.playbook import Playbook
-from app.models.project import Project
 from app.models.project_artifact import ProjectArtifact
 from app.models.project_collaboration import ProjectShare, ProjectRole
 from app.models.playbook_collaboration import PlaybookShare, PlaybookRole

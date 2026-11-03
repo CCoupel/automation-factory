@@ -5,7 +5,8 @@ Uses an in-memory SQLite database per test with automatic rollback.
 Existing unit tests (test_ansible_*, test_galaxy_*) are unaffected.
 """
 
-import pytest
+import importlib
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -14,14 +15,10 @@ from app.core.database import Base, get_db
 from app.core.security import get_password_hash, create_access_token
 from app.models.user import User
 from app.models.playbook import Playbook
-from app.models.user_preferences import UserPreferences
-from app.models.playbook_collaboration import PlaybookShare, PlaybookAuditLog
-from app.models.custom_variable_type import CustomVariableType
 from app.models.project import Project
-from app.models.project_artifact import ProjectArtifact
-from app.models.project_collaboration import ProjectShare
-from app.models.git_credential import GitCredential
-from app.models.playbook_event import PlaybookEvent
+
+# Import the package so every model is registered on Base.metadata
+importlib.import_module("app.models")
 
 # ---------------------------------------------------------------------------
 # Database fixtures

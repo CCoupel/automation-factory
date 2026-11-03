@@ -2,7 +2,7 @@
 Playbook collaboration models for sharing and audit logging
 """
 
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON, Enum
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid

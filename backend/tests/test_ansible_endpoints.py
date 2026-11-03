@@ -2,8 +2,7 @@
 Tests for Ansible API endpoints
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
 

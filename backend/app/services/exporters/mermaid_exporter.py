@@ -11,13 +11,10 @@ from datetime import datetime
 
 from app.services.playbook_export_service import (
     playbook_export_service,
-    TraversalResult,
     TraversedPlay,
     TraversedSection,
     TraversedTask,
-    TraversedBlock,
-    SectionType,
-    BlockSectionType
+    TraversedBlock
 )
 
 

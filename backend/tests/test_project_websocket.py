@@ -5,10 +5,8 @@ Tests for project-centric WebSocket endpoints and check_project_access_standalon
 import pytest
 import pytest_asyncio
 from unittest.mock import patch, AsyncMock
-from httpx import ASGITransport, AsyncClient
 
 from app.core.security import create_access_token
-from app.models.project import Project
 from app.models.project_collaboration import ProjectShare, ProjectRole
 from app.models.user import User
 from app.services.project_access_service import check_project_access_standalone
@@ -78,7 +76,6 @@ class TestCheckProjectAccessStandalone:
     @pytest.mark.asyncio
     async def test_owner_has_access(self, test_engine, test_project, test_user):
         """Owner gets 'owner' role."""
-        from app.core.database import AsyncSessionLocal as RealSessionLocal
         from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
         factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
@@ -152,9 +149,7 @@ class TestProjectWebSocket:
     async def test_connect_access_denied(self, test_app, test_engine, test_project, other_user):
         """User without project access is denied."""
         from starlette.testclient import TestClient
-        from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
-        factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
         token = _make_token(other_user)
 
         with TestClient(test_app) as client:

@@ -2,7 +2,6 @@
 Tests for user favorites and preferences endpoints (/api/user/*).
 """
 
-import pytest
 
 
 class TestGetFavorites:

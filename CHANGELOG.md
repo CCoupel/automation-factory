@@ -46,6 +46,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### 🛠️ **Fixed**
 - Configuration ESLint frontend restaurée (flat config ESLint 9), code mis en conformité (#95)
+- Backend : 109 erreurs ruff corrigées (imports inutilisés, variables ambiguës/inutilisées, comparaisons à True, bare except), sans changement de comportement (#97)
 
 ### ⚠️ **BREAKING — Outillage (pas API HTTP)**
 - Tags git : seuls `vX.Y.Z` (3 segments) déclenchent release.yml

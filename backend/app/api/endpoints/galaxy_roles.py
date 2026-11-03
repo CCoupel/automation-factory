@@ -8,7 +8,7 @@ Provides endpoints for fetching Ansible roles from Galaxy:
 """
 
 from fastapi import APIRouter, Query, HTTPException
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from app.services.galaxy_roles_service import galaxy_roles_service
 
 router = APIRouter(prefix="/galaxy-roles", tags=["Galaxy Roles"])

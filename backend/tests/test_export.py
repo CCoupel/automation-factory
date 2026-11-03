@@ -4,7 +4,6 @@ Tests for playbook export endpoints (/api/export/*).
 Export endpoints are unauthenticated — they accept playbook content directly.
 """
 
-import pytest
 
 SAMPLE_PLAYS = [
     {

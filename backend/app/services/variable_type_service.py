@@ -164,7 +164,7 @@ async def get_all_custom_types(
     """
     query = select(CustomVariableType)
     if not include_inactive:
-        query = query.where(CustomVariableType.is_active == True)
+        query = query.where(CustomVariableType.is_active.is_(True))
     query = query.order_by(CustomVariableType.name)
 
     result = await db.execute(query)

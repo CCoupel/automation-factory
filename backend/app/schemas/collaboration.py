@@ -3,7 +3,7 @@ Collaboration schemas for playbook sharing and audit logging
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any
+from typing import Optional, List
 from datetime import datetime
 
 

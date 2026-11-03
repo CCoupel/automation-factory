@@ -2,7 +2,6 @@
 Tests for variable types endpoints (/api/variable-types/*).
 """
 
-import pytest
 
 
 class TestListVariableTypes:

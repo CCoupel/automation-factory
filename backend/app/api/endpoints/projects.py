@@ -2,10 +2,9 @@
 Project CRUD endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
-from typing import List
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user

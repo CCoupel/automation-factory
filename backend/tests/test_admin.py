@@ -2,11 +2,9 @@
 Tests for admin endpoints (/api/admin/*).
 """
 
-import pytest
 from app.models.user import User
 from app.models.playbook import Playbook
-from app.core.security import get_password_hash, create_access_token
-from httpx import ASGITransport, AsyncClient
+from app.core.security import get_password_hash
 
 
 async def _regular_user(session):

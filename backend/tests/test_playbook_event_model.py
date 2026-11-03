@@ -3,8 +3,7 @@ Tests for PlaybookEvent model and Playbook.snapshot_sequence column.
 """
 
 import pytest
-import pytest_asyncio
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from app.models.playbook_event import PlaybookEvent
 from app.models.playbook import Playbook

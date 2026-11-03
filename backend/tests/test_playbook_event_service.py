@@ -3,11 +3,9 @@ Tests for playbook_event_service.
 """
 
 import pytest
-from sqlalchemy import select
 
 from app.services import playbook_event_service as svc
 from app.models.playbook_event import PlaybookEvent
-from app.models.playbook import Playbook
 
 
 # ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import hashlib
 import json
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from app.services.playbook_export_service import playbook_export_service
 

@@ -7,7 +7,6 @@ Note: Legacy Galaxy endpoints (/api/galaxy/*) have been removed.
 
 from fastapi import APIRouter
 from app.api.endpoints import auth, playbooks, admin, common, user_favorites, admin_configuration, ansible, collaboration, variable_types, galaxy_roles, playbook_export, galaxy_sources, yaml_parser, projects, project_artifacts, project_shares, git_credentials
-from app.version import __version__
 
 # Create main API router
 api_router = APIRouter()
