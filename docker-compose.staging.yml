@@ -4,16 +4,17 @@ services:
     image: automation-factory-backend:${AF_IMAGE_TAG:?AF_IMAGE_TAG requis — voir build/qualif_vX.Y.Z/release.env}
     container_name: automation-factory-backend-staging
     environment:
-      - DATABASE_URL=postgresql://ansible_user:ansible_password@ansible-db:5432/ansible_db
+      # Staging autonome : SQLite persistant (pas de PostgreSQL, pas de Redis — cache mémoire)
+      - DATABASE_TYPE=sqlite
+      - SQLITE_DB_PATH=/data/automation_factory.db
       - DEBUG=true
       - HOST=0.0.0.0
       - PORT=8000
       - ENVIRONMENT=STAGING
+    volumes:
+      # Volume nommé : conservé par `compose down` (ne JAMAIS utiliser `down -v` en staging)
+      - af_staging_data:/data
     restart: unless-stopped
-    networks:
-      - automationfactory_default
-    external_links:
-      - ansible-db:ansible-db
 
   # Frontend nginx (service name matches Kubernetes for "build once deploy everywhere")
   # BORE: Utilise le même Dockerfile (nginx) que production - PAS de Dockerfile.dev
@@ -21,8 +22,6 @@ services:
     image: automation-factory-frontend:${AF_IMAGE_TAG:?AF_IMAGE_TAG requis — voir build/qualif_vX.Y.Z/release.env}
     container_name: automation-factory-frontend-staging
     restart: unless-stopped
-    networks:
-      - automationfactory_default
     depends_on:
       - automation-factory-backend
 
@@ -33,8 +32,6 @@ services:
     ports:
       - "80:80"
     restart: unless-stopped
-    networks:
-      - automationfactory_default
     depends_on:
       - automation-factory-frontend
       - automation-factory-backend
@@ -127,6 +124,9 @@ configs:
           }
       }
 
-networks:
-  automationfactory_default:
-    external: true
+# Réseau : réseau `default` géré par compose (plus de réseau externe ni de dépendance à un autre projet)
+
+volumes:
+  af_staging_data:
+    # Nom figé : indépendant du nom de projet compose
+    name: automation-factory-staging-data
