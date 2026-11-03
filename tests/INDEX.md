@@ -8,3 +8,4 @@
 
 | Chemin | Niveau | Composant | Feature | Statut | Tags |
 |--------|--------|-----------|---------|--------|------|
+| frontend/src/__tests__/lint-config.test.ts | unitaire | frontend | lint ESLint flat config (#95) | regression | critical |
