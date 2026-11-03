@@ -95,13 +95,15 @@
             "DEPLOY_JWT_SECRET_KEY"
           ],
           "verified": {
-            "status": "failed",
-            "at": "2026-11-03T13:20:00Z",
+            "status": "ok",
+            "at": "2026-11-03T15:30:00Z",
             "checks": [
               "kube-auth",
+              "kubectl-get-pods",
+              "helm-history",
               "gh-push"
             ],
-            "notes": "2026-11-03 : kubectl auth can-i -> 403 system:unauthenticated (jeton Rancher de kubeconfig.txt toujours refuse/expire) ; gh push OK"
+            "notes": "2026-11-03 : nouveau kubeconfig Rancher OK (auth whoami system:authenticated, pods et helm history lisibles, release deployed rev 2 = 2.4.3) ; lecture seule"
           }
         }
       }
