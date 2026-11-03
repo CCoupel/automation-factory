@@ -44,6 +44,9 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 - **[DEPRECATED]** Format `-rc.n` (toujours accepté en lecture pour transition/rollback)
 
+### 🛠️ **Fixed**
+- Configuration ESLint frontend restaurée (flat config ESLint 9), code mis en conformité (#95)
+
 ### ⚠️ **BREAKING — Outillage (pas API HTTP)**
 - Tags git : seuls `vX.Y.Z` (3 segments) déclenchent release.yml
   - Tags `vX.Y.Z.a`, `vX.Y.Z-rc.n` sont rejetés par le job `validate`
