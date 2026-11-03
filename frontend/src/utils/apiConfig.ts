@@ -10,7 +10,7 @@
  */
 export function getApiBaseUrl(): string {
   // Check for runtime-injected API URL first (set by docker-entrypoint.sh)
-  const apiUrl = (window as any).__API_URL__
+  const apiUrl = window.__API_URL__
   if (apiUrl) {
     console.log('Using injected API URL:', apiUrl)
     return apiUrl
@@ -43,7 +43,7 @@ export function getApiBaseUrl(): string {
  */
 export function getFrontendBaseUrl(): string {
   // Check for runtime-injected base path first
-  const basePath = (window as any).__BASE_PATH__
+  const basePath = window.__BASE_PATH__
   if (basePath && basePath !== '/') {
     console.log('Using injected frontend base path:', basePath)
     return basePath
@@ -58,8 +58,8 @@ export function getFrontendBaseUrl(): string {
  */
 export function logApiConfig(): void {
   console.log('API Configuration:', {
-    injectedUrl: (window as any).__API_URL__,
-    basePath: (window as any).__BASE_PATH__,
+    injectedUrl: window.__API_URL__,
+    basePath: window.__BASE_PATH__,
     currentUrl: getApiBaseUrl(),
     frontendBaseUrl: getFrontendBaseUrl()
   })

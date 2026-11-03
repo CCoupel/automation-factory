@@ -11,15 +11,15 @@ interface Namespace {
   url?: string;
 }
 
+// Standard favorites (always included)
+const standardNamespaces = ['community', 'ansible', 'containers'];
+
 export const useAnsibleNamespaces = (version: string) => {
   const [namespaces, setNamespaces] = useState<Namespace[]>([]);
   const [favoriteNamespaces, setFavoriteNamespaces] = useState<Namespace[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Standard favorites (always included)
-  const standardNamespaces = ['community', 'ansible', 'containers'];
 
   // Load user favorites
   useEffect(() => {
@@ -89,7 +89,7 @@ export const useAnsibleNamespaces = (version: string) => {
       
       setFavoriteNamespaces(foundNamespaces);
     }
-  }, [favorites, namespaces, standardNamespaces]);
+  }, [favorites, namespaces]);
 
   const handleToggleFavorite = async (namespaceName: string) => {
     try {

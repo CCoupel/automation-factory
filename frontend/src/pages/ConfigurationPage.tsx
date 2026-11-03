@@ -1,9 +1,8 @@
+import type { ApiError } from '../utils/apiError'
 import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
-  Paper,
-  Divider,
   Alert,
   Button,
   CircularProgress,
@@ -29,7 +28,6 @@ import {
   Settings as SettingsIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
   Star as StarIcon,
   Save as SaveIcon,
   Highlight as HighlightIcon,
@@ -87,7 +85,7 @@ const ConfigurationPage: React.FC = () => {
         // In the future, this will be a real API call
         const response = await http.get('/api/admin/configuration/standard-namespaces')
         setStandardNamespaces(response.data.namespaces || ['community'])
-      } catch (err: any) {
+      } catch {
         // If API doesn't exist yet, use default
         console.warn('Standard namespaces API not yet implemented, using defaults')
         setStandardNamespaces(['community'])
@@ -122,7 +120,7 @@ const ConfigurationPage: React.FC = () => {
           namespaces: standardNamespaces
         })
         setSuccess('Configuration saved successfully!')
-      } catch (err: any) {
+      } catch {
         // If API doesn't exist yet, just show success
         console.warn('Standard namespaces API not yet implemented')
         setSuccess('Configuration will be saved when API is implemented')
@@ -130,7 +128,8 @@ const ConfigurationPage: React.FC = () => {
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to save configuration')
     } finally {
       setSaving(false)

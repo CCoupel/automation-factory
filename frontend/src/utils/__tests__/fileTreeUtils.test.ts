@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildFileTree, TreeNode } from '../fileTreeUtils'
+import { buildFileTree } from '../fileTreeUtils'
 import { ProjectArtifact } from '../../services/projectService'
 
 /** Helper to create a minimal ProjectArtifact for testing */

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { ansibleApiService, Namespace } from '../services/ansibleApiService'
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
+import { ansibleApiService, Namespace, AnsibleCollectionObject, AnsibleModule } from '../services/ansibleApiService'
 import { notificationService, CacheNotification } from '../services/notificationService'
 import { useAnsibleVersion } from './AnsibleVersionContext'
 import { preloadManager, PreloadProgress } from '../services/preloadManager'
@@ -13,8 +13,8 @@ let contextInitialized = false
 interface GalaxyCacheContextType {
   popularNamespaces: Namespace[]
   allNamespaces: Namespace[]
-  collectionsCache: Record<string, any[]>
-  modulesCache: Record<string, any[]>
+  collectionsCache: Record<string, AnsibleCollectionObject[]>
+  modulesCache: Record<string, AnsibleModule[]>
   isLoading: boolean
   isReady: boolean
   lastSync: string | null
@@ -25,16 +25,17 @@ interface GalaxyCacheContextType {
   preloadProgress: PreloadProgress
   refreshCache: () => Promise<void>
   forceRefreshCache: () => Promise<void>
-  enrichNamespaceOnDemand: (namespace: string) => Promise<any | null>
-  getCollections: (namespace: string) => Promise<any[] | null>
-  getModules: (namespace: string, collection: string, version: string) => Promise<any[] | null>
-  setCollectionsCacheData: (data: Record<string, any[]>) => void
-  setModulesCacheData: (data: Record<string, any[]>) => void
+  enrichNamespaceOnDemand: (namespace: string) => Promise<Namespace | null>
+  getCollections: (namespace: string) => Promise<AnsibleCollectionObject[] | null>
+  getModules: (namespace: string, collection: string, version: string) => Promise<AnsibleModule[] | null>
+  setCollectionsCacheData: (data: Record<string, AnsibleCollectionObject[]>) => void
+  setModulesCacheData: (data: Record<string, AnsibleModule[]>) => void
   setPreloadComplete: (complete: boolean) => void
 }
 
 const GalaxyCacheContext = createContext<GalaxyCacheContextType | undefined>(undefined)
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useGalaxyCache = () => {
   const context = useContext(GalaxyCacheContext)
   if (!context) {
@@ -52,10 +53,14 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
 
   const [popularNamespaces, setPopularNamespaces] = useState<Namespace[]>([])
   const [allNamespaces, setAllNamespaces] = useState<Namespace[]>([])
-  const [collectionsCache, setCollectionsCache] = useState<Record<string, any[]>>(
+  // Latest values read by effects that must not re-run when they change
+  const allNamespacesRef = useRef(allNamespaces)
+  allNamespacesRef.current = allNamespaces
+  const handleNotificationRef = useRef<(n: CacheNotification) => void>(() => {})
+  const [collectionsCache, setCollectionsCache] = useState<Record<string, AnsibleCollectionObject[]>>(
     () => preloadManager.getCollections()
   )
-  const [modulesCache, setModulesCache] = useState<Record<string, any[]>>(
+  const [modulesCache, setModulesCache] = useState<Record<string, AnsibleModule[]>>(
     () => preloadManager.getModules()
   )
   const [currentVersion, setCurrentVersion] = useState<string>(ansibleVersion)
@@ -93,7 +98,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     console.log('🚀 GalaxyCacheContext: Initializing...')
     loadCachedData()
     notificationService.connect()
-    const unsubscribe = notificationService.subscribe(handleNotification)
+    const unsubscribe = notificationService.subscribe(n => handleNotificationRef.current(n))
     return () => {
       unsubscribe()
       notificationService.disconnect()
@@ -119,7 +124,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
   useEffect(() => {
     if (!isReady || allNamespaces.length === 0) return
 
-    const namespaceNames = allNamespaces.map(ns => ns.name)
+    const namespaceNames = allNamespacesRef.current.map(ns => ns.name)
     preloadManager.startPreload(namespaceNames, ansibleVersion)
   }, [isReady, allNamespaces.length, ansibleVersion])
 
@@ -190,7 +195,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     return cols || null
   }
 
-  const getModules = async (namespace: string, collection: string, _version: string) => {
+  const getModules = async (namespace: string, collection: string) => {
     const key = `${namespace}.${collection}`
     if (modulesCache[key]) return modulesCache[key]
     const mods = await ansibleApiService.getModules(namespace, collection)
@@ -198,8 +203,8 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     return mods || null
   }
 
-  const setCollectionsCacheData = (d: Record<string, any[]>) => setCollectionsCache(p => ({ ...p, ...d }))
-  const setModulesCacheData = (d: Record<string, any[]>) => setModulesCache(p => ({ ...p, ...d }))
+  const setCollectionsCacheData = (d: Record<string, AnsibleCollectionObject[]>) => setCollectionsCache(p => ({ ...p, ...d }))
+  const setModulesCacheData = (d: Record<string, AnsibleModule[]>) => setModulesCache(p => ({ ...p, ...d }))
 
   const handleNotification = (n: CacheNotification) => {
     if (n.type === 'ping') return
@@ -209,6 +214,7 @@ export const GalaxyCacheProvider: React.FC<GalaxyCacheProviderProps> = ({ childr
     else if (n.type === 'cache_updated') loadCachedData()
     else if (n.type === 'cache_error') { setSyncStatus('error'); setError(n.data?.error || 'Sync failed') }
   }
+  handleNotificationRef.current = handleNotification
 
   const value: GalaxyCacheContextType = {
     popularNamespaces, allNamespaces, collectionsCache, modulesCache,

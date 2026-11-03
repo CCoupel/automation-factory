@@ -1,3 +1,4 @@
+import type { ApiError } from '../utils/apiError'
 import { getHttpClient } from '../utils/httpClient'
 
 /**
@@ -59,7 +60,8 @@ export const authService = {
         password
       })
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Login API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -90,7 +92,8 @@ export const authService = {
         password
       })
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Register API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -142,7 +145,8 @@ export const authService = {
         }
       })
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Token verification error:', error)
       throw new Error('Token verification failed')
     }

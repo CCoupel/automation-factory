@@ -1,3 +1,4 @@
+import type { ApiError } from '../utils/apiError'
 import { getHttpClient } from '../utils/httpClient'
 import { PlaybookContent, ModuleBlock, Link, RoleDefinition } from './playbookService'
 
@@ -59,7 +60,7 @@ interface AnsiblePlaybook {
   remote_user?: string
   connection?: string
   gather_facts?: boolean
-  vars?: Record<string, any>
+  vars?: Record<string, unknown>
   vars_files?: string[]
   roles?: RoleDefinition[]  // Can be strings or objects with role + vars
   pre_tasks?: AnsibleTask[]
@@ -70,10 +71,10 @@ interface AnsiblePlaybook {
 
 interface AnsibleTask {
   name?: string
-  module: string
-  params?: Record<string, any>
+  module?: string
+  params?: Record<string, unknown>
   when?: string
-  loop?: any
+  loop?: unknown
   register?: string
   ignore_errors?: boolean
   become?: boolean
@@ -207,7 +208,7 @@ function buildBlockTask(
   }
 
   // Remove the temporary module marker
-  delete (ansibleBlock as any).module
+  delete ansibleBlock.module
 
   return ansibleBlock
 }
@@ -333,7 +334,7 @@ export function transformToAnsibleFormat(content: PlaybookContent): AnsiblePlayb
           // String roles stay as strings
           if (typeof role === 'string') return role
           // Object roles: remove enabled property, keep only role and vars
-          const { enabled, ...cleanRole } = role
+          const cleanRole = { role: role.role, vars: role.vars }
           // If no vars, simplify to string format
           if (!cleanRole.vars || Object.keys(cleanRole.vars).length === 0) {
             return cleanRole.role
@@ -425,7 +426,8 @@ export const playbookPreviewService = {
         { content: ansibleContent }
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Preview API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -451,7 +453,8 @@ export const playbookPreviewService = {
         { content: ansibleContent }
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Validation API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -473,7 +476,8 @@ export const playbookPreviewService = {
         `/playbooks/${playbookId}/yaml`
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Get YAML API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -496,7 +500,8 @@ export const playbookPreviewService = {
         {}
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Validate API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -522,7 +527,8 @@ export const playbookPreviewService = {
         { content: ansibleContent }
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Full validation API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -545,7 +551,8 @@ export const playbookPreviewService = {
         {}
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Full validate API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)

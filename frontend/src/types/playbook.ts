@@ -12,7 +12,7 @@ export interface ModuleParameter {
   name: string
   type: 'str' | 'int' | 'float' | 'bool' | 'list' | 'dict' | 'path' | 'any'
   required: boolean
-  default?: any
+  default?: unknown
   description: string
   choices?: string[]
   aliases?: string[]
@@ -33,7 +33,7 @@ export interface ModuleSchema {
   short_description: string
   author: string[]
   parameters: Record<string, ModuleParameter>
-  examples?: any
+  examples?: unknown
   notes?: string[]
   requirements?: string[]
   version_added?: string
@@ -50,7 +50,7 @@ export interface RoleParameter {
   name: string
   type: 'str' | 'int' | 'float' | 'bool' | 'list' | 'dict' | 'path' | 'any'
   required: boolean
-  default?: any
+  default?: unknown
   description: string
 }
 
@@ -84,7 +84,7 @@ export interface RoleSchema {
 export interface RoleDefinition {
   role: string                    // FQCN: "namespace.collection.role_name"
   name?: string                   // Display name / alias
-  vars?: Record<string, any>      // Role variables
+  vars?: Record<string, unknown>      // Role variables
   when?: string                   // Conditional execution
   tags?: string[]                 // Tags for selective execution
   become?: boolean                // Privilege escalation
@@ -174,7 +174,7 @@ export interface ModuleBlock {
   register?: string // Store task result in a variable
 
   // Module configuration
-  moduleParameters?: Record<string, any>  // User-configured module parameters
+  moduleParameters?: Record<string, unknown>  // User-configured module parameters
   moduleSchema?: ModuleSchema             // Galaxy API schema for this module
 
   // Validation state

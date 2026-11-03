@@ -2,14 +2,15 @@
  * Service for managing user preferences API calls
  */
 
+import type { ApiError } from '../utils/apiError'
 import { getHttpClient } from '../utils/httpClient';
 
 export interface UserPreferences {
   id: string;
   user_id: string;
   favorite_namespaces: string[];
-  interface_settings: Record<string, any>;
-  galaxy_settings: Record<string, any>;
+  interface_settings: Record<string, unknown>;
+  galaxy_settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -26,13 +27,13 @@ export interface FavoriteNamespaceResponse {
 
 export interface InterfaceSettingRequest {
   key: string;
-  value: any;
+  value: unknown;
 }
 
 export interface InterfaceSettingResponse {
   success: boolean;
   message: string;
-  interface_settings: Record<string, any>;
+  interface_settings: Record<string, unknown>;
 }
 
 export interface FavoriteCollectionResponse {
@@ -75,7 +76,8 @@ class UserPreferencesService {
       this.cache = response.data;
       this.cacheTimestamp = now;
       return this.cache;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to fetch user preferences:', error);
       throw new Error(`Failed to fetch preferences: ${error.response?.data?.detail || error.message}`);
     }
@@ -90,7 +92,8 @@ class UserPreferencesService {
       this.cache = response.data;
       this.cacheTimestamp = Date.now();
       return this.cache;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to update user preferences:', error);
       throw new Error(`Failed to update preferences: ${error.response?.data?.detail || error.message}`);
     }
@@ -111,7 +114,8 @@ class UserPreferencesService {
       }
       
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to add favorite namespace:', error);
       throw new Error(`Failed to add favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -131,7 +135,8 @@ class UserPreferencesService {
       }
       
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to remove favorite namespace:', error);
       throw new Error(`Failed to remove favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -144,7 +149,8 @@ class UserPreferencesService {
     try {
       const response = await this.httpClient.get<FavoriteNamespaceResponse>('/user/favorites/namespaces');
       return response.data.favorite_namespaces || [];
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to get favorite namespaces:', error);
       // Return empty array on error to allow UI to function
       return [];
@@ -173,7 +179,8 @@ class UserPreferencesService {
     try {
       const response = await this.httpClient.get<FavoriteCollectionResponse>('/user/favorites/collections');
       return response.data.favorite_collections || [];
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to get favorite collections:', error);
       return [];
     }
@@ -187,7 +194,8 @@ class UserPreferencesService {
       const response = await this.httpClient.post<FavoriteCollectionResponse>('/user/favorites/collections', { collection: collection.trim() });
       this.invalidateCache();
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to add favorite collection:', error);
       throw new Error(`Failed to add favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -201,7 +209,8 @@ class UserPreferencesService {
       const response = await this.httpClient.delete<FavoriteCollectionResponse>(`/user/favorites/collections/${encodeURIComponent(collection.trim())}`);
       this.invalidateCache();
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to remove favorite collection:', error);
       throw new Error(`Failed to remove favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -216,7 +225,8 @@ class UserPreferencesService {
     try {
       const response = await this.httpClient.get<FavoriteModuleResponse>('/user/favorites/modules');
       return response.data.favorite_modules || [];
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to get favorite modules:', error);
       return [];
     }
@@ -230,7 +240,8 @@ class UserPreferencesService {
       const response = await this.httpClient.post<FavoriteModuleResponse>('/user/favorites/modules', { module: module.trim() });
       this.invalidateCache();
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to add favorite module:', error);
       throw new Error(`Failed to add favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -244,7 +255,8 @@ class UserPreferencesService {
       const response = await this.httpClient.delete<FavoriteModuleResponse>(`/user/favorites/modules/${encodeURIComponent(module.trim())}`);
       this.invalidateCache();
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to remove favorite module:', error);
       throw new Error(`Failed to remove favorite: ${error.response?.data?.detail || error.message}`);
     }
@@ -260,7 +272,7 @@ class UserPreferencesService {
   /**
    * Set interface setting
    */
-  async setInterfaceSetting(key: string, value: any): Promise<InterfaceSettingResponse> {
+  async setInterfaceSetting(key: string, value: unknown): Promise<InterfaceSettingResponse> {
     try {
       const request: InterfaceSettingRequest = { key, value };
       const response = await this.httpClient.post<InterfaceSettingResponse>('/user/interface', request);
@@ -272,7 +284,8 @@ class UserPreferencesService {
       }
       
       return response.data;
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Failed to set interface setting:', error);
       throw new Error(`Failed to set setting: ${error.response?.data?.detail || error.message}`);
     }
@@ -281,7 +294,7 @@ class UserPreferencesService {
   /**
    * Get interface setting
    */
-  async getInterfaceSetting(key: string, defaultValue: any = null): Promise<any> {
+  async getInterfaceSetting(key: string, defaultValue: unknown = null): Promise<unknown> {
     try {
       const response = await this.httpClient.get(`/user/interface/${encodeURIComponent(key)}`);
       return response.data.value !== null ? response.data.value : defaultValue;

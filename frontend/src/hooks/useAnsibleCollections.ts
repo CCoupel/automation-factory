@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getHttpClient } from '../utils/httpClient';
 
-interface Collection {
-  name: string;
-  description?: string;
-}
-
 interface AnsibleCollectionsResponse {
   ansible_version: string;
   collections: { [namespace: string]: string[] };

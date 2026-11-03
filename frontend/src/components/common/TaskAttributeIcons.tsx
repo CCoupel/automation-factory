@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Tooltip } from '@mui/material'
+import { Box, Tooltip, SxProps, Theme } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
 import SecurityIcon from '@mui/icons-material/Security'
@@ -31,7 +31,7 @@ interface TaskAttributeIconsProps {
   /**
    * Additional sx props for the container Box
    */
-  sx?: any
+  sx?: SxProps<Theme>
 }
 
 /**

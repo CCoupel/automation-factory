@@ -44,16 +44,13 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
   const {
     allNamespaces,
     isLoading,
-    isReady,
     getCollections,
     getModules,
     collectionsCache,
     modulesCache,
-    preloadComplete,
     preloadProgress,  // Now from context - auto-preload at app startup
     setCollectionsCacheData,
-    setModulesCacheData,
-    setPreloadComplete
+    setModulesCacheData
   } = useGalaxyCache()
 
   const [expandedItems, setExpandedItems] = useState<string[]>([])
@@ -76,7 +73,7 @@ export const ModulesTreeView = ({ searchQuery = '', onModuleDragStart }: Modules
   const [favoriteCollections, setFavoriteCollections] = useState<string[]>([])
   const [favoriteModules, setFavoriteModules] = useState<string[]>([])
 
-  const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [, setFavoritesLoading] = useState(false)
 
   // Note: Preloading is now handled by GalaxyCacheContext at app startup
   // preloadProgress comes from context

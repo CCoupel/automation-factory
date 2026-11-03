@@ -6,7 +6,7 @@ vi.mock('../../utils/httpClient', () => ({
 }))
 
 vi.mock('../../utils/apiErrorHandler', () => ({
-  handleApiError: vi.fn((error: any) => {
+  handleApiError: vi.fn((error: { response?: { data?: { detail?: string } } }) => {
     throw error?.response?.data?.detail
       ? new Error(error.response.data.detail)
       : new Error('API error')

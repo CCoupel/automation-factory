@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import type { ApiError } from '../../utils/apiError'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -19,11 +20,9 @@ import {
   Tooltip,
   Slider,
   Stack,
-  Divider,
   Tabs,
   Tab,
-  Switch,
-  FormControlLabel
+  Switch
 } from '@mui/material'
 import {
   Settings as SettingsIcon,
@@ -103,7 +102,7 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
         const http = getHttpClient()
         const response = await http.get('/api/admin/configuration/standard-namespaces')
         setStandardNamespaces(response.data.namespaces || ['community'])
-      } catch (err: any) {
+      } catch {
         console.warn('Standard namespaces API not yet implemented, using defaults')
         setStandardNamespaces(['community'])
       } finally {
@@ -117,7 +116,7 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
   /**
    * Fetch custom variable types (admin only)
    */
-  const fetchCustomTypes = async () => {
+  const fetchCustomTypes = useCallback(async () => {
     if (!isAdmin) return
     try {
       setLoadingTypes(true)
@@ -128,13 +127,13 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
     } finally {
       setLoadingTypes(false)
     }
-  }
+  }, [isAdmin])
 
   useEffect(() => {
     if (open && isAdmin && activeTab === 2) {
       fetchCustomTypes()
     }
-  }, [open, isAdmin, activeTab])
+  }, [open, isAdmin, activeTab, fetchCustomTypes])
 
   /**
    * Handle type dialog open for create
@@ -216,7 +215,8 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
       handleCloseTypeDialog()
       fetchCustomTypes()
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setTypeError(err.response?.data?.detail || 'Failed to save type')
     } finally {
       setSavingType(false)
@@ -234,7 +234,8 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
       setSuccess('Type deleted successfully')
       fetchCustomTypes()
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to delete type')
     }
   }
@@ -248,7 +249,8 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
         is_active: !type.is_active
       })
       fetchCustomTypes()
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to update type')
     }
   }
@@ -269,13 +271,14 @@ const ConfigurationDialog: React.FC<ConfigurationDialogProps> = ({ open, onClose
           namespaces: standardNamespaces
         })
         setSuccess('Configuration saved successfully!')
-      } catch (err: any) {
+      } catch {
         console.warn('Standard namespaces API not yet implemented')
         setSuccess('Configuration will be saved when API is implemented')
       }
 
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.response?.data?.detail || 'Failed to save configuration')
     } finally {
       setSaving(false)

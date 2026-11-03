@@ -4,7 +4,8 @@
  * Dialog for managing playbook sharing with other users.
  */
 
-import React, { useState, useEffect } from 'react'
+import type { ApiError } from '../../utils/apiError'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -21,9 +22,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
-  Chip,
   Alert,
   CircularProgress,
   Divider
@@ -61,15 +60,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
   const [newRole, setNewRole] = useState<'editor' | 'viewer'>('viewer')
   const [addingShare, setAddingShare] = useState(false)
 
-  // Load shares when dialog opens
-  useEffect(() => {
-    console.log('📋 ShareDialog effect:', { open, playbookId, playbookName })
-    if (open && playbookId) {
-      loadShares()
-    }
-  }, [open, playbookId])
-
-  const loadShares = async () => {
+  const loadShares = useCallback(async () => {
     console.log('🔄 loadShares called with playbookId:', playbookId)
     setLoading(true)
     setError(null)
@@ -77,13 +68,22 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
       const response = await collaborationService.getShares(playbookId)
       console.log('✅ loadShares success:', response)
       setShares(response.shares)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       console.error('❌ loadShares error:', err)
       setError(err.message || 'Failed to load shares')
     } finally {
       setLoading(false)
     }
-  }
+  }, [playbookId])
+
+  // Load shares when dialog opens
+  useEffect(() => {
+    console.log('📋 ShareDialog effect:', { open, playbookId })
+    if (open && playbookId) {
+      loadShares()
+    }
+  }, [open, playbookId, loadShares])
 
   const handleAddShare = async () => {
     if (!newUsername.trim()) return
@@ -105,7 +105,8 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to share playbook')
     } finally {
       setAddingShare(false)
@@ -119,7 +120,8 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
       setShares(prev =>
         prev.map(s => (s.id === shareId ? updated : s))
       )
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to update share')
     }
   }
@@ -131,17 +133,10 @@ const ShareDialog: React.FC<ShareDialogProps> = ({
       setShares(prev => prev.filter(s => s.id !== shareId))
       setSuccess('Share removed')
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setError(err.message || 'Failed to remove share')
     }
-  }
-
-  const getRoleIcon = (role: string) => {
-    return role === 'editor' ? (
-      <EditIcon sx={{ fontSize: 16 }} />
-    ) : (
-      <VisibilityIcon sx={{ fontSize: 16 }} />
-    )
   }
 
   return (

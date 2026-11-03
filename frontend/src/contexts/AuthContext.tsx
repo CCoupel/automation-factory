@@ -1,3 +1,4 @@
+import type { ApiError } from '../utils/apiError'
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getHttpClient } from '../utils/httpClient'
 
@@ -75,6 +76,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * Hook to access authentication context
  * @throws Error if used outside AuthProvider
  */
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with its Provider (public API of this module, mocked by tests)
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) {
@@ -205,7 +207,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('authUser', JSON.stringify(mappedUser))
 
       return true
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Login error:', error.response?.data || error.message)
       return false
     } finally {
@@ -249,7 +252,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('authUser', JSON.stringify(mappedUser))
 
       return true
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Registration error:', error.response?.data || error.message)
       return false
     } finally {

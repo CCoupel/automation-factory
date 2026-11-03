@@ -1,23 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { getApiBaseUrl, getFrontendBaseUrl } from '../apiConfig'
 
 describe('apiConfig', () => {
-  const originalWindow = { ...window }
-
   beforeEach(() => {
     // Reset injected values
-    ;(window as any).__API_URL__ = undefined
-    ;(window as any).__BASE_PATH__ = undefined
+    ;window.__API_URL__ = undefined
+    ;window.__BASE_PATH__ = undefined
   })
 
   afterEach(() => {
-    ;(window as any).__API_URL__ = undefined
-    ;(window as any).__BASE_PATH__ = undefined
+    ;window.__API_URL__ = undefined
+    ;window.__BASE_PATH__ = undefined
   })
 
   describe('getApiBaseUrl', () => {
     it('uses injected API URL when available', () => {
-      ;(window as any).__API_URL__ = 'https://api.example.com'
+      ;window.__API_URL__ = 'https://api.example.com'
       expect(getApiBaseUrl()).toBe('https://api.example.com')
     })
 
@@ -48,7 +46,7 @@ describe('apiConfig', () => {
 
   describe('getFrontendBaseUrl', () => {
     it('uses injected base path when available', () => {
-      ;(window as any).__BASE_PATH__ = '/automation-factory'
+      ;window.__BASE_PATH__ = '/automation-factory'
       expect(getFrontendBaseUrl()).toBe('/automation-factory')
     })
 

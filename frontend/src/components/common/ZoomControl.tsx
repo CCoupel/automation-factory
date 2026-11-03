@@ -18,7 +18,7 @@ import { useZoom, ZoomLevel } from '../../contexts/ZoomContext'
  * Positioned in the top-right corner of the interface
  */
 const ZoomControl: React.FC = () => {
-  const { zoomLevel, setZoomLevel, fontSize } = useZoom()
+  const { zoomLevel, setZoomLevel } = useZoom()
 
   const zoomLevels: ZoomLevel[] = ['small', 'medium', 'large', 'xlarge']
   const currentIndex = zoomLevels.indexOf(zoomLevel)

@@ -1,3 +1,4 @@
+import type { ApiError } from '../../utils/apiError'
 import React, { useState } from 'react'
 import {
   AppBar,
@@ -111,10 +112,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   artifactName,
   artifactType,
 }) => {
-  const { saveStatus, playbookName: playbookNameProp, playbookId } = useSaveInfo()
+  const { saveStatus, playbookId } = useSaveInfo()
   const navigate = useNavigate()
   const { user, logout, authLost } = useAuth()
-  const { themeMode, darkMode, setThemeMode, cycleThemeMode } = useTheme()
+  const { themeMode, darkMode, cycleThemeMode } = useTheme()
   const { t, i18n } = useTranslation('common')
   const { forceRefreshCache, isLoading: cacheLoading, currentVersion } = useGalaxyCache()
 
@@ -205,7 +206,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       setTimeout(() => {
         handleClosePasswordDialog()
       }, 1500)
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       setPasswordError(err.response?.data?.detail || 'Failed to change password')
       console.error('Error changing password:', err)
     }

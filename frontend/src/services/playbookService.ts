@@ -1,3 +1,4 @@
+import type { ApiError } from '../utils/apiError'
 import { getHttpClient } from '../utils/httpClient'
 
 /**
@@ -71,7 +72,7 @@ export interface ModuleBlock {
   tags?: string[]            // Task tags for selective execution
   register?: string          // Store task result in a variable
   // Module parameters from Galaxy schema
-  moduleParameters?: Record<string, any>
+  moduleParameters?: Record<string, unknown>
   // SystemBlock specific properties
   systemType?: SystemBlockType  // Type of system block (e.g. 'assertions')
   sourceVariable?: string       // Source variable for assertion blocks
@@ -88,7 +89,7 @@ export interface Link {
  * Role definition - can be a simple string or object with vars and enabled state
  * Note: enabled defaults to true if not specified
  */
-export type RoleDefinition = string | { role: string; vars?: Record<string, any>; enabled?: boolean }
+export type RoleDefinition = string | { role: string; vars?: Record<string, unknown>; enabled?: boolean }
 
 /**
  * Play attributes (stored in play.attributes)
@@ -145,8 +146,19 @@ export interface Playbook {
 /**
  * Detailed playbook (with full content)
  */
+/**
+ * Event replayed on top of a playbook snapshot
+ */
+export interface PlaybookDeltaEvent {
+  event_type: string
+  data?: Record<string, unknown>
+  user_id?: string
+  created_at?: string
+}
+
 export interface PlaybookDetail extends Playbook {
   content: PlaybookContent
+  events_delta?: PlaybookDeltaEvent[]
 }
 
 /**
@@ -202,7 +214,8 @@ export const playbookService = {
       const client = getHttpClient()
       const response = await client.get(`/playbooks`)
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('List playbooks API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -222,7 +235,8 @@ export const playbookService = {
       const client = getHttpClient()
       const response = await client.get(`/playbooks/${playbookId}`)
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Get playbook API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -242,7 +256,8 @@ export const playbookService = {
       const client = getHttpClient()
       const response = await client.post(`/playbooks`, playbook)
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Create playbook API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -263,7 +278,8 @@ export const playbookService = {
       const client = getHttpClient()
       const response = await client.put(`/playbooks/${playbookId}`, updates)
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Update playbook API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -282,7 +298,8 @@ export const playbookService = {
     try {
       const client = getHttpClient()
       await client.delete(`/playbooks/${playbookId}`)
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Delete playbook API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
@@ -309,7 +326,8 @@ export const playbookService = {
         request
       )
       return response.data
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Transfer ownership API error:', error)
       if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)

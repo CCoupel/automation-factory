@@ -1,3 +1,4 @@
+import type { ApiError } from '../../utils/apiError'
 import { Box, Typography, Button, Tab, Tabs, Paper, CircularProgress, Alert, Chip, Divider } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import RefreshIcon from '@mui/icons-material/Refresh'
@@ -65,7 +66,8 @@ const SystemZone = () => {
       } else {
         setValidationStatus('valid')
       }
-    } catch (err: any) {
+    } catch (caughtErr) {
+      const err = caughtErr as ApiError
       console.error('Preview/Validation error:', err)
       setError(err.message || 'Failed to fetch preview')
       setPreviewStatus('error')

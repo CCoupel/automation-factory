@@ -16,7 +16,7 @@ const createHttpClient = (): AxiosInstance => {
   const baseURL = getApiBaseUrl()
   
   console.log('🔧 HTTP CLIENT: Creating axios instance with baseURL:', baseURL)
-  console.log('🔧 HTTP CLIENT: window.__API_URL__ =', (window as any).__API_URL__)
+  console.log('🔧 HTTP CLIENT: window.__API_URL__ =', window.__API_URL__)
   
   const client = axios.create({
     baseURL: baseURL,

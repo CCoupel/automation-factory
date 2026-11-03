@@ -72,11 +72,11 @@ export interface AnsibleModuleSchema {
     type: string
     required: boolean
     description: string
-    default: any
-    choices?: any[]
+    default: unknown
+    choices?: string[]
   }>
   examples: string[]
-  return_values: any[]
+  return_values: unknown[]
 }
 
 export interface AnsibleCollectionObject {
@@ -94,14 +94,6 @@ interface AnsibleVersionsResponse {
   versions: string[]
   total_count: number
   cache_ttl: number
-  source: string
-}
-
-interface AnsibleCollectionsResponse {
-  ansible_version: string
-  collections: { [namespace: string]: string[] }
-  total_namespaces: number
-  total_collections: number
   source: string
 }
 
@@ -317,7 +309,7 @@ export class AnsibleApiService {
     try {
       const versions = await this.getVersions()
       return versions.length > 0
-    } catch (error) {
+    } catch {
       return false
     }
   }

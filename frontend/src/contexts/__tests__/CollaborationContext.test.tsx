@@ -9,14 +9,12 @@ const mockDisconnect = vi.fn()
 const mockSendUpdate = vi.fn()
 const mockSendSetArtifact = vi.fn()
 
-let mockOnUpdate: ((update: any) => void) | undefined
-let mockOnPresenceChange: ((users: any[]) => void) | undefined
+let mockOnUpdate: ((update: unknown) => void) | undefined
 
 vi.mock('../../hooks/useProjectWebSocket', () => ({
-  useProjectWebSocket: vi.fn((projectId: string | null, options: any) => {
+  useProjectWebSocket: vi.fn((projectId: string | null, options?: { onUpdate?: (update: unknown) => void }) => {
     // Capture callbacks so tests can trigger them
     mockOnUpdate = options?.onUpdate
-    mockOnPresenceChange = options?.onPresenceChange
     return {
       isConnected: projectId !== null,
       connectedUsers: [],
@@ -45,7 +43,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 beforeEach(() => {
   vi.clearAllMocks()
   mockOnUpdate = undefined
-  mockOnPresenceChange = undefined
 })
 
 describe('CollaborationContext', () => {

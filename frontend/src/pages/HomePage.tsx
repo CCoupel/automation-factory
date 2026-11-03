@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
   const { t: tc } = useTranslation('common')
   const { i18n } = useTranslation()
   const { user, logout } = useAuth()
-  const { themeMode, darkMode, cycleThemeMode } = useTheme()
+  const { themeMode, cycleThemeMode } = useTheme()
 
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -62,7 +62,7 @@ const HomePage: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       clearInterval(interval)
     }
-  }, [])
+  }, [fetchProjects])
 
   const handleLogout = async () => {
     setUserMenuAnchor(null)

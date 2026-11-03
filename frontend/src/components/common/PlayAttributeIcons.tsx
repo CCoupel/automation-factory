@@ -1,5 +1,5 @@
 import React from 'react'
-import { Box, Tooltip } from '@mui/material'
+import { Box, Tooltip, SxProps, Theme } from '@mui/material'
 import DnsIcon from '@mui/icons-material/Dns'
 import PersonIcon from '@mui/icons-material/Person'
 import AssessmentIcon from '@mui/icons-material/Assessment'
@@ -34,7 +34,7 @@ interface PlayAttributeIconsProps {
   /**
    * Additional sx props for the container Box
    */
-  sx?: any
+  sx?: SxProps<Theme>
 }
 
 /**

@@ -1,4 +1,5 @@
-import { Box, Typography, TextField, Paper, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip, Alert, CircularProgress, MenuItem, FormControl, InputLabel, Select, InputAdornment, Autocomplete, OutlinedInput } from '@mui/material'
+import type { ApiError } from '../../utils/apiError'
+import { Box, Typography, TextField, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip, Button, Checkbox, FormControlLabel, Chip, Alert, CircularProgress, MenuItem, FormControl, InputLabel, Select, InputAdornment, Autocomplete, OutlinedInput } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AssignmentIcon from '@mui/icons-material/Assignment'
@@ -18,11 +19,11 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted'
 import DataObjectIcon from '@mui/icons-material/DataObject'
 import FolderIcon from '@mui/icons-material/Folder'
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive'
-import { PlayAttributes, ModuleSchema, ModuleParameter } from '../../types/playbook'
+import { PlayAttributes, ModuleParameter } from '../../types/playbook'
 import { useState, useEffect, useRef } from 'react'
 import { galaxyModuleSchemaService } from '../../services/galaxyModuleSchemaService'
 import { moduleConfigs } from '../../constants/moduleConfigs'
-import { usePlaybookEditorStore, useSelectedModuleData, usePlayAttributes, useActivePlayId } from '../../stores/playbookEditorStore'
+import { ModuleUpdates, usePlaybookEditorStore, useSelectedModuleData, usePlayAttributes, useActivePlayId } from '../../stores/playbookEditorStore'
 import { useShallow } from 'zustand/react/shallow'
 
 // Collaboration callback type for config updates
@@ -77,13 +78,13 @@ interface RoleConfigSectionProps {
   selectedRole: {
     index: number
     role: string
-    vars?: Record<string, any>
+    vars?: Record<string, unknown>
   }
-  onUpdateRole?: (index: number, updates: { role?: string; vars?: Record<string, any> }) => void
+  onUpdateRole?: (index: number, updates: { role?: string; vars?: Record<string, unknown> }) => void
 }
 
 const RoleConfigSection = ({ selectedRole, onUpdateRole }: RoleConfigSectionProps) => {
-  const [localVars, setLocalVars] = useState<Record<string, any>>(selectedRole.vars || {})
+  const [localVars, setLocalVars] = useState<Record<string, unknown>>(selectedRole.vars || {})
   const [newVarName, setNewVarName] = useState('')
   const [newVarValue, setNewVarValue] = useState('')
 
@@ -95,7 +96,7 @@ const RoleConfigSection = ({ selectedRole, onUpdateRole }: RoleConfigSectionProp
   const handleAddVariable = () => {
     if (!newVarName.trim()) return
 
-    let parsedValue: any = newVarValue
+    let parsedValue: unknown = newVarValue
     // Try to parse JSON values
     try {
       parsedValue = JSON.parse(newVarValue)
@@ -118,7 +119,7 @@ const RoleConfigSection = ({ selectedRole, onUpdateRole }: RoleConfigSectionProp
   }
 
   const handleUpdateVariable = (varName: string, value: string) => {
-    let parsedValue: any = value
+    let parsedValue: unknown = value
     try {
       parsedValue = JSON.parse(value)
     } catch {
@@ -242,13 +243,13 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
     storeDeleteModule(id)
     collaborationCallbacks?.sendModuleDelete?.({ moduleId: id })
   }
-  const onUpdateModule = (id: string, updates: Partial<any>) => updateModuleAttributes(id, updates)
+  const onUpdateModule = (id: string, updates: Partial<ModuleUpdates>) => updateModuleAttributes(id, updates)
   const onUpdatePlay = (updates: Partial<PlayAttributes>) => storeUpdatePlayAttributes(updates)
-  const onUpdateRole = (index: number, updates: { role?: string; vars?: Record<string, any> }) => storeUpdateRole(index, updates)
+  const onUpdateRole = (index: number, updates: { role?: string; vars?: Record<string, unknown> }) => storeUpdateRole(index, updates)
 
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
-  const [moduleParameters, setModuleParameters] = useState<Record<string, any>>({})
+  const [moduleParameters, setModuleParameters] = useState<Record<string, unknown>>({})
 
   // Local state for immediate UI feedback (task attributes)
   const [localTaskName, setLocalTaskName] = useState('')
@@ -279,18 +280,23 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
   // Legacy static config for modules without Galaxy schemas
   const moduleConfig = selectedModule ? moduleConfigs[selectedModule.name] || [] : []
 
+  // Latest selected module, read by effects that must only react to a module ID change
+  const selectedModuleRef = useRef(selectedModule)
+  selectedModuleRef.current = selectedModule
+
   // Initialize local state ONLY when module ID changes (not on every prop update)
   useEffect(() => {
-    if (selectedModule?.id !== currentModuleId) {
-      setCurrentModuleId(selectedModule?.id || null)
-      setModuleParameters(selectedModule?.moduleParameters || {})
-      setLocalTaskName(selectedModule?.taskName || '')
-      setLocalWhen(selectedModule?.when || '')
-      setLocalLoop(selectedModule?.loop || '')
-      setLocalTags(selectedModule?.tags?.join(', ') || '')
-      setLocalDelegateTo(selectedModule?.delegateTo || '')
-      setLocalIgnoreErrors(selectedModule?.ignoreErrors || false)
-      setLocalTaskBecome(selectedModule?.become || false)
+    const module = selectedModuleRef.current
+    if (module?.id !== currentModuleId) {
+      setCurrentModuleId(module?.id || null)
+      setModuleParameters(module?.moduleParameters || {})
+      setLocalTaskName(module?.taskName || '')
+      setLocalWhen(module?.when || '')
+      setLocalLoop(module?.loop || '')
+      setLocalTags(module?.tags?.join(', ') || '')
+      setLocalDelegateTo(module?.delegateTo || '')
+      setLocalIgnoreErrors(module?.ignoreErrors || false)
+      setLocalTaskBecome(module?.become || false)
     }
   }, [selectedModule?.id, currentModuleId])
 
@@ -328,7 +334,7 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
     if (JSON.stringify(selectedModule.moduleParameters) !== JSON.stringify(moduleParameters)) {
       setModuleParameters(selectedModule.moduleParameters || {})
     }
-  }, [selectedModule, currentModuleId])
+  }, [selectedModule, currentModuleId, localTaskName, localWhen, localLoop, localTags, localDelegateTo, localIgnoreErrors, localTaskBecome, moduleParameters])
 
   // Initialize PLAY local state when switching to PLAY config
   useEffect(() => {
@@ -368,7 +374,7 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
     if (playAttributes.become !== undefined && playAttributes.become !== localBecome) {
       setLocalBecome(playAttributes.become || false)
     }
-  }, [playAttributes, showingPlayConfig])
+  }, [playAttributes, showingPlayConfig, localHosts, localRemoteUser, localConnection, localGatherFacts, localBecome])
 
   // Debounced update for module - only propagate after user stops typing
   const debouncedUpdate = (updates: Parameters<NonNullable<typeof onUpdateModule>>[1], field?: string) => {
@@ -433,12 +439,17 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
     }
   }, [])
 
+  // Latest schema loader, read by the effect below (it only reacts to module identity changes)
+  const loadModuleSchemaRef = useRef<() => Promise<void>>(async () => {})
+  const hasModuleSchema = !!selectedModule?.moduleSchema
+
   // Load schema for selected module if not already loaded
   useEffect(() => {
-    if (selectedModule && !selectedModule.isBlock && !selectedModule.isPlay && !selectedModule.moduleSchema) {
-      loadModuleSchema()
+    const module = selectedModuleRef.current
+    if (module && !module.isBlock && !module.isPlay && !module.moduleSchema) {
+      loadModuleSchemaRef.current()
     }
-  }, [selectedModule?.id, selectedModule?.collection, selectedModule?.name])
+  }, [selectedModule?.id, selectedModule?.collection, selectedModule?.name, selectedModule?.isBlock, selectedModule?.isPlay, hasModuleSchema])
   
   const loadModuleSchema = async () => {
     if (!selectedModule || selectedModule.isBlock || selectedModule.isPlay) return
@@ -480,15 +491,17 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
       } else {
         console.log(`No schema found for ${selectedModule.collection}.${selectedModule.name}`)
       }
-    } catch (error: any) {
+    } catch (caughtError) {
+      const error = caughtError as ApiError
       console.error('Error loading module schema:', error)
       setSchemaError(error.message || 'Failed to load module schema')
     } finally {
       setIsLoadingSchema(false)
     }
   }
+  loadModuleSchemaRef.current = loadModuleSchema
   
-  const handleParameterChange = (paramName: string, value: any) => {
+  const handleParameterChange = (paramName: string, value: unknown) => {
     // Update local state immediately for responsive UI
     const updatedParams = { ...moduleParameters, [paramName]: value }
     setModuleParameters(updatedParams)
@@ -639,7 +652,7 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
         )
 
       case 'list':
-      case 'array':
+      case 'array': {
         // List with predefined choices: multi-select dropdown
         if (param.choices && param.choices.length > 0) {
           const selectedValues = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : [])
@@ -734,6 +747,7 @@ const ConfigZone = ({ onCollapse, collaborationCallbacks }: ConfigZoneProps) => 
             )}
           />
         )
+      }
 
       default:
         // String, path, any - with choices support

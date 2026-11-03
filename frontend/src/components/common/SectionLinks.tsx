@@ -80,7 +80,6 @@ interface SectionLinksProps {
  */
 const SectionLinks: React.FC<SectionLinksProps> = ({
   links,
-  modules,
   sectionType,
   sectionName,
   parentId,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -52,13 +52,7 @@ const ProjectShareDialog: React.FC<ProjectShareDialogProps> = ({
   const [newRole, setNewRole] = useState<'editor' | 'viewer'>('viewer')
   const [addingShare, setAddingShare] = useState(false)
 
-  useEffect(() => {
-    if (open && projectId) {
-      loadShares()
-    }
-  }, [open, projectId])
-
-  const loadShares = async () => {
+  const loadShares = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -69,7 +63,13 @@ const ProjectShareDialog: React.FC<ProjectShareDialogProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId, t])
+
+  useEffect(() => {
+    if (open && projectId) {
+      loadShares()
+    }
+  }, [open, projectId, loadShares])
 
   const handleAddShare = async () => {
     if (!newUsername.trim()) return

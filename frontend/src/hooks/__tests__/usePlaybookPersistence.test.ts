@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 
 // --- Mocks ---
 
@@ -182,7 +182,7 @@ describe('usePlaybookPersistence', () => {
     it('skips store update when full_sync arrived during load', async () => {
       // Simulate: loadPlaybook starts, then full_sync arrives via WS, then API resolves.
       // The guard should detect full_sync and only set id/name, not overwrite plays.
-      let resolveGetPlaybook: (value: any) => void
+      let resolveGetPlaybook: (value: unknown) => void
       mockGetPlaybook.mockReturnValue(
         new Promise((resolve) => { resolveGetPlaybook = resolve })
       )
@@ -279,7 +279,7 @@ describe('usePlaybookPersistence', () => {
         getPlaybook: mockGetPlaybook,
         listPlaybooks: mockListPlaybooks,
         updatePlaybook: updateSpy,
-      } as any)
+      } as never)
 
       // Mutate the store
       act(() => {

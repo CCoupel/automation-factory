@@ -26,7 +26,6 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
   const [isSystemCollapsed, setIsSystemCollapsed] = useState(false)
 
   // Store state
-  const currentPlaybookId = usePlaybookEditorStore(s => s.currentPlaybookId)
   const applyCollaborationUpdate = usePlaybookEditorStore(s => s.applyCollaborationUpdate)
 
   // Persistence hook (handles save/load/cache/auto-save)
@@ -98,6 +97,12 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
     }
   }, [playbookId])
 
+  // Latest values read inside effects without re-triggering them
+  const sendUpdateRef = useRef(sendUpdate)
+  sendUpdateRef.current = sendUpdate
+  const playbookIdRef = useRef(playbookId)
+  playbookIdRef.current = playbookId
+
   // Apply received collaboration updates
   const applyCollaborationUpdateRef = useRef(applyCollaborationUpdate)
   applyCollaborationUpdateRef.current = applyCollaborationUpdate
@@ -117,11 +122,11 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
       const state = usePlaybookEditorStore.getState()
       const hasContent = state.plays.some(p => p.modules.filter(m => !m.isPlay).length > 0)
       // Guard: only respond if our store matches this playbook (not a stale load)
-      if (artifactId && state.currentPlaybookId && state.currentPlaybookId === playbookId && hasContent) {
+      if (artifactId && state.currentPlaybookId && state.currentPlaybookId === playbookIdRef.current && hasContent) {
         console.log('[PlaybookEditor] Responding to request_full_sync')
-        sendUpdate('full_sync', {
+        sendUpdateRef.current('full_sync', {
           artifact_id: artifactId,
-          playbook_id: playbookId,
+          playbook_id: playbookIdRef.current,
           plays: state.plays as unknown as Record<string, unknown>[],
           playbookName: state.playbookName,
           collapsedBlocks: Array.from(state.collapsedBlocks),
@@ -145,7 +150,7 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
     if (othersOnArtifact.length > 0) {
       hasSentSyncRequestRef.current[artifactId] = true
       console.log('[PlaybookEditor] Sending request_full_sync for artifact:', artifactId)
-      sendUpdate('request_full_sync', { artifact_id: artifactId } as Record<string, unknown>)
+      sendUpdateRef.current('request_full_sync', { artifact_id: artifactId } as Record<string, unknown>)
     }
   }, [connectedUsers, artifactId, isConnected])
 
@@ -166,33 +171,30 @@ const PlaybookEditor: React.FC<PlaybookEditorProps> = ({ playbookId, artifactId 
   const handleSystemMouseDown = () => setIsResizingSystem(true)
   const handleConfigMouseDown = () => setIsResizingConfig(true)
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isResizingSystem) {
-      const newHeight = window.innerHeight - e.clientY
-      if (newHeight >= 100 && newHeight <= 600) {
-        setSystemZoneHeight(newHeight)
-      }
-    } else if (isResizingConfig) {
-      const newWidth = window.innerWidth - e.clientX
-      if (newWidth >= 250 && newWidth <= 600) {
-        setConfigZoneWidth(newWidth)
-      }
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsResizingSystem(false)
-    setIsResizingConfig(false)
-  }
-
   useEffect(() => {
-    if (isResizingSystem || isResizingConfig) {
-      document.addEventListener('mousemove', handleMouseMove as EventListener)
-      document.addEventListener('mouseup', handleMouseUp)
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove as EventListener)
-      document.removeEventListener('mouseup', handleMouseUp)
+    if (!isResizingSystem && !isResizingConfig) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingSystem) {
+        const newHeight = window.innerHeight - e.clientY
+        if (newHeight >= 100 && newHeight <= 600) {
+          setSystemZoneHeight(newHeight)
+        }
+      } else if (isResizingConfig) {
+        const newWidth = window.innerWidth - e.clientX
+        if (newWidth >= 250 && newWidth <= 600) {
+          setConfigZoneWidth(newWidth)
+        }
+      }
     }
+
+    const handleMouseUp = () => {
+      setIsResizingSystem(false)
+      setIsResizingConfig(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove as EventListener)
+    document.addEventListener('mouseup', handleMouseUp)
     return () => {
       document.removeEventListener('mousemove', handleMouseMove as EventListener)
       document.removeEventListener('mouseup', handleMouseUp)

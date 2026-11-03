@@ -79,7 +79,7 @@ const MainLayout = () => {
       cancelled = true
       clearCurrentProject()
     }
-  }, [routePlaybookId])
+  }, [routePlaybookId, fetchProject, fetchArtifacts, clearCurrentProject])
 
   // Connect to project collaboration room when linkedProjectId is resolved
   useEffect(() => {
@@ -89,30 +89,24 @@ const MainLayout = () => {
     return () => {
       disconnectFromProject()
     }
-  }, [linkedProjectId])
+  }, [linkedProjectId, connectToProject, disconnectFromProject])
 
   // Left panel resize handlers
   const handleModulesMouseDown = () => setIsResizingModules(true)
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isResizingModules) {
+  React.useEffect(() => {
+    if (!isResizingModules) return
+
+    const handleMouseMove = (e: MouseEvent) => {
       const newWidth = e.clientX
       if (newWidth >= 200 && newWidth <= 500) {
         setModulesZoneWidth(newWidth)
       }
     }
-  }
+    const handleMouseUp = () => setIsResizingModules(false)
 
-  const handleMouseUp = () => setIsResizingModules(false)
-
-  React.useEffect(() => {
-    if (isResizingModules) {
-      document.addEventListener('mousemove', handleMouseMove as EventListener)
-      document.addEventListener('mouseup', handleMouseUp)
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove as EventListener)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
+    document.addEventListener('mousemove', handleMouseMove as EventListener)
+    document.addEventListener('mouseup', handleMouseUp)
     return () => {
       document.removeEventListener('mousemove', handleMouseMove as EventListener)
       document.removeEventListener('mouseup', handleMouseUp)

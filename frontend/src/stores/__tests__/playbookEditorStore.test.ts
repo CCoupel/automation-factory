@@ -153,7 +153,7 @@ describe('playbookEditorStore', () => {
   describe('setModulesForActivePlay', () => {
     it('sets modules directly', () => {
       const modules = [{ id: 'm1', collection: 'test', name: 'test', x: 0, y: 0 }]
-      getState().setModulesForActivePlay(modules as any)
+      getState().setModulesForActivePlay(modules as never)
       expect(getState().plays[0].modules).toEqual(modules)
     })
 
@@ -161,7 +161,7 @@ describe('playbookEditorStore', () => {
       const initial = getState().plays[0].modules.length
       getState().setModulesForActivePlay(prev => [
         ...prev,
-        { id: 'new', collection: 'test', name: 'test', x: 100, y: 100 } as any,
+        { id: 'new', collection: 'test', name: 'test', x: 100, y: 100 } as never,
       ])
       expect(getState().plays[0].modules).toHaveLength(initial + 1)
     })
@@ -247,7 +247,7 @@ describe('playbookEditorStore', () => {
       // Setup: add a module and a link
       getState().setModulesForActivePlay(prev => [
         ...prev,
-        { id: 'task-1', collection: 'test', name: 'test', x: 100, y: 100 } as any,
+        { id: 'task-1', collection: 'test', name: 'test', x: 100, y: 100 } as never,
       ])
       getState().setLinksForActivePlay([
         { id: 'link-1', from: 'task-1', to: 'play-1-start-tasks', type: 'normal' },
@@ -263,7 +263,7 @@ describe('playbookEditorStore', () => {
     it('deselects the deleted module', () => {
       getState().setModulesForActivePlay(prev => [
         ...prev,
-        { id: 'task-1', collection: 'test', name: 'test', x: 100, y: 100 } as any,
+        { id: 'task-1', collection: 'test', name: 'test', x: 100, y: 100 } as never,
       ])
       setState({ selectedModuleId: 'task-1' })
 
@@ -277,8 +277,8 @@ describe('playbookEditorStore', () => {
           id: 'block-1', collection: 'test', name: 'block', x: 0, y: 0,
           isBlock: true,
           blockSections: { normal: ['child-1'], rescue: [], always: [] },
-        } as any,
-        { id: 'child-1', collection: 'test', name: 'child', x: 10, y: 10, parentId: 'block-1', parentSection: 'normal' } as any,
+        } as never,
+        { id: 'child-1', collection: 'test', name: 'child', x: 10, y: 10, parentId: 'block-1', parentSection: 'normal' } as never,
       ])
 
       getState().deleteModule('child-1')
@@ -445,7 +445,7 @@ describe('playbookEditorStore', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'parent-block', collection: 'test', name: 'block', x: 0, y: 0,
           isBlock: true, blockSections: { normal: [], rescue: [], always: [] },
-        } as any])
+        } as never])
 
         const child = {
           id: 'child-1', collection: 'test', name: 'task', x: 10, y: 10,
@@ -468,7 +468,7 @@ describe('playbookEditorStore', () => {
       it('updates module position', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'movable', collection: 'test', name: 'test', x: 0, y: 0,
-        } as any])
+        } as never])
 
         getState().applyCollaborationUpdate(makeUpdate('module_move', {
           moduleId: 'movable', x: 200, y: 300,
@@ -484,15 +484,15 @@ describe('playbookEditorStore', () => {
           {
             id: 'block-a', collection: 'test', name: 'block', x: 0, y: 0,
             isBlock: true, blockSections: { normal: ['task-1'], rescue: [], always: [] },
-          } as any,
+          } as never,
           {
             id: 'block-b', collection: 'test', name: 'block', x: 200, y: 0,
             isBlock: true, blockSections: { normal: [], rescue: [], always: [] },
-          } as any,
+          } as never,
           {
             id: 'task-1', collection: 'test', name: 'task', x: 10, y: 10,
             parentId: 'block-a', parentSection: 'normal',
-          } as any,
+          } as never,
         ])
 
         getState().applyCollaborationUpdate(makeUpdate('module_move', {
@@ -511,7 +511,7 @@ describe('playbookEditorStore', () => {
       it('removes module and its links', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'del-mod', collection: 'test', name: 'test', x: 0, y: 0,
-        } as any])
+        } as never])
         getState().setLinksForActivePlay([
           { id: 'l1', from: 'del-mod', to: 'play-1-start-tasks', type: 'normal' },
         ])
@@ -527,7 +527,7 @@ describe('playbookEditorStore', () => {
       it('updates direct module field', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'cfg-mod', collection: 'test', name: 'test', x: 0, y: 0, taskName: 'Old',
-        } as any])
+        } as never])
 
         getState().applyCollaborationUpdate(makeUpdate('module_config', {
           moduleId: 'cfg-mod', field: 'taskName', value: 'New Task',
@@ -541,7 +541,7 @@ describe('playbookEditorStore', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'cfg-mod2', collection: 'test', name: 'test', x: 0, y: 0,
           moduleParameters: { existingParam: 'val' },
-        } as any])
+        } as never])
 
         getState().applyCollaborationUpdate(makeUpdate('module_config', {
           moduleId: 'cfg-mod2', field: 'customField', value: 'custom-value',
@@ -557,7 +557,7 @@ describe('playbookEditorStore', () => {
       it('updates module dimensions and position', () => {
         getState().setModulesForActivePlay(prev => [...prev, {
           id: 'resize-mod', collection: 'test', name: 'test', x: 0, y: 0,
-        } as any])
+        } as never])
 
         getState().applyCollaborationUpdate(makeUpdate('module_resize', {
           moduleId: 'resize-mod', width: 300, height: 200, x: 50, y: 60,

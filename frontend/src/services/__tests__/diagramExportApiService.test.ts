@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
 })
 
-const samplePlays = [{ id: 'p1', name: 'Test Play', hosts: 'all' }] as any[]
+const samplePlays = [{ id: 'p1', name: 'Test Play', hosts: 'all' }] as never[]
 
 describe('diagramExportApiService', () => {
   describe('exportABD', () => {
