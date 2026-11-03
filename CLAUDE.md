@@ -6,12 +6,12 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 
 ## 🚀 **Status Actuel**
 
-**Version Développement :** Backend 2.4.3 / Frontend 2.4.3
+**Version Développement :** Backend 2.4.4.0 / Frontend 2.4.4.0
 **Version Production :** Backend 2.4.3 / Frontend 2.4.3  ✅ **DEPLOYED**
 **URL Production :** https://coupel.net/automation-factory
 **URL Staging :** http://192.168.1.217 (nginx reverse proxy)
 **URL Marketing :** https://ccoupel.github.io/automation-factory/ (branche `gh-pages`)
-**Dernière mise à jour :** 2026-03-20
+**Dernière mise à jour :** 2026-11-03
 
 ## 📚 **Documentation Organisée**
 
@@ -41,7 +41,6 @@ Ce document est l'index principal pour les futures instances de Claude travailla
 - **[Travail en Cours](docs/work/WORK_IN_PROGRESS.md)** - Versions, features, bugs en cours
 - **[GitHub Issues](https://github.com/CCoupel/automation-factory/issues)** - Roadmap et fonctionnalités prévues (backlog migré)
 - **[Historique Réalisations](docs/work/DONE.md)** - Fonctionnalités implémentées par version
-- **[Métriques Performance](docs/work/PERFORMANCE_METRICS.md)** - Mesures et optimisations
 
 ---
 
@@ -302,8 +301,9 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-bac
 
 > **Migration v3 (2026-09-16)** : ce projet est passé du modèle CDP séparé/Team-AF à
 > l'architecture teamleader du template actuel. Le "Claude principal" EST le teamleader —
-> plus de spawn de CDP en cours de session. Tous les agents sont pré-spawnés par
-> `/start-session` et restent IDLE. Voir `.claude/agents/context/TEAMMATES_PROTOCOL.template.md`
+> plus de spawn de CDP en cours de session. **Migration v4 (2026-11-03)** : seuls les agents `socle`
+> sont spawnés par `/start-session` ; la team du milestone l'est au GATE 2, les agents `ponctuel` à la
+> demande (`.claude/agents/context/MILESTONE_CADRAGE.template.md`). Voir `.claude/agents/context/TEAMMATES_PROTOCOL.template.md`
 > pour le détail du protocole.
 
 ### Démarrage de Session
@@ -358,6 +358,8 @@ KUBECONFIG=kubeconfig.txt kubectl rollout undo deployment/automation-factory-bac
 | `/secu [scope]` | Audit sécurité |
 | `/backlog [desc]` | Consulter / traiter les GitHub Issues |
 | `/milestone status` | Progression du milestone actif |
+| `/marketing` | Communication de release / site marketing (`gh-pages`) |
+| `/team-delete` | Dissoudre la team |
 | `/progression` | État d'avancement des agents en cours |
 | `/context-audit [scope]` | Audit doc (doublons, refs cassées) |
 | `/init-project` | Réinitialiser / mettre à jour le projet |
