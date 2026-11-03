@@ -30,7 +30,9 @@ services:
     image: nginx:alpine
     container_name: automation-factory-nginx-staging
     ports:
-      - "80:80"
+      # Bind sur l'IP de staging uniquement : le port 80 de srv7 est déjà publié par
+      # `mfscgi` (MooseFS) sur 192.168.1.231 et 192.168.2.231 — jamais "80:80" (0.0.0.0)
+      - "${AF_STAGING_BIND_IP:-192.168.1.217}:80:80"
     restart: unless-stopped
     depends_on:
       - automation-factory-frontend

@@ -50,6 +50,9 @@ Ce document détaille les procédures spécifiques à la **Phase 2 : Intégratio
 # Serveur de staging
 Host: 192.168.1.217
 Ports: 80 (frontend), 8000 (backend)
+Bind nginx: 192.168.1.217:80 uniquement (AF_STAGING_BIND_IP, défaut 192.168.1.217) — le port 80 de srv7
+            est déjà publié par le conteneur MooseFS `mfscgi` sur 192.168.1.231 et 192.168.2.231 :
+            ne jamais publier "80:80" (0.0.0.0), sinon nginx ne démarre pas (port already allocated)
 Database: SQLite persistant (volume nommé automation-factory-staging-data monté sur /data)
 Cache: mémoire (pas de Redis)
 Réseau: réseau `default` géré par compose (aucune dépendance externe)
