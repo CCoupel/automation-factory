@@ -46,6 +46,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### 🛠️ **Fixed**
 - Configuration ESLint frontend restaurée (flat config ESLint 9), code mis en conformité (#95)
+- Tests frontend : `localStorage`/`sessionStorage` mémoire déterministes dans le setup Vitest (#95)
+- **[SECURITY]** Dépendances frontend : `npm audit fix` + montées vitest 5, vite 8, @vitejs/plugin-react 6, react-router-dom 7 (0 vulnérabilité high/critical) (#95)
 - Backend : 109 erreurs ruff corrigées (imports inutilisés, variables ambiguës/inutilisées, comparaisons à True, bare except), sans changement de comportement (#97)
 
 ### ⚠️ **BREAKING — Outillage (pas API HTTP)**
